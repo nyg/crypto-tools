@@ -1,3 +1,29 @@
 {
-  "extends": "next/core-web-vitals"
+    "extends": "next/core-web-vitals",
+    "rules": {
+        "indent": [
+            "error",
+            3,
+            {
+                "SwitchCase": 1
+            }
+        ],
+        "semi": [
+            "error",
+            "never"
+        ],
+        "react-hooks/exhaustive-deps": [
+            0
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "sort-imports": [
+            "error",
+            {
+                "ignoreCase": true
+            }
+        ]
+    }
 }
