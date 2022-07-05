@@ -25,11 +25,34 @@ export default function Home() {
    }
    else {
       console.log(data)
-      content = <>
+
+      const positions = data.balance.flatMap(b => b.staking.positions)
+      positions.sort((p, q) => p.deliverDate - q.deliverDate)
+
+      console.log(positions)
+
+      const table = <table className="w-1/3">
+         <thead>
+
+         </thead>
+         <tbody className="text-right">
+            {positions.map(position => (
+               <tr key={position.positionId}>
+                  <td className="text-left">{position.asset}</td>
+                  <td>{format.asDecimal(position.amount)}</td>
+                  <td>{format.asPercentage(position.apy)}</td>
+                  <td>{position.accrualDays} of {position.duration}</td>
+                  <td>{format.asLongDate(position.deliverDate)}</td>
+               </tr>
+            ))}
+         </tbody>
+      </table>
+
+      const list = <>
          {data.balance.map(({ asset, totalUSD, total, spot, staking }) => (
             <div key={asset} className="border border-gray-800 rounded p-2">
                <div className="pb-1">
-                  <span className="font-bold">{asset}</span>, total $: {format.asDecimal(totalUSD)}, spot: {format.asDecimal(spot)}, staking: {format.asDecimal(staking?.balance)}
+                  <span className="font-bold">{asset}</span> ${format.asDecimal(totalUSD)} (spot: {format.asDecimal(spot)}, staking: {format.asDecimal(staking?.balance)})
                </div>
                <div className="border-t border-gray-400 pt-1 pb-1">
                   {staking.positions.map(position => (
@@ -51,6 +74,11 @@ export default function Home() {
                </div>
             </div>
          ))}
+      </>
+
+      content = <>
+         <div>{table}</div>
+         <div>{list}</div>
       </>
    }
 
