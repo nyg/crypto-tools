@@ -1,30 +1,31 @@
 import * as format from '../utils/format'
 import Head from 'next/head'
 import Input from '../components/form/input'
-import { useState } from 'react'
+import useSWRMutation from 'swr/mutation'
 
+
+async function sendRequest(url, { arg: body }) {
+   // check https://github.com/ElvenTools/elven-tools-dapp/blob/85013df2eacac974804c345434c432447c112f64/utils/apiCall.ts
+   return (await fetch(url, { method: 'POST', body })).json()
+}
 
 export default function Home() {
 
-   const [content, setContent] = useState(<p>Provide a Binance API key and secret to start fetching your data.</p>)
+   const { data, error, trigger, isMutating } = useSWRMutation('/api/aggregate-balance', sendRequest)
 
-   const onSubmit = async event => {
-
-      event.preventDefault()
-
-      const response = await fetch('/api/aggregate-balance', {
-         method: 'POST',
-         body: new URLSearchParams(new FormData(event.target))
-      })
-
-      if (response.status !== 200) {
-         setContent(<p>Error, make sure your API key is correct</p>)
-         return
-      }
-
-      const data = await response.json()
-
-      setContent(<>
+   let content
+   if (error) {
+      content = <div>{error}</div>
+   }
+   else if (isMutating) {
+      content = <div>data is loading</div>
+   }
+   else if (!data) {
+      content = <div>submit the form</div>
+   }
+   else {
+      console.log(data)
+      content = <>
          {data.balance.map(({ asset, totalUSD, total, spot, staking }) => (
             <div key={asset} className="border border-gray-800 rounded p-2">
                <div className="pb-1">
@@ -50,7 +51,12 @@ export default function Home() {
                </div>
             </div>
          ))}
-      </>)
+      </>
+   }
+
+   const onSubmit = async event => {
+      event.preventDefault()
+      trigger(new URLSearchParams(new FormData(event.target)))
    }
 
    return (
