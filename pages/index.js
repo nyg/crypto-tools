@@ -1,13 +1,11 @@
 import * as format from '../utils/format'
+import ApiForm from '../components/api-form'
+import eventBus from '../utils/event-bus'
 import Head from 'next/head'
-import Input from '../components/form/input'
+import Menu from '../components/menu'
+import { useEffect } from 'react'
 import useSWRMutation from 'swr/mutation'
 
-
-async function sendRequest(url, { arg: body }) {
-   // check https://github.com/ElvenTools/elven-tools-dapp/blob/85013df2eacac974804c345434c432447c112f64/utils/apiCall.ts
-   return (await fetch(url, { method: 'POST', body })).json()
-}
 
 export default function Home() {
 
@@ -32,8 +30,8 @@ export default function Home() {
       console.log(positions)
 
       const table = <table className="w-1/3">
+         <caption>Next redemptions</caption>
          <thead>
-
          </thead>
          <tbody className="text-right">
             {positions.map(position => (
@@ -78,14 +76,11 @@ export default function Home() {
 
       content = <>
          <div>{table}</div>
-         <div>{list}</div>
+         <div className="space-y-4">{list}</div>
       </>
    }
 
-   const onSubmit = async event => {
-      event.preventDefault()
-      trigger(new URLSearchParams(new FormData(event.target)))
-   }
+   useEffect(() => eventBus.on('api.form.submitted', trigger), [])
 
    return (
       <div>
@@ -95,19 +90,27 @@ export default function Home() {
             <link rel="icon" href="/favicon.ico" />
          </Head>
 
-         <main className="text-sm space-y-4 p-4">
-            <form method="post" onSubmit={onSubmit}>
-               <div className="flex items-end gap-x-3">
-                  <Input className="flex-grow" name="apiKey" label="API Key" defaultValue={process.env.NEXT_PUBLIC_BINANCE_API_KEY} />
-                  <Input className="flex-grow" name="apiSecret" label="API Secret" defaultValue={process.env.NEXT_PUBLIC_BINANCE_API_SECRET} type="password" />
-                  <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500">Fetch</button>
-               </div>
-            </form>
+         <main className="flex flex-col px-12 pb-12">
+            <header className="pl-3 mt-4 mb-4 flex items-baseline gap-x-3">
+               <h1 className="text-xl">Binance Staking Overview</h1>
+               <span className="flex-grow"></span>
+               <Menu />
+            </header>
 
-            <div className="space-y-4">
-               {content}
-            </div>
+            <section className="flex-grow text-sm space-y-6">
+               <ApiForm />
+
+               <div className="space-y-4">
+                  {content}
+               </div>
+            </section>
          </main>
       </div>
    )
+}
+
+async function sendRequest(url, { arg: body }) {
+   // to check for error handling:
+   // https://github.com/ElvenTools/elven-tools-dapp/blob/85013df2eacac974804c345434c432447c112f64/utils/apiCall.ts
+   return (await fetch(url, { method: 'POST', body })).json()
 }
