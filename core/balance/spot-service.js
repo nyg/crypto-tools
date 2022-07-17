@@ -13,10 +13,11 @@ export default function SpotBalanceService(apiKey, apiSecret) {
          .balances
          .map(balance => ({
             asset: balance.asset,
-            amount: Big(balance.free).add(balance.locked)
+            free: Big(balance.free),
+            locked: Big(balance.locked)
          }))
-         .filter(balance => !balance.amount.eq(0))
-         .filter(balance => balance.asset !== 'OGV')
+         .filter(({ free, locked }) => !free.add(locked).eq(0))
+         .filter(({ asset }) => asset !== 'OGV')
          .map(balance => {
             // TODO fix this
             if (balance.asset !== 'LDO' && balance.asset.match(/^LD/)) {

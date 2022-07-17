@@ -27,18 +27,49 @@ export default async function getAggregateBalance(req, res) {
 
    const aggregateBalance = assets.map(asset => {
 
-      const spot = spotBalance[asset]?.amount ?? Big(0)
       const staking = stakingBalance[asset] ?? { balance: Big(0), positions: [] }
+
       staking.products = stakingProducts[asset] ?? []
-      const total = spot.add(staking.balance)
+      staking.products = staking.products.map(product => {
+         const positions = staking.positions.filter(position => position.productId === product.projectId)
+         const positionsAmount = positions.map(p => p.amount).reduce((sum, value) => sum.add(value), Big(0))
+         return {
+            info: {
+               positionsAmount,
+               ...product
+            },
+            positions
+         }
+      })
+
+      const free = spotBalance[asset]?.free ?? Big(0)
+      const locked = spotBalance[asset]?.locked ?? Big(0)
+      const total = free.add(locked).add(staking.balance)
 
       return {
-         asset, spot, staking, total,
-         totalUSD: total.times(rates[asset])
+         asset,
+         free,
+         locked,
+         staking,
+         total,
+         freeFiatValue: free.times(rates[asset]),
+         fiatValue: total.times(rates[asset])
       }
    })
 
-   aggregateBalance.sort(({ totalUSD: aTotalUSD }, { totalUSD: bTotalUSD }) => bTotalUSD.minus(aTotalUSD))
+   // Sort by fiat value of free amount, assets with no staking products at the bottom
+   aggregateBalance.sort((a, b) => {
+
+      if (a.staking.products.length == 0 && b.staking.products.length != 0) {
+         return 1
+      }
+
+      if (a.staking.products.length != 0 && b.staking.products.length == 0) {
+         return -1
+      }
+
+      return b.freeFiatValue.minus(a.freeFiatValue)
+   })
 
    res.status(200).json({ balance: aggregateBalance })
 }

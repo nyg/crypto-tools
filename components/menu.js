@@ -1,6 +1,6 @@
-import eventBus from '../utils/event-bus'
 import Link from './lib/link'
 import MenuItem from './lib/menu-item'
+import eventBus from '../utils/event-bus'
 
 
 export default function Menu() {

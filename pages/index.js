@@ -1,11 +1,13 @@
+import { useEffect } from 'react'
+import Head from 'next/head'
+import useSWRMutation from 'swr/mutation'
+
 import ApiForm from '../components/api-form'
 import CurrentPositions from '../components/current-positions'
-import eventBus from '../utils/event-bus'
-import Head from 'next/head'
 import Menu from '../components/menu'
 import NextRedemptions from '../components/next-redemptions'
-import { useEffect } from 'react'
-import useSWRMutation from 'swr/mutation'
+
+import eventBus from '../utils/event-bus'
 
 
 export default function Home() {
@@ -48,7 +50,7 @@ export default function Home() {
                <Menu />
             </header>
 
-            <section className="flex-grow text-sm space-y-6">
+            <section className="flex-grow text-sm space-y-6 tabular-nums">
                <ApiForm />
 
                <div className="px-3 space-y-4">

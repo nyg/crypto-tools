@@ -1,7 +1,7 @@
 import Big from 'big.js'
-import BinanceConnection from '../../adapters/binance-api/connection.js'
 import { findPath } from 'modern-dijkstra'
 import MarketService from '../market/market-service.js'
+import BinanceConnection from '../../adapters/binance-api/connection.js'
 
 
 export default function RateService(apiKey, apiSecret) {
