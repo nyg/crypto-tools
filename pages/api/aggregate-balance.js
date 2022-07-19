@@ -30,6 +30,8 @@ export default async function getAggregateBalance(req, res) {
       const staking = stakingBalance[asset] ?? { balance: Big(0), positions: [] }
 
       staking.products = stakingProducts[asset] ?? []
+      staking.products.sort((a, b) => Big(b.config.annualInterestRate).minus(a.config.annualInterestRate))
+
       staking.products = staking.products.map(product => {
          const positions = staking.positions.filter(position => position.productId === product.projectId)
          const positionsAmount = positions.map(p => p.amount).reduce((sum, value) => sum.add(value), Big(0))
