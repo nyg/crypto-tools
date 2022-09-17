@@ -6,7 +6,13 @@ staking products for each of your assets.
 
 ![screenshot](public/screenshot.png)
 
-## Installation
+## Getting Started
+
+### Online
+
+* https://binance-staking-overview.vercel.app
+
+### Local Installation
 
 1. Install Node.js
 2. Clone or download this repository
@@ -16,3 +22,10 @@ staking products for each of your assets.
 5. Using the terminal, run `npm install` and then `npm run dev` inside the
    downloaded folder
 6. Open [http://localhost:3000/](http://localhost:3000/)
+
+## TODO
+
+* Remove decimals when displaying the "user quota reached" message
+* Remember me
+* Regroup assets with no staking products
+* Regroup products with no positions
