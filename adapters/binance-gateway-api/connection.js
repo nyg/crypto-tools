@@ -1,16 +1,14 @@
-import BinanceGatewayRequester from './requester.js'
+import { httpRequester } from './requester'
 
 
-export default function BinanceGatewayConnection() {
+function BinanceGatewayConnection() {
 
    const apiUrl = 'https://www.binance.com/gateway-api'
-   const requester = new BinanceGatewayRequester()
-
    const stakingProductsEndpoint = '/v1/friendly/pos/union'
 
 
    this.fetchStakingProducts = async function () {
-      return await requester.execute(urlFor(stakingProductsEndpoint), {
+      return await httpRequester.execute(urlFor(stakingProductsEndpoint), {
          status: 'ALL',
          pageSize: 200
       })
@@ -21,3 +19,5 @@ export default function BinanceGatewayConnection() {
       return apiUrl + endpoint
    }
 }
+
+export const binanceGatewayConnection = new BinanceGatewayConnection()

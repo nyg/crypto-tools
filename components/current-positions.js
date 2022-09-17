@@ -54,7 +54,7 @@ function Product({ product, spot }) {
             return <span className="text-red-600">sold out and user quota too low</span>
          }
          else if (spot.gt(userQuotaRemaining)) {
-            return <span className="text-red-600">sold out and user quota remaining is {userQuotaRemaining}</span>
+            return <span className="text-red-600">sold out and user quota remaining is {format.asDecimal(userQuotaRemaining)}</span>
          }
          else {
             return <span className="">sold out</span>

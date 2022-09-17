@@ -26,7 +26,6 @@ export default function Home() {
       content = <div>Generate an API key and secret on Binance to be able to fetch your spot and staking balance.</div>
    }
    else {
-      console.log(data)
       content = (
          <>
             <NextRedemptions data={data} />

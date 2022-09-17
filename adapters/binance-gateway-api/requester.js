@@ -1,7 +1,7 @@
 import got from 'got'
 
 
-export default function BinanceGatewayRequester() {
+function HttpRequester() {
 
    this.execute = async function (url, params = {}) {
       return await got.get(url, {
@@ -9,3 +9,5 @@ export default function BinanceGatewayRequester() {
       }).json()
    }
 }
+
+export const httpRequester = new HttpRequester()

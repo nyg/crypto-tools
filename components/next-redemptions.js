@@ -6,8 +6,6 @@ export default function NextRedemptions({ data }) {
    const positions = data.balance.flatMap(b => b.staking.positions)
    positions.sort((p, q) => p.deliverDate - q.deliverDate)
 
-   console.log(positions)
-
    return (
       <div className="w-1/3 h-32 overflow-auto">
          <table className="w-full text-right">

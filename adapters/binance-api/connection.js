@@ -1,13 +1,12 @@
-import BinanceRequester from './requester.js'
+import { httpRequester } from './requester'
 
 
-export default function BinanceConnection(apiKey, apiSecret) {
+function BinanceConnection() {
 
    const apiUrl = 'https://api.binance.com'
-   const requester = new BinanceRequester(apiKey, apiSecret)
 
 
-   /* Public */
+   /* Public Endpoints */
 
    const systemStatusEndpoint = '/sapi/v1/system/status'
    const exchangeInfoEndpoint = '/api/v3/exchangeInfo'
@@ -15,39 +14,66 @@ export default function BinanceConnection(apiKey, apiSecret) {
 
 
    this.fetchSystemStatus = async function () {
-      return await requester.public(urlFor(systemStatusEndpoint))
+      return await httpRequester.public(urlFor(systemStatusEndpoint))
    }
 
    this.fetchExchangeInfo = async function () {
-      return await requester.public(urlFor(exchangeInfoEndpoint))
+      return await httpRequester.public(urlFor(exchangeInfoEndpoint))
    }
 
    this.fetchTickerPrice = async function (pairs) {
-      return await requester.public(urlFor(tickerPriceEndpoint), {
+      return await httpRequester.public(urlFor(tickerPriceEndpoint), {
          symbols: JSON.stringify(pairs)
       })
    }
 
-   /* Private */
 
-   const accountEndpoint = '/api/v3/account'
-   const stakingPositionEndpoint = '/sapi/v1/staking/position'
+   /* Private Endpoints */
+
+   const spotBalanceEndpoint = '/sapi/v3/asset/getUserAsset'
+   const stakingPositionsEndpoint = '/sapi/v1/staking/position'
 
 
-   this.fetchAccountInformation = async function () {
-      return await requester.private(urlFor(accountEndpoint))
+   this.fetchSpotBalance = async function (apiCredentials) {
+      return await httpRequester.private({
+         method: 'POST',
+         url: urlFor(spotBalanceEndpoint),
+         ...apiCredentials
+      })
    }
 
-   this.fetchStakingPosition = async function () {
-      // TODO paging
-      return await requester.private(urlFor(stakingPositionEndpoint), {
+   /** Retrieves locked staking positions, ignore flexible and locked DeFi. */
+   this.fetchStakingPositions = async function (apiCredentials) {
+
+      const config = {
+         url: urlFor(stakingPositionsEndpoint),
+         ...apiCredentials
+      }
+
+      const params = {
          product: 'STAKING',
          current: 1,
          size: 100
-      })
+      }
+
+      let hasNext
+      let positions = []
+
+      do {
+         positions = positions.concat(await httpRequester.private(config, params))
+
+         hasNext = positions.length === params.size
+         params.current++
+      }
+      while (hasNext)
+
+      return positions
    }
+
 
    function urlFor(endpoint) {
       return apiUrl + endpoint
    }
 }
+
+export const binanceConnection = new BinanceConnection()

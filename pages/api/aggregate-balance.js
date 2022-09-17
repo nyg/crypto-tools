@@ -1,11 +1,7 @@
 import Big from 'big.js'
-import RateService from '../../core/rate/rate-service'
-import SpotBalanceService from '../../core/balance/spot-service'
-import StakingBalanceService from '../../core/balance/staking-service'
-
-let spotBalanceService
-let stakingBalanceService
-let rateService
+import { spotService } from '../../core/spot-service'
+import { stakingService } from '../../core/staking-service'
+import { rateService } from '../../core/rate-service'
 
 
 export default async function getAggregateBalance(req, res) {
@@ -15,19 +11,22 @@ export default async function getAggregateBalance(req, res) {
       return
    }
 
-   initServices(req.body.apiKey, req.body.apiSecret)
+   const apiCredentials = {
+      apiKey: req.body.apiKey,
+      apiSecret: req.body.apiSecret
+   }
 
-   const spotBalance = await spotBalanceService.fetchSpotBalance()
-   const stakingBalance = await stakingBalanceService.fetchStakingBalance()
-   const stakingProducts = await stakingBalanceService.fetchStakingProducts()
+   const spotBalance = await spotService.fetchSpotBalance(apiCredentials)
+   const stakingPositions = await stakingService.fetchStakingBalance(apiCredentials)
+   const stakingProducts = await stakingService.fetchStakingProducts()
 
-   const assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingBalance)))]
+   const assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
    const rates = await rateService.fetchRates(assets)
 
 
    const aggregateBalance = assets.map(asset => {
 
-      const staking = stakingBalance[asset] ?? { balance: Big(0), positions: [] }
+      const staking = stakingPositions[asset] ?? { balance: Big(0), positions: [] }
 
       staking.products = stakingProducts[asset] ?? []
       staking.products.sort((a, b) => Big(b.config.annualInterestRate).minus(a.config.annualInterestRate))
@@ -74,10 +73,4 @@ export default async function getAggregateBalance(req, res) {
    })
 
    res.status(200).json({ balance: aggregateBalance })
-}
-
-function initServices(apiKey, apiSecret) {
-   spotBalanceService ??= new SpotBalanceService(apiKey, apiSecret)
-   stakingBalanceService ??= new StakingBalanceService(apiKey, apiSecret)
-   rateService ??= new RateService(apiKey, apiSecret)
 }
