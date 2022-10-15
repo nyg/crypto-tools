@@ -25,16 +25,16 @@
    },
    "dependencies": {
       "big.js": "6.2.1",
-      "got": "12.5.1",
+      "got": "12.5.2",
       "modern-dijkstra": "1.1.2",
       "next": "12.3.1",
       "react": "18.2.0",
       "react-dom": "18.2.0",
-      "swr": "2.0.0-beta.7"
+      "swr": "2.0.0-rc.0"
    },
    "devDependencies": {
       "autoprefixer": "10.4.12",
-      "eslint": "8.24.0",
+      "eslint": "8.25.0",
       "eslint-config-next": "12.3.1",
       "postcss": "8.4.17",
       "tailwindcss": "3.1.8"
