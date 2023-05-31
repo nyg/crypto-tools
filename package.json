@@ -27,16 +27,16 @@
       "big.js": "6.2.1",
       "got": "13.0.0",
       "modern-dijkstra": "1.1.2",
-      "next": "13.3.1",
+      "next": "13.4.4",
       "react": "18.2.0",
       "react-dom": "18.2.0",
       "swr": "2.1.5"
    },
    "devDependencies": {
       "autoprefixer": "10.4.14",
-      "eslint": "8.39.0",
-      "eslint-config-next": "13.3.1",
-      "postcss": "8.4.23",
+      "eslint": "8.41.0",
+      "eslint-config-next": "13.4.4",
+      "postcss": "8.4.24",
       "tailwindcss": "3.3.2"
    }
 }
