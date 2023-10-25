@@ -12,11 +12,14 @@ function HttpRequester() {
 
    this.private = async function ({ method = 'GET', url, apiKey, apiSecret }, params = {}) {
       const authPayload = new AuthenticatedPayload(params)
-      return await got(url, {
+      const response = await got(url, {
          method,
          searchParams: authPayload.signWith(apiSecret),
          headers: authPayload.buildHeaders(apiKey)
-      }).json()
+      })
+
+      console.log('Weight: ', response.headers['x-sapi-used-uid-weight-1m'])
+      return JSON.parse(response.body)
    }
 }
 

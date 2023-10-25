@@ -17,6 +17,11 @@ function SpotService() {
             return map
          }, {})
    }
+
+   this.fetchFiatDeposits = async function (apiCredentials) {
+      const deposits = await binanceConnection.fetchFiatDeposits(apiCredentials)
+      return deposits
+   }
 }
 
 export const spotService = new SpotService()
