@@ -5,7 +5,13 @@ function HttpRequester() {
 
    this.execute = async function (url, searchParams = {}) {
       console.debug(`URL: ${url}`)
-      return await got.get(url, { searchParams }).json()
+      try {
+         return await got.get(url, { searchParams }).json()
+      }
+      catch (error) {
+         console.error(`some error happened: ${url}`)
+         throw Error('error dude 3')
+      }
    }
 }
 
