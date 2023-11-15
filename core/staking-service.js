@@ -17,8 +17,8 @@ function StakingService() {
 
    this.fetchStakingProducts = async function () {
       const products = await binanceGatewayConnection.fetchStakingProducts()
-      return products.data.reduce((map, products) => {
-         map[products.asset] = products.projects
+      return products.data.list.reduce((map, products) => {
+         map[products.asset] = products.productDetailList
          return map
       }, {})
    }

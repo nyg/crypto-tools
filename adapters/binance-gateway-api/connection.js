@@ -3,14 +3,15 @@ import { httpRequester } from './requester'
 
 function BinanceGatewayConnection() {
 
-   const apiUrl = 'https://www.binance.com/gateway-api'
-   const stakingProductsEndpoint = '/v1/friendly/pos/union'
+   const apiUrl = 'https://www.binance.com/bapi/earn'
+   const stakingProductsEndpoint = '/v1/friendly/finance-earn/simple/product/simpleEarnProducts'
 
 
    this.fetchStakingProducts = async function () {
       return await httpRequester.execute(urlFor(stakingProductsEndpoint), {
-         status: 'ALL',
-         pageSize: 200
+         pageIndex: 1,
+         pageSize: 500,
+         simpleEarnType: 'FIXED'
       })
    }
 

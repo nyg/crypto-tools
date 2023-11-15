@@ -16,31 +16,26 @@ function LabeledValue({ label, value, className }) {
 function Product({ product, spot }) {
 
    const duration = product.info.duration
-   const apy = format.asPercentage(product.info.config.annualInterestRate)
+   const apy = format.asPercentage(product.info.apy)
 
    const productAvailable = !product.info.sellOut
-   const totalRemaining = Big(product.info.upLimit).minus(product.info.purchased) // totalAmountRemaining
-   const userQuota = Big(product.info.config.maxPurchaseAmountPerUser)
-   const userQuotaRemaining = userQuota.minus(product.info.positionsAmount) // userAmountRemaining
+   const userQuota = Big(product.info.maxPurchaseAmountPerUser)
+   const userQuotaRemaining = userQuota.minus(product.info.positionsAmount)
 
    const buildAvailability = () => {
 
       if (productAvailable) {
-         if (spot.gt(totalRemaining) || spot.gt(userQuotaRemaining)) {
-            if (totalRemaining.lt(userQuotaRemaining)) {
-               return <span className="text-green-600">available but only {format.asDecimal(totalRemaining)} {product.info.asset} remaining</span>
+         if (spot.gt(userQuotaRemaining)) {
+            if (userQuotaRemaining.eq(0)) {
+               return <span className="text-red-600">available but user quota of {format.asDecimal(userQuota)} {product.info.asset} reached</span>
+            }
+            if (userQuotaRemaining.lt(product.info.minPurchaseAmount)) {
+               return <span className="text-red-600">available but remaining user quota too low</span>
             }
             else {
-               if (userQuotaRemaining.eq(0)) {
-                  return <span className="text-red-600">available but user quota of {format.asDecimal(userQuota)} {product.info.asset} reached</span>
-               }
-               if (userQuotaRemaining.lt(product.info.config.minPurchaseAmount)) {
-                  return <span className="text-red-600">available but remaining user quota too low</span>
-               }
-               else {
-                  return <span className="text-orange-400">available but user quota remaining is {format.asDecimal(userQuotaRemaining)} {product.info.asset}</span>
-               }
+               return <span className="text-orange-400">available but user quota remaining is {format.asDecimal(userQuotaRemaining)} {product.info.asset}</span>
             }
+            // }
          }
          else {
             return <span className="text-green-600">available</span>
@@ -50,7 +45,7 @@ function Product({ product, spot }) {
          if (userQuotaRemaining.eq(0)) {
             return <span className="text-red-600">sold out and user quota of {format.asDecimal(userQuota)} {product.info.asset} reached</span>
          }
-         if (userQuotaRemaining.lt(product.info.config.minPurchaseAmount)) {
+         if (userQuotaRemaining.lt(product.info.minPurchaseAmount)) {
             return <span className="text-red-600">sold out and user quota too low</span>
          }
          else if (spot.gt(userQuotaRemaining)) {

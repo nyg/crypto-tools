@@ -18,7 +18,7 @@ export default async function getAggregateBalance(req, res) {
 
    const spotBalance = await spotService.fetchSpotBalance(apiCredentials)
    const stakingPositions = await stakingService.fetchStakingBalance(apiCredentials)
-   const stakingProducts = await stakingService.fetchStakingProducts()
+   const stakingProducts = await stakingService.fetchStakingProducts() // TODO check if we can fetch via official API
 
    const assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
    const rates = await rateService.fetchRates(assets)
@@ -29,7 +29,7 @@ export default async function getAggregateBalance(req, res) {
       const staking = stakingPositions[asset] ?? { balance: Big(0), positions: [] }
 
       staking.products = stakingProducts[asset] ?? []
-      staking.products.sort((a, b) => Big(b.config.annualInterestRate).minus(a.config.annualInterestRate))
+      staking.products.sort((a, b) => Big(b.apy).minus(a.apy))
 
       staking.products = staking.products.map(product => {
          const positions = staking.positions.filter(position => position.productId === product.projectId)
