@@ -1,12 +1,13 @@
 {
-   "name": "binance-staking-overview",
+   "name": "crypto-tools",
    "version": "1.0.0",
-   "description": "Provides an overview of your spot and locked staking balance, as well as locked staking products.",
+   "description": "miscellaneous cryptocurrency tools (formerly binance-staking-overview).",
    "repository": {
       "type": "git",
-      "url": "git+ssh://git@github.com/nyg/binance-staking-overview.git"
+      "url": "git+ssh://git@github.com/nyg/crypto-tools.git"
    },
    "keywords": [
+      "crypto",
       "binance",
       "staking",
       "overview",
@@ -15,7 +16,7 @@
    "author": "nyg",
    "license": "MIT",
    "bugs": {
-      "url": "https://github.com/nyg/binance-staking-overview/issues"
+      "url": "https://github.com/nyg/crypto-tools/issues"
    },
    "scripts": {
       "dev": "next dev",

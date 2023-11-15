@@ -1,4 +1,6 @@
-# Binance Staking Overview
+# Crypto Tools
+
+## Binance Staking Overview
 
 Web app that provides an overview of your spot wallet balances as well as your
 locked staking positions. It will also display the available or sold out locked
@@ -10,7 +12,7 @@ staking products for each of your assets.
 
 ### Online
 
-* https://binance-staking-overview.vercel.app
+* https://crypto-tools.andstuff.club
 
 ### Local Installation
 
