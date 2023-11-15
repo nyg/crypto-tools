@@ -5,12 +5,15 @@ import { createHmac } from 'crypto'
 function HttpRequester() {
 
    this.public = async function (url, params = {}) {
+      console.log(`URL: ${url}`)
       return await got.get(url, {
          searchParams: params
       }).json()
    }
 
    this.private = async function ({ method = 'GET', url, apiKey, apiSecret }, params = {}) {
+      console.log(`URL: ${url}`)
+
       const authPayload = new AuthenticatedPayload(params)
       const response = await got(url, {
          method,
@@ -18,7 +21,7 @@ function HttpRequester() {
          headers: authPayload.buildHeaders(apiKey)
       })
 
-      console.log('Weight: ', response.headers['x-sapi-used-uid-weight-1m'])
+      console.log(`Weight: ${response.headers['x-sapi-used-uid-weight-1m']}`)
       return JSON.parse(response.body)
    }
 }
