@@ -6,6 +6,8 @@ import { rateService } from '../../core/rate-service'
 
 export default async function getAggregateBalance(req, res) {
 
+   console.log('entering function')
+
    if (!req.body.apiKey || !req.body.apiSecret) {
       res.status(401)
       return
@@ -16,9 +18,15 @@ export default async function getAggregateBalance(req, res) {
       apiSecret: req.body.apiSecret
    }
 
+   console.count()
    const spotBalance = await spotService.fetchSpotBalance(apiCredentials)
+   console.count()
    const stakingPositions = await stakingService.fetchStakingBalance(apiCredentials)
+   console.count()
    const stakingProducts = await stakingService.fetchStakingProducts() // TODO check if we can fetch via official API
+   console.count()
+
+   console.log('should be ok here')
 
    const assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
    const rates = await rateService.fetchRates(assets)
