@@ -1,4 +1,5 @@
-import { httpRequester } from './requester'
+import { httpRequester } from '../http-requester/http-requester'
+import { authenticator } from './authenticator'
 
 
 function BinanceConnection() {
@@ -29,9 +30,8 @@ function BinanceConnection() {
    }
 
    this.fetchKLines = async function (symbol, interval, startTime, endTime, limit) {
-      return await httpRequester.public(urlFor(klinesEndpoint), {
-         symbol, interval, startTime, endTime, limit
-      })
+      const params = { symbol, interval, startTime, endTime, limit }
+      return await httpRequester.public(urlFor(klinesEndpoint), params)
    }
 
 
@@ -46,7 +46,7 @@ function BinanceConnection() {
       return await httpRequester.private({
          method: 'POST',
          url: urlFor(spotBalanceEndpoint),
-         ...apiCredentials
+         authenticate: authenticator(apiCredentials)
       })
    }
 

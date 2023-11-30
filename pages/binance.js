@@ -7,14 +7,34 @@ import Layout from '../components/lib/layout'
 
 export default function Home() {
 
-   const { data, error, trigger, isMutating } = useSWRMutation('/api/aggregate-balance', sendRequest)
-
    const [apiKeys, setApiKeys] = useState({ apiKey: '', apiSecret: '' })
    useEffect(() =>
       setApiKeys({
          apiKey: localStorage.getItem('binance.api.key'),
          apiSecret: localStorage.getItem('binance.api.secret')
       }), [])
+
+   const fetchAPIData = async () =>  {
+
+      // TODO this service is specific to Binance, logic probably needs to be moved adapter somehow
+      const spotBalance = await spotService.fetchSpotBalance(apiKeys)
+      const stakingPositions = await stakingService.fetchStakingBalance(apiKeys)
+      const stakingProducts = await stakingService.fetchStakingProducts()
+
+
+      const p1 = fetch(url, options)
+      const p2 = fetch(url, options)
+      const res = await Promise.all([p1, p2])
+      const formatted = format(res)
+      store(formatted) // if set state then would rerender auto but we want to store in browser db?
+   }
+
+
+
+   // faire un hook qui useApi(apiUrls, presenter)
+
+   const { data, error, trigger, isMutating } = useSWRMutation('/api/aggregate-balance', sendRequest)
+
 
    let content
    if (error) {
