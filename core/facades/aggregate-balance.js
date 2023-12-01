@@ -1,20 +1,10 @@
 import Big from 'big.js'
-import { spotService } from '../../core/services/spot-service'
-import { stakingService } from '../../core/services/staking-service'
-import { rateService } from '../../core/services/rate-service'
+import { spotService } from '../services/spot-service'
+import { stakingService } from '../services/staking-service'
+import { rateService } from '../services/rate-service'
 
 
-export default async function getAggregateBalance(req, res) {
-
-   if (!req.body.apiKey || !req.body.apiSecret) {
-      res.status(401)
-      return
-   }
-
-   const apiCredentials = {
-      apiKey: req.body.apiKey,
-      apiSecret: req.body.apiSecret
-   }
+export default async function getAggregateBalance(apiCredentials) {
 
    const spotBalance = await spotService.fetchSpotBalance(apiCredentials)
    const stakingPositions = await stakingService.fetchStakingBalance(apiCredentials)
@@ -60,16 +50,13 @@ export default async function getAggregateBalance(req, res) {
 
    // Sort by fiat value of free amount, assets with no staking products at the bottom
    aggregateBalance.sort((a, b) => {
-
       if (a.staking.products.length == 0 && b.staking.products.length != 0) {
          return 1
-      }
-
-      if (a.staking.products.length != 0 && b.staking.products.length == 0) {
+      } else if (a.staking.products.length != 0 && b.staking.products.length == 0) {
          return -1
+      } else {
+         return b.freeFiatValue.minus(a.freeFiatValue)
       }
-
-      return b.freeFiatValue.minus(a.freeFiatValue)
    })
 
    res.status(200).json({ balance: aggregateBalance })

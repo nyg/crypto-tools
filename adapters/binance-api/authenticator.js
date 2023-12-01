@@ -8,9 +8,9 @@ function RequestPayload({ apiKey, apiSecret }, params) {
       timestamp: Date.now()
    }
 
-   this.signed = () => ({
+   this.signed = async () => ({
       ...payload,
-      signature: hmac256(apiSecret, new URLSearchParams(payload).toString())
+      signature: await hmac256(apiSecret, new URLSearchParams(payload).toString())
    })
 
    this.headers = () => ({
@@ -20,20 +20,25 @@ function RequestPayload({ apiKey, apiSecret }, params) {
 
 function authenticatorFunction(credentials) {
 
-   return request => {
+   return async request => {
 
-      const searchParams = new URL(request.url).searchParams
-      const payload = new RequestPayload(credentials, searchParams)
+      const url = new URL(request.url)
+      console.log('original', url)
+      const payload = new RequestPayload(credentials, url.searchParams)
 
-      const signedParams = new URLSearchParams(payload.signed()).toString()
-      const urlWithParams = `${url}${signedParams ? `?${signedParams}` : ''}`
+      const signedParams = new URLSearchParams(await payload.signed()).toString()
+      const urlWithParams = `${url.href}${signedParams ? `?${signedParams}` : ''}`
+      console.log('new url', urlWithParams)
 
-      const authenticatedRequest = new Request(request)
-      authenticatedRequest.url = urlWithParams
-      authenticatedRequest.headers = {
-         ...authenticatedRequest.headers,
-         ...payload.headers()
-      }
+      console.log('headers', {...request.headers, ...payload.headers()})
+
+      const authenticatedRequest = new Request(urlWithParams, {
+         method: request.method,
+         headers: {...request.headers, ...payload.headers()},
+         body: request.body
+      })
+
+      console.log('auth req', authenticatedRequest)
 
       return authenticatedRequest
    }

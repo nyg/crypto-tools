@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import { binanceConnection } from '../adapters/binance-api/connection'
+import { binanceConnection } from '../../adapters/binance-api/connection'
 
 
 function SpotService() {

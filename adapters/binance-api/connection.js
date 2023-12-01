@@ -12,7 +12,7 @@ function BinanceConnection() {
    const systemStatusEndpoint = '/sapi/v1/system/status'
    const exchangeInfoEndpoint = '/api/v3/exchangeInfo'
    const tickerPriceEndpoint = '/api/v3/ticker/price'
-   const klinesEndpoint = '/api/v3/klines'
+   const klinesEndpoint = '/api/v3/klines' // candlestick data
 
 
    this.fetchSystemStatus = async function () {
@@ -37,7 +37,7 @@ function BinanceConnection() {
 
    /* Private Endpoints */
 
-   const spotBalanceEndpoint = '/sapi/v3/asset/getUserAsset'
+   const userAssetEndpoint = '/sapi/v3/asset/getUserAsset'
    const fiatFundingEndpoint = '/sapi/v1/fiat/orders'
    const stakingPositionsEndpoint = '/sapi/v1/staking/position'
 
@@ -45,7 +45,7 @@ function BinanceConnection() {
    this.fetchSpotBalance = async function (apiCredentials) {
       return await httpRequester.private({
          method: 'POST',
-         url: urlFor(spotBalanceEndpoint),
+         url: urlFor(userAssetEndpoint),
          authenticate: authenticator(apiCredentials)
       })
    }

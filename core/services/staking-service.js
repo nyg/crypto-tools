@@ -1,6 +1,6 @@
 import Big from 'big.js'
-import { binanceConnection } from '../adapters/binance-api/connection'
-import { binanceGatewayConnection } from '../adapters/binance-gateway-api/connection'
+import { binanceConnection } from '../../adapters/binance-api/connection'
+import { binanceGatewayConnection } from '../../adapters/binance-gateway-api/connection'
 
 
 function StakingService() {

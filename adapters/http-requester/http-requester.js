@@ -1,10 +1,10 @@
 function HttpRequester() {
 
-   this.public = async function (url, params = {}) {
+   this.public = function (url, params = {}) {
       execute({ url, params })
    }
 
-   this.private = async function ({ url, method = 'GET', params = {}, authenticate }) {
+   this.private = function ({ url, method = 'GET', params = {}, authenticate }) {
       execute({ url, method, params, authenticate })
    }
 
@@ -14,7 +14,7 @@ function HttpRequester() {
       const urlWithParams = `${url}${searchParams ? `?${searchParams}` : ''}`
 
       let request = new Request(urlWithParams, { method })
-      request = authenticate ? authenticate(request) : request
+      request = authenticate ? await authenticate(request) : request
 
       console.log(`Fetching request: ${request}`)
       const response = await fetch(request)
