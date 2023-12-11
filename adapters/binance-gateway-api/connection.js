@@ -1,4 +1,4 @@
-import { httpRequester } from '../http-requester/http-requester'
+import { httpRequester } from '../http-requester/server-http-requester'
 
 
 function BinanceGatewayConnection() {

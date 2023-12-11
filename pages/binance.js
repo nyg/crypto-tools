@@ -1,43 +1,13 @@
 import { useEffect, useState } from 'react'
+import useSWRMutation from 'swr/mutation'
 import CurrentPositions from '../components/current-positions'
 import NextRedemptions from '../components/next-redemptions'
 import Layout from '../components/lib/layout'
-import getAggregateBalance from '../core/facades/aggregate-balance'
 
 
-const useFacade = facade => {
+export default function Binance() {
 
-   const [data, setData] = useState(null)
-   const [loading, setLoading] = useState(false)
-   const [error, setError] = useState(null)
-
-   const trigger = async args => {
-      try {
-         setLoading(true)
-         const response = await facade(args)
-         console.log('fetched response of facade hook')
-         setData(response)
-         setLoading(false)
-      }
-      catch (error) {
-         console.log('error during facade hook call')
-         setError(error)
-         setLoading(false)
-      }
-   }
-
-   return {
-      data, loading, error, trigger
-   }
-}
-
-// const p1 = fetch(url, options)
-// const p2 = fetch(url, options)
-// const res = await Promise.all([p1, p2])
-// const formatted = format(res)
-// store(formatted) // if set state then would rerender auto but we want to store in browser db?
-
-export default function Home() {
+   const { data, error, trigger, isMutating } = useSWRMutation('/api/aggregate-balance')
 
    const [credentials, setCredentials] = useState({ apiKey: '', apiSecret: '' })
    useEffect(() =>
@@ -46,14 +16,16 @@ export default function Home() {
          apiSecret: localStorage.getItem('binance.api.secret')
       }), [])
 
-
-   const { data, loading, error, trigger } = useFacade(getAggregateBalance)
-
    let content
    if (error) {
-      content = <div className="text-red-500">{error}</div>
+      content = <>
+         <div className="text-red-500">{error}</div>
+         <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" onClick={() => trigger(credentials)}>
+            Fetch data
+         </button>
+      </>
    }
-   else if (loading) {
+   else if (isMutating) {
       content = <div>Fetching data…</div>
    }
    else if (!data && !credentials.apiKey) {

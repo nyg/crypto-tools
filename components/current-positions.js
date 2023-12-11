@@ -98,7 +98,7 @@ export default function CurrentPositions({ data }) {
                {staking.products.length != 0 && (
                   <div className="py-1 px-2">
                      <ul className="space-y-2">
-                        {staking.products.map(product => <Product key={product.info.id} product={product} spot={Big(free)} />)}
+                        {staking.products.map(product => <Product key={product.info.productId} product={product} spot={Big(free)} />)}
                      </ul>
                   </div>
                )}

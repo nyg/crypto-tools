@@ -4,17 +4,14 @@ import { spotService } from '../../core/spot-service'
 import { stakingService } from '../../core/staking-service'
 
 
-export default async function getBalances(req, res) {
+export default async function getBalances({ body: { apiKey, apiSecret } }, res) {
 
-   if (!req.body.apiKey || !req.body.apiSecret) {
-      res.status(401)
+   if (!apiKey || !apiSecret) {
+      res.status(401).json({error: 'No API credentials provided.'})
       return
    }
 
-   const apiCredentials = {
-      apiKey: req.body.apiKey,
-      apiSecret: req.body.apiSecret
-   }
+   const apiCredentials = { apiKey, apiSecret}
 
    const spotBalance = await spotService.fetchSpotBalance(apiCredentials)
    const stakingPositions = await stakingService.fetchStakingBalance(apiCredentials)

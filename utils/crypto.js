@@ -1,3 +1,11 @@
+function hash(hashAlgo) {
+
+   return async message => {
+      const digest = await crypto.subtle.digest(hashAlgo, new TextEncoder().encode(message))
+      return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('')
+   }
+}
+
 function hmac(hashAlgo) {
 
    return async (keyString, message, digest = 'hex') => {
@@ -25,4 +33,7 @@ function hmac(hashAlgo) {
    }
 }
 
-export const hmac256 = hmac('SHA-256')
+export const sha256 = hash('SHA-256')
+
+export const hmacSha256 = hmac('SHA-256')
+export const hmacSha512 = hmac('SHA-512')

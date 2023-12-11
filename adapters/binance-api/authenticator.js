@@ -1,4 +1,4 @@
-import { hmac256 } from '../../utils/crypto'
+import { createHmac } from 'crypto'
 
 
 function RequestPayload({ apiKey, apiSecret }, params) {
@@ -10,7 +10,9 @@ function RequestPayload({ apiKey, apiSecret }, params) {
 
    this.signed = async () => ({
       ...payload,
-      signature: await hmac256(apiSecret, new URLSearchParams(payload).toString())
+      signature: createHmac('sha256', apiSecret)
+         .update(new URLSearchParams(payload).toString(), 'binary')
+         .digest('hex')
    })
 
    this.headers = () => ({
@@ -20,27 +22,13 @@ function RequestPayload({ apiKey, apiSecret }, params) {
 
 function authenticatorFunction(credentials) {
 
-   return async request => {
-
-      const url = new URL(request.url)
-      console.log('original', url)
-      const payload = new RequestPayload(credentials, url.searchParams)
-
-      const signedParams = new URLSearchParams(await payload.signed()).toString()
-      const urlWithParams = `${url.href}${signedParams ? `?${signedParams}` : ''}`
-      console.log('new url', urlWithParams)
-
-      console.log('headers', {...request.headers, ...payload.headers()})
-
-      const authenticatedRequest = new Request(urlWithParams, {
-         method: request.method,
-         headers: {...request.headers, ...payload.headers()},
-         body: request.body
-      })
-
-      console.log('auth req', authenticatedRequest)
-
-      return authenticatedRequest
+   return async ({ url, searchParams, headers }) => {
+      const payload = new RequestPayload(credentials, searchParams)
+      return {
+         url,
+         searchParams: await payload.signed(),
+         headers: { ...headers, ...payload.headers() }
+      }
    }
 }
 

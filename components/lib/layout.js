@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import Menu from '../menu'
 
-export default function Layout({ children, name }) {
 
+export default function Layout({ children, name }) {
    return (
       <>
          <Head>
