@@ -1,9 +1,10 @@
+import { memo } from 'react'
 import ExternalLink from './lib/external-link'
 import MenuItem from './lib/menu-item'
 import Link from 'next/link'
 
 
-export default function Menu() {
+function Menu() {
    return (
       <>
          <MenuItem><Link href='/kraken'>Kraken</Link></MenuItem>
@@ -13,3 +14,5 @@ export default function Menu() {
       </>
    )
 }
+
+export default memo(Menu)

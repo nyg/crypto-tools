@@ -1,19 +1,13 @@
-import { spotService } from '../../core/spot-service'
+import { spotService } from '../../core/services/spot-service'
 
 
-export default async function getDeposits(req, res) {
+export default async function getDeposits({ body: { apiKey, apiSecret } }, res) {
 
-   if (!req.body.apiKey || !req.body.apiSecret) {
-      res.status(401)
+   if (!apiKey || !apiSecret) {
+      res.status(401).json({error: 'No API credentials provided.'})
       return
    }
 
-   const apiCredentials = {
-      apiKey: req.body.apiKey,
-      apiSecret: req.body.apiSecret
-   }
-
-   const deposits = await spotService.fetchFiatDeposits(apiCredentials)
-
+   const deposits = await spotService.fetchFiatDeposits({ apiKey, apiSecret})
    res.status(200).json({ deposits })
 }

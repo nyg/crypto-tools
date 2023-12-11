@@ -1,24 +1,36 @@
 import Big from 'big.js'
-import { spotService } from '../../core/spot-service'
-import { stakingService } from '../../core/staking-service'
-import { rateService } from '../../core/rate-service'
+import { spotService } from '../../core/services/spot-service'
+import { stakingService } from '../../core/services/staking-service'
+import { rateService } from '../../core/services/rate-service'
 
 
-export default async function getAggregateBalance(req, res) {
+export default async function getAggregateBalance({ body: { apiKey, apiSecret } }, res) {
 
-   if (!req.body.apiKey || !req.body.apiSecret) {
-      res.status(401)
+   if (!apiKey || !apiSecret) {
+      res.status(401).json({error: 'No API credentials provided.'})
       return
    }
 
-   const apiCredentials = {
-      apiKey: req.body.apiKey,
-      apiSecret: req.body.apiSecret
-   }
+   const apiCredentials = { apiKey, apiSecret}
 
-   const spotBalance = await spotService.fetchSpotBalance(apiCredentials)
-   const stakingPositions = await stakingService.fetchStakingBalance(apiCredentials)
-   const stakingProducts = await stakingService.fetchStakingProducts() // TODO check if we can fetch via official API
+   let spotBalance, stakingPositions, stakingProducts
+   try {
+      spotBalance = await spotService.fetchSpotBalance(apiCredentials)
+      stakingPositions = await stakingService.fetchStakingBalance(apiCredentials)
+      stakingProducts = await stakingService.fetchStakingProducts() // TODO check if we can fetch via official API
+   }
+   catch (error) {
+      if (error.message === 'HTTP Requester Error') {
+         console.log('An error happened while contacting the Binance API:', error.cause)
+         res.status(500).json({ error: `An error happened while contacting the Binance API: ${error.cause}` })
+      }
+      else {
+         console.error('An unexpected error happened:', error)
+         res.status(500).json({ error: 'An unexpected error happened.' })
+      }
+
+      return
+   }
 
    const assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
    const rates = await rateService.fetchRates(assets)
@@ -60,16 +72,13 @@ export default async function getAggregateBalance(req, res) {
 
    // Sort by fiat value of free amount, assets with no staking products at the bottom
    aggregateBalance.sort((a, b) => {
-
       if (a.staking.products.length == 0 && b.staking.products.length != 0) {
          return 1
-      }
-
-      if (a.staking.products.length != 0 && b.staking.products.length == 0) {
+      } else if (a.staking.products.length != 0 && b.staking.products.length == 0) {
          return -1
+      } else {
+         return b.freeFiatValue.minus(a.freeFiatValue)
       }
-
-      return b.freeFiatValue.minus(a.freeFiatValue)
    })
 
    res.status(200).json({ balance: aggregateBalance })

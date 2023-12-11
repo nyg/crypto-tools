@@ -1,6 +1,4 @@
-import Big from 'big.js'
-
-import { marketService } from '../../core/market-service'
+import { marketService } from '../../core/services/market-service'
 
 
 export default async function getEOYRates(req, res) {

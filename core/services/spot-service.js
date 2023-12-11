@@ -1,5 +1,6 @@
 import Big from 'big.js'
-import { binanceConnection } from '../adapters/binance-api/connection'
+import { binanceConnection } from '../../adapters/binance-api/connection'
+import { krakenConnection } from '../../adapters/kraken-api/connection'
 
 
 function SpotService() {
@@ -21,6 +22,11 @@ function SpotService() {
    this.fetchFiatDeposits = async function (apiCredentials) {
       const deposits = await binanceConnection.fetchFiatDeposits(apiCredentials)
       return deposits
+   }
+
+   // TODO
+   this.fetchKrakenBalance = async function (apiCredentials) {
+      return krakenConnection.fetchExtendedBalance(apiCredentials)
    }
 }
 
