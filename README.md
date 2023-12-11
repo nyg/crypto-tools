@@ -16,12 +16,12 @@ staking products for each of your assets.
 
 ### Local Installation
 
-1. Install Node.js
+1. Install Node.js & pnpm
 2. Clone or download this repository
 3. Rename `.env.development.local.example` to `.env.development.local`
 4. Create an API key in your Binance account and copy paste the values in the
    file above
-5. Using the terminal, run `npm install` and then `npm run dev` inside the
+5. Using the terminal, run `pnpm install` and then `pnpm dev` inside the
    downloaded folder
 6. Open [http://localhost:3000/](http://localhost:3000/)
 
