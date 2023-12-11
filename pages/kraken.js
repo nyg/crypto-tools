@@ -5,7 +5,7 @@ import Layout from '../components/lib/layout'
 
 export default function Kraken() {
 
-   const { data, error, trigger, isMutating } = useSWRMutation('/api/kraken/balances', fetcher)
+   const { data, error, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
 
    const [credentials, setCredentials] = useState({ apiKey: '', apiSecret: '' })
    useEffect(() =>
