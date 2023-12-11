@@ -1,4 +1,4 @@
-import { spotService } from '../../core/spot-service'
+import { spotService } from '../../core/services/spot-service'
 
 
 export default async function getDeposits({ body: { apiKey, apiSecret } }, res) {
