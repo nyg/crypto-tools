@@ -21,7 +21,7 @@ function ServerHttpRequester() {
          const response = await got(urlWithSearchParams(requestData), {
             method,
             headers: requestData.headers,
-            form: method === 'GET' ? undefined : requestData.bodyParams,
+            body: method === 'GET' ? undefined : requestData.bodyParams,
             responseType: 'json'
          }).json()
 
