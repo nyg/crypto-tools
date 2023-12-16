@@ -2,17 +2,23 @@ import { httpRequester } from '../http-requester/server-http-requester'
 import { authenticator } from './authenticator'
 
 const apiUrl = 'https://api.kraken.com'
+const urlFor = endpoint => apiUrl + endpoint
+
 const assetInfoEndpoint = '/0/public/Assets'
+const assetPairsEndpoint = '/0/public/AssetPairs'
+
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
 const addOrderBatch = '/0/private/AddOrderBatch'
-
-const urlFor = endpoint => apiUrl + endpoint
 
 
 /* Public endpoints */
 
 export async function fetchAssetInfo() {
    return await httpRequester.public(urlFor(assetInfoEndpoint))
+}
+
+export async function fetchAssetPairs() {
+   return await httpRequester.public(urlFor(assetPairsEndpoint))
 }
 
 /* Private endpoints */
@@ -34,7 +40,7 @@ export async function createOrderBatch(apiCredentials, { pair, direction, dryRun
             pair,
             validate: dryRun,
             orders: orders.map(({ volume, price }) => ({
-               // interesting options:
+               // TODO interesting options:
                //   userref, displayvol, startm, expiretm
                ordertype: 'limit',
                type: direction,

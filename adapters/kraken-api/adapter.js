@@ -1,10 +1,18 @@
-import { createOrderBatch } from './resource'
+import { fetchAssetPairs, createOrderBatch } from './resource'
 
 export default function KrakenAPI(credentials) {
 
+   this.fetchTradingPairs = async function () {
+      const assetPairs = (await fetchAssetPairs()).result
+      return Object.keys(assetPairs).map(pairId => ({
+         id: pairId,
+         name: assetPairs[pairId].wsname
+      }))
+   }
+
    this.createOrders = async function ({ orders, ...args }) {
 
-      // maximum number of orders that can be create in one batch
+      // maximum number of orders that can be created per API call
       const maxOrderCount = 15
 
       const orderChunks = []

@@ -4,11 +4,17 @@ import '../styles/global.css'
 
 async function fetcher(url, params) {
 
-   const response = await fetch(url, {
-      method: 'POST',
-      body: JSON.stringify(params.arg),
-      headers: { 'Content-Type': 'application/json' }
-   })
+   let response
+   if (params?.arg) {
+      response = await fetch(url, {
+         method: 'POST',
+         body: JSON.stringify(params.arg),
+         headers: { 'Content-Type': 'application/json' }
+      })
+   }
+   else {
+      response = await fetch(url)
+   }
 
    const result = await response.json()
    if (!response.ok) {
