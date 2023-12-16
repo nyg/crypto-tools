@@ -52,7 +52,9 @@ export default function Kraken() {
       }), [])
 
    if (!credentials.apiKey) {
-      return <div>Generate an API key and secret on Kraken to be able to fetch your spot and staking balance.</div>
+      return <Layout name="Kraken" className="text-sm">
+         <div>Generate an API key and secret on Kraken to be able to fetch your spot and staking balance.</div>
+      </Layout>
    }
 
    const showPreview = () => {
