@@ -7,7 +7,10 @@ import Layout from '../components/lib/layout'
 
 export default function Binance() {
 
-   const { data, error, trigger, isMutating } = useSWRMutation('/api/aggregate-balance')
+   const { data, error, isMutating, trigger: fetchAggregatedBalance } = useSWRMutation('/api/aggregate-balance')
+   const fetchDataButton = <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" onClick={() => fetchAggregatedBalance(credentials)}>
+      Fetch data
+   </button>
 
    const [credentials, setCredentials] = useState({ apiKey: '', apiSecret: '' })
    useEffect(() =>
@@ -20,9 +23,7 @@ export default function Binance() {
    if (error) {
       content = <>
          <div className="text-red-500">{error}</div>
-         <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" onClick={() => trigger(credentials)}>
-            Fetch data
-         </button>
+         {fetchDataButton}
       </>
    }
    else if (isMutating) {
@@ -32,9 +33,7 @@ export default function Binance() {
       content = <div>Generate an API key and secret on Binance to be able to fetch your spot and staking balance.</div>
    }
    else if (!data) {
-      content = <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" onClick={() => trigger(credentials)}>
-         Fetch data
-      </button>
+      content = fetchDataButton
    }
    else {
       content = <>
@@ -45,11 +44,11 @@ export default function Binance() {
 
    return (
       <Layout name="Binance">
-         <section className="flex-grow text-sm space-y-6 tabular-nums">
+         <div className="flex-grow text-sm space-y-6 tabular-nums">
             <div className="px-3 space-y-4">
                {content}
             </div>
-         </section>
+         </div>
       </Layout>
    )
 }

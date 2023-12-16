@@ -24,7 +24,7 @@ export default function Settings() {
 
    return (
       <Layout name="Settings">
-         <section className="flex-grow text-sm space-y-6 tabular-nums">
+         <div className="flex-grow text-sm space-y-6 tabular-nums">
             <div className="px-3 space-y-4">
                <h2>API Keys</h2>
 
@@ -46,7 +46,7 @@ export default function Settings() {
                   </div>
                </form>
             </div>
-         </section>
+         </div>
       </Layout>
    )
 }
