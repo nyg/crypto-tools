@@ -1,7 +1,7 @@
 import KrakenAPI from '../../../adapters/kraken-api/adapter'
 import MarketService from '../../../core/services/market-service'
 
-export default async function postScaledOrders({ body: { credentials, ordersParams } }, res) {
+export default async function getClosedOrders({ body: { credentials, searchParams } }, res) {
 
    if (!credentials) {
       res.status(401).json({ error: 'No API credentials provided.' })
@@ -11,9 +11,9 @@ export default async function postScaledOrders({ body: { credentials, ordersPara
    try {
       const krakenAPI = new KrakenAPI(credentials)
       const marketService = new MarketService(krakenAPI)
-      const orders = await marketService.createOrders(ordersParams)
-      console.log(orders)
-      res.status(200).json(orders)
+      const closedOrders = await marketService.fetchClosedOrders(searchParams)
+      console.log(closedOrders)
+      res.status(200).json(closedOrders)
    }
    catch (error) {
       if (error.message === 'HTTP Requester Error') {

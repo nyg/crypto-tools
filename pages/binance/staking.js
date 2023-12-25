@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
-import CurrentPositions from '../components/current-positions'
-import NextRedemptions from '../components/next-redemptions'
-import Layout from '../components/lib/layout'
+import CurrentPositions from '../../components/current-positions'
+import NextRedemptions from '../../components/next-redemptions'
+import Layout from '../../components/lib/layout'
 
 
 export default function Binance() {

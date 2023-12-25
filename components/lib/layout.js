@@ -2,6 +2,7 @@ import Head from 'next/head'
 import Menu from '../menu'
 
 
+// TODO https://nextjs.org/docs/pages/building-your-application/routing/pages-and-layouts#per-page-layouts
 export default function Layout({ children, name }) {
    return (
       <>

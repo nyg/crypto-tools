@@ -11,7 +11,7 @@ export default function Input({ name, type = 'text', defaultValue, label, classN
             ? <input className="px-3 py-1 outline-none bg-gray-200 rounded grow"
                type={type} id={name} name={name} defaultChecked />
             : <input className="px-3 py-1 outline-none bg-gray-200 rounded grow"
-               size={1} type={type} id={name} name={name} defaultValue={defaultValue} autoComplete={autoComplete} />
+               type={type} id={name} name={name} defaultValue={defaultValue} autoComplete={autoComplete} />
          }
       </div>
    )

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
-import Layout from '../components/lib/layout'
+import Layout from '../../components/lib/layout'
 
 
-export default function Kraken() {
+export default function KrakenBalance() {
 
    const { data, error, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
 

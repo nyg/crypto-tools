@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import useSWRMutation from 'swr/mutation'
-import Layout from '../components/lib/layout'
-import Input from '../components/lib/input'
-import ExternalLink from '../components/lib/external-link'
+import Layout from '../../components/lib/layout'
+import Input from '../../components/lib/input'
+import ExternalLink from '../../components/lib/external-link'
 
 
 const priceFunctions = {
@@ -38,7 +38,7 @@ const buildOrdersParams = () => {
    }
 }
 
-export default function Kraken() {
+export default function KrakenOrderBatch() {
 
    const { data: tradingPairs, error: assetPairsError, isLoading } = useSWR('/api/kraken/trading-pairs')
    const { data: createdOrders, error, isMutating, trigger: createOrders } = useSWRMutation('/api/kraken/scaled-orders')

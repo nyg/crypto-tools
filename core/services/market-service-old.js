@@ -1,5 +1,4 @@
 import { binanceConnection } from '../../adapters/binance-api/connection'
-import { krakenResource } from '../../adapters/kraken-api/resource'
 
 function MarketService() {
 
@@ -32,11 +31,6 @@ function MarketService() {
       }
 
       return rates
-   }
-
-   this.createOrders = async function ({ pair, direction, orderParams }) {
-
-      krakenResource.createOrders
    }
 }
 

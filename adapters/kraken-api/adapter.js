@@ -1,4 +1,5 @@
-import { fetchAssetPairs, createOrderBatch } from './resource'
+import { httpRequester } from '../http-requester/server-http-requester'
+import { fetchAssetPairs, createOrderBatch, fetchClosedOrders } from './resource'
 
 export default function KrakenAPI(credentials) {
 
@@ -25,5 +26,29 @@ export default function KrakenAPI(credentials) {
       const responses = await Promise.all(promises)
 
       return responses.flatMap(response => response.result.orders)
+   }
+
+   this.fetchClosedOrders = async function ({ asset, fromDate, toDate }) {
+
+      let hasNext = true, orderOffset = 0, fetchedOrderCount = 0
+      const allOrders = []
+
+      while (hasNext) {
+         const orders = await fetchClosedOrders(credentials, { showTrades: true, fromDate, toDate, orderOffset })
+         const orderIds = Object.keys(orders.result.closed)
+         fetchedOrderCount += orderIds.length
+
+         hasNext = fetchedOrderCount < orders.result.count
+         orderOffset += 50
+
+         const filteredOrders = Object.keys(orders.result.closed)
+            .filter(orderId => orders.result.closed[orderId].descr.pair.includes(asset))
+            .filter(orderId => Number.parseFloat(orders.result.closed[orderId].vol_exec) !== 0) // TODO
+            .map(orderId => orders.result.closed[orderId])
+
+         allOrders.push(...filteredOrders)
+      }
+
+      return allOrders
    }
 }

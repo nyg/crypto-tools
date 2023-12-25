@@ -19,7 +19,5 @@ export default async function getTradingPairs(req, res) {
          console.error('An unexpected error happened:', error)
          res.status(500).json({ error: 'An unexpected error happened.' })
       }
-
-      return
    }
 }
