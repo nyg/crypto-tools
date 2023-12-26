@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react'
-import useSWR from 'swr'
+import { useEffect, useState, Fragment } from 'react'
 import useSWRMutation from 'swr/mutation'
 import Layout from '../../components/lib/layout'
 import Input from '../../components/lib/input'
-import ExternalLink from '../../components/lib/external-link'
-
+import * as format from '../../utils/format'
 
 
 export default function KrakenClosedOrders() {
@@ -32,7 +30,6 @@ export default function KrakenClosedOrders() {
       const asset = formData.get('asset')
       const fromDate = new Date(formData.get('date-from')).getTime() / 1000
       const toDate = new Date(formData.get('date-to')).getTime() / 1000
-      console.log(asset, fromDate, toDate)
       getOrders({ credentials, searchParams: { asset, fromDate, toDate } })
    }
 
@@ -45,7 +42,44 @@ export default function KrakenClosedOrders() {
    }
    else if (orders) {
       orderContent = <>
-         {orders.map(order => <p key={Math.random()}>{`${order.descr.order} vol exec: ${order.vol_exec} cost: ${order.cost}`}</p>)}
+         {Object.keys(orders).map(pair => (
+            <Fragment key={pair}>
+               <h3 className="border-b border-black">{orders[pair].pair.name}</h3>
+               {Object.keys(orders[pair]).filter(key => ['buy', 'sell'].includes(key)).map(direction => (
+                  <table key={`${pair}-${direction}`} className="w-2/3 text-right tabular-nums">
+                     <caption className="font-bold text-left">{direction} orders</caption>
+                     <thead>
+                        <tr>
+                           <th>Date</th>
+                           <th>Volume</th>
+                           <th>Cost</th>
+                           <th>Price</th>
+                           <th>Identifier</th>
+                        </tr>
+                     </thead>
+                     <tbody className="border-b border-t border-gray-400">
+                        {orders[pair][direction].orders.map(order =>
+                           <tr key={Math.random()}>
+                              <td>{new Date(order.openedDate * 1000).toISOString()}</td>
+                              <td>{order.volume}</td>
+                              <td>{order.cost}</td>
+                              <td>{order.price}</td>
+                              <td className="font-mono">{order.orderId}</td>
+                           </tr>)}
+                     </tbody>
+                     <tfoot>
+                        <tr>
+                           <th></th>
+                           <th>{format.asDecimal(orders[pair][direction].summary.volume, orders[pair].pair.base.decimals)}</th>
+                           <th>{format.asDecimal(orders[pair][direction].summary.cost, orders[pair].pair.quote.decimals)}</th>
+                           <th>{format.asDecimal(orders[pair][direction].summary.price, orders[pair].pair.quote.decimals)}</th>
+                           <th></th>
+                        </tr>
+                     </tfoot>
+                  </table>
+               ))}
+            </Fragment>
+         ))}
       </>
    }
    else {
@@ -56,6 +90,7 @@ export default function KrakenClosedOrders() {
    return (
       <Layout name="Kraken">
          <div className="space-y-4 text-sm tabular-nums">
+            <p>Displays closed orders between the given dates, excludes orders with no volumes (e.g. cancelled orders).</p>
             <h3 className="font-semibold">Parameters</h3>
             <form onSubmit={fetchOrders}>
                <div className="flex items-end gap-4">
@@ -65,7 +100,7 @@ export default function KrakenClosedOrders() {
                   <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500">Search</button>
                </div>
             </form>
-            <h3 className="pb-2 font-semibold">Orders</h3>
+            <h3 className="pt-2 font-semibold">Orders</h3>
             {orderContent}
          </div>
       </Layout>
