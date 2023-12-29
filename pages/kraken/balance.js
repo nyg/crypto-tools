@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
-import Layout from '../../components/lib/layout'
+import KrakenLayout from '../../components/kraken/kraken-layout'
 
 
 export default function KrakenBalance() {
@@ -37,12 +37,12 @@ export default function KrakenBalance() {
    }
 
    return (
-      <Layout name="Kraken">
+      <KrakenLayout name="Balance">
          <div className="flex-grow text-sm space-y-6 tabular-nums">
             <div className="px-3 space-y-4">
                {content}
             </div>
          </div>
-      </Layout>
+      </KrakenLayout>
    )
 }

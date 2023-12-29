@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from 'react'
 import useSWRMutation from 'swr/mutation'
-import Layout from '../../components/lib/layout'
+import KrakenLayout from '../../components/kraken/kraken-layout'
 import Input from '../../components/lib/input'
 import * as format from '../../utils/format'
 
@@ -17,11 +17,11 @@ export default function KrakenClosedOrders() {
       }), [])
 
    if (!credentials.apiKey) {
-      return <Layout name="Kraken">
+      return <KrakenLayout name="Closed Orders">
          <div className="text-sm">
             Generate an API key and secret on Kraken to be able to fetch closed orders.
          </div>
-      </Layout>
+      </KrakenLayout>
    }
 
    const fetchOrders = event => {
@@ -88,7 +88,7 @@ export default function KrakenClosedOrders() {
 
 
    return (
-      <Layout name="Kraken">
+      <KrakenLayout name="Closed Orders">
          <div className="space-y-4 text-sm tabular-nums">
             <p>Displays closed orders between the given dates, excludes orders with no volumes (e.g. cancelled orders).</p>
             <h3 className="font-semibold">Parameters</h3>
@@ -103,6 +103,6 @@ export default function KrakenClosedOrders() {
             <h3 className="pt-2 font-semibold">Orders</h3>
             {orderContent}
          </div>
-      </Layout>
+      </KrakenLayout>
    )
 }

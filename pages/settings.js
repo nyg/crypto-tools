@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Input from '../components/lib/input'
-import Layout from '../components/lib/layout'
+import Layout from '../components/layout'
 
 
 export default function Settings() {

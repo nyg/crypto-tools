@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import CurrentPositions from '../../components/current-positions'
 import NextRedemptions from '../../components/next-redemptions'
-import Layout from '../../components/lib/layout'
+import BinanceLayout from '../../components/binance/binance-layout'
 
 
-export default function Binance() {
+export default function BinanceStaking() {
 
    const { data, error, isMutating, trigger: fetchAggregatedBalance } = useSWRMutation('/api/aggregate-balance')
    const fetchDataButton = <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" onClick={() => fetchAggregatedBalance(credentials)}>
@@ -43,12 +43,12 @@ export default function Binance() {
    }
 
    return (
-      <Layout name="Binance">
+      <BinanceLayout name="Staking">
          <div className="flex-grow text-sm space-y-6 tabular-nums">
             <div className="px-3 space-y-4">
                {content}
             </div>
          </div>
-      </Layout>
+      </BinanceLayout>
    )
 }
