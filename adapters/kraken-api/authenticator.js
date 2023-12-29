@@ -18,7 +18,7 @@ function RequestPayload({ apiKey, apiSecret }, params, path) {
    this.buildSignature = () => {
       const message = this.payload.nonce + this.stringifiedPayload()
       const hash = createHash('sha256').update(message).digest('binary')
-      return createHmac('sha512', new Buffer(apiSecret, 'base64'))
+      return createHmac('sha512', Buffer.from(apiSecret, 'base64'))
          .update(path + hash, 'binary')
          .digest('base64')
    }

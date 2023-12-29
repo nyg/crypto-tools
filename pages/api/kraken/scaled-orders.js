@@ -24,7 +24,5 @@ export default async function postScaledOrders({ body: { credentials, ordersPara
          console.error('An unexpected error happened:', error)
          res.status(500).json({ error: 'An unexpected error happened.' })
       }
-
-      return
    }
 }
