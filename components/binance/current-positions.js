@@ -1,4 +1,4 @@
-import * as format from '../utils/format'
+import * as format from '../../utils/format'
 import Big from 'big.js'
 
 

@@ -94,9 +94,9 @@ export default function KrakenClosedOrders() {
             <h3 className="font-semibold">Parameters</h3>
             <form onSubmit={fetchOrders}>
                <div className="flex items-end gap-4">
-                  <Input name="asset" label="Asset" defaultValue="XBT" />
-                  <Input name="date-from" label="From" defaultValue="2023-12-01T00:00:00Z" />
-                  <Input name="date-to" label="To" defaultValue="2023-12-31T00:00:00Z" />
+                  <Input name="asset" label="Asset filter" defaultValue="XBT" />
+                  <Input name="date-from" label="From" defaultValue="2023-01-01T00:00:00Z" />
+                  <Input name="date-to" label="To" defaultValue="2023-12-31T23:59:59Z" />
                   <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500">Search</button>
                </div>
             </form>

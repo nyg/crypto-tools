@@ -19,7 +19,7 @@ export default async function getClosedOrders({ body: { credentials, searchParam
          const pair = order.pair
          const direction = order.direction
 
-         groupedOrders[pair] ??= { pair: tradingPairs[order.pair] }
+         groupedOrders[pair] ??= { pair: tradingPairs[order.pair] ?? { id: order.pair, name: order.pair, base: { decimals: 8 }, quote: { decimals: 8 } } }
          groupedOrders[pair][direction] ??= { orders: [], summary: { volume: 0, cost: 0, price: 0 } }
 
          groupedOrders[pair][direction].orders.push(order)
