@@ -1,10 +1,10 @@
-import Layout from '../components/lib/layout'
+import Layout from '../components/layout'
 
 
 export default function Home() {
    return (
       <Layout name="Home">
-         <div className="flex-grow text-sm space-y-6 tabular-nums">
+         <div className="p-3 text-sm">
             <p>Welcome to crypto-tools!</p>
          </div>
       </Layout>

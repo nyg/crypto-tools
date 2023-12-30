@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import useSWR from 'swr'
 import useSWRMutation from 'swr/mutation'
-import Layout from '../../components/lib/layout'
+import KrakenLayout from '../../components/kraken/kraken-layout'
 import Input from '../../components/lib/input'
 import ExternalLink from '../../components/lib/external-link'
 
@@ -40,7 +39,7 @@ const buildOrdersParams = () => {
 
 export default function KrakenOrderBatch() {
 
-   const { data: tradingPairs, error: assetPairsError, isLoading } = useSWR('/api/kraken/trading-pairs')
+   // const { data: tradingPairs, error: assetPairsError, isLoading } = useSWR('/api/kraken/trading-pairs')
    const { data: createdOrders, error, isMutating, trigger: createOrders } = useSWRMutation('/api/kraken/scaled-orders')
 
    const [ordersParams, setOrdersParams] = useState([])
@@ -52,11 +51,11 @@ export default function KrakenOrderBatch() {
       }), [])
 
    if (!credentials.apiKey) {
-      return <Layout name="Kraken">
+      return <KrakenLayout name="Order Batch">
          <div className="text-sm">
             Generate an API key and secret on Kraken to be able to fetch your spot and staking balance.
          </div>
-      </Layout>
+      </KrakenLayout>
    }
 
    const showPreview = () => {
@@ -73,11 +72,11 @@ export default function KrakenOrderBatch() {
    </ExternalLink>
 
    const maxOpenOrders = <ExternalLink href="https://support.kraken.com/hc/en-us/articles/209090607-Maximum-number-of-open-orders" className="underline">
-      80 et 225 open orders
+      80 and 225 open orders
    </ExternalLink>
 
    return (
-      <Layout name="Kraken">
+      <KrakenLayout name="Order Batch">
          <p className="mb-6 w-2/5 text-justify text-sm">
             This tool allows you to easily create multiple orders for a given
             trading pair. The goal is to be able to place buy orders below the
@@ -87,11 +86,11 @@ export default function KrakenOrderBatch() {
             depending on your verification level.
          </p>
 
-         <div className="flex gap-8 text-sm tabular-nums border-0 border-blue-700">
-            <div className="border-0 border-red-700">
+         <div className="flex gap-8 text-sm tabular-nums">
+            <div>
                <h3 className="pb-2 font-semibold">Parameters</h3>
                <div className="space-y-2">
-                  <form className="space-y-3 border-0 border-blue-700" id="order-form" method="post">
+                  <form className="space-y-3" id="order-form" method="post">
                      <Input name="pair" label="Pair" defaultValue="XBTUSD" />
                      <Input name="direction" label="Direction" defaultValue="sell" />
                      <Input name="price-from" label="Price from" defaultValue="110000" />
@@ -108,14 +107,14 @@ export default function KrakenOrderBatch() {
                   </div>
                </div>
             </div>
-            <div className="border-0 border-black">
+            <div>
                <h3 className="pb-2 font-semibold">Preview</h3>
                {/* <p>{ordersParams.orders.length} orders, dry run: {ordersParams.dryRun.toString()}.</p> */}
                {ordersParams.orders?.map(order =>
                   <p key={Math.random()}>{`${ordersParams.direction} ${order.volume} ${ordersParams.pair} @ limit ${order.price}`}</p>
                )}
             </div>
-            <div className="border-0 border-orange-700">
+            <div>
                <h3 className="pb-2 font-semibold">API Response</h3>
                {/* TODO error handling */}
                {isMutating ? <p>Loading…</p> : createdOrders?.map(order =>
@@ -123,6 +122,6 @@ export default function KrakenOrderBatch() {
                )}
             </div>
          </div>
-      </Layout>
+      </KrakenLayout>
    )
 }
