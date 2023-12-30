@@ -8,7 +8,7 @@ export default function BinanceGatewayAPI() {
       let allProducts = {}
 
       while (hasNext) {
-         const params = { pageIndex, pageSize: 50, simpleEarnType: 'FIXED' }
+         const params = { pageIndex, pageSize: 500, simpleEarnType: 'FIXED' }
          const response = await fetchSimpleEarnProducts(params)
 
          fetchedProductCount += response.data.list.length

@@ -1,4 +1,4 @@
-import { spotService } from '../../../core/services/spot-service'
+import { spotService } from '../../../core/services/old/spot-service'
 
 
 export default async function getBalances({ body: { apiKey, apiSecret } }, res) {

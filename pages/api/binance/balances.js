@@ -1,6 +1,6 @@
 import Big from 'big.js'
-import { spotService } from '../../core/services/spot-service'
-import { stakingService } from '../../../core/services/staking-service'
+import { spotService } from '../../../core/services/old/spot-service'
+import { stakingService } from '../../../core/services/old/old-market-service'
 
 
 export default async function getBalances({ body: { apiKey, apiSecret } }, res) {

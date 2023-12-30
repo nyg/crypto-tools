@@ -1,4 +1,4 @@
-import { marketService } from '../../../core/services/market-service'
+import { marketService } from '../../../core/services/old/old-market-service'
 
 
 export default async function getEOYRates(req, res) {
