@@ -44,10 +44,8 @@ export default function BinanceStaking() {
 
    return (
       <BinanceLayout name="Staking">
-         <div className="flex-grow text-sm space-y-6 tabular-nums">
-            <div className="px-3 space-y-4">
-               {content}
-            </div>
+         <div className="flex-grow text-sm space-y-4 tabular-nums">
+            {content}
          </div>
       </BinanceLayout>
    )

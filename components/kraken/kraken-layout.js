@@ -12,7 +12,10 @@ export default function KrakenLayout({ children, name }) {
             {/* <MenuLink href="/kraken/balance">Balance</MenuLink> */}
          </header>
 
-         {children}
+         <div className="px-3">
+            {children}
+         </div>
+
       </Layout>
    )
 }

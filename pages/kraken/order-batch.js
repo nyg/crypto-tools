@@ -86,11 +86,11 @@ export default function KrakenOrderBatch() {
             depending on your verification level.
          </p>
 
-         <div className="flex gap-8 text-sm tabular-nums border-0 border-blue-700">
-            <div className="border-0 border-red-700">
+         <div className="flex gap-8 text-sm tabular-nums">
+            <div>
                <h3 className="pb-2 font-semibold">Parameters</h3>
                <div className="space-y-2">
-                  <form className="space-y-3 border-0 border-blue-700" id="order-form" method="post">
+                  <form className="space-y-3" id="order-form" method="post">
                      <Input name="pair" label="Pair" defaultValue="XBTUSD" />
                      <Input name="direction" label="Direction" defaultValue="sell" />
                      <Input name="price-from" label="Price from" defaultValue="110000" />
@@ -107,14 +107,14 @@ export default function KrakenOrderBatch() {
                   </div>
                </div>
             </div>
-            <div className="border-0 border-black">
+            <div>
                <h3 className="pb-2 font-semibold">Preview</h3>
                {/* <p>{ordersParams.orders.length} orders, dry run: {ordersParams.dryRun.toString()}.</p> */}
                {ordersParams.orders?.map(order =>
                   <p key={Math.random()}>{`${ordersParams.direction} ${order.volume} ${ordersParams.pair} @ limit ${order.price}`}</p>
                )}
             </div>
-            <div className="border-0 border-orange-700">
+            <div>
                <h3 className="pb-2 font-semibold">API Response</h3>
                {/* TODO error handling */}
                {isMutating ? <p>Loading…</p> : createdOrders?.map(order =>

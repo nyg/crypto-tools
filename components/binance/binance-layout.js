@@ -10,7 +10,10 @@ export default function BinanceLayout({ children, name }) {
             <MenuLink href="/binance/staking">Staking</MenuLink>
          </header>
 
-         {children}
+         <div className="px-3">
+            {children}
+         </div>
+
       </Layout>
    )
 }
