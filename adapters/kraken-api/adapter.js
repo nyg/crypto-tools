@@ -48,12 +48,12 @@ export default function KrakenAPI(credentials) {
       while (hasNext) {
          const orders = await fetchClosedOrders(credentials, { showTrades: true, fromDate, toDate, orderOffset })
          const orderIds = Object.keys(orders.result.closed)
-         fetchedOrderCount += orderIds.length
 
+         fetchedOrderCount += orderIds.length
          hasNext = fetchedOrderCount < orders.result.count
          orderOffset += 50
 
-         const filteredOrders = Object.keys(orders.result.closed)
+         const filteredOrders = orderIds
             .filter(orderId => assetFilter ? orders.result.closed[orderId].descr.pair.includes(assetFilter) : true)
             .filter(orderId => Number.parseFloat(orders.result.closed[orderId].vol_exec) !== 0) // TODO
             .map(orderId => ({

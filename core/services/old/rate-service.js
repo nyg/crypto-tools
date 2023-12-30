@@ -1,7 +1,7 @@
 import Big from 'big.js'
 import { findPath } from 'modern-dijkstra'
-import { binanceConnection } from '../../adapters/binance-api/connection'
-import { marketService } from './market-service-old'
+import { binanceConnection } from '../../../adapters/binance-api/connection'
+import { marketService } from './old-market-service'
 
 
 const referenceAsset = 'USDT'

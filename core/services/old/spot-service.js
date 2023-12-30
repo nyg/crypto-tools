@@ -1,6 +1,6 @@
 import Big from 'big.js'
-import { binanceConnection } from '../../adapters/binance-api/connection'
-import { krakenResource } from '../../adapters/kraken-api/resource'
+import { binanceConnection } from '../../../adapters/binance-api/connection'
+import { krakenResource } from '../../../adapters/kraken-api/resource'
 
 
 function SpotService() {
