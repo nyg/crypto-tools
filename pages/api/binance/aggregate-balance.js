@@ -6,19 +6,17 @@ import { rateService } from '../../../core/services/old/rate-service'
 import BinanceGatewayAPI from '../../../adapters/binance-gateway-api/adapter'
 
 
-export default async function getAggregateBalance({ body: { apiKey, apiSecret } }, res) {
+export default async function getAggregateBalance({ body: { credentials } }, res) {
 
-   if (!apiKey || !apiSecret) {
+   if (!credentials) {
       res.status(401).json({ error: 'No API credentials provided.' })
       return
    }
 
-   const apiCredentials = { apiKey, apiSecret }
-
    let spotBalance, stakingPositions, stakingProducts
    try {
-      spotBalance = await spotService.fetchSpotBalance(apiCredentials)
-      stakingPositions = await oldStakingService.fetchStakingBalance(apiCredentials)
+      spotBalance = await spotService.fetchSpotBalance(credentials)
+      stakingPositions = await oldStakingService.fetchStakingBalance(credentials)
 
       // TODO check if we can fetch via official API
       stakingProducts = await new StakingService(new BinanceGatewayAPI()).fetchStakingProducts()

@@ -1,4 +1,4 @@
-import { fetchAssetPairs, createOrderBatch, fetchClosedOrders } from './resource'
+import { fetchAssetPairs, createOrderBatch, fetchClosedOrders, fetchExtendedBalance } from './resource'
 
 export default function KrakenAPI(credentials) {
 
@@ -71,5 +71,11 @@ export default function KrakenAPI(credentials) {
       }
 
       return allOrders.toSorted((a, b) => a.openedDate - b.openedDate)
+   }
+
+   // TODO
+   this.fetchBalances = async function () {
+      const response = await fetchExtendedBalance()
+      return response.result
    }
 }

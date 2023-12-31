@@ -3,9 +3,9 @@ import { spotService } from '../../../core/services/old/spot-service'
 import { stakingService } from '../../../core/services/old/old-market-service'
 
 
-export default async function getBalances({ body: { apiKey, apiSecret } }, res) {
+export default async function getBalances({ body: { credentials } }, res) {
 
-   if (!apiKey || !apiSecret) {
+   if (!credentials) {
       res.status(401).json({error: 'No API credentials provided.'})
       return
    }
