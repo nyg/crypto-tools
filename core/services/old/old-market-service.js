@@ -1,4 +1,3 @@
-import { binanceConnection } from '../../../adapters/binance-api/connection'
 
 function MarketService() {
 

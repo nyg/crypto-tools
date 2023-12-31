@@ -5,7 +5,7 @@ import FundingService from '../../../core/services/funding-service'
 const computeToDate = fromDate => fromDate + 90 * 24 * 3600 * 1000
 const delay = ms => new Promise(r => setTimeout(r, ms))
 
-export default async function getDeposits({ body: { credentials, fromDate } }, res) {
+export default async function deposits({ body: { credentials, fromDate } }, res) {
 
    if (!credentials) {
       res.status(401).json({ error: 'No API credentials provided.' })

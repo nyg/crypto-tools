@@ -1,9 +1,10 @@
-import { fetchAssetPairs, createOrderBatch, fetchClosedOrders, fetchExtendedBalance } from './resource'
+import * as resource from './resource'
+
 
 export default function KrakenAPI(credentials) {
 
    this.fetchTradingPairs = async function () {
-      const assetPairs = (await fetchAssetPairs()).result
+      const assetPairs = (await resource.fetchAssetPairs()).result
       return Object.keys(assetPairs)
          .map(pairId => ({
             id: assetPairs[pairId].altname,
@@ -34,7 +35,7 @@ export default function KrakenAPI(credentials) {
       }
 
       const promises = orderChunks.map(orderChunk =>
-         createOrderBatch(credentials, { ...args, orders: orderChunk }))
+         resource.createOrderBatch(credentials, { ...args, orders: orderChunk }))
       const responses = await Promise.all(promises)
 
       return responses.flatMap(response => response.result.orders)
@@ -46,7 +47,7 @@ export default function KrakenAPI(credentials) {
       const allOrders = []
 
       while (hasNext) {
-         const orders = await fetchClosedOrders(credentials, { showTrades: true, fromDate, toDate, orderOffset })
+         const orders = await resource.fetchClosedOrders(credentials, { showTrades: true, fromDate, toDate, orderOffset })
          const orderIds = Object.keys(orders.result.closed)
 
          fetchedOrderCount += orderIds.length
@@ -75,7 +76,7 @@ export default function KrakenAPI(credentials) {
 
    // TODO
    this.fetchBalances = async function () {
-      const response = await fetchExtendedBalance()
+      const response = await resource.fetchExtendedBalance()
       return response.result
    }
 }

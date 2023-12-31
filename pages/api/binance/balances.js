@@ -1,19 +1,23 @@
 import Big from 'big.js'
-import { spotService } from '../../../core/services/old/spot-service'
 import { stakingService } from '../../../core/services/old/old-market-service'
+import UserService from '../../../core/services/user-service'
+import BinanceAPI from '../../../adapters/binance-api/adapter'
+import StakingService from '../../../core/services/staking-service'
 
 
-export default async function getBalances({ body: { credentials } }, res) {
+export default async function balances({ body: { credentials } }, res) {
 
    if (!credentials) {
       res.status(401).json({error: 'No API credentials provided.'})
       return
    }
 
-   const apiCredentials = { apiKey, apiSecret}
+   const binanceAPI = new BinanceAPI(credentials)
+   const userService = new UserService(binanceAPI)
+   const stakingService = new StakingService(binanceAPI)
 
-   const spotBalance = await spotService.fetchSpotBalance(apiCredentials)
-   const stakingPositions = await stakingService.fetchStakingBalance(apiCredentials)
+   const spotBalance = await userService.fetchBalances()
+   const stakingPositions = await stakingService.fetchStakingBalances()
 
    const assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
 
@@ -24,7 +28,7 @@ export default async function getBalances({ body: { credentials } }, res) {
       return { asset, balance: free.add(locked).add(staked) }
    })
 
-   const text = balances.map(balance => `${balance.asset}\t${balance.balance}`).join('\n')
+   const text = balances.map(balance => `${balance.asset},${balance.balance}`).join('\n')
 
    res.status(200).send(text)
 }

@@ -21,12 +21,12 @@ export default function NextRedemptions({ data }) {
             </thead>
             <tbody>
                {positions.map(position => (
-                  <tr key={position.positionId}>
+                  <tr key={position.id}>
                      <td className="text-left">{position.asset}</td>
                      <td>{format.asDecimal(position.amount)}</td>
                      <td>{format.asPercentage(position.apy)}</td>
                      <td>{position.accrualDays} of {position.duration}</td>
-                     <td>{format.asLongDate(position.deliverDate)}</td>
+                     <td>{format.asLongDate(position.endDate)}</td>
                   </tr>
                ))}
             </tbody>

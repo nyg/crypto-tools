@@ -6,7 +6,7 @@ import { rateService } from '../../../core/services/old/rate-service'
 import BinanceGatewayAPI from '../../../adapters/binance-gateway-api/adapter'
 
 
-export default async function getAggregateBalance({ body: { credentials } }, res) {
+export default async function aggregateBalance({ body: { credentials } }, res) {
 
    if (!credentials) {
       res.status(401).json({ error: 'No API credentials provided.' })

@@ -1,9 +1,11 @@
-import { fetchExchangeInfo, fetchFiatFunding, fetchKLines, fetchSpotBalance, fetchTickerPrice } from './resource'
+import Big from 'big.js'
+import * as resource from './resource'
+
 
 export default function BinanceAPI(credentials) {
 
    this.fetchTradingPairs = async function () {
-      const response = await fetchExchangeInfo()
+      const response = await resource.fetchExchangeInfo()
       return response.symbols
          .map(pair => ({
             id: pair.symbol,
@@ -24,7 +26,7 @@ export default function BinanceAPI(credentials) {
    }
 
    this.fetchRates = async function (pairs) {
-      const response = await fetchTickerPrice(pairs)
+      const response = await resource.fetchTickerPrice(pairs)
       return response.reduce((rates, ticker) => {
          rates[ticker.symbol] = ticker.price
          return rates
@@ -32,7 +34,7 @@ export default function BinanceAPI(credentials) {
    }
 
    this.fetchCandlestickData = async function (symbol, interval, startTime, endTime, limit) {
-      const response = await fetchKLines(symbol, interval, startTime, endTime, limit)
+      const response = await resource.fetchKLines(symbol, interval, startTime, endTime, limit)
       return response.map(candlestick => ({
          timestamp: {
             open: candlestick[0],
@@ -51,15 +53,32 @@ export default function BinanceAPI(credentials) {
    }
 
    this.fetchBalances = async function () {
-      const response = await fetchSpotBalance()
-      response.reduce((balances, balance) => {
+      const response = await resource.fetchSpotBalance(credentials)
+      return response.reduce((balances, balance) => {
          balances[balance.asset] = {
             asset: balance.asset,
-            free: balance.free,
-            locked: balance.locked
+            free: Big(balance.free),
+            locked: Big(balance.locked)
          }
          return balances
-      })
+      }, {})
+   }
+
+   this.fetchStakingBalances = async function () {
+      const response = await resource.fetchStakingPositions(credentials)
+      return response.reduce((positions, position) => {
+         positions[position.asset] ??= { balance: Big(0), positions: [] }
+         positions[position.asset].balance = positions[position.asset].balance.add(position.amount)
+         positions[position.asset].positions.push({
+            id: position.positionId,
+            asset: position.asset,
+            apy: position.apy,
+            amount: Big(position.amount),
+            duration: position.duration,
+            endDate: position.deliverDate
+         })
+         return positions
+      }, {})
    }
 
    this.fetchFiatDeposits = async function (fromDate, toDate) {
@@ -68,7 +87,7 @@ export default function BinanceAPI(credentials) {
       const deposits = []
 
       while (hasNext) {
-         const response = await fetchFiatFunding(
+         const response = await resource.fetchFiatFunding(
             credentials,
             { transactionType: 0, fromDate, toDate, pageIndex })
 

@@ -61,7 +61,7 @@ function Product({ product, spot }) {
       <li>
          {duration} days @ {apy} · {buildAvailability()}
          <ul className="text-xs pl-6">
-            {product.positions.map(position => <Position key={position.positionId} position={position} />)}
+            {product.positions.map(position => <Position key={position.id} position={position} />)}
          </ul>
       </li >
    )
