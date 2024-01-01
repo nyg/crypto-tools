@@ -15,4 +15,8 @@ export default function MarketService(apiAdapter) {
    this.fetchRates = async function (pairs) {
       return await apiAdapter.fetchRates(pairs)
    }
+
+   this.fetchCandlestickData = async function (symbol, interval, startTime, endTime, limit) {
+      return await apiAdapter.fetchCandlestickData(symbol, interval, startTime, endTime, limit)
+   }
 }
