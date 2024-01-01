@@ -21,13 +21,13 @@ export async function fetchExchangeInfo() {
 export async function fetchTickerPrice(pairs) {
    return await httpRequester.public(
       urlFor(tickerPriceEndpoint),
-      { searchParams: { symbols: JSON.stringify(pairs) } })
+      { symbols: JSON.stringify(pairs) })
 }
 
 export async function fetchKLines(symbol, interval, startTime, endTime, limit) {
    return await httpRequester.public(
       urlFor(klinesEndpoint),
-      { searchParams: { symbol, interval, startTime, endTime, limit } })
+      { symbol, interval, startTime, endTime, limit })
 }
 
 /* Private endpoints */

@@ -1,9 +1,10 @@
 import Big from 'big.js'
-import { spotService } from '../../../core/services/old/spot-service'
-import { stakingService as oldStakingService } from '../../../core/services/old/old-staking-service'
-import StakingService from '../../../core/services/staking-service'
-import { rateService } from '../../../core/services/old/rate-service'
+import BinanceAPI from '../../../adapters/binance-api/adapter'
 import BinanceGatewayAPI from '../../../adapters/binance-gateway-api/adapter'
+import StakingService from '../../../core/services/staking-service'
+import UserService from '../../../core/services/user-service'
+import MarketService from '../../../core/services/market-service'
+import RateFinder from '../../../core/rate-finder'
 
 
 export default async function aggregateBalance({ body: { credentials } }, res) {
@@ -13,30 +14,42 @@ export default async function aggregateBalance({ body: { credentials } }, res) {
       return
    }
 
-   let spotBalance, stakingPositions, stakingProducts
+   let spotBalance, stakingPositions, stakingProducts, tradingPairs, rates, assets
    try {
-      spotBalance = await spotService.fetchSpotBalance(credentials)
-      stakingPositions = await oldStakingService.fetchStakingBalance(credentials)
+      const binanceAPI = new BinanceAPI(credentials)
+      const binanceGatewayAPI = new BinanceGatewayAPI()
+
+      const userService = new UserService(binanceAPI)
+      const stakingService = new StakingService(binanceAPI)
+      const marketService = new MarketService(binanceAPI)
+      const publicStakingService = new StakingService(binanceGatewayAPI)
+
+      spotBalance = await userService.fetchBalances()
+      stakingPositions = await stakingService.fetchStakingBalances()
+      tradingPairs = await marketService.fetchTradingPairs()
 
       // TODO check if we can fetch via official API
-      stakingProducts = await new StakingService(new BinanceGatewayAPI()).fetchStakingProducts()
+      stakingProducts = await publicStakingService.fetchStakingProducts()
+
+      assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
+
+      const rateFinder = new RateFinder(assets)
+      const pairs = rateFinder.buildPairs(tradingPairs)
+      const pairRates = await marketService.fetchRates(pairs)
+      rates = rateFinder.buildRates(pairRates)
    }
    catch (error) {
       if (error.message === 'HTTP Requester Error') {
          console.log('An error happened while contacting the Binance API:', error.cause)
          res.status(500).json({ error: `An error happened while contacting the Binance API: ${error.cause}` })
+         return
       }
       else {
          console.error('An unexpected error happened:', error)
          res.status(500).json({ error: 'An unexpected error happened.' })
+         return
       }
-
-      return
    }
-
-   const assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
-   const rates = await rateService.fetchRates(assets)
-
 
    const aggregateBalance = assets.map(asset => {
 

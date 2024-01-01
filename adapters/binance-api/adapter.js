@@ -28,7 +28,7 @@ export default function BinanceAPI(credentials) {
    this.fetchRates = async function (pairs) {
       const response = await resource.fetchTickerPrice(pairs)
       return response.reduce((rates, ticker) => {
-         rates[ticker.symbol] = ticker.price
+         rates[ticker.symbol] = Big(ticker.price)
          return rates
       }, {})
    }

@@ -11,4 +11,8 @@ export default function MarketService(apiAdapter) {
    this.fetchClosedOrders = async function (searchParams) {
       return await apiAdapter.fetchClosedOrders(searchParams)
    }
+
+   this.fetchRates = async function (pairs) {
+      return await apiAdapter.fetchRates(pairs)
+   }
 }

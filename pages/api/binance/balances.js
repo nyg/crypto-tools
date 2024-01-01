@@ -1,7 +1,6 @@
 import Big from 'big.js'
-import { stakingService } from '../../../core/services/old/old-market-service'
-import UserService from '../../../core/services/user-service'
 import BinanceAPI from '../../../adapters/binance-api/adapter'
+import UserService from '../../../core/services/user-service'
 import StakingService from '../../../core/services/staking-service'
 
 

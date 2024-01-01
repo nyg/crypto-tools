@@ -1,16 +1,6 @@
 
 function MarketService() {
 
-   this.fetchTradingPairs = async function () {
-      const info = await binanceConnection.fetchExchangeInfo()
-      return info
-         .symbols
-         .map(pair => ({
-            base: pair.baseAsset,
-            quote: pair.quoteAsset
-         }))
-   }
-
    this.fetchEOYRates = async function (assets, referenceAsset) {
 
       const rates = {}

@@ -1,21 +1,19 @@
-import Big from 'big.js'
 import { findPath } from 'modern-dijkstra'
-import { binanceConnection } from '../../../adapters/binance-api/connection'
-import { marketService } from './old-market-service'
 
 
 const referenceAsset = 'USDT'
 
-function RateService() {
+export default function RateFinder(assets) {
 
+   let paths
 
-   this.fetchRates = async function (assets) {
+   this.buildPairs = function (tradingPairs) {
 
       assets = assets.filter(asset => asset !== referenceAsset)
+      tradingPairs = Object.keys(tradingPairs).map(pairId => tradingPairs[pairId])
 
-      const tradingPairs = await marketService.fetchTradingPairs()
       const quoteAssetsFrequency = tradingPairs
-         .map(pair => pair.quote)
+         .map(pair => pair.quote.name)
          .reduce((quoteAssets, asset) => {
             quoteAssets[asset] ??= 0
             quoteAssets[asset] += 1
@@ -26,18 +24,17 @@ function RateService() {
 
       const graph = tradingPairs
          .reduce((graph, pair) => {
-            graph[pair.base] ??= {}
-            graph[pair.base][pair.quote] = tradingPairWeight(pair, quoteAssetsFrequency)
+            graph[pair.base.name] ??= {}
+            graph[pair.base.name][pair.quote.name] = tradingPairWeight(pair, quoteAssetsFrequency)
             return graph
          }, {})
 
-      const paths = assets
+      paths = assets
          .map(asset => {
             try {
-               const path = findPath(graph, asset, referenceAsset)
-               return path
+               return findPath(graph, asset, referenceAsset)
             }
-            catch (e) {
+            catch (error) {
                console.warn(`Could not find a path for ${asset}`)
                return []
             }
@@ -47,17 +44,10 @@ function RateService() {
             return paths
          }, {})
 
-      const pairs = [...new Set(Object.values(paths).flatMap(x => x))]
-      let rates = await binanceConnection.fetchTickerPrice(pairs)
-      if (!Array.isArray(rates)) {
-         throw Error(`Error fetching rates: ${rates}`)
-      }
+      return [...new Set(Object.values(paths).flatMap(x => x))]
+   }
 
-      rates = rates.reduce((rates, ticker) => {
-         rates[ticker.symbol] = Big(ticker.price)
-         return rates
-      }, {})
-
+   this.buildRates = function (rates) {
       return assets.reduce((prices, asset) => {
          prices[asset] = paths[asset]?.map(pair => rates[pair]).reduce((acc, val) => acc.times(val)) ?? 0
          return prices
@@ -77,8 +67,6 @@ function RateService() {
    }
 
    function tradingPairWeight(pair, quoteAssetsFrequency) {
-      return 1 / ((quoteAssetsFrequency[pair.base] ?? 0) + (quoteAssetsFrequency[pair.quote] ?? 0))
+      return 1 / ((quoteAssetsFrequency[pair.base.name] ?? 0) + (quoteAssetsFrequency[pair.quote.name] ?? 0))
    }
 }
-
-export const rateService = new RateService()
