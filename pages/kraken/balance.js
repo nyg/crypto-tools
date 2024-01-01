@@ -25,7 +25,7 @@ export default function KrakenBalance() {
       content = <div>Generate an API key and secret on Kraken to be able to fetch your spot and staking balance.</div>
    }
    else if (!data) {
-      content = <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" onClick={() => trigger(credentials)}>
+      content = <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" onClick={() => trigger({ credentials })}>
          Fetch data
       </button>
    }
