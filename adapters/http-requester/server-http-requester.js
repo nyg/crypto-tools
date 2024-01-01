@@ -35,8 +35,14 @@ function ServerHttpRequester() {
          return response
       }
       catch (error) {
-         console.log('Response error:', error.response.statusCode, error.response.body)
-         throw new Error('HTTP Requester Error', { cause: JSON.stringify(error.response.body) })
+         if (error.response) {
+            console.error('Response error:', error.response.statusCode, error.response.body)
+            throw new Error('HTTP Requester Error', { cause: JSON.stringify(error.response.body) })
+         }
+         else {
+            console.error('Response error:', error)
+            throw new Error('HTTP Requester Error', { cause: JSON.stringify(error) })
+         }
       }
    }
 

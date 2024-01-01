@@ -18,8 +18,8 @@ function Product({ product, spot }) {
    const duration = product.info.duration
    const apy = format.asPercentage(product.info.apy)
 
-   const productAvailable = !product.info.sellOut
-   const userQuota = Big(product.info.maxPurchaseAmountPerUser)
+   const productAvailable = !product.info.soldOut
+   const userQuota = Big(product.info.maxStakingAmount)
    const userQuotaRemaining = userQuota.minus(product.info.positionsAmount)
 
    const buildAvailability = () => {
@@ -29,7 +29,7 @@ function Product({ product, spot }) {
             if (userQuotaRemaining.eq(0)) {
                return <span className="text-red-600">available but user quota of {format.asDecimal(userQuota)} {product.info.asset} reached</span>
             }
-            if (userQuotaRemaining.lt(product.info.minPurchaseAmount)) {
+            if (userQuotaRemaining.lt(product.info.minStakingAmount)) {
                return <span className="text-red-600">available but remaining user quota too low</span>
             }
             else {
@@ -45,7 +45,7 @@ function Product({ product, spot }) {
          if (userQuotaRemaining.eq(0)) {
             return <span className="text-red-600">sold out and user quota of {format.asDecimal(userQuota)} {product.info.asset} reached</span>
          }
-         if (userQuotaRemaining.lt(product.info.minPurchaseAmount)) {
+         if (userQuotaRemaining.lt(product.info.minStakingAmount)) {
             return <span className="text-red-600">sold out and user quota too low</span>
          }
          else if (spot.gt(userQuotaRemaining)) {
@@ -61,7 +61,7 @@ function Product({ product, spot }) {
       <li>
          {duration} days @ {apy} · {buildAvailability()}
          <ul className="text-xs pl-6">
-            {product.positions.map(position => <Position key={position.positionId} position={position} />)}
+            {product.positions.map(position => <Position key={position.id} position={position} />)}
          </ul>
       </li >
    )

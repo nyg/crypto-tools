@@ -1,9 +1,11 @@
-import { fetchAssetPairs, createOrderBatch, fetchClosedOrders } from './resource'
+import Big from 'big.js'
+import * as resource from './resource'
+
 
 export default function KrakenAPI(credentials) {
 
    this.fetchTradingPairs = async function () {
-      const assetPairs = (await fetchAssetPairs()).result
+      const assetPairs = (await resource.fetchAssetPairs()).result
       return Object.keys(assetPairs)
          .map(pairId => ({
             id: assetPairs[pairId].altname,
@@ -34,7 +36,7 @@ export default function KrakenAPI(credentials) {
       }
 
       const promises = orderChunks.map(orderChunk =>
-         createOrderBatch(credentials, { ...args, orders: orderChunk }))
+         resource.createOrderBatch(credentials, { ...args, orders: orderChunk }))
       const responses = await Promise.all(promises)
 
       return responses.flatMap(response => response.result.orders)
@@ -46,14 +48,14 @@ export default function KrakenAPI(credentials) {
       const allOrders = []
 
       while (hasNext) {
-         const orders = await fetchClosedOrders(credentials, { showTrades: true, fromDate, toDate, orderOffset })
+         const orders = await resource.fetchClosedOrders(credentials, { showTrades: true, fromDate, toDate, orderOffset })
          const orderIds = Object.keys(orders.result.closed)
-         fetchedOrderCount += orderIds.length
 
+         fetchedOrderCount += orderIds.length
          hasNext = fetchedOrderCount < orders.result.count
          orderOffset += 50
 
-         const filteredOrders = Object.keys(orders.result.closed)
+         const filteredOrders = orderIds
             .filter(orderId => assetFilter ? orders.result.closed[orderId].descr.pair.includes(assetFilter) : true)
             .filter(orderId => Number.parseFloat(orders.result.closed[orderId].vol_exec) !== 0) // TODO
             .map(orderId => ({
@@ -71,5 +73,55 @@ export default function KrakenAPI(credentials) {
       }
 
       return allOrders.toSorted((a, b) => a.openedDate - b.openedDate)
+   }
+
+   this.fetchBalances = async function () {
+
+      const response = await resource.fetchExtendedBalance(credentials)
+
+      return Object.keys(response.result)
+         .reduce((balances, asset) => {
+
+            const parachainMatch = asset.match(/(?<asset>[A-Z]+)\.P/)
+            const earningMatch = asset.match(/(?<asset>[A-Z]+)\.S/)
+            const stakingMatch = asset.match(/(?<asset>[A-Z]+)[0-9]+\.S/)
+            const commodityMatch = asset.match(/^X(?<asset>[A-Z]{3})$/)
+            const fiatMatch = asset.match(/^Z(?<asset>[A-Z]{3})$/)
+
+            if (parachainMatch) {
+               balances[parachainMatch.groups.asset] ??= {}
+               balances[parachainMatch.groups.asset].parachain = Big(response.result[asset].balance)
+            }
+            else if (earningMatch) {
+               balances[earningMatch.groups.asset] ??= {}
+               balances[earningMatch.groups.asset].earning = Big(response.result[asset].balance)
+            }
+            else if (stakingMatch) {
+               balances[stakingMatch.groups.asset] ??= {}
+               balances[stakingMatch.groups.asset].staking = Big(response.result[asset].balance)
+            }
+            else if (commodityMatch) {
+               balances[commodityMatch.groups.asset] ??= {}
+               balances[commodityMatch.groups.asset].free = Big(response.result[asset].balance)
+               balances[commodityMatch.groups.asset].trade = Big(response.result[asset].hold_trade)
+            }
+            else if (fiatMatch) {
+               balances[fiatMatch.groups.asset] ??= {}
+               balances[fiatMatch.groups.asset].free = Big(response.result[asset].balance)
+               balances[fiatMatch.groups.asset].trade = Big(response.result[asset].hold_trade)
+            }
+            else if (asset === 'XBT') {
+               balances.BTC ??= {}
+               balances.BTC.free = Big(response.result[asset].balance)
+               balances.BTC.trade = Big(response.result[asset].hold_trade)
+            }
+            else {
+               balances[asset] ??= {}
+               balances[asset].free = Big(response.result[asset].balance)
+               balances[asset].trade = Big(response.result[asset].hold_trade)
+            }
+
+            return balances
+         }, {})
    }
 }
