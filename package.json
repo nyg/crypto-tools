@@ -28,7 +28,7 @@
       "big.js": "6.2.2",
       "got": "14.4.2",
       "modern-dijkstra": "1.1.2",
-      "next": "14.2.13",
+      "next": "15.0.1",
       "qs": "6.13.0",
       "react": "18.3.1",
       "react-dom": "18.3.1",
@@ -37,7 +37,7 @@
    "devDependencies": {
       "autoprefixer": "10.4.20",
       "eslint": "8.57.1",
-      "eslint-config-next": "14.2.13",
+      "eslint-config-next": "15.0.1",
       "postcss": "8.4.47",
       "tailwindcss": "3.4.13"
    }
