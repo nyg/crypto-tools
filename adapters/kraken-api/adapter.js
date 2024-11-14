@@ -35,9 +35,15 @@ export default function KrakenAPI(credentials) {
          orderChunks.push(orders.slice(i, i + maxOrderCount))
       }
 
-      const promises = orderChunks.map(orderChunk =>
-         resource.createOrderBatch(credentials, { ...args, orders: orderChunk }))
-      const responses = await Promise.all(promises)
+      const responses = []
+      for (const orderChunk of orderChunks) {
+         const response = await resource.createOrderBatch(credentials, { ...args, orders: orderChunk })
+         responses.push(response)
+
+         if (orderChunk !== orderChunks[orderChunks.length - 1]) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
 
       return responses.flatMap(response => response.result.orders)
    }
