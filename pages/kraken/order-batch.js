@@ -81,9 +81,9 @@ export default function KrakenOrderBatch() {
             This tool allows you to easily create multiple orders for a given
             trading pair. The goal is to be able to place buy orders below the
             current price, or sell orders above the current price. Orders are
-            {postLimitOrders} and the quote currency is used for fees. Kraken
-            allows you to have between {maxOpenOrders} per trading pairs
-            depending on your verification level.
+            {' ' + postLimitOrders} and the quote currency is used for fees.
+            Kraken allows you to have between {maxOpenOrders} across all trading
+            pairs depending on your verification level.
          </p>
 
          <div className="flex gap-8 text-sm tabular-nums">
