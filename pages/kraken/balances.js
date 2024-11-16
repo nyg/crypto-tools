@@ -4,7 +4,7 @@ import KrakenLayout from '../../components/kraken/kraken-layout'
 import { asDecimal } from '../../utils/format'
 
 
-export default function KrakenBalance() {
+export default function KrakenBalances() {
 
    const { data, error, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
 
@@ -36,10 +36,11 @@ export default function KrakenBalance() {
             <th className="text-left">Asset</th>
             <th className="text-right">Balance</th>
          </tr>
-         {Object.keys(data).map(asset => <tr className="border-t border-gray-400">
-            <td className="pr-8">{asset}</td>
-            <td className="text-right">{asDecimal(Number.parseFloat(data[asset]), 18)}</td>
-         </tr>)}
+         {Object.keys(data).map(asset =>
+            <tr key={asset} className="border-t border-gray-400">
+               <td className="pr-8">{asset}</td>
+               <td className="text-right">{asDecimal(Number.parseFloat(data[asset]), 18)}</td>
+            </tr>)}
       </table>
    }
 
