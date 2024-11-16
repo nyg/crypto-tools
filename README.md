@@ -3,10 +3,10 @@
 ## Kraken Order Batch
 
 Allows you to easily create multiple orders for a given trading pair. The goal
-is to be able to place buy orders below the current price, or sell orders above
-the current price. Orders are [post limit orders](1) and the quote currency is
-used for fees. Kraken allows you to have between [80 and 225 open orders](2) per
-trading pairs depending on your verification level.
+is to be able to easily place multiple buy or sell orders. Orders are
+[post limit orders](1) and the quote currency is used for fees. Kraken allows
+you to have between [80 and 225 open orders](2) across all trading pairs
+depending on your verification level.
 
 ![screenshot-kraken-order-batch](public/screenshot-kraken-order-batch.png)
 
