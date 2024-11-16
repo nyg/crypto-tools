@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
+import { asDecimal } from '../../utils/format'
 
 
 export default function KrakenBalance() {
@@ -30,10 +31,16 @@ export default function KrakenBalance() {
       </button>
    }
    else {
-      console.log(data)
-      content = <>
-         <p>Done!</p>
-      </>
+      content = <table>
+         <tr>
+            <th className="text-left">Asset</th>
+            <th className="text-right">Balance</th>
+         </tr>
+         {Object.keys(data).map(asset => <tr className="border-t border-gray-400">
+            <td className="pr-8">{asset}</td>
+            <td className="text-right">{asDecimal(Number.parseFloat(data[asset]), 18)}</td>
+         </tr>)}
+      </table>
    }
 
    return (
