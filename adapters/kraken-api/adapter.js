@@ -89,7 +89,7 @@ export default function KrakenAPI(credentials) {
          .reduce((balances, asset) => {
 
             const parachainMatch = asset.match(/(?<asset>[A-Z]+)\.P/)
-            const earningMatch = asset.match(/(?<asset>[A-Z]+)\.S/)
+            const earningMatch = asset.match(/(?<asset>[A-Z]+)\.[SFM]/)
             const stakingMatch = asset.match(/(?<asset>[A-Z]+)[0-9]+\.S/)
             const commodityMatch = asset.match(/^X(?<asset>[A-Z]{3})$/)
             const fiatMatch = asset.match(/^Z(?<asset>[A-Z]{3})$/)
@@ -106,6 +106,16 @@ export default function KrakenAPI(credentials) {
                balances[stakingMatch.groups.asset] ??= {}
                balances[stakingMatch.groups.asset].staking = Big(response.result[asset].balance)
             }
+            else if (asset === 'XXBT') {
+               balances.BTC ??= {}
+               balances.BTC.free = Big(response.result[asset].balance)
+               balances.BTC.trade = Big(response.result[asset].hold_trade)
+            }
+            else if (asset === 'XXDG') {
+               balances.DOGE ??= {}
+               balances.DOGE.free = Big(response.result[asset].balance)
+               balances.DOGE.trade = Big(response.result[asset].hold_trade)
+            }
             else if (commodityMatch) {
                balances[commodityMatch.groups.asset] ??= {}
                balances[commodityMatch.groups.asset].free = Big(response.result[asset].balance)
@@ -115,11 +125,6 @@ export default function KrakenAPI(credentials) {
                balances[fiatMatch.groups.asset] ??= {}
                balances[fiatMatch.groups.asset].free = Big(response.result[asset].balance)
                balances[fiatMatch.groups.asset].trade = Big(response.result[asset].hold_trade)
-            }
-            else if (asset === 'XBT') {
-               balances.BTC ??= {}
-               balances.BTC.free = Big(response.result[asset].balance)
-               balances.BTC.trade = Big(response.result[asset].hold_trade)
             }
             else {
                balances[asset] ??= {}

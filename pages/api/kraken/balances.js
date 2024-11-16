@@ -10,8 +10,6 @@ export default async function getBalances({ body: { credentials } }, res) {
       return
    }
 
-   console.log(credentials)
-
    try {
       const userService = new UserService(new KrakenAPI(credentials))
       const balances = await userService.fetchBalances()
@@ -19,12 +17,12 @@ export default async function getBalances({ body: { credentials } }, res) {
       const balancesSum = Object.keys(balances)
          .map(asset => {
             const free = balances[asset]?.free ?? Big(0)
-            const trade = balances[asset]?.trade ?? Big(0)
             const staking = balances[asset]?.staking ?? Big(0)
             const earning = balances[asset]?.earning ?? Big(0)
             const parachain = balances[asset]?.parachain ?? Big(0)
-            return { asset, balance: free.add(trade).add(staking).add(earning).add(parachain) }
+            return { asset, balance: free.add(staking).add(earning).add(parachain) }
          })
+         .filter(balance => balance.balance != 0)
          .reduce((balances, balance) => {
             balances[balance.asset] = balance.balance
             return balances
@@ -32,6 +30,7 @@ export default async function getBalances({ body: { credentials } }, res) {
 
 
       res.status(200).json(balancesSum)
+      // res.status(200).send(Object.keys(balancesSum).map(asset => `${asset};${balancesSum[asset]}`).join('\n'))
    }
    catch (error) {
       if (error.message === 'HTTP Requester Error') {

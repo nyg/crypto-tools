@@ -9,7 +9,7 @@ export default function KrakenLayout({ children, name }) {
          <header className="px-3 py-2 mb-4 flex items-baseline gap-x-3 border-b">
             <MenuLink href="/kraken/order-batch">Order Batch</MenuLink>
             <MenuLink href="/kraken/closed-orders">Closed Orders</MenuLink>
-            {/* <MenuLink href="/kraken/balance">Balance</MenuLink> */}
+            <MenuLink href="/kraken/balances">Balances</MenuLink>
          </header>
 
          <div className="px-3">
