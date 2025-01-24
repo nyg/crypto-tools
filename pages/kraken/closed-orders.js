@@ -27,10 +27,10 @@ export default function KrakenClosedOrders() {
    const fetchOrders = event => {
       event.preventDefault()
       const formData = new FormData(event.target)
-      const asset = formData.get('asset')
+      const assetFilter = formData.get('asset')
       const fromDate = new Date(formData.get('date-from')).getTime() / 1000
       const toDate = new Date(formData.get('date-to')).getTime() / 1000
-      getOrders({ credentials, searchParams: { asset, fromDate, toDate } })
+      getOrders({ credentials, searchParams: { assetFilter, fromDate, toDate } })
    }
 
    let orderContent
