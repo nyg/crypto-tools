@@ -1,38 +1,38 @@
 {
+    // https://www.youtube.com/watch?v=_5mGxLZ61J0
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Attach",
-            "port": 9229,
+            "name": "Next.js: server-side",
+            "port": 9230,
             "request": "attach",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "node"
-        },
-        {
-            "name": "Next.js: debug server-side",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "npm run dev"
-        },
-        {
-            "name": "Next.js: debug client-side",
-            "type": "pwa-chrome",
-            "request": "launch",
-            "url": "http://localhost:3000"
-        },
-        {
-            "name": "Next.js: debug full stack",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "npm run dev",
-            "console": "integratedTerminal",
-            "serverReadyAction": {
-                "pattern": "started server on .+, url: (https?://.+)",
-                "uriFormat": "%s",
-                "action": "debugWithChrome"
+            "type": "node",
+            "sourceMapPathOverrides": {
+                "/turbopack/[project]/*": "${webRoot}/*"
             }
+        },
+        {
+            "name": "Next.js: client-side",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}",
+            "sourceMapPathOverrides": {
+                "/turbopack/[project]/*": "${webRoot}/*"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Next.js: full stack",
+            "configurations": [
+                "Next.js: client-side",
+                "Next.js: server-side"
+            ],
+            "stopAll": true
         }
     ]
 }
