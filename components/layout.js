@@ -16,7 +16,7 @@ export default function Layout({ children, name }) {
 
          <header className="px-3 pb-2 mt-4 flex items-baseline gap-x-3 border-b">
             <h1 className="text-xl">Crypto Tools</h1>
-            <span className="flex-grow"></span>
+            <span className="grow"></span>
             <MenuLink href="/kraken/order-batch" isActive={isActive}>Kraken</MenuLink>
             <MenuLink href="/binance/staking" isActive={isActive}>Binance</MenuLink>
             <MenuLink href="/settings" isActive={isActive}>Settings</MenuLink>

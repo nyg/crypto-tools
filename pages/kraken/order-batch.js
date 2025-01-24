@@ -102,8 +102,8 @@ export default function KrakenOrderBatch() {
                      <Input name="dry-run" label="Dry run" type="checkbox" />
                   </form>
                   <div className="space-x-4">
-                     <input className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" type="button" value="Show preview" onClick={showPreview} />
-                     <input className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500" type="button" value="Create orders" onClick={showPreviewAndCreateOrders} />
+                     <input className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" type="button" value="Show preview" onClick={showPreview} />
+                     <input className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" type="button" value="Create orders" onClick={showPreviewAndCreateOrders} />
                   </div>
                </div>
             </div>
