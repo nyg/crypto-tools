@@ -5,7 +5,7 @@ import Big from 'big.js'
 function LabeledValue({ label, value, className }) {
    return (
       <span className={`flex space-x-2 text-xs leading-5 ${className}`}>
-         <span className="flex-grow text-right font-medium">{value}</span>
+         <span className="grow text-right font-medium">{value}</span>
          {label && (
             <span className="font-light uppercase">{label}</span>
          )}
@@ -91,7 +91,7 @@ export default function CurrentPositions({ data }) {
                   <LabeledValue className="w-[12%]" label="staking" value={format.asDecimal(staking?.balance)} />
                   <LabeledValue className="w-[12%]" label="locked" value={format.asDecimal(locked)} />
                   <LabeledValue className="w-[12%]" label="total" value={format.asDecimal(total)} />
-                  <span className="flex-grow"></span>
+                  <span className="grow"></span>
                   <LabeledValue value={format.asDollarAmount(fiatValue)} />
                </div>
 

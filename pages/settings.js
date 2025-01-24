@@ -24,24 +24,24 @@ export default function Settings() {
 
    return (
       <Layout name="Settings">
-         <div className="flex-grow p-3 space-y-4 text-sm">
+         <div className="grow p-3 space-y-4 text-sm">
             <h2 className="text-base font-semibold">API Keys</h2>
 
             <h3>Binance</h3>
             <form method="post" onSubmit={event => saveApiKeys(event, 'binance')}>
                <div className="flex items-end gap-x-3">
-                  <Input className="flex-grow" name="binance-api-key" label="API Key" defaultValue={apiKeys.binance.apiKey} />
-                  <Input className="flex-grow" name="binance-api-secret" label="API Secret" defaultValue={apiKeys.binance.apiSecret} type="password" />
-                  <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded hover:bg-gray-500">Save</button>
+                  <Input className="grow" name="binance-api-key" label="API Key" defaultValue={apiKeys.binance.apiKey} />
+                  <Input className="grow" name="binance-api-secret" label="API Secret" defaultValue={apiKeys.binance.apiSecret} type="password" />
+                  <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500">Save</button>
                </div>
             </form>
 
             <h3>Kraken</h3>
             <form method="post" onSubmit={event => saveApiKeys(event, 'kraken')}>
                <div className="flex items-end gap-x-3">
-                  <Input className="flex-grow" name="kraken-api-key" label="API Key" defaultValue={apiKeys.kraken.apiKey} />
-                  <Input className="flex-grow" name="kraken-api-secret" label="API Secret" defaultValue={apiKeys.kraken.apiSecret} type="password" />
-                  <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded">Save</button>
+                  <Input className="grow" name="kraken-api-key" label="API Key" defaultValue={apiKeys.kraken.apiKey} />
+                  <Input className="grow" name="kraken-api-secret" label="API Secret" defaultValue={apiKeys.kraken.apiSecret} type="password" />
+                  <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm">Save</button>
                </div>
             </form>
          </div>
