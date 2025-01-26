@@ -21,7 +21,7 @@ products for each of your assets.
 
 ### Online
 
-* https://crypto-tools.andstuff.club
+* https://crypto-tools.andstuff.dev
 
 ### Local Installation
 
