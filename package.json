@@ -26,19 +26,19 @@
    },
    "dependencies": {
       "big.js": "6.2.2",
-      "got": "14.4.5",
+      "got": "14.4.6",
       "modern-dijkstra": "1.1.2",
-      "next": "15.1.6",
+      "next": "15.1.7",
       "qs": "6.14.0",
       "react": "19.0.0",
       "react-dom": "19.0.0",
-      "swr": "2.3.0"
+      "swr": "2.3.2"
    },
    "devDependencies": {
-      "@tailwindcss/postcss": "4.0.1",
-      "eslint": "9.19.0",
-      "eslint-config-next": "15.1.6",
-      "postcss": "8.5.1",
-      "tailwindcss": "4.0.1"
+      "@tailwindcss/postcss": "4.0.9",
+      "eslint": "9.21.0",
+      "eslint-config-next": "15.1.7",
+      "postcss": "8.5.3",
+      "tailwindcss": "4.0.9"
    }
 }
