@@ -3,7 +3,9 @@ import KrakenAPI from '../../../adapters/kraken-api/adapter'
 import UserService from '../../../core/services/user-service'
 
 
-export default async function getBalances({ body: { credentials } }, res) {
+export default async function getBalances(req, res) {
+
+   const { credentials } = req.body
 
    if (!credentials) {
       res.status(401).json({ error: 'No API credentials provided.' })
@@ -29,8 +31,14 @@ export default async function getBalances({ body: { credentials } }, res) {
          }, {})
 
 
-      res.status(200).json(balancesSum)
-      // res.status(200).send(Object.keys(balancesSum).map(asset => `${asset};${balancesSum[asset]}`).join('\n'))
+      const acceptHeader = req.headers.accept || 'application/json'
+
+      if (acceptHeader.includes('text/csv')) {
+         res.setHeader('Content-Type', 'text/csv')
+         res.status(200).send(Object.keys(balancesSum).map(asset => `${asset};${balancesSum[asset]}`).join('\n'))
+      } else {
+         res.status(200).json(balancesSum)
+      }
    }
    catch (error) {
       if (error.message === 'HTTP Requester Error') {
