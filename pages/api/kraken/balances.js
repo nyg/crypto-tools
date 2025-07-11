@@ -32,7 +32,6 @@ export default async function getBalances(req, res) {
 
 
       const acceptHeader = req.headers.accept || 'application/json'
-
       if (acceptHeader.includes('text/csv')) {
          res.setHeader('Content-Type', 'text/csv')
          res.status(200).send(Object.keys(balancesSum).map(asset => `${asset};${balancesSum[asset]}`).join('\n'))

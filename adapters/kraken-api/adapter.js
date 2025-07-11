@@ -1,6 +1,12 @@
 import Big from 'big.js'
 import * as resource from './resource'
 
+// Mapping for specific asset name normalizations
+const assetNormalizationMap = {
+   'XXBT': 'BTC',
+   'XBT.F': 'BTC',
+   'XXDG': 'DOGE'
+}
 
 export default function KrakenAPI(credentials) {
 
@@ -42,7 +48,7 @@ export default function KrakenAPI(credentials) {
 
          if (orderChunk !== orderChunks[orderChunks.length - 1]) {
             await new Promise(resolve => setTimeout(resolve, 2000));
-        }
+         }
       }
 
       return responses.flatMap(response => response.result.orders)
@@ -84,52 +90,56 @@ export default function KrakenAPI(credentials) {
    this.fetchBalances = async function () {
 
       const response = await resource.fetchExtendedBalance(credentials)
-
       return Object.keys(response.result)
          .reduce((balances, asset) => {
 
             const parachainMatch = asset.match(/(?<asset>[A-Z]+)\.P/)
-            const earningMatch = asset.match(/(?<asset>[A-Z]+)\.[SFM]/)
+            const earningMatch = asset.match(/(?<asset>[A-Z]+)\.[SFMB]/)
             const stakingMatch = asset.match(/(?<asset>[A-Z]+)[0-9]+\.S/)
             const commodityMatch = asset.match(/^X(?<asset>[A-Z]{3})$/)
             const fiatMatch = asset.match(/^Z(?<asset>[A-Z]{3})$/)
 
-            if (parachainMatch) {
-               balances[parachainMatch.groups.asset] ??= {}
-               balances[parachainMatch.groups.asset].parachain = Big(response.result[asset].balance)
+            let normalizedAsset = asset
+            let category = 'free'
+
+            if (asset in assetNormalizationMap) {
+               normalizedAsset = assetNormalizationMap[asset]
+               if (asset === 'XBT.F') {
+                  category = 'earning'
+               }
+            }
+            else if (parachainMatch) {
+               normalizedAsset = parachainMatch.groups.asset
+               category = 'parachain'
             }
             else if (earningMatch) {
-               balances[earningMatch.groups.asset] ??= {}
-               balances[earningMatch.groups.asset].earning = Big(response.result[asset].balance)
+               normalizedAsset = earningMatch.groups.asset
+               category = 'earning'
             }
             else if (stakingMatch) {
-               balances[stakingMatch.groups.asset] ??= {}
-               balances[stakingMatch.groups.asset].staking = Big(response.result[asset].balance)
-            }
-            else if (asset === 'XXBT') {
-               balances.BTC ??= {}
-               balances.BTC.free = Big(response.result[asset].balance)
-               balances.BTC.trade = Big(response.result[asset].hold_trade)
-            }
-            else if (asset === 'XXDG') {
-               balances.DOGE ??= {}
-               balances.DOGE.free = Big(response.result[asset].balance)
-               balances.DOGE.trade = Big(response.result[asset].hold_trade)
+               normalizedAsset = stakingMatch.groups.asset
+               category = 'staking'
             }
             else if (commodityMatch) {
-               balances[commodityMatch.groups.asset] ??= {}
-               balances[commodityMatch.groups.asset].free = Big(response.result[asset].balance)
-               balances[commodityMatch.groups.asset].trade = Big(response.result[asset].hold_trade)
+               normalizedAsset = commodityMatch.groups.asset
             }
             else if (fiatMatch) {
-               balances[fiatMatch.groups.asset] ??= {}
-               balances[fiatMatch.groups.asset].free = Big(response.result[asset].balance)
-               balances[fiatMatch.groups.asset].trade = Big(response.result[asset].hold_trade)
+               normalizedAsset = fiatMatch.groups.asset
             }
-            else {
-               balances[asset] ??= {}
-               balances[asset].free = Big(response.result[asset].balance)
-               balances[asset].trade = Big(response.result[asset].hold_trade)
+
+            const freeBalance = Big(response.result[asset].balance)
+            const holdTradeBalance = Big(response.result[asset].hold_trade)
+
+            if (freeBalance.add(holdTradeBalance).eq(0)) {
+               return balances
+            }
+
+            balances[normalizedAsset] ??= {}
+            if (!freeBalance.eq(0)) {
+               balances[normalizedAsset][category] = freeBalance.add(balances[normalizedAsset][category] ?? 0)
+            }
+            if (!holdTradeBalance.eq(0)) {
+               balances[normalizedAsset].trade = holdTradeBalance.add(balances[normalizedAsset].trade ?? 0)
             }
 
             return balances
