@@ -28,16 +28,16 @@
       "big.js": "7.0.1",
       "got": "14.4.9",
       "modern-dijkstra": "1.1.2",
-      "next": "15.5.4",
+      "next": "16.0.0",
       "qs": "6.14.0",
-      "react": "19.1.1",
-      "react-dom": "19.1.1",
+      "react": "19.2.0",
+      "react-dom": "19.2.0",
       "swr": "2.3.6"
    },
    "devDependencies": {
       "@tailwindcss/postcss": "4.1.13",
       "eslint": "9.36.0",
-      "eslint-config-next": "15.5.4",
+      "eslint-config-next": "16.0.0",
       "postcss": "8.5.6",
       "tailwindcss": "4.1.13"
    }
