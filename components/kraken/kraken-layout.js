@@ -10,6 +10,7 @@ export default function KrakenLayout({ children, name }) {
             <MenuLink href="/kraken/order-batch">Order Batch</MenuLink>
             <MenuLink href="/kraken/closed-orders">Closed Orders</MenuLink>
             <MenuLink href="/kraken/balances">Balances</MenuLink>
+            <MenuLink href="/kraken/xstocks">xStocks</MenuLink>
          </header>
 
          <div className="px-3">

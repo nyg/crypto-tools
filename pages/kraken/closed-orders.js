@@ -3,6 +3,7 @@ import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import Input from '../../components/lib/input'
 import * as format from '../../utils/format'
+import Big from 'big.js'
 
 
 export default function KrakenClosedOrders() {
@@ -61,9 +62,9 @@ export default function KrakenClosedOrders() {
                         {orders[pair][direction].orders.map(order =>
                            <tr key={Math.random()}>
                               <td>{new Date(order.openedDate * 1000).toISOString()}</td>
-                              <td>{order.volume}</td>
-                              <td>{order.cost}</td>
-                              <td>{order.price}</td>
+                              <td>{format.asDecimal(order.volume, orders[pair].pair.base.decimals)}</td>
+                              <td>{format.asDecimal(Big(order.cost).add(order.flags.includes('fciq') ? order.fee : 0), orders[pair].pair.quote.decimals)}</td>
+                              <td>{format.asDecimal(order.price, orders[pair].pair.quote.decimals)}</td>
                               <td className="font-mono">{order.orderId}</td>
                            </tr>)}
                      </tbody>

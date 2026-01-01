@@ -7,7 +7,8 @@ export default function Settings() {
 
    const [apiKeys, setApiKeys] = useState({
       binance: { apiKey: '', apiSecret: '' },
-      kraken: { apiKey: '', apiSecret: '' }
+      kraken: { apiKey: '', apiSecret: '' },
+      anthropic: { apiKey: '' }
    })
 
    useEffect(() =>
@@ -19,6 +20,9 @@ export default function Settings() {
          kraken: {
             apiKey: localStorage.getItem('kraken.api.key') || process.env.NEXT_PUBLIC_KRAKEN_API_KEY,
             apiSecret: localStorage.getItem('kraken.api.secret') || process.env.NEXT_PUBLIC_KRAKEN_API_SECRET
+         },
+         anthropic: {
+            apiKey: localStorage.getItem('anthropic.api.key') || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY
          }
       }), [])
 
@@ -44,17 +48,25 @@ export default function Settings() {
                   <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm">Save</button>
                </div>
             </form>
+
+            <h3>Anthropic</h3>
+            <form method="post" onSubmit={event => saveApiKeys(event, 'anthropic')}>
+               <div className="flex items-end gap-x-3">
+                  <Input className="grow" name="anthropic-api-key" label="API Key" defaultValue={apiKeys.anthropic.apiKey} />
+                  <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm">Save</button>
+               </div>
+            </form>
          </div>
       </Layout>
    )
 }
 
-const saveApiKeys = (event, exchange) => {
+const saveApiKeys = (event, provider) => {
    event.preventDefault()
 
    const formData = new FormData(event.target)
-   localStorage.setItem(`${exchange}.api.key`, formData.get(`${exchange}-api-key`))
-   localStorage.setItem(`${exchange}.api.secret`, formData.get(`${exchange}-api-secret`))
+   localStorage.setItem(`${provider}.api.key`, formData.get(`${provider}-api-key`))
+   localStorage.setItem(`${provider}.api.secret`, formData.get(`${provider}-api-secret`))
 
    const button = event.target.getElementsByTagName('button')[0]
    button.textContent = 'Saved!'

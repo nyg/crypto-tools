@@ -8,9 +8,6 @@ import BinanceLayout from '../../components/binance/binance-layout'
 export default function BinanceStaking() {
 
    const { data, error, isMutating, trigger: fetchAggregatedBalance } = useSWRMutation('/api/binance/aggregate-balance')
-   const fetchDataButton = <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" onClick={() => fetchAggregatedBalance({ credentials })}>
-      Fetch data
-   </button>
 
    const [credentials, setCredentials] = useState({ apiKey: '', apiSecret: '' })
    useEffect(() =>
@@ -18,6 +15,10 @@ export default function BinanceStaking() {
          apiKey: localStorage.getItem('binance.api.key'),
          apiSecret: localStorage.getItem('binance.api.secret')
       }), [])
+
+   const fetchDataButton = <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" onClick={() => fetchAggregatedBalance({ credentials })}>
+      Fetch data
+   </button>
 
    let content
    if (error) {

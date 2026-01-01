@@ -77,7 +77,7 @@ export default function KrakenOrderBatch() {
 
    return (
       <KrakenLayout name="Order Batch">
-         <p className="mb-6 w-2/5 text-justify text-sm">
+         <p className="mb-6 max-w-5xl text-justify text-sm">
             This tool allows you to easily create multiple orders for a given
             trading pair. The goal is to be able to place buy orders below the
             current price, or sell orders above the current price. Orders are
@@ -109,16 +109,15 @@ export default function KrakenOrderBatch() {
             </div>
             <div>
                <h3 className="pb-2 font-semibold">Preview</h3>
-               {/* <p>{ordersParams.orders.length} orders, dry run: {ordersParams.dryRun.toString()}.</p> */}
+
                {ordersParams.orders?.map(order =>
-                  <p key={Math.random()}>{`${ordersParams.direction} ${order.volume} ${ordersParams.pair} @ limit ${order.price}`}</p>
+                  <p key={order.price}>{`${ordersParams.direction} ${order.volume} ${ordersParams.pair} @ limit ${order.price}`}</p>
                )}
             </div>
             <div>
                <h3 className="pb-2 font-semibold">API Response</h3>
-               {/* TODO error handling */}
                {isMutating ? <p>Loading…</p> : createdOrders?.map(order =>
-                  <p key={Math.random()}>{JSON.stringify(order)}</p>
+                  <p key={order.descr?.order ?? order}>{JSON.stringify(order)}</p>
                )}
             </div>
          </div>

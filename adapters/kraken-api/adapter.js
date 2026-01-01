@@ -47,7 +47,7 @@ export default function KrakenAPI(credentials) {
          responses.push(response)
 
          if (orderChunk !== orderChunks[orderChunks.length - 1]) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 2000))
          }
       }
 
@@ -74,11 +74,13 @@ export default function KrakenAPI(credentials) {
                orderId,
                pair: orders.result.closed[orderId].descr.pair,
                direction: orders.result.closed[orderId].descr.type,
-               volume: orders.result.closed[orderId].vol_exec,
-               cost: orders.result.closed[orderId].cost,
-               price: orders.result.closed[orderId].price,
+               volume: Big(orders.result.closed[orderId].vol_exec),
+               cost: Big(orders.result.closed[orderId].cost),
+               price: Big(orders.result.closed[orderId].price),
+               fee: Big(orders.result.closed[orderId].fee),
                openedDate: orders.result.closed[orderId].opentm,
-               closedDate: orders.result.closed[orderId].closetm
+               closedDate: orders.result.closed[orderId].closetm,
+               flags: orders.result.closed[orderId].oflags
             }))
 
          allOrders.push(...filteredOrders)
@@ -144,5 +146,10 @@ export default function KrakenAPI(credentials) {
 
             return balances
          }, {})
+   }
+
+   this.fetchAssets = async function (type) {
+      const response = await resource.fetchAssetInfo(type)
+      return response.result
    }
 }

@@ -31,25 +31,29 @@ export default function KrakenBalances() {
       </button>
    }
    else {
-      content = <table>
-         <tr>
-            <th className="text-left">Asset</th>
-            <th className="text-right">Balance</th>
-         </tr>
-         {Object.keys(data).map(asset =>
-            <tr key={asset} className="border-t border-gray-400">
-               <td className="pr-8">{asset}</td>
-               <td className="text-right">{asDecimal(Number.parseFloat(data[asset]), 18)}</td>
-            </tr>)}
-      </table>
+      content = (
+         <table>
+            <thead>
+               <tr>
+                  <th className="text-left">Asset</th>
+                  <th className="text-right">Balance</th>
+               </tr>
+            </thead>
+            <tbody>
+               {Object.keys(data).map(asset =>
+                  <tr key={asset} className="border-t border-gray-400">
+                     <td className="pr-8">{asset}</td>
+                     <td className="text-right">{asDecimal(Number.parseFloat(data[asset]), 18)}</td>
+                  </tr>)}
+            </tbody>
+         </table>
+      )
    }
 
    return (
       <KrakenLayout name="Balance">
          <div className="grow text-sm space-y-6 tabular-nums">
-            <div className="px-3 space-y-4">
-               {content}
-            </div>
+            {content}
          </div>
       </KrakenLayout>
    )

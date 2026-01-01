@@ -10,12 +10,11 @@ const assetInfoEndpoint = '/0/public/Assets'
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
 const closedOrdersEndpoint = '/0/private/ClosedOrders'
-const queryLedgersEndpoint = '/0/private/QueryLedgers'
 
 /* Public endpoints */
 
-export async function fetchAssetInfo() {
-   return await httpRequester.public(urlFor(assetInfoEndpoint))
+export async function fetchAssetInfo(type = 'currency') {
+   return await httpRequester.public(urlFor(assetInfoEndpoint), { aclass: type })
 }
 
 export async function fetchAssetPairs() {
