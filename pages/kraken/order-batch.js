@@ -10,7 +10,13 @@ const priceFunctions = {
 }
 
 const volumeFunctions = {
-   'linear': (totalVolume, orderCount) => totalVolume / orderCount
+   'linear-base': (totalVolume, orderCount, price, allPrices) => totalVolume / orderCount,
+   'linear-quote': (totalVolume, orderCount, price, allPrices) => {
+      // calculate total quote per order such that all orders have equal quote value
+      const sumOfInversePrices = allPrices.reduce((sum, p) => sum + (1 / p), 0)
+      const quotePerOrder = totalVolume / sumOfInversePrices
+      return quotePerOrder / price
+   }
 }
 
 const buildOrdersParams = () => {
@@ -24,9 +30,13 @@ const buildOrdersParams = () => {
    const priceFunction = priceFunctions[formData.get('price-fn')]
    const volumeFunction = volumeFunctions[formData.get('volume-fn')]
 
-   const orders = [...Array(orderCount).keys()].map(i => ({
-      price: priceFunction(i, priceFrom, priceTo, orderCount).toFixed(1),
-      volume: volumeFunction(volume, orderCount).toFixed(8)
+   const prices = [...Array(orderCount).keys()].map(i =>
+      priceFunction(i, priceFrom, priceTo, orderCount)
+   )
+
+   const orders = prices.map((price, i) => ({
+      price: price.toFixed(1),
+      volume: volumeFunction(volume, orderCount, price, prices).toFixed(8)
    }))
 
    return {
@@ -92,13 +102,19 @@ export default function KrakenOrderBatch() {
                <div className="space-y-2">
                   <form className="space-y-3" id="order-form" method="post">
                      <Input name="pair" label="Pair" defaultValue="XBTUSD" />
-                     <Input name="direction" label="Direction" defaultValue="sell" />
-                     <Input name="price-from" label="Price from" defaultValue="110000" />
-                     <Input name="price-to" label="Price to" defaultValue="125000" />
-                     <Input name="volume" label="Volume" defaultValue="0.2" />
-                     <Input name="order-count" label="# of orders" defaultValue="12" />
+                     <Input name="direction" label="Direction" defaultValue="buy" />
+                     <Input name="price-from" label="Price from" defaultValue="40000" />
+                     <Input name="price-to" label="Price to" defaultValue="63000" />
+                     <Input name="volume" label="Volume" defaultValue="3.5" />
+                     <Input name="order-count" label="# of orders" defaultValue="20" />
                      <Input name="price-fn" label="Price function" defaultValue="linear" />
-                     <Input name="volume-fn" label="Volume function" defaultValue="linear" />
+                     <div>
+                        <label htmlFor="volume-fn" className="px-3 pb-1 text-xs text-gray-800">Volume function</label>
+                        <select name="volume-fn" id="volume-fn" defaultValue="linear-quote" className="w-full px-2 py-1 rounded-sm border border-gray-600">
+                           <option value="linear-base">Linear (base currency)</option>
+                           <option value="linear-quote">Linear (quote currency)</option>
+                        </select>
+                     </div>
                      <Input name="dry-run" label="Dry run" type="checkbox" />
                   </form>
                   <div className="space-x-4">
@@ -110,9 +126,14 @@ export default function KrakenOrderBatch() {
             <div>
                <h3 className="pb-2 font-semibold">Preview</h3>
 
-               {ordersParams.orders?.map(order =>
-                  <p key={order.price}>{`${ordersParams.direction} ${order.volume} ${ordersParams.pair} @ limit ${order.price}`}</p>
-               )}
+               {ordersParams.orders?.map(order => {
+                  const quoteValue = (parseFloat(order.volume) * parseFloat(order.price)).toFixed(2)
+                  return (
+                     <p key={order.price}>
+                        {`${ordersParams.direction} ${order.volume} ${ordersParams.pair} @ limit ${order.price} (${quoteValue} quote)`}
+                     </p>
+                  )
+               })}
             </div>
             <div>
                <h3 className="pb-2 font-semibold">API Response</h3>
