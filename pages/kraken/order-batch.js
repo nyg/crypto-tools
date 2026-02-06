@@ -107,8 +107,8 @@ export default function KrakenOrderBatch() {
                         <option value="buy">Buy</option>
                         <option value="sell">Sell</option>
                      </Select>
-                     <Input name="price-from" label="Price from" defaultValue="40000" />
-                     <Input name="price-to" label="Price to" defaultValue="63000" />
+                     <Input name="price-from" label="Price from" defaultValue="40219" />
+                     <Input name="price-to" label="Price to" defaultValue="59219" />
                      <Input name="volume" label="Volume" defaultValue="3.5" />
                      <Input name="order-count" label="# of orders" defaultValue="20" />
                      <Select name="price-fn" label="Price function" defaultValue="linear">
