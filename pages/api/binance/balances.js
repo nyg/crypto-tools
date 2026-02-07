@@ -1,7 +1,5 @@
 import Big from 'big.js'
-import BinanceAPI from '../../../adapters/binance-api/adapter'
-import UserService from '../../../core/services/user-service'
-import StakingService from '../../../core/services/staking-service'
+import BinanceAPI from '../../../lib/adapters/binance-api/adapter'
 
 
 export default async function balances({ body: { credentials } }, res) {
@@ -12,11 +10,9 @@ export default async function balances({ body: { credentials } }, res) {
    }
 
    const binanceAPI = new BinanceAPI(credentials)
-   const userService = new UserService(binanceAPI)
-   const stakingService = new StakingService(binanceAPI)
 
-   const spotBalance = await userService.fetchBalances()
-   const stakingPositions = await stakingService.fetchStakingBalances()
+   const spotBalance = await binanceAPI.fetchBalances()
+   const stakingPositions = await binanceAPI.fetchStakingBalances()
 
    const assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
 

@@ -1,5 +1,4 @@
-import BinanceAPI from '../../../adapters/binance-api/adapter'
-import FundingService from '../../../core/services/funding-service'
+import BinanceAPI from '../../../lib/adapters/binance-api/adapter'
 
 
 const computeToDate = fromDate => fromDate + 90 * 24 * 3600 * 1000
@@ -13,14 +12,13 @@ export default async function deposits({ body: { credentials, fromDate } }, res)
    }
 
    const binanceAPI = new BinanceAPI(credentials)
-   const fundingService = new FundingService(binanceAPI)
 
    let hasNext = true
    let toDate = computeToDate(fromDate)
    const allDeposits = []
 
    while (hasNext) {
-      const deposits = await fundingService.fetchFiatDeposits(fromDate, toDate)
+      const deposits = await binanceAPI.fetchFiatDeposits(fromDate, toDate)
       allDeposits.push(...deposits)
 
       hasNext = toDate < Date.now()
