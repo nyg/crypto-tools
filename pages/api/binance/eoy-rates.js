@@ -1,11 +1,9 @@
-import BinanceAPI from '../../../adapters/binance-api/adapter'
-import MarketService from '../../../core/services/market-service'
+import BinanceAPI from '../../../lib/adapters/binance-api/adapter'
 
 
 export default async function eoyRates(req, res) {
 
    const binanceAPI = new BinanceAPI()
-   const marketService = new MarketService(binanceAPI)
 
    // const startTime = new Date('2023-12-31').getTime()
    // const endTime = new Date('2024-01-01').getTime() - 1
@@ -18,10 +16,11 @@ export default async function eoyRates(req, res) {
 
    for (const asset of assets) {
       try {
-         const candlestick = await marketService.fetchCandlestickData(`${asset}USDT`, '1m', startTime, endTime, 1)
+         const candlestick = await binanceAPI.fetchCandlestickData(`${asset}USDT`, '1m', startTime, endTime, 1)
          rates[asset] = candlestick[0].close
       }
       catch (error) {
+         log.error(error)
          //rates[asset] = 'not found'
       }
    }

@@ -1,5 +1,4 @@
-import KrakenAPI from '../../../adapters/kraken-api/adapter'
-import MarketService from '../../../core/services/market-service'
+import KrakenAPI from '../../../lib/adapters/kraken-api/adapter'
 
 export default async function getClosedOrders({ body: { credentials, searchParams } }, res) {
 
@@ -10,9 +9,8 @@ export default async function getClosedOrders({ body: { credentials, searchParam
 
    try {
       const krakenAPI = new KrakenAPI(credentials)
-      const marketService = new MarketService(krakenAPI)
-      const closedOrders = await marketService.fetchClosedOrders(searchParams)
-      const tradingPairs = await marketService.fetchTradingPairs()
+      const closedOrders = await krakenAPI.fetchClosedOrders(searchParams)
+      const tradingPairs = await krakenAPI.fetchTradingPairs()
 
       const groupedOrders = closedOrders.reduce((groupedOrders, order) => {
 

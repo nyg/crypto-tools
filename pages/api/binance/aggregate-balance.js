@@ -1,10 +1,7 @@
 import Big from 'big.js'
-import BinanceAPI from '../../../adapters/binance-api/adapter'
-import BinanceGatewayAPI from '../../../adapters/binance-gateway-api/adapter'
-import StakingService from '../../../core/services/staking-service'
-import UserService from '../../../core/services/user-service'
-import MarketService from '../../../core/services/market-service'
-import RateFinder from '../../../core/rate-finder'
+import BinanceAPI from '../../../lib/adapters/binance-api/adapter'
+import BinanceGatewayAPI from '../../../lib/adapters/binance-gateway-api/adapter'
+import RateFinder from '../../../lib/services/rate-finder'
 
 
 export default async function aggregateBalance({ body: { credentials } }, res) {
@@ -19,23 +16,18 @@ export default async function aggregateBalance({ body: { credentials } }, res) {
       const binanceAPI = new BinanceAPI(credentials)
       const binanceGatewayAPI = new BinanceGatewayAPI()
 
-      const userService = new UserService(binanceAPI)
-      const stakingService = new StakingService(binanceAPI)
-      const marketService = new MarketService(binanceAPI)
-      const publicStakingService = new StakingService(binanceGatewayAPI)
-
-      spotBalance = await userService.fetchBalances()
-      stakingPositions = await stakingService.fetchStakingBalances()
-      tradingPairs = await marketService.fetchTradingPairs()
+      spotBalance = await binanceAPI.fetchBalances()
+      stakingPositions = await binanceAPI.fetchStakingBalances()
+      tradingPairs = await binanceAPI.fetchTradingPairs()
 
       // TODO check if we can fetch via official API
-      stakingProducts = await publicStakingService.fetchStakingProducts()
+      stakingProducts = await binanceGatewayAPI.fetchStakingProducts()
 
       assets = [...new Set(Object.keys(spotBalance).concat(Object.keys(stakingPositions)))]
 
       const rateFinder = new RateFinder(assets)
       const pairs = rateFinder.buildPairs(tradingPairs)
-      const pairRates = await marketService.fetchRates(pairs)
+      const pairRates = await binanceAPI.fetchRates(pairs)
       rates = rateFinder.buildRates(pairRates)
    }
    catch (error) {

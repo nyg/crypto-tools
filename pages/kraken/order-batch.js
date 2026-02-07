@@ -3,6 +3,7 @@ import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import Input from '../../components/lib/input'
 import ExternalLink from '../../components/lib/external-link'
+import Select from '../../components/lib/select'
 
 
 const priceFunctions = {
@@ -10,7 +11,13 @@ const priceFunctions = {
 }
 
 const volumeFunctions = {
-   'linear': (totalVolume, orderCount) => totalVolume / orderCount
+   'linear-base': (totalVolume, orderCount, price, allPrices) => totalVolume / orderCount,
+   'linear-quote': (totalVolume, orderCount, price, allPrices) => {
+      // calculate total quote per order such that all orders have equal quote value
+      const sumOfInversePrices = allPrices.reduce((sum, p) => sum + (1 / p), 0)
+      const quotePerOrder = totalVolume / sumOfInversePrices
+      return quotePerOrder / price
+   }
 }
 
 const buildOrdersParams = () => {
@@ -24,9 +31,13 @@ const buildOrdersParams = () => {
    const priceFunction = priceFunctions[formData.get('price-fn')]
    const volumeFunction = volumeFunctions[formData.get('volume-fn')]
 
-   const orders = [...Array(orderCount).keys()].map(i => ({
-      price: priceFunction(i, priceFrom, priceTo, orderCount).toFixed(1),
-      volume: volumeFunction(volume, orderCount).toFixed(8)
+   const prices = [...Array(orderCount).keys()].map(i =>
+      priceFunction(i, priceFrom, priceTo, orderCount)
+   )
+
+   const orders = prices.map((price, i) => ({
+      price: price.toFixed(1),
+      volume: volumeFunction(volume, orderCount, price, prices).toFixed(8)
    }))
 
    return {
@@ -92,13 +103,21 @@ export default function KrakenOrderBatch() {
                <div className="space-y-2">
                   <form className="space-y-3" id="order-form" method="post">
                      <Input name="pair" label="Pair" defaultValue="XBTUSD" />
-                     <Input name="direction" label="Direction" defaultValue="sell" />
-                     <Input name="price-from" label="Price from" defaultValue="110000" />
-                     <Input name="price-to" label="Price to" defaultValue="125000" />
-                     <Input name="volume" label="Volume" defaultValue="0.2" />
-                     <Input name="order-count" label="# of orders" defaultValue="12" />
-                     <Input name="price-fn" label="Price function" defaultValue="linear" />
-                     <Input name="volume-fn" label="Volume function" defaultValue="linear" />
+                     <Select name="direction" label="Direction" defaultValue="buy">
+                        <option value="buy">Buy</option>
+                        <option value="sell">Sell</option>
+                     </Select>
+                     <Input name="price-from" label="Price from" defaultValue="40219" />
+                     <Input name="price-to" label="Price to" defaultValue="59219" />
+                     <Input name="volume" label="Volume" defaultValue="3.5" />
+                     <Input name="order-count" label="# of orders" defaultValue="20" />
+                     <Select name="price-fn" label="Price function" defaultValue="linear">
+                        <option value="linear">Linear</option>
+                     </Select>
+                     <Select name="volume-fn" label="Volume function" defaultValue="linear-quote">
+                        <option value="linear-base">Linear (base currency)</option>
+                        <option value="linear-quote">Linear (quote currency)</option>
+                     </Select>
                      <Input name="dry-run" label="Dry run" type="checkbox" />
                   </form>
                   <div className="space-x-4">
@@ -110,8 +129,21 @@ export default function KrakenOrderBatch() {
             <div>
                <h3 className="pb-2 font-semibold">Preview</h3>
 
-               {ordersParams.orders?.map(order =>
-                  <p key={order.price}>{`${ordersParams.direction} ${order.volume} ${ordersParams.pair} @ limit ${order.price}`}</p>
+               {ordersParams.orders?.map(order => {
+                  const quoteValue = (parseFloat(order.volume) * parseFloat(order.price)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  return (
+                     <p key={order.price}>
+                        {`${ordersParams.direction} ${order.volume} ${ordersParams.pair} @ limit ${order.price} (${quoteValue} quote)`}
+                     </p>
+                  )
+               })}
+
+               {ordersParams.orders && ordersParams.orders.length > 0 && (
+                  <p className="mt-4 pt-2 border-t border-gray-600 font-semibold">
+                     Total quote: {ordersParams.orders.reduce((sum, order) =>
+                        sum + (parseFloat(order.volume) * parseFloat(order.price)), 0
+                     ).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
                )}
             </div>
             <div>

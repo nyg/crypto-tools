@@ -1,5 +1,4 @@
-import KrakenAPI from '../../../adapters/kraken-api/adapter'
-import MarketService from '../../../core/services/market-service'
+import KrakenAPI from '../../../lib/adapters/kraken-api/adapter'
 
 export default async function postScaledOrders({ body: { credentials, ordersParams } }, res) {
 
@@ -10,9 +9,8 @@ export default async function postScaledOrders({ body: { credentials, ordersPara
 
    try {
       const krakenAPI = new KrakenAPI(credentials)
-      const marketService = new MarketService(krakenAPI)
-      const orders = await marketService.createOrders(ordersParams)
-      console.log(orders)
+      const orders = await krakenAPI.createOrders(ordersParams)
+
       res.status(200).json(orders)
    }
    catch (error) {

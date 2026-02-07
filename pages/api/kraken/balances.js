@@ -1,6 +1,5 @@
 import Big from 'big.js'
-import KrakenAPI from '../../../adapters/kraken-api/adapter'
-import UserService from '../../../core/services/user-service'
+import KrakenAPI from '../../../lib/adapters/kraken-api/adapter'
 
 
 export default async function getBalances(req, res) {
@@ -13,8 +12,8 @@ export default async function getBalances(req, res) {
    }
 
    try {
-      const userService = new UserService(new KrakenAPI(credentials))
-      const balances = await userService.fetchBalances()
+      const krakenAPI = new KrakenAPI(credentials)
+      const balances = await krakenAPI.fetchBalances()
 
       const balancesSum = Object.keys(balances)
          .map(asset => {

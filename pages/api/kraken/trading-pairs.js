@@ -1,13 +1,11 @@
-import KrakenAPI from '../../../adapters/kraken-api/adapter'
-import MarketService from '../../../core/services/market-service'
+import KrakenAPI from '../../../lib/adapters/kraken-api/adapter'
 
 export default async function getTradingPairs(req, res) {
 
    try {
       const krakenAPI = new KrakenAPI()
-      const marketService = new MarketService(krakenAPI)
-      const tradingPairs = await marketService.fetchTradingPairs()
-      console.log(tradingPairs)
+      const tradingPairs = await krakenAPI.fetchTradingPairs()
+
       res.status(200).json(tradingPairs)
    }
    catch (error) {
