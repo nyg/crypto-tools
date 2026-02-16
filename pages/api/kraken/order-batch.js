@@ -1,6 +1,6 @@
 import KrakenAPI from '../../../lib/adapters/kraken-api/adapter'
 
-export default async function postScaledOrders({ body: { credentials, ordersParams } }, res) {
+export default async function postOrderBatch({ body: { credentials, ordersParams } }, res) {
 
    if (!credentials) {
       res.status(401).json({ error: 'No API credentials provided.' })
