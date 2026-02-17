@@ -1,23 +1,6 @@
-export default function Input({ name, type = 'text', defaultValue, value, checked, onChange, label, className = '' }) {
+export default function Input({ name, type = 'text', defaultValue, value, onChange, label, className = '' }) {
 
    const autoComplete = type === 'password' ? 'current-password' : 'none'
-
-   if (type === 'checkbox') {
-      return (
-         <label className={`label gap-2 cursor-pointer justify-start ${className}`}>
-            <input
-               className="checkbox checkbox-sm"
-               type="checkbox"
-               id={name}
-               name={name}
-               checked={checked}
-               defaultChecked={defaultValue}
-               onChange={onChange}
-            />
-            <span>{label}</span>
-         </label>
-      )
-   }
 
    return (
       <fieldset className={`fieldset ${className}`}>

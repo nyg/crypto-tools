@@ -1,0 +1,6 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/Users/user/.vscode-oss/extensions/continue.continue-0.1.5-darwin-arm64",
+        "/Users/user/.vscode-oss/extensions/continue.continue-0.0.412-darwin-arm64"
+    ]
+}

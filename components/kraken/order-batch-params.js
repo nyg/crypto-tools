@@ -1,3 +1,4 @@
+import Checkbox from '../lib/checkbox'
 import Input from '../lib/input'
 import Select from '../lib/select'
 
@@ -73,10 +74,9 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
                   <option value="linear-base">Linear (base currency)</option>
                   <option value="linear-quote">Linear (quote currency)</option>
                </Select>
-               <Input
+               <Checkbox
                   name="dry-run"
                   label="Dry run"
-                  type="checkbox"
                   checked={formValues.dryRun}
                   onChange={(e) => handleChange('dryRun', e.target.checked)}
                />
