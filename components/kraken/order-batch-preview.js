@@ -3,7 +3,7 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
    let content
    if (!ordersParams.orders || ordersParams.orders.length === 0) {
       content = (
-         <p className="text-gray-400 text-sm">Configure parameters and click <i>Show preview</i> to see order details</p>
+         <p className="text-sm opacity-50">Configure parameters and click <i>Show preview</i> to see order details</p>
       )
    }
    else {
@@ -30,8 +30,8 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
                   )
                })}
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-600">
-               <table className="w-full">
+            <div className="mt-4 pt-4 border-t border-base-content/10">
+               <table className="table table-sm">
                   <tbody>
                      <tr>
                         <td>Total {base}</td>

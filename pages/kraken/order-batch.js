@@ -122,7 +122,7 @@ export default function KrakenOrderBatch() {
             <OrderBatchPreview ordersParams={ordersParams} tradingPairs={tradingPairs} />
             <div>
                <h3 className="pb-2 font-semibold">API Response</h3>
-               {isMutating ? <p>Loading…</p> : createdOrders?.map(order =>
+               {isMutating ? <span className="loading loading-spinner loading-sm"></span> : createdOrders?.map(order =>
                   <p key={order.descr?.order ?? order}>{JSON.stringify(order)}</p>
                )}
             </div>

@@ -11,7 +11,7 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
       <div>
          <h3 className="pb-2 font-semibold">Parameters</h3>
          <div className="space-y-2">
-            <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
+            <form className="" onSubmit={(e) => e.preventDefault()}>
                <Select
                   name="pair"
                   label="Pair"
@@ -82,8 +82,8 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
                />
             </form>
             <div className="space-x-4">
-               <input className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" type="button" value="Show preview" onClick={onShowPreview} />
-               <input className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" type="button" value="Create orders" onClick={onCreateOrders} />
+               <button className="btn btn-neutral btn-sm" type="button" onClick={onShowPreview}>Show preview</button>
+               <button className="btn btn-neutral btn-sm" type="button" onClick={onCreateOrders}>Create orders</button>
             </div>
          </div>
       </div>

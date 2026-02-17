@@ -28,6 +28,7 @@
       "@ai-sdk/anthropic": "3.0.31",
       "ai": "6.0.62",
       "big.js": "7.0.1",
+      "daisyui": "5.5.18",
       "got": "14.6.6",
       "modern-dijkstra": "1.1.2",
       "next": "16.1.6",
