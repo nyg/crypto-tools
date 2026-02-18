@@ -1,3 +1,4 @@
+import Big from 'big.js'
 import { asDecimal } from '../../utils/format'
 
 export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
@@ -12,12 +13,12 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
       const [base, quote] = tradingPairs[ordersParams.pair]?.name.split('/')
 
       const totalBase = ordersParams.orders.reduce((sum, order) =>
-         sum + parseFloat(order.volume), 0)
+         sum.plus(order.volume), Big(0))
 
       const totalQuote = ordersParams.orders.reduce((sum, order) =>
-         sum + (parseFloat(order.volume) * parseFloat(order.price)), 0)
+         sum.plus(order.volume.times(order.price)), Big(0))
 
-      const avgPrice = totalQuote / totalBase
+      const avgPrice = totalQuote.div(totalBase)
 
       content = (
          <div className="overflow-x-auto">
@@ -33,14 +34,14 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
                </thead>
                <tbody>
                   {ordersParams.orders.map(order => {
-                     const quoteValue = parseFloat(order.volume) * parseFloat(order.price)
+                     const quoteValue = order.volume.times(order.price)
                      return (
-                        <tr key={order.price}>
+                        <tr key={order.price.toFixed(1)}>
                            <td>{ordersParams.direction}</td>
                            <td>limit</td>
-                           <td className="text-right">{order.volume}</td>
-                           <td className="text-right">{asDecimal(parseFloat(order.price), 1)}</td>
-                           <td className="text-right">{asDecimal(quoteValue)}</td>
+                           <td className="text-right">{order.volume.toFixed(8)}</td>
+                           <td className="text-right">{asDecimal(order.price.toNumber(), 1)}</td>
+                           <td className="text-right">{asDecimal(quoteValue.toNumber())}</td>
                         </tr>
                      )
                   })}
@@ -48,9 +49,9 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
                <tfoot>
                   <tr className="text-xs text-gray-700">
                      <td colSpan={2}>Total</td>
-                     <td className="text-right">{asDecimal(totalBase, 8)}</td>
-                     <td className="text-right">{asDecimal(avgPrice)}</td>
-                     <td className="text-right">{asDecimal(totalQuote)}</td>
+                     <td className="text-right">{asDecimal(totalBase.toNumber(), 8)}</td>
+                     <td className="text-right">{asDecimal(avgPrice.toNumber())}</td>
+                     <td className="text-right">{asDecimal(totalQuote.toNumber())}</td>
                   </tr>
                </tfoot>
             </table>

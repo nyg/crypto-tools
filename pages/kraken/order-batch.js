@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
+import Big from 'big.js'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import ExternalLink from '../../components/lib/external-link'
 import useSWR from 'swr'
@@ -8,24 +9,24 @@ import OrderBatchForm from '../../components/kraken/order-batch-params'
 
 
 const priceFunctions = {
-   'linear': (x, a, b, n) => (b - a) / (n - 1) * x + a
+   'linear': (x, a, b, n) => Big(b).minus(a).div(Big(n).minus(1)).times(x).plus(a)
 }
 
 const volumeFunctions = {
-   'linear-base': (totalVolume, orderCount, price, allPrices) => totalVolume / orderCount,
+   'linear-base': (totalVolume, orderCount, price, allPrices) => totalVolume.div(orderCount),
    'linear-quote': (totalVolume, orderCount, price, allPrices) => {
       // calculate total quote per order such that all orders have equal quote value
-      const sumOfInversePrices = allPrices.reduce((sum, p) => sum + (1 / p), 0)
-      const quotePerOrder = totalVolume / sumOfInversePrices
-      return quotePerOrder / price
+      const sumOfInversePrices = allPrices.reduce((sum, p) => sum.plus(Big(1).div(p)), Big(0))
+      const quotePerOrder = totalVolume.div(sumOfInversePrices)
+      return quotePerOrder.div(price)
    }
 }
 
 const buildOrdersParams = (formValues) => {
    const orderCount = Number.parseInt(formValues.orderCount)
-   const priceFrom = Number.parseFloat(formValues.priceFrom)
-   const priceTo = Number.parseFloat(formValues.priceTo)
-   const volume = Number.parseFloat(formValues.volume)
+   const priceFrom = Big(formValues.priceFrom)
+   const priceTo = Big(formValues.priceTo)
+   const volume = Big(formValues.volume)
 
    const priceFunction = priceFunctions[formValues.priceFn]
    const volumeFunction = volumeFunctions[formValues.volumeFn]
@@ -34,9 +35,9 @@ const buildOrdersParams = (formValues) => {
       priceFunction(i, priceFrom, priceTo, orderCount)
    )
 
-   const orders = prices.map((price, i) => ({
-      price: price.toFixed(1),
-      volume: volumeFunction(volume, orderCount, price, prices).toFixed(8)
+   const orders = prices.map((price) => ({
+      price,
+      volume: volumeFunction(volume, orderCount, price, prices)
    }))
 
    return {
