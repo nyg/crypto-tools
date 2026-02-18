@@ -1,3 +1,5 @@
+import { asDecimal } from '../../utils/format'
+
 export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
 
    let content
@@ -18,37 +20,41 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
       const avgPrice = totalQuote / totalBase
 
       content = (
-         <>
-            <div className="space-y-0.5">
-               {ordersParams.orders.map(order => {
-                  const quoteValue = (parseFloat(order.volume) * parseFloat(order.price))
-                     .toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                  return (
-                     <p key={order.price}>
-                        {`${ordersParams.direction} ${order.volume} ${base} @ limit ${order.price} ${quote} (${quoteValue} ${quote})`}
-                     </p>
-                  )
-               })}
-            </div>
-            <div className="mt-4 pt-4 border-t border-base-content/10">
-               <table className="table table-sm">
-                  <tbody>
-                     <tr>
-                        <td>Total {base}</td>
-                        <td className="text-right tabular-nums">{totalBase.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}</td>
-                     </tr>
-                     <tr>
-                        <td>Total {quote}</td>
-                        <td className="text-right tabular-nums">{totalQuote.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                     </tr>
-                     <tr>
-                        <td>Average price</td>
-                        <td className="text-right tabular-nums">{avgPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                     </tr>
-                  </tbody>
-               </table>
-            </div>
-         </>
+         <div className="overflow-x-auto">
+            <table className="table table-xs tabular-nums">
+               <thead>
+                  <tr className="text-xs text-gray-700">
+                     <th></th>
+                     <th></th>
+                     <th className="text-right">{base}</th>
+                     <th className="text-right">Price ({quote})</th>
+                     <th className="text-right">Value ({quote})</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  {ordersParams.orders.map(order => {
+                     const quoteValue = parseFloat(order.volume) * parseFloat(order.price)
+                     return (
+                        <tr key={order.price}>
+                           <td>{ordersParams.direction}</td>
+                           <td>limit</td>
+                           <td className="text-right">{order.volume}</td>
+                           <td className="text-right">{asDecimal(parseFloat(order.price), 1)}</td>
+                           <td className="text-right">{asDecimal(quoteValue)}</td>
+                        </tr>
+                     )
+                  })}
+               </tbody>
+               <tfoot>
+                  <tr className="text-xs text-gray-700">
+                     <td colSpan={2}>Total</td>
+                     <td className="text-right">{asDecimal(totalBase, 8)}</td>
+                     <td className="text-right">{asDecimal(avgPrice)}</td>
+                     <td className="text-right">{asDecimal(totalQuote)}</td>
+                  </tr>
+               </tfoot>
+            </table>
+         </div>
       )
    }
 
