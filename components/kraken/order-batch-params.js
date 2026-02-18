@@ -1,5 +1,5 @@
 import Checkbox from '../lib/checkbox'
-import Input from '../lib/input'
+import NumericInput from '../lib/numeric-input'
 import Select from '../lib/select'
 
 export default function OrderBatchParameters({ formValues, setFormValues, tradingPairs, isLoading, onShowPreview, onCreateOrders }) {
@@ -33,25 +33,25 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
                   <option value="buy">Buy</option>
                   <option value="sell">Sell</option>
                </Select>
-               <Input
+               <NumericInput
                   name="price-from"
                   label="Starting price"
                   value={formValues.priceFrom}
                   onChange={(e) => handleChange('priceFrom', e.target.value)}
                />
-               <Input
+               <NumericInput
                   name="price-to"
                   label="Ending price"
                   value={formValues.priceTo}
                   onChange={(e) => handleChange('priceTo', e.target.value)}
                />
-               <Input
+               <NumericInput
                   name="volume"
                   label="Volume"
                   value={formValues.volume}
                   onChange={(e) => handleChange('volume', e.target.value)}
                />
-               <Input
+               <NumericInput
                   name="order-count"
                   label="Number of orders"
                   value={formValues.orderCount}

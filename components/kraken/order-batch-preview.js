@@ -36,11 +36,11 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
                   {ordersParams.orders.map(order => {
                      const quoteValue = order.volume.times(order.price)
                      return (
-                        <tr key={order.price.toFixed(1)}>
+                        <tr key={order.price}>
                            <td>{ordersParams.direction}</td>
                            <td>limit</td>
-                           <td className="text-right">{order.volume.toFixed(8)}</td>
-                           <td className="text-right">{asDecimal(order.price.toNumber(), 1)}</td>
+                           <td className="text-right">{asDecimal(order.volume.toNumber(), 8)}</td>
+                           <td className="text-right">{asDecimal(order.price.toNumber())}</td>
                            <td className="text-right">{asDecimal(quoteValue.toNumber())}</td>
                         </tr>
                      )
