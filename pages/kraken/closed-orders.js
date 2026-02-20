@@ -1,6 +1,7 @@
 import { useEffect, useState, Fragment } from 'react'
 import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
+import DatePicker from '../../components/lib/date-picker'
 import Input from '../../components/lib/input'
 import * as format from '../../utils/format'
 import Big from 'big.js'
@@ -19,7 +20,7 @@ export default function KrakenClosedOrders() {
 
    if (!credentials.apiKey) {
       return <KrakenLayout name="Closed Orders">
-         <div className="text-sm">
+         <div className="alert alert-warning text-sm">
             Generate an API key and secret on Kraken to be able to fetch closed orders.
          </div>
       </KrakenLayout>
@@ -36,18 +37,18 @@ export default function KrakenClosedOrders() {
 
    let orderContent
    if (error) {
-      orderContent = <span>{error}</span>
+      orderContent = <div className="alert alert-error">{error}</div>
    }
    else if (isMutating) {
-      orderContent = <span>Loading…</span>
+      orderContent = <div className="flex items-center gap-2"><span className="loading loading-spinner loading-sm"></span> Loading…</div>
    }
    else if (orders) {
       orderContent = <>
          {Object.keys(orders).map(pair => (
             <Fragment key={pair}>
-               <h3 className="border-b border-black">{orders[pair].pair.name}</h3>
+               <div className="divider divider-start">{orders[pair].pair.name}</div>
                {Object.keys(orders[pair]).filter(key => ['buy', 'sell'].includes(key)).map(direction => (
-                  <table key={`${pair}-${direction}`} className="w-2/3 text-right tabular-nums">
+                  <table key={`${pair}-${direction}`} className="table table-xs w-2/3 text-right tabular-nums">
                      <caption className="font-bold text-left">{direction} orders</caption>
                      <thead>
                         <tr>
@@ -58,7 +59,7 @@ export default function KrakenClosedOrders() {
                            <th>Identifier</th>
                         </tr>
                      </thead>
-                     <tbody className="border-b border-t border-gray-400">
+                     <tbody>
                         {orders[pair][direction].orders.map(order =>
                            <tr key={Math.random()}>
                               <td>{new Date(order.openedDate * 1000).toISOString()}</td>
@@ -84,24 +85,21 @@ export default function KrakenClosedOrders() {
       </>
    }
    else {
-      orderContent = <span>No orders</span>
+      orderContent = <div className="alert alert-info">No orders</div>
    }
-
 
    return (
       <KrakenLayout name="Closed Orders">
          <div className="space-y-4 text-sm tabular-nums">
             <p>Displays closed orders between the given dates, excludes orders with no volumes (e.g. cancelled orders).</p>
-            <h3 className="font-semibold">Parameters</h3>
             <form onSubmit={fetchOrders}>
                <div className="flex items-end gap-4">
                   <Input name="asset" label="Asset filter" defaultValue="XBT" />
-                  <Input name="date-from" label="From" defaultValue="2023-01-01T00:00:00Z" />
-                  <Input name="date-to" label="To" defaultValue="2023-12-31T23:59:59Z" />
-                  <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500">Search</button>
+                  <DatePicker name="date-from" label="From" defaultValue="2023-01-01T00:00:00Z" />
+                  <DatePicker name="date-to" label="To" defaultValue="2023-12-31T23:59:59Z" />
+                  <button className="btn btn-sm btn-neutral mb-1">Search</button>
                </div>
             </form>
-            <h3 className="pt-2 font-semibold">Orders</h3>
             {orderContent}
          </div>
       </KrakenLayout>
