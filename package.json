@@ -25,8 +25,8 @@
       "lint": "eslint ."
    },
    "dependencies": {
-      "@ai-sdk/anthropic": "3.0.47",
-      "ai": "6.0.101",
+      "@ai-sdk/anthropic": "3.0.48",
+      "ai": "6.0.103",
       "big.js": "7.0.1",
       "got": "14.6.6",
       "modern-dijkstra": "1.1.2",
