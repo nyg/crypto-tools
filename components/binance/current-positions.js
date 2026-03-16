@@ -1,5 +1,5 @@
-import * as format from '../../utils/format'
 import Big from 'big.js'
+import { useFormat } from '../../utils/format'
 
 
 function LabeledValue({ label, value, className }) {
@@ -13,7 +13,7 @@ function LabeledValue({ label, value, className }) {
    )
 }
 
-function Product({ product, spot }) {
+function Product({ product, spot, format }) {
 
    const duration = product.info.duration
    const apy = format.asPercentage(product.info.apy)
@@ -61,13 +61,13 @@ function Product({ product, spot }) {
       <li>
          {duration} days @ {apy} · {buildAvailability()}
          <ul className="text-xs pl-6">
-            {product.positions.map(position => <Position key={position.id} position={position} />)}
+            {product.positions.map(position => <Position key={position.id} position={position} format={format} />)}
          </ul>
       </li >
    )
 }
 
-function Position({ position }) {
+function Position({ position, format }) {
 
    const amount = format.asDecimal(position.amount)
    const apy = format.asPercentage(position.apy)
@@ -79,6 +79,8 @@ function Position({ position }) {
 }
 
 export default function CurrentPositions({ data }) {
+
+   const format = useFormat()
 
    return (
       <div className="space-y-6">
@@ -98,7 +100,7 @@ export default function CurrentPositions({ data }) {
                {staking.products.length != 0 && (
                   <div className="py-1 px-2">
                      <ul className="space-y-2">
-                        {staking.products.map(product => <Product key={product.info.productId} product={product} spot={Big(free)} />)}
+                        {staking.products.map(product => <Product key={product.info.productId} product={product} spot={Big(free)} format={format} />)}
                      </ul>
                   </div>
                )}
