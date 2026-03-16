@@ -1,11 +1,9 @@
 export default function Select({ name, defaultValue, value, onChange, label, className = '', children }) {
    return (
-      <div className={`grid grid-cols-1 ${className}`}>
-         <label htmlFor={name} className="px-3 pb-1 text-xs text-gray-800 col-span-full">
-            {label}
-         </label>
+      <fieldset className={`fieldset ${className}`}>
+         <legend className="fieldset-legend pl-3">{label}</legend>
          <select
-            className="px-2 py-1 outline-hidden bg-gray-200 rounded-sm grow border-r-8"
+            className="select select-sm w-full"
             id={name}
             name={name}
             value={value}
@@ -13,6 +11,6 @@ export default function Select({ name, defaultValue, value, onChange, label, cla
             onChange={onChange}>
             {children}
          </select>
-      </div>
+      </fieldset>
    )
 }

@@ -28,11 +28,13 @@
       "@ai-sdk/anthropic": "3.0.48",
       "ai": "6.0.103",
       "big.js": "7.0.1",
+      "daisyui": "5.5.18",
       "got": "14.6.6",
       "modern-dijkstra": "1.1.2",
       "next": "16.1.6",
       "qs": "6.15.0",
       "react": "19.2.4",
+      "react-day-picker": "9.13.2",
       "react-dom": "19.2.4",
       "swr": "2.4.0",
       "zod": "4.3.6"
