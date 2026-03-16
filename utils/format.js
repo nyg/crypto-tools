@@ -1,26 +1,30 @@
-// const locales = typeof navigator !== 'undefined' ? navigator.language : 'en-GB'
-const locales = 'en-GB'
+import { useLocale } from '../contexts/locale-context'
 
-const longDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric' })
-const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const usDollarFormatter = new Intl.NumberFormat(locales, { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-const dateFormat = (formatter, date) =>
-   formatter.format(date).replace(' ', ' ') // non-breaking space
-
-export function asDecimal(number, decimalCount = 2) {
+export function asDecimal(number, decimalCount = 2, locale = 'en-GB') {
    const options = { style: 'decimal', minimumFractionDigits: decimalCount, maximumFractionDigits: decimalCount }
-   return new Intl.NumberFormat(locales, options).format(number)
+   return new Intl.NumberFormat(locale, options).format(number)
 }
 
-export function asLongDate(timestamp) {
-   return dateFormat(longDateFormatter, timestamp)
+export function asLongDate(timestamp, locale = 'en-GB') {
+   return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' })
+      .format(timestamp)
+      .replace(' ', '\u00A0') // non-breaking space
 }
 
-export function asPercentage(number) {
-   return percentageFormatter.format(number)
+export function asPercentage(number, locale = 'en-GB') {
+   return new Intl.NumberFormat(locale, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number)
 }
 
-export function asDollarAmount(number) {
-   return usDollarFormatter.format(number)
+export function asDollarAmount(number, locale = 'en-GB') {
+   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number)
+}
+
+export function useFormat() {
+   const locale = useLocale()
+   return {
+      asDecimal: (number, decimalCount = 2) => asDecimal(number, decimalCount, locale),
+      asLongDate: (timestamp) => asLongDate(timestamp, locale),
+      asPercentage: (number) => asPercentage(number, locale),
+      asDollarAmount: (number) => asDollarAmount(number, locale),
+   }
 }

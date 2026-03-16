@@ -3,12 +3,13 @@ import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import DatePicker from '../../components/lib/date-picker'
 import Input from '../../components/lib/input'
-import * as format from '../../utils/format'
+import { useFormat } from '../../utils/format'
 import Big from 'big.js'
 
 
 export default function KrakenClosedOrders() {
 
+   const format = useFormat()
    const { data: orders, error, isMutating, trigger: getOrders } = useSWRMutation('/api/kraken/closed-orders')
 
    const [credentials, setCredentials] = useState({ apiKey: '', apiSecret: '' })

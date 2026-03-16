@@ -1,7 +1,9 @@
 import Big from 'big.js'
-import { asDecimal } from '../../utils/format'
+import { useFormat } from '../../utils/format'
 
 export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
+
+   const format = useFormat()
 
    let content
    if (!ordersParams.orders || ordersParams.orders.length === 0) {
@@ -39,9 +41,9 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
                         <tr key={order.price}>
                            <td>{ordersParams.direction}</td>
                            <td>limit</td>
-                           <td className="text-right">{asDecimal(order.volume.toNumber(), 5)}</td>
-                           <td className="text-right">{asDecimal(order.price.toNumber())}</td>
-                           <td className="text-right">{asDecimal(quoteValue.toNumber())}</td>
+                           <td className="text-right">{format.asDecimal(order.volume.toNumber(), 5)}</td>
+                           <td className="text-right">{format.asDecimal(order.price.toNumber())}</td>
+                           <td className="text-right">{format.asDecimal(quoteValue.toNumber())}</td>
                         </tr>
                      )
                   })}
@@ -49,9 +51,9 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
                <tfoot>
                   <tr className="text-xs text-gray-700">
                      <td colSpan={2}>Total</td>
-                     <td className="text-right">{asDecimal(totalBase.toNumber(), 8)}</td>
-                     <td className="text-right">{asDecimal(avgPrice.toNumber())}</td>
-                     <td className="text-right">{asDecimal(totalQuote.toNumber())}</td>
+                     <td className="text-right">{format.asDecimal(totalBase.toNumber(), 8)}</td>
+                     <td className="text-right">{format.asDecimal(avgPrice.toNumber())}</td>
+                     <td className="text-right">{format.asDecimal(totalQuote.toNumber())}</td>
                   </tr>
                </tfoot>
             </table>

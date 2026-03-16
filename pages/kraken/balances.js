@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import { asDecimal } from '../../utils/format'
+import { useFormat } from '../../utils/format'
 
 
 export default function KrakenBalances() {
 
+   const format = useFormat()
    const { data, error, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
 
    const [credentials, setCredentials] = useState({ apiKey: '', apiSecret: '' })
@@ -43,7 +44,7 @@ export default function KrakenBalances() {
                {Object.keys(data).map(asset =>
                   <tr key={asset} className="border-t border-gray-400">
                      <td className="pr-8">{asset}</td>
-                     <td className="text-right">{asDecimal(Number.parseFloat(data[asset]), 18)}</td>
+                     <td className="text-right">{format.asDecimal(Number.parseFloat(data[asset]), 18)}</td>
                   </tr>)}
             </tbody>
          </table>

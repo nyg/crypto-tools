@@ -1,7 +1,9 @@
-import * as format from '../../utils/format'
+import { useFormat } from '../../utils/format'
 
 
 export default function NextRedemptions({ data }) {
+
+   const format = useFormat()
 
    const positions = data.balance.flatMap(b => b.staking.positions)
    positions.sort((p, q) => p.deliverDate - q.deliverDate)
