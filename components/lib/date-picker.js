@@ -5,7 +5,8 @@ import 'react-day-picker/style.css'
 function formatDisplayDate(date, hours, minutes, seconds) {
    const dateStr = date.toISOString().split('T')[0]
    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-   return `${dateStr} ${timeStr}`
+   // Use ISO-8601 UTC format so parsing with new Date(...) is reliable across browsers
+   return `${dateStr}T${timeStr}Z`
 }
 
 export default function DatePicker({ name, label, defaultValue, className = '' }) {
