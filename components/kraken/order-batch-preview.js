@@ -39,7 +39,7 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
                         <tr key={order.price}>
                            <td>{ordersParams.direction}</td>
                            <td>limit</td>
-                           <td className="text-right">{asDecimal(order.volume.toNumber(), 8)}</td>
+                           <td className="text-right">{asDecimal(order.volume.toNumber(), 5)}</td>
                            <td className="text-right">{asDecimal(order.price.toNumber())}</td>
                            <td className="text-right">{asDecimal(quoteValue.toNumber())}</td>
                         </tr>
