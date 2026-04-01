@@ -1,16 +1,17 @@
+import { Checkbox as ShadcnCheckbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+
 export default function Checkbox({ name, defaultChecked, checked, onChange, label, className = '' }) {
    return (
-      <label className={`label gap-2 cursor-pointer justify-start ${className}`}>
-         <input
-            className="checkbox checkbox-sm"
-            type="checkbox"
+      <div className={`flex items-center gap-2 ${className}`}>
+         <ShadcnCheckbox
             id={name}
             name={name}
             checked={checked}
             defaultChecked={defaultChecked}
-            onChange={onChange}
+            onCheckedChange={(val) => onChange?.({ target: { checked: val } })}
          />
-         <span>{label}</span>
-      </label>
+         <Label htmlFor={name} className="cursor-pointer font-normal">{label}</Label>
+      </div>
    )
 }

@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/style.css'
+import { Label } from '@/components/ui/label'
+import { Input as ShadcnInput } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 function formatDisplayDate(date, hours, minutes, seconds) {
    const dateStr = date.toISOString().split('T')[0]
    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-   // Use ISO-8601 UTC format so parsing with new Date(...) is reliable across browsers
    return `${dateStr}T${timeStr}Z`
 }
 
@@ -20,18 +22,6 @@ export default function DatePicker({ name, label, defaultValue, className = '' }
    const [inputValue, setInputValue] = useState(
       formatDisplayDate(initialDate, initialDate.getUTCHours(), initialDate.getUTCMinutes(), initialDate.getUTCSeconds())
    )
-   const dropdownRef = useRef(null)
-
-   // Close dropdown when clicking outside
-   useEffect(() => {
-      const handleClickOutside = (event) => {
-         if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-            setIsOpen(false)
-         }
-      }
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-   }, [])
 
    const handleSelect = (date) => {
       if (date) {
@@ -95,61 +85,60 @@ export default function DatePicker({ name, label, defaultValue, className = '' }
    }
 
    return (
-      <fieldset className={`fieldset ${className}`}>
-         <legend className="fieldset-legend pl-3">{label}</legend>
+      <div className={`space-y-1.5 ${className}`}>
+         <Label>{label}</Label>
          <input type="hidden" name={name} value={formatFormValue(selectedDate)} />
-         <div className="relative" ref={dropdownRef}>
-            <input
-               type="text"
-               className="input input-sm w-full"
-               value={inputValue}
-               onChange={handleInputChange}
-               onBlur={handleInputBlur}
-               onFocus={() => setIsOpen(true)}
-            />
-            {isOpen && (
-               <div className="absolute z-50 mt-1 bg-base-100 shadow-lg rounded-box p-2">
-                  <DayPicker
-                     mode="single"
-                     selected={selectedDate}
-                     onSelect={handleSelect}
-                     defaultMonth={selectedDate}
+         <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+               <ShadcnInput
+                  type="text"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  onClick={() => setIsOpen(true)}
+               />
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-3" align="start">
+               <DayPicker
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleSelect}
+                  defaultMonth={selectedDate}
+               />
+               <div className="flex items-center gap-2 pt-3 border-t border-border">
+                  <span className="text-sm text-muted-foreground">UTC:</span>
+                  <ShadcnInput
+                     type="number"
+                     min="0"
+                     max="23"
+                     value={hours}
+                     onChange={(e) => handleTimeChange(e.target.value, minutes, seconds)}
+                     className="w-16 text-center"
+                     placeholder="HH"
                   />
-                  <div className="flex items-center gap-2 pt-2 border-t border-base-300">
-                     <span className="text-sm">Time (UTC):</span>
-                     <input
-                        type="number"
-                        min="0"
-                        max="23"
-                        value={hours}
-                        onChange={(e) => handleTimeChange(e.target.value, minutes, seconds)}
-                        className="input input-sm w-16 text-center"
-                        placeholder="HH"
-                     />
-                     <span>:</span>
-                     <input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={minutes}
-                        onChange={(e) => handleTimeChange(hours, e.target.value, seconds)}
-                        className="input input-sm w-16 text-center"
-                        placeholder="MM"
-                     />
-                     <span>:</span>
-                     <input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={seconds}
-                        onChange={(e) => handleTimeChange(hours, minutes, e.target.value)}
-                        className="input input-sm w-16 text-center"
-                        placeholder="SS"
-                     />
-                  </div>
+                  <span className="text-muted-foreground">:</span>
+                  <ShadcnInput
+                     type="number"
+                     min="0"
+                     max="59"
+                     value={minutes}
+                     onChange={(e) => handleTimeChange(hours, e.target.value, seconds)}
+                     className="w-16 text-center"
+                     placeholder="MM"
+                  />
+                  <span className="text-muted-foreground">:</span>
+                  <ShadcnInput
+                     type="number"
+                     min="0"
+                     max="59"
+                     value={seconds}
+                     onChange={(e) => handleTimeChange(hours, minutes, e.target.value)}
+                     className="w-16 text-center"
+                     placeholder="SS"
+                  />
                </div>
-            )}
-         </div>
-      </fieldset>
+            </PopoverContent>
+         </Popover>
+      </div>
    )
 }

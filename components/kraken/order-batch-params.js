@@ -1,6 +1,7 @@
 import Checkbox from '../lib/checkbox'
 import NumericInput from '../lib/numeric-input'
 import Select from '../lib/select'
+import { Button } from '@/components/ui/button'
 
 export default function OrderBatchParameters({ formValues, setFormValues, tradingPairs, isLoading, onShowPreview, onCreateOrders }) {
 
@@ -82,8 +83,8 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
                />
             </form>
             <div className="space-x-4">
-               <button className="btn btn-neutral btn-sm" type="button" onClick={onShowPreview}>Show preview</button>
-               <button className="btn btn-neutral btn-sm" type="button" onClick={onCreateOrders}>Create orders</button>
+               <Button variant="outline" size="sm" type="button" onClick={onShowPreview}>Show preview</Button>
+               <Button size="sm" type="button" onClick={onCreateOrders}>Create orders</Button>
             </div>
          </div>
       </div>

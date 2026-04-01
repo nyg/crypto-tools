@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import Big from 'big.js'
 import KrakenLayout from '../../components/kraken/kraken-layout'
@@ -6,6 +6,7 @@ import ExternalLink from '../../components/lib/external-link'
 import useSWR from 'swr'
 import OrderBatchPreview from '../../components/kraken/order-batch-preview'
 import OrderBatchForm from '../../components/kraken/order-batch-params'
+import { Loader2Icon } from 'lucide-react'
 
 
 const priceFunctions = {
@@ -63,7 +64,10 @@ export default function KrakenOrderBatch() {
    const { data: createdOrders, isMutating, trigger: createOrders } = useSWRMutation('/api/kraken/order-batch')
 
    const [ordersParams, setOrdersParams] = useState({})
-   const [credentials, setCredentials] = useState({ apiKey: '', apiSecret: '' })
+   const [credentials, setCredentials] = useState(() => ({
+      apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || '',
+      apiSecret: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.secret')) || ''
+   }))
    const [formValues, setFormValues] = useState({
       pair: 'XBTUSD',
       direction: 'buy',
@@ -75,12 +79,6 @@ export default function KrakenOrderBatch() {
       volumeFn: 'linear-quote',
       dryRun: true
    })
-
-   useEffect(() => {
-      const apiKey = localStorage.getItem('kraken.api.key')
-      const apiSecret = localStorage.getItem('kraken.api.secret')
-      setCredentials({ apiKey, apiSecret })
-   }, [])
 
    const showPreview = () => {
       setOrdersParams(buildOrdersParams(formValues))
@@ -123,7 +121,7 @@ export default function KrakenOrderBatch() {
             <OrderBatchPreview ordersParams={ordersParams} tradingPairs={tradingPairs} />
             <div>
                <h3 className="pb-2 font-semibold">API Response</h3>
-               {isMutating ? <span className="loading loading-spinner loading-sm"></span> : createdOrders?.map(order =>
+               {isMutating ? <Loader2Icon className="size-4 animate-spin" /> : createdOrders?.map(order =>
                   <p key={order.descr?.order ?? order}>{JSON.stringify(order)}</p>
                )}
             </div>

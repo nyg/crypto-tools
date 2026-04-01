@@ -1,9 +1,11 @@
+import { Label } from '@/components/ui/label'
+
 export default function Select({ name, defaultValue, value, onChange, label, className = '', children }) {
    return (
-      <fieldset className={`fieldset ${className}`}>
-         <legend className="fieldset-legend pl-3">{label}</legend>
+      <div className={`space-y-1.5 ${className}`}>
+         <Label htmlFor={name}>{label}</Label>
          <select
-            className="select select-sm w-full"
+            className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
             id={name}
             name={name}
             value={value}
@@ -11,6 +13,6 @@ export default function Select({ name, defaultValue, value, onChange, label, cla
             onChange={onChange}>
             {children}
          </select>
-      </fieldset>
+      </div>
    )
 }

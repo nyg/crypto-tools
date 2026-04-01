@@ -1,20 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import Section from '../../components/kraken/xstock-section'
 import Checkbox from '../../components/lib/checkbox'
 import Input from '../../components/lib/input'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2Icon } from 'lucide-react'
 
 
 export default function KrakenETFs() {
 
    const { data, error, trigger, isMutating } = useSWRMutation('/api/kraken/xstocks')
 
-   const [credentials, setCredentials] = useState(() => ({ apiKey: '' }))
-   useEffect(() =>
-      setCredentials({
-         apiKey: localStorage.getItem('anthropic.api.key')
-      }), [])
+   const [credentials, setCredentials] = useState(() => ({
+      apiKey: (typeof window !== 'undefined' && localStorage.getItem('anthropic.api.key')) || ''
+   }))
 
    const fetchData = event => {
       event.preventDefault()
@@ -27,7 +28,7 @@ export default function KrakenETFs() {
    if (!credentials.apiKey) {
       return (
          <KrakenLayout name="xStocks">
-            <div className="text-sm">
+            <div className="text-sm text-muted-foreground">
                An Anthropic API key is required.
             </div>
          </KrakenLayout>
@@ -36,10 +37,10 @@ export default function KrakenETFs() {
 
    let resultContent
    if (error) {
-      resultContent = <div className="text-red-500">{error}</div>
+      resultContent = <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
    }
    else if (isMutating) {
-      resultContent = <div>Fetching data…</div>
+      resultContent = <div className="flex items-center gap-2"><Loader2Icon className="size-4 animate-spin" /> Fetching data…</div>
    }
    else if (data) {
       const etfs = data.output.filter(item => item.type === 'etf')
@@ -61,9 +62,9 @@ export default function KrakenETFs() {
                <div className="flex items-end gap-4">
                   <Input name="etfWordCount" type="number" label="ETF description word count" defaultValue="60" />
                   <Checkbox name="excludeStocks" label="Exclude stocks (ETFs only)" className="self-start" />
-                  <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500">
+                  <Button type="submit" size="sm">
                      Fetch data
-                  </button>
+                  </Button>
                </div>
             </form>
             {resultContent}

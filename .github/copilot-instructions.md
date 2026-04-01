@@ -44,7 +44,7 @@ Two HTTP requester implementations (`lib/adapters/http-requester/`) abstract the
 ## Code Conventions
 
 - **3-space indentation**, no semicolons, single quotes (enforced by ESLint)
-- **Styling**: Tailwind CSS v4 + daisyUI v5 utility classes only — no custom CSS
+- **Styling**: Tailwind CSS v4 + shadcn/ui components — no custom CSS, no daisyUI
 - **Precision math**: use `big.js` for all numeric calculations involving asset amounts or rates
 - **Constructor functions** over ES6 classes for adapters (e.g. `function BinanceAPI(credentials) { ... }`)
 - **Functional React components** with hooks; no class components, no global state libraries

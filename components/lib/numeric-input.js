@@ -1,4 +1,6 @@
 import { useRef } from 'react'
+import { Input as ShadcnInput } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 // Format a number string with thousand separators
 const formatWithSeparators = (value) => {
@@ -67,11 +69,11 @@ export default function NumericInput({ name, value, onChange, label, className =
    }
 
    return (
-      <fieldset className={`fieldset ${className}`}>
-         <legend className="fieldset-legend pl-3">{label}</legend>
-         <input
+      <div className={`space-y-1.5 ${className}`}>
+         <Label htmlFor={name}>{label}</Label>
+         <ShadcnInput
             ref={inputRef}
-            className="input input-sm w-full tabular-nums"
+            className="tabular-nums"
             type="text"
             inputMode="decimal"
             id={name}
@@ -80,6 +82,6 @@ export default function NumericInput({ name, value, onChange, label, className =
             onChange={handleChange}
             autoComplete="off"
          />
-      </fieldset>
+      </div>
    )
 }

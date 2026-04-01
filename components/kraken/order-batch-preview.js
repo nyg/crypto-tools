@@ -1,12 +1,13 @@
 import Big from 'big.js'
 import { asDecimal } from '../../utils/format'
+import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
 
    let content
    if (!ordersParams.orders || ordersParams.orders.length === 0) {
       content = (
-         <p className="text-sm opacity-50">Configure parameters and click <i>Show preview</i> to see order details</p>
+         <p className="text-sm text-muted-foreground">Configure parameters and click <i>Show preview</i> to see order details</p>
       )
    }
    else {
@@ -22,39 +23,39 @@ export default function OrderBatchPreview({ ordersParams, tradingPairs }) {
 
       content = (
          <div className="overflow-x-auto">
-            <table className="table table-xs tabular-nums">
-               <thead>
-                  <tr className="text-xs text-gray-700">
-                     <th></th>
-                     <th></th>
-                     <th className="text-right">{base}</th>
-                     <th className="text-right">Price ({quote})</th>
-                     <th className="text-right">Value ({quote})</th>
-                  </tr>
-               </thead>
-               <tbody>
+            <Table className="tabular-nums">
+               <TableHeader>
+                  <TableRow>
+                     <TableHead></TableHead>
+                     <TableHead></TableHead>
+                     <TableHead className="text-right">{base}</TableHead>
+                     <TableHead className="text-right">Price ({quote})</TableHead>
+                     <TableHead className="text-right">Value ({quote})</TableHead>
+                  </TableRow>
+               </TableHeader>
+               <TableBody>
                   {ordersParams.orders.map(order => {
                      const quoteValue = order.volume.times(order.price)
                      return (
-                        <tr key={order.price}>
-                           <td>{ordersParams.direction}</td>
-                           <td>limit</td>
-                           <td className="text-right">{asDecimal(order.volume.toNumber(), 5)}</td>
-                           <td className="text-right">{asDecimal(order.price.toNumber())}</td>
-                           <td className="text-right">{asDecimal(quoteValue.toNumber())}</td>
-                        </tr>
+                        <TableRow key={order.price}>
+                           <TableCell>{ordersParams.direction}</TableCell>
+                           <TableCell>limit</TableCell>
+                           <TableCell className="text-right">{asDecimal(order.volume.toNumber(), 5)}</TableCell>
+                           <TableCell className="text-right">{asDecimal(order.price.toNumber())}</TableCell>
+                           <TableCell className="text-right">{asDecimal(quoteValue.toNumber())}</TableCell>
+                        </TableRow>
                      )
                   })}
-               </tbody>
-               <tfoot>
-                  <tr className="text-xs text-gray-700">
-                     <td colSpan={2}>Total</td>
-                     <td className="text-right">{asDecimal(totalBase.toNumber(), 8)}</td>
-                     <td className="text-right">{asDecimal(avgPrice.toNumber())}</td>
-                     <td className="text-right">{asDecimal(totalQuote.toNumber())}</td>
-                  </tr>
-               </tfoot>
-            </table>
+               </TableBody>
+               <TableFooter>
+                  <TableRow>
+                     <TableCell colSpan={2}>Total</TableCell>
+                     <TableCell className="text-right">{asDecimal(totalBase.toNumber(), 8)}</TableCell>
+                     <TableCell className="text-right">{asDecimal(avgPrice.toNumber())}</TableCell>
+                     <TableCell className="text-right">{asDecimal(totalQuote.toNumber())}</TableCell>
+                  </TableRow>
+               </TableFooter>
+            </Table>
          </div>
       )
    }

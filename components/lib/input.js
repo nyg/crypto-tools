@@ -1,12 +1,14 @@
+import { Input as ShadcnInput } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+
 export default function Input({ name, type = 'text', defaultValue, value, onChange, label, className = '' }) {
 
    const autoComplete = type === 'password' ? 'current-password' : 'none'
 
    return (
-      <fieldset className={`fieldset ${className}`}>
-         <legend className="fieldset-legend pl-3">{label}</legend>
-         <input
-            className="input input-sm w-full"
+      <div className={`space-y-1.5 ${className}`}>
+         <Label htmlFor={name}>{label}</Label>
+         <ShadcnInput
             type={type}
             id={name}
             name={name}
@@ -15,6 +17,6 @@ export default function Input({ name, type = 'text', defaultValue, value, onChan
             onChange={onChange}
             autoComplete={autoComplete}
          />
-      </fieldset>
+      </div>
    )
 }

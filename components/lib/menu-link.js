@@ -7,9 +7,9 @@ export default function MenuLink({ children, href, isActive = (path, href) => pa
 
    const router = useRouter()
 
-   const style = isActive(router.asPath,  href)
-      ? 'text-gray-900 hover:text-gray-500 underline'
-      : 'text-gray-400 hover:text-gray-900 hover:underline'
+   const style = isActive(router.asPath, href)
+      ? 'text-foreground underline'
+      : 'text-muted-foreground hover:text-foreground hover:underline'
 
    return (
       <span className={`text-xs cursor-pointer ${style}`}>
