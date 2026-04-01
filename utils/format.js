@@ -1,4 +1,5 @@
-const locales = typeof navigator !== 'undefined' ? navigator.language : 'en-GB'
+// const locales = typeof navigator !== 'undefined' ? navigator.language : 'en-GB'
+const locales = 'en-GB'
 
 const longDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })

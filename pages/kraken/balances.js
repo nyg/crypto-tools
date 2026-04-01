@@ -1,52 +1,54 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import { asDecimal } from '../../utils/format'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2Icon } from 'lucide-react'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 
 export default function KrakenBalances() {
 
    const { data, error, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
 
-   const [credentials, setCredentials] = useState({ apiKey: '', apiSecret: '' })
-   useEffect(() =>
-      setCredentials({
-         apiKey: localStorage.getItem('kraken.api.key'),
-         apiSecret: localStorage.getItem('kraken.api.secret')
-      }), [])
+   const [credentials, setCredentials] = useState(() => ({
+      apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || '',
+      apiSecret: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.secret')) || ''
+   }))
 
    let content
    if (error) {
-      content = <div className="text-red-500">{error}</div>
+      content = <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
    }
    else if (isMutating) {
-      content = <div>Fetching data…</div>
+      content = <div className="flex items-center gap-2"><Loader2Icon className="size-4 animate-spin" /> Fetching data…</div>
    }
    else if (!data && !credentials.apiKey) {
       content = <div>Generate an API key and secret on Kraken to be able to fetch your spot and staking balance.</div>
    }
    else if (!data) {
-      content = <button className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" onClick={() => trigger({ credentials })}>
+      content = <Button size="sm" onClick={() => trigger({ credentials })}>
          Fetch data
-      </button>
+      </Button>
    }
    else {
       content = (
-         <table>
-            <thead>
-               <tr>
-                  <th className="text-left">Asset</th>
-                  <th className="text-right">Balance</th>
-               </tr>
-            </thead>
-            <tbody>
+         <Table>
+            <TableHeader>
+               <TableRow>
+                  <TableHead className="text-left">Asset</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+               </TableRow>
+            </TableHeader>
+            <TableBody>
                {Object.keys(data).map(asset =>
-                  <tr key={asset} className="border-t border-gray-400">
-                     <td className="pr-8">{asset}</td>
-                     <td className="text-right">{asDecimal(Number.parseFloat(data[asset]), 18)}</td>
-                  </tr>)}
-            </tbody>
-         </table>
+                  <TableRow key={asset}>
+                     <TableCell className="pr-8">{asset}</TableCell>
+                     <TableCell className="text-right tabular-nums">{asDecimal(Number.parseFloat(data[asset]), 18)}</TableCell>
+                  </TableRow>)}
+            </TableBody>
+         </Table>
       )
    }
 

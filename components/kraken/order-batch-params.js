@@ -1,5 +1,7 @@
-import Input from '../lib/input'
+import Checkbox from '../lib/checkbox'
+import NumericInput from '../lib/numeric-input'
 import Select from '../lib/select'
+import { Button } from '@/components/ui/button'
 
 export default function OrderBatchParameters({ formValues, setFormValues, tradingPairs, isLoading, onShowPreview, onCreateOrders }) {
 
@@ -11,7 +13,7 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
       <div>
          <h3 className="pb-2 font-semibold">Parameters</h3>
          <div className="space-y-2">
-            <form className="space-y-3" onSubmit={(e) => e.preventDefault()}>
+            <form className="" onSubmit={(e) => e.preventDefault()}>
                <Select
                   name="pair"
                   label="Pair"
@@ -32,25 +34,25 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
                   <option value="buy">Buy</option>
                   <option value="sell">Sell</option>
                </Select>
-               <Input
+               <NumericInput
                   name="price-from"
                   label="Starting price"
                   value={formValues.priceFrom}
                   onChange={(e) => handleChange('priceFrom', e.target.value)}
                />
-               <Input
+               <NumericInput
                   name="price-to"
                   label="Ending price"
                   value={formValues.priceTo}
                   onChange={(e) => handleChange('priceTo', e.target.value)}
                />
-               <Input
+               <NumericInput
                   name="volume"
                   label="Volume"
                   value={formValues.volume}
                   onChange={(e) => handleChange('volume', e.target.value)}
                />
-               <Input
+               <NumericInput
                   name="order-count"
                   label="Number of orders"
                   value={formValues.orderCount}
@@ -73,17 +75,16 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
                   <option value="linear-base">Linear (base currency)</option>
                   <option value="linear-quote">Linear (quote currency)</option>
                </Select>
-               <Input
+               <Checkbox
                   name="dry-run"
                   label="Dry run"
-                  type="checkbox"
                   checked={formValues.dryRun}
                   onChange={(e) => handleChange('dryRun', e.target.checked)}
                />
             </form>
             <div className="space-x-4">
-               <input className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" type="button" value="Show preview" onClick={onShowPreview} />
-               <input className="px-2 py-1 bg-gray-600 text-gray-100 rounded-sm hover:bg-gray-500" type="button" value="Create orders" onClick={onCreateOrders} />
+               <Button variant="outline" size="sm" type="button" onClick={onShowPreview}>Show preview</Button>
+               <Button size="sm" type="button" onClick={onCreateOrders}>Create orders</Button>
             </div>
          </div>
       </div>

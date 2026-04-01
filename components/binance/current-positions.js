@@ -85,7 +85,7 @@ export default function CurrentPositions({ data }) {
          {data.balance.map(({ asset, free, locked, staking, total, fiatValue }) => (
             <div key={asset}>
 
-               <div className="flex py-1 px-2 border-y border-gray-700">
+               <div className="flex py-1 px-2 border-y border-border">
                   <span className="w-[4%] font-bold">{asset}</span>
                   <LabeledValue className="w-[12%]" label="spot" value={format.asDecimal(free)} />
                   <LabeledValue className="w-[12%]" label="staking" value={format.asDecimal(staking?.balance)} />

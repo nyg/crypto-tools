@@ -6,7 +6,7 @@ export default function BinanceLayout({ children, name }) {
    return (
       <Layout name={`Binance ${name}`}>
 
-         <header className="px-3 py-2 mb-4 flex items-baseline gap-x-3 border-b">
+         <header className="px-3 py-2 mb-4 flex items-baseline gap-x-3 border-b border-border">
             <MenuLink href="/binance/staking">Staking</MenuLink>
          </header>
 

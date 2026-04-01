@@ -1,4 +1,5 @@
 import * as format from '../../utils/format'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption } from '@/components/ui/table'
 
 
 export default function NextRedemptions({ data }) {
@@ -8,29 +9,29 @@ export default function NextRedemptions({ data }) {
 
    return (
       <div className="w-1/3 h-32 overflow-auto">
-         <table className="w-full text-right">
-            <caption>Next redemptions</caption>
-            <thead>
-               <tr>
-                  <th className="text-left">Asset</th>
-                  <th>Amount</th>
-                  <th>APY</th>
-                  <th>Duration</th>
-                  <th>Redemption date</th>
-               </tr>
-            </thead>
-            <tbody>
+         <Table className="w-full">
+            <TableCaption className="caption-top mt-0 mb-2">Next redemptions</TableCaption>
+            <TableHeader>
+               <TableRow>
+                  <TableHead className="text-left">Asset</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">APY</TableHead>
+                  <TableHead className="text-right">Duration</TableHead>
+                  <TableHead className="text-right">Redemption date</TableHead>
+               </TableRow>
+            </TableHeader>
+            <TableBody>
                {positions.map(position => (
-                  <tr key={position.id}>
-                     <td className="text-left">{position.asset}</td>
-                     <td>{format.asDecimal(position.amount)}</td>
-                     <td>{format.asPercentage(position.apy)}</td>
-                     <td>{position.accrualDays} of {position.duration}</td>
-                     <td>{format.asLongDate(position.endDate)}</td>
-                  </tr>
+                  <TableRow key={position.id}>
+                     <TableCell className="text-left">{position.asset}</TableCell>
+                     <TableCell className="text-right">{format.asDecimal(position.amount)}</TableCell>
+                     <TableCell className="text-right">{format.asPercentage(position.apy)}</TableCell>
+                     <TableCell className="text-right">{position.accrualDays} of {position.duration}</TableCell>
+                     <TableCell className="text-right">{format.asLongDate(position.endDate)}</TableCell>
+                  </TableRow>
                ))}
-            </tbody>
-         </table>
+            </TableBody>
+         </Table>
       </div>
    )
 }
