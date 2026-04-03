@@ -1,10 +1,5 @@
 name: swissborg-get-yields-daily
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - '.github/workflows/cron-swissborg-yield.yaml'
   schedule:
     - cron: '0 21 * * *'
 jobs:
@@ -14,5 +9,5 @@ jobs:
       - name: POST /api/swissborg/cron/yield
         run: |
           curl --fail --verbose -X POST                                        \
-               --url https://crypto-tools.vercel.app/api/swissborg/cron/yield  \
+               --url https://crypto-tools.andstuff.dev/api/swissborg/cron/yield  \
                --header "Authorization: Bearer ${{ secrets.CRON_KEY }}"

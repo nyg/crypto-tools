@@ -51,3 +51,9 @@ Two HTTP requester singletons (`lib/adapters/http-requester/`) abstract the tran
 - All files use `.js` extension (no TypeScript); shadcn/ui components use `.jsx`
 - **Path alias**: `@/*` maps to project root (configured in `jsconfig.json`)
 - **Class merging**: use `cn()` from `lib/utils.js` (`clsx` + `tailwind-merge`) for conditional Tailwind classes
+
+## Branching workflow
+
+- Never commit directly to `master`. Always open a pull request against `master`.
+- If the current branch is not `master`, do work on that branch.
+- If the current branch is `master`, create a new feature branch before making any changes.
