@@ -1,0 +1,18 @@
+name: swissborg-compute-yield-averages-daily
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/cron-swissborg-yield-average.yaml'
+  schedule:
+    - cron: '0 0 * * *'
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/swissborg/cron/yield-average
+        run: |
+          curl --fail --verbose -X POST                                                \
+               --url https://crypto-tools.vercel.app/api/swissborg/cron/yield-average  \
+               --header "Authorization: Bearer ${{ secrets.CRON_KEY }}"
