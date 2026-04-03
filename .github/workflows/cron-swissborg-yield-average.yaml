@@ -2,6 +2,7 @@ name: swissborg-compute-yield-averages-daily
 on:
   schedule:
     - cron: '0 0 * * *'
+  workflow_dispatch:
 jobs:
   cron:
     runs-on: ubuntu-latest
