@@ -1,0 +1,13 @@
+name: swissborg-get-community-index-weekly
+on:
+  schedule:
+    - cron: '0 13 * * 3'
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/swissborg/cron/community-index
+        run: |
+          curl --fail --verbose -X POST                                                    \
+               --url https://crypto-tools.vercel.app/api/swissborg/cron/community-index    \
+               --header "Authorization: Bearer ${{ secrets.CRON_KEY }}"
