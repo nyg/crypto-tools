@@ -2,6 +2,7 @@ name: swissborg-get-yields-daily
 on:
   schedule:
     - cron: '0 21 * * *'
+  workflow_dispatch:
 jobs:
   cron:
     runs-on: ubuntu-latest

@@ -2,6 +2,7 @@ name: swissborg-get-community-index-weekly
 on:
   schedule:
     - cron: '0 13 * * 3'
+  workflow_dispatch:
 jobs:
   cron:
     runs-on: ubuntu-latest
