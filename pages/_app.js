@@ -1,8 +1,18 @@
 import { SWRConfig } from 'swr'
 import '../styles/global.css'
 
+const isMockMode = process.env.NEXT_PUBLIC_MOCK_DATA === 'true'
+
+if (isMockMode) {
+   import('@/lib/mocks').then(({ initMockCredentials }) => initMockCredentials())
+}
 
 async function fetcher(url, params) {
+
+   if (isMockMode) {
+      const { mockFetcher } = await import('@/lib/mocks')
+      return mockFetcher(url, params)
+   }
 
    let response
    if (params?.arg) {
