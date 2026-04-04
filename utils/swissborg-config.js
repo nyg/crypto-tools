@@ -13,3 +13,10 @@ export const multiplierFor = {
    explorer: .625,
    standard: .5
 }
+
+export const defaultVisibleAssets = new Set([
+   'ADA (Kiln)',
+   'ATOM (Kiln)',
+   'AVAX (GoGoPool)',
+   'SOL (Kyros)',
+])

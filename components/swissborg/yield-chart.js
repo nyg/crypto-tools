@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useSWR from 'swr'
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import YieldChartTooltip from './yield-chart-tooltip'
-import { colorFor, multiplierFor } from '@/utils/swissborg-config'
+import { colorFor, multiplierFor, defaultVisibleAssets } from '@/utils/swissborg-config'
 import * as format from '@/utils/format'
 
 
@@ -21,13 +21,29 @@ const saveVisibility = (visibility) => {
    localStorage.setItem('swissborg.visibility', JSON.stringify(visibility))
 }
 
-export default function YieldChart({ settings }) {
+export default function YieldChart({ settings, onVisibilityChange }) {
 
    const [visibility, setVisibility] = useState(getStoredVisibility)
 
    const { lineType = 'monotone', yieldRate = 'genesis', timeFrame = '90' } = settings || {}
 
    const { data, error } = useSWR(`/api/swissborg/yield?timeFrame=${timeFrame}`)
+
+   const isVisible = asset => {
+      const key = normalize(asset)
+      if (key in visibility) return visibility[key]
+      return defaultVisibleAssets.has(asset)
+   }
+
+   useEffect(() => {
+      if (data?.assets) {
+         const visibilityMap = {}
+         for (const asset of data.assets) {
+            visibilityMap[asset] = isVisible(asset)
+         }
+         onVisibilityChange?.(visibilityMap)
+      }
+   }, [data?.assets, visibility])
 
    if (error) return <div className="text-center pt-4 text-muted-foreground">Failed to load data!</div>
    if (!data) return <div className="text-center pt-4 text-muted-foreground">Loading data…</div>
@@ -46,11 +62,6 @@ export default function YieldChart({ settings }) {
       const newVisibility = { ...visibility, [key]: line.inactive }
       setVisibility(newVisibility)
       saveVisibility(newVisibility)
-   }
-
-   const isVisible = asset => {
-      const key = normalize(asset)
-      return key in visibility ? visibility[key] : true
    }
 
    return (
@@ -73,7 +84,9 @@ export default function YieldChart({ settings }) {
                   stroke={colorFor(index)} strokeWidth={1.5}
                   dot={lineType.includes('step') ? false : { r: 1, fill: colorFor(index) }} />)}
 
-            <Tooltip content={<YieldChartTooltip />} offset={50} />
+            <Tooltip
+               content={<YieldChartTooltip />} offset={50}
+               wrapperStyle={{ opacity: 1 }} />
             <Legend
                iconType="plainline" verticalAlign="bottom"
                onClick={toggle}
