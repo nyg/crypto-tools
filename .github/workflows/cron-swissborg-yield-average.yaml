@@ -9,6 +9,6 @@ jobs:
     steps:
       - name: POST /api/swissborg/cron/yield-average
         run: |
-          curl --fail --verbose -X POST                                                \
+          curl --fail --verbose -L -X POST                                                \
                --url https://crypto-tools.andstuff.dev/api/swissborg/cron/yield-average  \
                --header "Authorization: Bearer ${{ secrets.CRON_KEY }}"
