@@ -19,10 +19,11 @@
       "url": "https://github.com/nyg/crypto-tools/issues"
    },
    "scripts": {
-      "dev": "NODE_OPTIONS='--inspect' next dev --turbo",
+      "dev": "next dev",
+      "debug": "NODE_OPTIONS='--inspect' next dev",
       "build": "next build",
       "start": "next start",
-      "lint": "eslint ."
+      "lint": "eslint . --fix"
    },
    "dependencies": {
       "@ai-sdk/anthropic": "3.0.64",
