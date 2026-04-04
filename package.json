@@ -21,6 +21,7 @@
    "scripts": {
       "dev": "next dev",
       "debug": "NODE_OPTIONS='--inspect' next dev",
+      "mocked": "NEXT_PUBLIC_MOCK_DATA=true pnpm dev",
       "build": "next build",
       "start": "next start",
       "lint": "eslint . --fix"
