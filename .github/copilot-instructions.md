@@ -3,7 +3,7 @@
 ## Build & Run
 
 - **Package manager**: pnpm
-- **Dev server**: `pnpm dev` (runs Next.js with `--turbo` and `--inspect`)
+- **Dev server**: `pnpm dev` (runs Next.js in development mode)
 - **Build**: `pnpm build`
 - **Lint**: `pnpm lint` (ESLint with next/core-web-vitals)
 
@@ -11,13 +11,13 @@ No test framework is configured.
 
 ## Architecture
 
-This is a Next.js 16 app (Pages Router) providing cryptocurrency tools for Binance and Kraken exchanges, plus AI-powered asset classification via Anthropic.
+This is a Next.js 16 app (Pages Router) providing cryptocurrency tools for Binance, Kraken, and SwissBorg exchanges, plus AI-powered asset classification via Anthropic.
 
 ### Layers
 
-**Pages** (`pages/`) — file-based routing. Each exchange has its own subdirectory. `pages/api/` contains server-side API routes that proxy to external exchange APIs.
+**Pages** (`pages/`) — file-based routing. Each exchange has its own subdirectory (`binance/`, `kraken/`, `swissborg/`). `pages/api/` contains server-side API routes that proxy to external exchange APIs.
 
-**Components** (`components/`) — exchange-specific components live in `components/binance/` and `components/kraken/`. Custom wrapper components (NumericInput, Checkbox, Select, DatePicker, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: false`, and `radix-nova` style.
+**Components** (`components/`) — exchange-specific components live in `components/binance/`, `components/kraken/`, and `components/swissborg/`. Custom wrapper components (NumericInput, Checkbox, Select, DatePicker, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: false`, and `radix-nova` style.
 
 **Adapters** (`lib/adapters/`) — each external API has an adapter directory (`binance-api/`, `binance-gateway-api/`, `kraken-api/`, `anthropic/`) following a three-layer pattern documented in `lib/adapters/README.md`:
 - `adapter.js` — public interface with domain methods (constructor function, default export)
@@ -28,7 +28,7 @@ Two HTTP requester singletons (`lib/adapters/http-requester/`) abstract the tran
 
 **Services** (`lib/services/`) — `rate-finder.js` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT.
 
-**Utils** (`utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`).
+**Utils** (`utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`). `swissborg-config.js` provides chart color and yield rate multiplier configuration for SwissBorg components.
 
 ### Data Flow
 
@@ -36,6 +36,10 @@ Two HTTP requester singletons (`lib/adapters/http-requester/`) abstract the tran
 2. The global SWR fetcher in `pages/_app.js` routes GET vs POST based on the presence of `params.arg`.
 3. API routes destructure credentials from `req.body.credentials`, validate they exist (401 if missing), instantiate the appropriate adapter with `new AdapterName(credentials)`, and return JSON.
 4. API keys are stored in `localStorage` per provider (e.g. `binance.api.key`, `kraken.api.secret`) with fallback to `NEXT_PUBLIC_*` env vars. Always guard localStorage access with `typeof window !== 'undefined'`.
+
+### Database & Cron
+
+SwissBorg data (community index scores, yield averages) is stored in a PostgreSQL database via the `postgres` package (`lib/db.js`). Cron routes in `pages/api/swissborg/cron/` periodically fetch and store this data. The database connection string is configured via the `POSTGRES_URL` environment variable and cron requests are authenticated with a `CRON_KEY`.
 
 ### AI Integration
 
