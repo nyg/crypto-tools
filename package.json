@@ -16,7 +16,7 @@
    "author": "nyg",
    "license": "MIT",
    "engines": {
-      "node": ">=22"
+      "node": "v25.9.0"
    },
    "bugs": {
       "url": "https://github.com/nyg/crypto-tools/issues"
