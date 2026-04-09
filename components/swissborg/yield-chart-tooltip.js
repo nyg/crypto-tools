@@ -6,7 +6,7 @@ export default function YieldChartTooltip({ active, payload, label }) {
    if (!active || !payload?.length) return null
 
    return (
-      <div className="grid grid-cols-2 rounded-lg border bg-popover p-3 text-sm text-popover-foreground shadow-md">
+      <div className="grid grid-cols-2 rounded-lg border border-border bg-popover p-3 text-sm text-popover-foreground shadow-md opacity-100">
          <div className="col-span-2 text-center border-b border-border mb-2 pb-1">
             {format.asLongDate(label)}
          </div>

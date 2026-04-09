@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/table'
 
 
-export default function YieldAverages({ className, yieldRate = 'genesis' }) {
+export default function YieldAverages({ className, yieldRate = 'genesis', visibility = {} }) {
 
    const { data, error } = useSWR('/api/swissborg/yield-average')
 
@@ -14,6 +14,9 @@ export default function YieldAverages({ className, yieldRate = 'genesis' }) {
    if (!data) return <div className="text-center pt-4 text-muted-foreground">Loading yield averages…</div>
 
    const assetsOf = object => Object.keys(object).filter(k => k != 'date')
+
+   const hasVisibility = Object.keys(visibility).length > 0
+   const visibleAssets = data.assets.filter(asset => !hasVisibility || visibility[asset])
 
    const yieldAverages = data.yieldAverages.map(average =>
       assetsOf(average).reduce((newAverage, asset) => {
@@ -28,7 +31,7 @@ export default function YieldAverages({ className, yieldRate = 'genesis' }) {
             <TableHeader>
                <TableRow>
                   <TableHead></TableHead>
-                  {data.assets.map(asset => (
+                  {visibleAssets.map(asset => (
                      <TableHead key={asset} className="text-right text-xs">{asset}</TableHead>
                   ))}
                </TableRow>
@@ -37,7 +40,7 @@ export default function YieldAverages({ className, yieldRate = 'genesis' }) {
                {yieldAverages.map((average, index) => (
                   <TableRow key={average.date} className={index === 0 ? 'italic' : ''}>
                      <TableCell className="text-xs">{format.asMonthYearDate(average.date)}</TableCell>
-                     {data.assets.map(asset =>
+                     {visibleAssets.map(asset =>
                         <TableCell key={asset} className="text-right tabular-nums text-xs">
                            {average[asset]
                               ? format.asPercentage(average[asset])

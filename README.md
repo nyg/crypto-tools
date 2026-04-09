@@ -9,21 +9,25 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 ### Kraken
 
 - **Order Batch** — Create multiple buy or sell post-limit orders for a trading pair with configurable price and volume distribution functions. Supports dry-run mode for safe testing.
-- **Closed Orders** — View and filter closed orders by asset and date range with volume, cost, and price summaries.
+- **Closed Orders** — View and filter closed orders by asset and date range. Displays buy and sell orders grouped by trading pair with volume, cost, and average price summaries.
 - **Balances** — View spot and staking account balances.
-- **xStocks** — AI-powered classification of Kraken tokenized assets (stocks and ETFs) using Anthropic Claude.
+- **xStocks** — AI-powered classification of Kraken tokenized assets (stocks and ETFs) using Anthropic Claude. Generates descriptions with configurable word count and supports filtering by asset type.
 
 ![Kraken Order Batch](public/screenshot-kraken-order-batch.png)
 
+![Kraken Closed Orders](public/screenshot-kraken-closed-orders.png)
+
+![Kraken xStocks](public/screenshot-kraken-xstocks.png)
+
 ### Binance
 
-- **Staking Overview** — Overview of spot wallet balances and locked staking positions, including available and sold-out staking products for each asset.
+- **Staking Overview** — Overview of spot wallet balances and locked staking positions, including available and sold-out staking products for each asset. Shows next redemptions sorted by date, per-asset breakdowns with fiat valuations, and staking product details with quota analysis.
 
 ![Binance Staking](public/screenshot-binance-staking.png)
 
 ### SwissBorg
 
-- **Smart Yield** — Interactive chart of SwissBorg Smart Yield rates over time with configurable yield rate types, line types, and time frames.
+- **Smart Yield** — Interactive chart of SwissBorg Smart Yield rates over time with configurable yield rate types, line types, and time frames. Toggle individual yield lines via the chart legend — hidden yields are also removed from the averages table below.
 - **Community Index** — Historical chart of the SwissBorg Community Index score.
 
 ![SwissBorg Smart Yield](public/screenshot-swissborg-smart-yield.png)
@@ -46,6 +50,16 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
    pnpm dev
    ```
 6. Open http://localhost:3000
+
+### Mocked Mode
+
+Run the app with mock data (no API keys or database required):
+
+```sh
+pnpm mocked
+```
+
+This sets `NEXT_PUBLIC_MOCK_DATA=true`, which intercepts all API calls with a mock fetcher and auto-initializes `localStorage` with fake credentials. Useful for development and demos.
 
 ## Usage
 

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import useSWRMutation from 'swr/mutation'
 import CurrentPositions from '../../components/binance/current-positions'
 import NextRedemptions from '../../components/binance/next-redemptions'
@@ -12,12 +11,12 @@ export default function BinanceStaking() {
 
    const { data, error, isMutating, trigger: fetchAggregatedBalance } = useSWRMutation('/api/binance/aggregate-balance')
 
-   const [credentials, setCredentials] = useState(() => ({
-      apiKey: (typeof window !== 'undefined' && localStorage.getItem('binance.api.key')) || '',
-      apiSecret: (typeof window !== 'undefined' && localStorage.getItem('binance.api.secret')) || ''
-   }))
+   const getCredentials = () => ({
+      apiKey: localStorage.getItem('binance.api.key') || '',
+      apiSecret: localStorage.getItem('binance.api.secret') || ''
+   })
 
-   const fetchDataButton = <Button size="sm" onClick={() => fetchAggregatedBalance({ credentials })}>
+   const fetchDataButton = <Button size="sm" onClick={() => fetchAggregatedBalance({ credentials: getCredentials() })}>
       Fetch data
    </Button>
 
@@ -32,9 +31,6 @@ export default function BinanceStaking() {
    }
    else if (isMutating) {
       content = <div className="flex items-center gap-2"><Loader2Icon className="size-4 animate-spin" /> Fetching data…</div>
-   }
-   else if (!data && !credentials.apiKey) {
-      content = <div>Generate an API key and secret on Binance to be able to fetch your spot and staking balance.</div>
    }
    else if (!data) {
       content = fetchDataButton
