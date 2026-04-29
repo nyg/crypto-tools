@@ -32,3 +32,6 @@ yarn-error.log*
 .vercel
 .idea
 .playwright-mcp/
+
+# electron-builder output
+/dist

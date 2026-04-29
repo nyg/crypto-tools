@@ -2,6 +2,7 @@
    "name": "crypto-tools",
    "version": "1.0.0",
    "description": "miscellaneous cryptocurrency tools (formerly binance-staking-overview).",
+   "main": "electron/main.cjs",
    "repository": {
       "type": "git",
       "url": "git+ssh://git@github.com/nyg/crypto-tools.git"
@@ -24,7 +25,9 @@
       "mocked": "NEXT_PUBLIC_MOCK_DATA=true pnpm dev",
       "build": "next build",
       "start": "next start",
-      "lint": "eslint . --fix"
+      "lint": "eslint . --fix",
+      "electron:dev": "npx electron .",
+      "electron:build": "next build && node scripts/copy-static.cjs && electron-builder"
    },
    "dependencies": {
       "@ai-sdk/anthropic": "3.0.64",
@@ -54,9 +57,39 @@
    },
    "devDependencies": {
       "@tailwindcss/postcss": "4.2.2",
+      "electron": "36.1.0",
+      "electron-builder": "25.1.8",
       "eslint": "9.39.4",
       "eslint-config-next": "16.2.1",
       "postcss": "8.5.10",
       "tailwindcss": "4.2.2"
+   },
+   "build": {
+      "appId": "com.nyg.crypto-tools",
+      "productName": "crypto-tools",
+      "asar": true,
+      "files": [
+         "electron/**/*"
+      ],
+      "extraResources": [
+         {
+            "from": ".next/standalone",
+            "to": "next-app",
+            "filter": ["**/*"]
+         }
+      ],
+      "asarUnpack": [
+         "resources/next-app/**"
+      ],
+      "mac": {
+         "target": [{ "target": "dmg" }],
+         "category": "public.app-category.finance"
+      },
+      "win": {
+         "target": [{ "target": "nsis" }]
+      },
+      "linux": {
+         "target": [{ "target": "AppImage" }]
+      }
    }
 }
