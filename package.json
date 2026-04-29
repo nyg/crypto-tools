@@ -1,6 +1,6 @@
 {
    "name": "crypto-tools",
-   "version": "0.0.1",
+   "version": "0.0.2",
    "description": "miscellaneous cryptocurrency tools (formerly binance-staking-overview).",
    "main": "electron/main.cjs",
    "repository": {
@@ -65,7 +65,9 @@
       "tailwindcss": "4.2.2"
    },
    "pnpm": {
-      "onlyBuiltDependencies": ["electron"]
+      "onlyBuiltDependencies": [
+         "electron"
+      ]
    },
    "build": {
       "appId": "com.nyg.crypto-tools",
@@ -79,22 +81,36 @@
          {
             "from": ".next/standalone",
             "to": "next-app",
-            "filter": ["**/*"]
+            "filter": [
+               "**/*"
+            ]
          }
       ],
       "asarUnpack": [
          "resources/next-app/**"
       ],
       "mac": {
-         "target": [{ "target": "zip" }],
+         "target": [
+            {
+               "target": "zip"
+            }
+         ],
          "category": "public.app-category.finance"
       },
       "win": {
-         "target": [{ "target": "nsis" }],
+         "target": [
+            {
+               "target": "nsis"
+            }
+         ],
          "artifactName": "${productName}-${version}-setup.${ext}"
       },
       "linux": {
-         "target": [{ "target": "AppImage" }]
+         "target": [
+            {
+               "target": "AppImage"
+            }
+         ]
       }
    }
 }
