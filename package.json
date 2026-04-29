@@ -57,7 +57,7 @@
    },
    "devDependencies": {
       "@tailwindcss/postcss": "4.2.2",
-      "electron": "39.8.5",
+      "electron": "40.9.2",
       "electron-builder": "25.1.8",
       "eslint": "9.39.4",
       "eslint-config-next": "16.2.1",
