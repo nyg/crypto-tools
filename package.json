@@ -71,7 +71,7 @@
    },
    "build": {
       "appId": "com.nyg.crypto-tools",
-      "productName": "crypto-tools",
+      "productName": "CryptoTools",
       "asar": true,
       "npmRebuild": false,
       "files": [
@@ -93,7 +93,7 @@
       "mac": {
          "target": [
             {
-               "target": "zip"
+               "target": "dmg"
             }
          ],
          "category": "public.app-category.finance"

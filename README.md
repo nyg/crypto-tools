@@ -30,20 +30,39 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ## Desktop App
 
-A standalone desktop app is available for macOS (no Node.js or Git required):
+A standalone desktop app is available for macOS (Apple Silicon, no Node.js or Git required):
 
-1. Download `crypto-tools-{version}-arm64-mac.zip` from the [releases page](https://github.com/nyg/crypto-tools/releases)
-2. Unzip it to get `crypto-tools.app`
-3. Move it to your `Applications` folder and double-click to run
+1. Download `CryptoTools-{version}-arm64.dmg` from the [releases page](https://github.com/nyg/crypto-tools/releases)
+2. Open the DMG and drag **CryptoTools.app** to your **Applications** folder
+3. Double-click **CryptoTools** in Applications to launch
 
-> **macOS Gatekeeper warning**: Because the app is not signed with an Apple Developer certificate, macOS will block it on first launch. Right-click (or Control-click) the app and choose **Open**, then confirm in the dialog.
+### macOS Gatekeeper
+
+Because the app is not signed with an Apple Developer certificate, macOS will block it on first launch. To allow it:
+
+1. Try to open the app — macOS will show a warning and block it
+2. Open **System Settings → Privacy & Security**
+3. Scroll down to the security section — you will see *"CryptoTools was blocked from use because it is not from an identified developer"*
+4. Click **Open Anyway**, then confirm in the dialog
+
+You only need to do this once per installation.
+
+### Debugging a crash
+
+If the app launches but immediately quits without showing a window, run it from Terminal to see the full log output:
+
+```sh
+/Applications/CryptoTools.app/Contents/MacOS/CryptoTools
+```
+
+You can also check **Console.app** or crash reports in `~/Library/Logs/DiagnosticReports/`.
 
 API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
 
 ### Building the desktop app
 
 ```sh
-pnpm electron:build   # produces dist/crypto-tools-{version}-arm64-mac.zip
+pnpm electron:build   # produces dist/CryptoTools-{version}-arm64.dmg
 ```
 
 To test the desktop app locally without building a distributable:

@@ -121,7 +121,7 @@ jobs:
         with:
           name: dist-${{ matrix.platform }}
           path: |
-            dist/*.zip
+            dist/*.dmg
             dist/*.exe
             dist/*.AppImage
           if-no-files-found: error
@@ -149,7 +149,7 @@ jobs:
       - name: Create GitHub release
         run: |
           gh release create "v${{ needs.prepare.outputs.release_version }}" \
-            dist/*.zip \
+            dist/*.dmg \
             dist/*.exe \
             dist/*.AppImage \
             --title "Release v${{ needs.prepare.outputs.release_version }}" \
