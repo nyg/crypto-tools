@@ -83,7 +83,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest    # arm64 (Apple Silicon)
+          - os: macos-15      # arm64 (Apple Silicon, Sequoia — compatible with macOS 26+)
             platform: macOS
           - os: windows-latest  # x64
             platform: Windows

@@ -82,7 +82,8 @@
             "from": ".next/standalone",
             "to": "next-app",
             "filter": [
-               "**/*"
+               "**/*",
+               "!.next/node_modules/**"
             ]
          }
       ],
