@@ -90,7 +90,8 @@
          "category": "public.app-category.finance"
       },
       "win": {
-         "target": [{ "target": "nsis" }]
+         "target": [{ "target": "nsis" }],
+         "artifactName": "${productName}-${version}-setup.${ext}"
       },
       "linux": {
          "target": [{ "target": "AppImage" }]
