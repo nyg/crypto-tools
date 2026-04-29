@@ -1,6 +1,6 @@
 {
    "name": "crypto-tools",
-   "version": "0.0.2",
+   "version": "0.0.3",
    "description": "miscellaneous cryptocurrency tools (formerly binance-staking-overview).",
    "main": "electron/main.cjs",
    "repository": {
