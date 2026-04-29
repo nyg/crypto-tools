@@ -27,7 +27,7 @@
       "start": "next start",
       "lint": "eslint . --fix",
       "electron:dev": "npx electron .",
-      "electron:build": "next build && node scripts/copy-static.cjs && electron-builder"
+      "electron:build": "next build && node scripts/copy-static.cjs && electron-builder --publish never"
    },
    "dependencies": {
       "@ai-sdk/anthropic": "3.0.64",
