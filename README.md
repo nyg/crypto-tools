@@ -28,7 +28,31 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![SwissBorg Smart Yield](public/screenshot-swissborg-smart-yield.png)
 
-## Installation
+## Desktop App
+
+A standalone desktop app is available for macOS (no Node.js or Git required):
+
+1. Download `crypto-tools-{version}-arm64-mac.zip` from the [releases page](https://github.com/nyg/crypto-tools/releases)
+2. Unzip it to get `crypto-tools.app`
+3. Move it to your `Applications` folder and double-click to run
+
+> **macOS Gatekeeper warning**: Because the app is not signed with an Apple Developer certificate, macOS will block it on first launch. Right-click (or Control-click) the app and choose **Open**, then confirm in the dialog.
+
+API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
+
+### Building the desktop app
+
+```sh
+pnpm electron:build   # produces dist/crypto-tools-{version}-arm64-mac.zip
+```
+
+To test the desktop app locally without building a distributable:
+
+```sh
+pnpm electron:dev
+```
+
+## Web App Installation
 
 1. Install [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/)
 2. Clone the repository

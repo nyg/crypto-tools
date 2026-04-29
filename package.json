@@ -71,6 +71,7 @@
       "appId": "com.nyg.crypto-tools",
       "productName": "crypto-tools",
       "asar": true,
+      "npmRebuild": false,
       "files": [
          "electron/**/*"
       ],
@@ -85,7 +86,7 @@
          "resources/next-app/**"
       ],
       "mac": {
-         "target": [{ "target": "dmg" }],
+         "target": [{ "target": "zip" }],
          "category": "public.app-category.finance"
       },
       "win": {
