@@ -61,3 +61,21 @@ SwissBorg data (community index scores, yield averages) is stored in a PostgreSQ
 - Never commit directly to `master`. Always open a pull request against `master`.
 - If the current branch is not `master`, do work on that branch.
 - If the current branch is `master`, create a new feature branch before making any changes.
+
+## Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<optional scope>): <description>
+```
+
+Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `ci`, `perf`, `build`, `revert`.
+
+- `feat`: new feature or capability
+- `fix`: bug fix
+- `chore`: maintenance (deps, config, tooling)
+- `docs`: documentation only
+- `refactor`: code change with no behaviour change
+- `ci`: CI/CD workflow changes
+- `build`: changes to build system (electron-builder, next.config, etc.)
