@@ -1,6 +1,6 @@
 'use strict'
 
-const { app, BrowserWindow, utilityProcess } = require('electron')
+const { app, BrowserWindow, dialog, utilityProcess } = require('electron')
 const path = require('path')
 const http = require('http')
 
@@ -25,6 +25,16 @@ function startNextServer() {
 
    serverProcess.stdout.on('data', (d) => process.stdout.write(`[next] ${d}`))
    serverProcess.stderr.on('data', (d) => process.stderr.write(`[next] ${d}`))
+
+   serverProcess.on('exit', (code) => {
+      if (code !== 0) {
+         dialog.showErrorBox(
+            'CryptoTools — Server Error',
+            `The Next.js server exited unexpectedly (code ${code}).\n\nRun the app from Terminal to see the full error output:\n  open -a CryptoTools`,
+         )
+         app.quit()
+      }
+   })
 }
 
 function waitForServer(retries = 40, intervalMs = 250) {
@@ -51,7 +61,7 @@ function createWindow() {
    const win = new BrowserWindow({
       width: 1280,
       height: 800,
-      title: 'crypto-tools',
+      title: 'CryptoTools',
       webPreferences: {
          nodeIntegration: false,
          contextIsolation: true,
@@ -67,6 +77,10 @@ app.whenReady().then(async () => {
       createWindow()
    } catch (err) {
       console.error(err.message)
+      dialog.showErrorBox(
+         'CryptoTools — Server Timeout',
+         `The Next.js server did not respond in time.\n\nRun the app from Terminal to see logs:\n  /Applications/CryptoTools.app/Contents/MacOS/CryptoTools`,
+      )
       app.quit()
    }
 })

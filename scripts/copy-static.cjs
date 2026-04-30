@@ -1,7 +1,7 @@
 'use strict'
 
-const { cpSync, existsSync } = require('fs')
-const { join } = require('path')
+const { cpSync, existsSync, lstatSync, unlinkSync, readdirSync, readlinkSync } = require('fs')
+const { join, resolve, dirname } = require('path')
 
 const root = join(__dirname, '..')
 const standaloneDir = join(root, '.next', 'standalone')
@@ -19,3 +19,25 @@ for (const { from, to } of copies) {
       console.warn(`Skipped (not found): ${from}`)
    }
 }
+
+// Remove dangling symlinks left by pnpm's virtual store — they cause ENOENT
+// during electron-builder's codesign step.
+function removeDanglingSymlinks(dir) {
+   if (!existsSync(dir)) return
+   for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isSymbolicLink()) {
+         const target = readlinkSync(full)
+         const resolved = resolve(dirname(full), target)
+         if (!existsSync(resolved)) {
+            unlinkSync(full)
+            console.log(`Removed dangling symlink: ${full} → ${target}`)
+         }
+      }
+      else if (entry.isDirectory()) {
+         removeDanglingSymlinks(full)
+      }
+   }
+}
+
+removeDanglingSymlinks(join(standaloneDir, 'node_modules'))

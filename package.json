@@ -71,7 +71,7 @@
    },
    "build": {
       "appId": "com.nyg.crypto-tools",
-      "productName": "crypto-tools",
+      "productName": "CryptoTools",
       "asar": true,
       "npmRebuild": false,
       "files": [
@@ -81,10 +81,11 @@
          {
             "from": ".next/standalone",
             "to": "next-app",
-            "filter": [
-               "**/*",
-               "!.next/node_modules/**"
-            ]
+            "filter": ["**/*"]
+         },
+         {
+            "from": ".next/standalone/node_modules",
+            "to": "next-app/node_modules"
          }
       ],
       "asarUnpack": [
@@ -93,7 +94,7 @@
       "mac": {
          "target": [
             {
-               "target": "zip"
+               "target": "dmg"
             }
          ],
          "category": "public.app-category.finance"
