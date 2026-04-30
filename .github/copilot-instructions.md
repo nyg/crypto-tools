@@ -4,6 +4,7 @@
 
 - **Package manager**: pnpm
 - **Dev server**: `pnpm dev` (runs Next.js in development mode)
+- **Mocked mode**: `pnpm mocked` (sets `NEXT_PUBLIC_MOCK_DATA=true`, runs with mock data — no API keys or database required)
 - **Build**: `pnpm build`
 - **Lint**: `pnpm lint` (ESLint with next/core-web-vitals)
 
@@ -28,7 +29,7 @@ Two HTTP requester singletons (`lib/adapters/http-requester/`) abstract the tran
 
 **Services** (`lib/services/`) — `rate-finder.js` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT.
 
-**Utils** (`utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`). `swissborg-config.js` provides chart color and yield rate multiplier configuration for SwissBorg components.
+**Utils** (`utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`). `swissborg-config.js` provides chart color, yield rate multiplier, and default-visible asset configuration for SwissBorg components.
 
 ### Data Flow
 
@@ -44,6 +45,10 @@ SwissBorg data (community index scores, yield averages) is stored in a PostgreSQ
 ### AI Integration
 
 `lib/adapters/anthropic/adapter.js` uses Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) with Zod-validated structured output to classify Kraken tokenized assets as stock/ETF/unknown. Called from the `/api/kraken/xstocks` route.
+
+### Mocked Mode
+
+The app supports a mocked mode for development and demos, activated via `pnpm mocked` or `NEXT_PUBLIC_MOCK_DATA=true`. In `pages/_app.js`, the global SWR fetcher checks this env var and routes all API calls through `mockFetcher()` from `lib/mocks/index.js` instead of making real HTTP requests. Mock data generators live in `lib/mocks/` with per-exchange files (`kraken.js`, `binance.js`, `swissborg.js`). On startup, `initMockCredentials()` auto-populates `localStorage` with fake API keys so authenticated features work without configuration.
 
 ## Code Conventions
 
