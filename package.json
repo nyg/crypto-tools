@@ -1,6 +1,6 @@
 {
    "name": "crypto-tools",
-   "version": "0.0.5",
+   "version": "0.0.6",
    "description": "miscellaneous cryptocurrency tools (formerly binance-staking-overview).",
    "main": "electron/main.cjs",
    "repository": {
@@ -81,7 +81,9 @@
          {
             "from": ".next/standalone",
             "to": "next-app",
-            "filter": ["**/*"]
+            "filter": [
+               "**/*"
+            ]
          },
          {
             "from": ".next/standalone/node_modules",
