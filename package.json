@@ -1,7 +1,8 @@
 {
    "name": "crypto-tools",
-   "version": "1.0.0",
+   "version": "0.0.6",
    "description": "miscellaneous cryptocurrency tools (formerly binance-staking-overview).",
+   "main": "electron/main.cjs",
    "repository": {
       "type": "git",
       "url": "git+ssh://git@github.com/nyg/crypto-tools.git"
@@ -24,7 +25,9 @@
       "mocked": "NEXT_PUBLIC_MOCK_DATA=true pnpm dev",
       "build": "next build",
       "start": "next start",
-      "lint": "eslint . --fix"
+      "lint": "eslint . --fix",
+      "electron:dev": "npx electron .",
+      "electron:build": "next build && node scripts/copy-static.cjs && electron-builder --publish never"
    },
    "dependencies": {
       "@ai-sdk/anthropic": "3.0.64",
@@ -33,10 +36,10 @@
       "class-variance-authority": "0.7.1",
       "clsx": "2.1.1",
       "date-fns": "4.1.0",
-      "got": "14.6.6",
+      "got": "15.0.0",
       "lucide-react": "1.7.0",
       "modern-dijkstra": "1.1.2",
-      "next": "16.2.1",
+      "next": "16.2.3",
       "next-themes": "0.4.6",
       "postgres": "3.4.8",
       "qs": "6.15.0",
@@ -54,9 +57,64 @@
    },
    "devDependencies": {
       "@tailwindcss/postcss": "4.2.2",
+      "electron": "41.3.0",
+      "electron-builder": "26.8.1",
       "eslint": "9.39.4",
       "eslint-config-next": "16.2.1",
-      "postcss": "8.5.8",
+      "postcss": "8.5.10",
       "tailwindcss": "4.2.2"
+   },
+   "pnpm": {
+      "onlyBuiltDependencies": [
+         "electron"
+      ]
+   },
+   "build": {
+      "appId": "com.nyg.crypto-tools",
+      "productName": "CryptoTools",
+      "asar": true,
+      "npmRebuild": false,
+      "files": [
+         "electron/**/*"
+      ],
+      "extraResources": [
+         {
+            "from": ".next/standalone",
+            "to": "next-app",
+            "filter": [
+               "**/*"
+            ]
+         },
+         {
+            "from": ".next/standalone/node_modules",
+            "to": "next-app/node_modules"
+         }
+      ],
+      "asarUnpack": [
+         "resources/next-app/**"
+      ],
+      "mac": {
+         "target": [
+            {
+               "target": "dmg"
+            }
+         ],
+         "category": "public.app-category.finance"
+      },
+      "win": {
+         "target": [
+            {
+               "target": "nsis"
+            }
+         ],
+         "artifactName": "${productName}-${version}-setup.${ext}"
+      },
+      "linux": {
+         "target": [
+            {
+               "target": "AppImage"
+            }
+         ]
+      }
    }
 }

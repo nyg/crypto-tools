@@ -32,7 +32,50 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![SwissBorg Smart Yield](public/screenshot-swissborg-smart-yield.png)
 
-## Installation
+## Desktop App
+
+A standalone desktop app is available for macOS (Apple Silicon, no Node.js or Git required):
+
+1. Download `CryptoTools-{version}-arm64.dmg` from the [releases page](https://github.com/nyg/crypto-tools/releases)
+2. Open the DMG and drag **CryptoTools.app** to your **Applications** folder
+3. Double-click **CryptoTools** in Applications to launch
+
+### macOS Gatekeeper
+
+Because the app is not signed with an Apple Developer certificate, macOS will block it on first launch. To allow it:
+
+1. Try to open the app — macOS will show a warning and block it
+2. Open **System Settings → Privacy & Security**
+3. Scroll down to the security section — you will see *"CryptoTools was blocked from use because it is not from an identified developer"*
+4. Click **Open Anyway**, then confirm in the dialog
+
+You only need to do this once per installation.
+
+### Debugging a crash
+
+If the app launches but immediately quits without showing a window, run it from Terminal to see the full log output:
+
+```sh
+/Applications/CryptoTools.app/Contents/MacOS/CryptoTools
+```
+
+You can also check **Console.app** or crash reports in `~/Library/Logs/DiagnosticReports/`.
+
+API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
+
+### Building the desktop app
+
+```sh
+pnpm electron:build   # produces dist/CryptoTools-{version}-arm64.dmg
+```
+
+To test the desktop app locally without building a distributable:
+
+```sh
+pnpm electron:dev
+```
+
+## Web App Installation
 
 1. Install [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/)
 2. Clone the repository

@@ -1,6 +1,10 @@
 import { pgSql } from '@/lib/db'
 
 export default async function getYieldAverage(req, res) {
+   if (!pgSql) {
+      return res.status(200).json({ yieldAverages: [], assets: [] })
+   }
+
    const allStrategies = new Set()
 
    const yieldAverages = (await pgSql`

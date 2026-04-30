@@ -14,6 +14,10 @@ const findYieldsSince = async since =>
       and y.date > ${since}`
 
 export default async function getYield(req, res) {
+   if (!pgSql) {
+      return res.status(200).json({ yields: [], xTicks: [], assets: [] })
+   }
+
    const xAxisTicks = []
    const allAssets = new Set()
    const maxDays = numberOfDays(req.query.timeFrame)
