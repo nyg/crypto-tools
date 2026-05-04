@@ -59,7 +59,7 @@
       "@tailwindcss/postcss": "4.2.4",
       "electron": "41.3.0",
       "electron-builder": "26.8.1",
-      "eslint": "9.39.4",
+      "eslint": "10.3.0",
       "eslint-config-next": "16.2.4",
       "postcss": "8.5.12",
       "tailwindcss": "4.2.4"
