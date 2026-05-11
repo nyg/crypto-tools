@@ -68,8 +68,8 @@ export default function DatePicker({ name, label, defaultValue, className = '' }
       const parsed = new Date(inputValue)
       if (!isNaN(parsed)) {
          const utc = new Date(Date.UTC(
-            parsed.getFullYear(), parsed.getMonth(), parsed.getDate(),
-            parsed.getHours(), parsed.getMinutes(), parsed.getSeconds()
+            parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(),
+            parsed.getUTCHours(), parsed.getUTCMinutes(), parsed.getUTCSeconds()
          ))
          setSelectedDate(utc)
          setHours(utc.getUTCHours().toString().padStart(2, '0'))
