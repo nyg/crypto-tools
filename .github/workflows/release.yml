@@ -115,6 +115,44 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          DEBUG: ${{ matrix.platform == 'Windows' && 'electron-builder' || '' }}
+
+      - name: Windows packaging diagnostics
+        if: always() && matrix.platform == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "=== dist/ listing ==="
+          if (Test-Path dist) {
+            Get-ChildItem -Path dist -Recurse -Force |
+              Select-Object FullName, Length, Attributes |
+              Format-Table -AutoSize | Out-String -Width 4096
+          } else {
+            Write-Host "dist/ does not exist"
+          }
+
+          function Scan-Tree($root) {
+            if (-not (Test-Path $root)) { Write-Host "  (missing: $root)"; return }
+            $items = Get-ChildItem -Path $root -Recurse -Force -ErrorAction SilentlyContinue
+            $count = $items.Count
+            $maxPath = ($items | ForEach-Object { $_.FullName.Length } | Measure-Object -Maximum).Maximum
+            $reparse = @($items | Where-Object { $_.Attributes -match 'ReparsePoint' })
+            Write-Host ("  files+dirs : {0}" -f $count)
+            Write-Host ("  max path   : {0}" -f $maxPath)
+            Write-Host ("  reparse pts: {0}" -f $reparse.Count)
+            if ($reparse.Count -gt 0) {
+              Write-Host "  --- reparse points (first 20) ---"
+              $reparse | Select-Object -First 20 -ExpandProperty FullName | ForEach-Object { Write-Host "    $_" }
+            }
+            $longest = $items | Sort-Object { $_.FullName.Length } -Descending | Select-Object -First 5
+            Write-Host "  --- longest paths ---"
+            $longest | ForEach-Object { Write-Host ("    {0,4}  {1}" -f $_.FullName.Length, $_.FullName) }
+          }
+
+          Write-Host "=== scan: .next/standalone ==="
+          Scan-Tree ".next/standalone"
+
+          Write-Host "=== scan: dist/win-unpacked ==="
+          Scan-Tree "dist/win-unpacked"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -124,8 +162,23 @@ jobs:
             dist/*.dmg
             dist/*.exe
             dist/*.AppImage
+            dist/builder-debug.yml
+            dist/builder-effective-config.yaml
+            dist/*.log
           if-no-files-found: error
           retention-days: 1
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: debug-${{ matrix.platform }}
+          path: |
+            dist/builder-debug.yml
+            dist/builder-effective-config.yaml
+            dist/*.log
+          if-no-files-found: ignore
+          retention-days: 7
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Job 3: Assemble GitHub Release

@@ -6,6 +6,7 @@ const http = require('http')
 
 const PORT = 3000
 let serverProcess = null
+let isQuitting = false
 
 function resolveServerPath() {
    return app.isPackaged
@@ -26,14 +27,15 @@ function startNextServer() {
    serverProcess.stdout.on('data', (d) => process.stdout.write(`[next] ${d}`))
    serverProcess.stderr.on('data', (d) => process.stderr.write(`[next] ${d}`))
 
-   serverProcess.on('exit', (code) => {
-      if (code !== 0) {
-         dialog.showErrorBox(
-            'CryptoTools — Server Error',
-            `The Next.js server exited unexpectedly (code ${code}).\n\nRun the app from Terminal to see the full error output:\n  open -a CryptoTools`,
-         )
-         app.quit()
+   serverProcess.on('exit', (code, signal) => {
+      if (isQuitting || signal === 'SIGTERM' || code === null || code === 0) {
+         return
       }
+      dialog.showErrorBox(
+         'CryptoTools — Server Error',
+         `The Next.js server exited unexpectedly (code ${code}${signal ? `, signal ${signal}` : ''}).`,
+      )
+      app.quit()
    })
 }
 
@@ -79,13 +81,18 @@ app.whenReady().then(async () => {
       console.error(err.message)
       dialog.showErrorBox(
          'CryptoTools — Server Timeout',
-         `The Next.js server did not respond in time.\n\nRun the app from Terminal to see logs:\n  /Applications/CryptoTools.app/Contents/MacOS/CryptoTools`,
+         'The Next.js server did not respond in time.',
       )
       app.quit()
    }
 })
 
+app.on('before-quit', () => {
+   isQuitting = true
+})
+
 app.on('window-all-closed', () => {
+   isQuitting = true
    if (serverProcess) serverProcess.kill()
    app.quit()
 })

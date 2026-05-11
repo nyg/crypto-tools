@@ -86,9 +86,6 @@
             "to": "next-app/node_modules"
          }
       ],
-      "asarUnpack": [
-         "resources/next-app/**"
-      ],
       "mac": {
          "target": [
             {
@@ -104,6 +101,11 @@
             }
          ],
          "artifactName": "${productName}-${version}-setup.${ext}"
+      },
+      "nsis": {
+         "oneClick": false,
+         "perMachine": false,
+         "allowToChangeInstallationDirectory": true
       },
       "linux": {
          "target": [
