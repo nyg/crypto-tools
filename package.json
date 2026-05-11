@@ -15,6 +15,7 @@
       "dashboard"
    ],
    "author": "nyg",
+   "packageManager": "pnpm@11.0.9",
    "license": "MIT",
    "bugs": {
       "url": "https://github.com/nyg/crypto-tools/issues"
@@ -45,7 +46,7 @@
       "qs": "6.15.1",
       "radix-ui": "1.4.3",
       "react": "19.2.5",
-      "react-day-picker": "9.14.0",
+      "react-day-picker": "10.0.0",
       "react-dom": "19.2.5",
       "recharts": "3.8.1",
       "shadcn": "4.6.0",
@@ -63,12 +64,6 @@
       "eslint-config-next": "16.2.4",
       "postcss": "8.5.12",
       "tailwindcss": "4.2.4"
-   },
-   "pnpm": {
-      "onlyBuiltDependencies": [
-         "electron",
-         "electron-winstaller"
-      ]
    },
    "build": {
       "appId": "com.nyg.crypto-tools",
