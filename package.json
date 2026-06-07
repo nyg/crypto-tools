@@ -24,8 +24,10 @@
       "dev": "concurrently -n vite,bun -c cyan,magenta \"vite\" \"bun --watch src/server/index.js\"",
       "dev:vite": "vite",
       "dev:server": "bun --watch src/server/index.js",
+      "desktop:dev": "bunx electrobun dev --watch",
       "mocked": "VITE_MOCK_DATA=true vite",
       "build": "vite build",
+      "build:stable": "bunx electrobun build --env=stable",
       "start": "NODE_ENV=production bun src/server/index.js",
       "lint": "eslint src --fix"
    },
@@ -58,6 +60,7 @@
       "@tailwindcss/vite": "4.3.0",
       "@vitejs/plugin-react": "4.5.2",
       "concurrently": "9.1.2",
+      "electrobun": "^1.18.1",
       "eslint": "9.39.4",
       "eslint-plugin-react-hooks": "5.2.0",
       "globals": "16.2.0",

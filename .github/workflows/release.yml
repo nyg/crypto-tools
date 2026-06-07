@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 1: Bump version in package.json, commit, tag, push to master
+# ──────────────────────────────────────────────────────────────────────────────
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.version.outputs.release }}
+    steps:
+      - name: Validate branch
+        if: github.ref_name != 'master'
+        run: |
+          echo "::error::Releases must be created from the master branch (current: ${{ github.ref_name }})"
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: version
+        run: |
+          new_version=$(npm version ${{ inputs.bump }} --no-git-tag-version | sed 's/^v//')
+          echo "release=$new_version" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_VERSION=$new_version" >> "$GITHUB_ENV"
+
+      - name: Check tag does not already exist
+        run: |
+          if git show-ref --tags --verify --quiet "refs/tags/v${{ env.RELEASE_VERSION }}"; then
+            echo "::error::Tag v${{ env.RELEASE_VERSION }} already exists"
+            exit 1
+          fi
+
+      - name: Install git-cliff
+        run: |
+          gh release download --repo orhun/git-cliff --pattern 'git-cliff-*-x86_64-unknown-linux-gnu.tar.gz'
+          tar xzf git-cliff-*-x86_64-unknown-linux-gnu.tar.gz --strip-components=1 --wildcards '*/git-cliff'
+          sudo mv git-cliff /usr/local/bin/
+          git cliff --version
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Update changelog
+        run: git cliff --tag "v${{ env.RELEASE_VERSION }}" -o CHANGELOG.md
+
+      - name: Commit and tag
+        run: |
+          git add package.json CHANGELOG.md
+          git commit -m "chore(release): bump version to v${{ env.RELEASE_VERSION }}"
+          git tag "v${{ env.RELEASE_VERSION }}"
+
+      - name: Push
+        run: |
+          git push origin master
+          git push origin "v${{ env.RELEASE_VERSION }}"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 2: Build Electrobun desktop artifacts on each native platform
+# ──────────────────────────────────────────────────────────────────────────────
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15        # arm64 (Apple Silicon)
+            platform: macOS-arm64
+          - os: windows-latest  # x64
+            platform: Windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: v${{ needs.prepare.outputs.release_version }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build desktop app
+        run: bunx electrobun build --env=stable
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-${{ matrix.platform }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 1
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Job 3: Assemble GitHub Release
+# ──────────────────────────────────────────────────────────────────────────────
+  release:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: v${{ needs.prepare.outputs.release_version }}
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Rename release assets
+        run: |
+          find artifacts -name '*.dmg' -exec mv {} 'artifacts/CryptoTools.dmg' \;
+          find artifacts -name '*.zip' -exec mv {} 'artifacts/CryptoTools.zip' \;
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
+        with:
+          args: --latest --strip all
+
+      - name: Create GitHub release
+        run: |
+          gh release create "v${{ needs.prepare.outputs.release_version }}" \
+            'artifacts/CryptoTools.dmg' 'artifacts/CryptoTools.zip' \
+            --title "v${{ needs.prepare.outputs.release_version }}" \
+            --verify-tag \
+            -F git-cliff/CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ github.token }}

@@ -10,6 +10,9 @@ import KrakenOrderBatch from './pages/kraken/order-batch'
 import KrakenXStocks from './pages/kraken/xstocks'
 
 const isMockMode = import.meta.env.VITE_MOCK_DATA === 'true'
+// In Electrobun production, the page loads from views:// so relative /api paths won't reach
+// the Hono server. VITE_API_BASE is injected at build time by scripts/prebuild.ts.
+const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
 if (isMockMode) {
    import('./mocks').then(({ initMockCredentials }) => initMockCredentials())
@@ -24,14 +27,14 @@ async function fetcher(url, params) {
 
    let response
    if (params?.arg) {
-      response = await fetch(url, {
+      response = await fetch(API_BASE + url, {
          method: 'POST',
          body: JSON.stringify(params.arg),
          headers: { 'Content-Type': 'application/json' }
       })
    }
    else {
-      response = await fetch(url)
+      response = await fetch(API_BASE + url)
    }
 
    const result = await response.json()
