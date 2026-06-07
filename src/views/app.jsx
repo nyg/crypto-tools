@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { SWRConfig } from 'swr'
 import './styles/global.css'
 import Home from './pages/home'
@@ -58,6 +58,9 @@ export default function App() {
                <Route path="/kraken/closed-orders" element={<KrakenClosedOrders />} />
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
                <Route path="/kraken/xstocks" element={<KrakenXStocks />} />
+               {/* Catch-all: when loaded from views://main/index.html (Electrobun),
+                   BrowserRouter sees pathname /index.html — redirect to root. */}
+               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
          </BrowserRouter>
       </SWRConfig>
