@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [0.0.9](https://github.com/nyg/crypto-tools/compare/v0.0.8..v0.0.9) - 2026-06-07
+
+### 🐛 Bug Fixes
+
+- [`a848949`](https://github.com/nyg/crypto-tools/commit/a848949739c0f4bdb40059b23006fdd8f2dfbdb4) Ad-hoc sign app bundle to prevent macOS "damaged" error ([#168](https://github.com/nyg/crypto-tools/issues/168))
+
+### 📚 Documentation
+
+- [`d38a6a7`](https://github.com/nyg/crypto-tools/commit/d38a6a7f1d2ec34b8b48049f408fb9413701cfdc) Update all docs for Vite + Bun + Electrobun migration ([#167](https://github.com/nyg/crypto-tools/issues/167))
+
 ## [0.0.8](https://github.com/nyg/crypto-tools/compare/v0.0.7..v0.0.8) - 2026-06-07
 
 ### ⛰️  Features
