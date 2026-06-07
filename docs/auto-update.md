@@ -1,6 +1,10 @@
-# Auto-Update for CryptoTools (macOS & Windows)
+# Auto-Update for CryptoTools
 
-## Executive Summary
+> **Note:** This document was originally written when the desktop app used **Electron** and `electron-updater`. The project has since migrated to **[Electrobun](https://electrobun.dev/)** as its desktop runtime. The implementation details below are no longer applicable. Auto-update via Electrobun is not yet implemented.
+
+---
+
+## Original Research (Electron / electron-updater — archived)
 
 Adding auto-update to this Electron app is **fully achievable for Windows** and **conditionally achievable for macOS**. The project already has `electron-builder` installed and a GitHub-based release workflow, so the foundation is almost entirely in place. The core requirement is `electron-updater` (a runtime companion to `electron-builder`) plus a `publish` configuration pointing at GitHub. The one major friction point is **macOS code signing**: `electron-updater` requires a valid Apple Developer ID signature to install updates on macOS; without it the updater will throw an error. Windows has no such hard requirement (users only get a SmartScreen warning with unsigned installers).
 

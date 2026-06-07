@@ -2,64 +2,72 @@
 
 ## Build & Run
 
-- **Package manager**: pnpm
-- **Dev server**: `pnpm dev` (runs Next.js in development mode)
-- **Mocked mode**: `pnpm mocked` (sets `NEXT_PUBLIC_MOCK_DATA=true`, runs with mock data — no API keys or database required)
-- **Build**: `pnpm build`
-- **Lint**: `pnpm lint` (ESLint with next/core-web-vitals)
+- **Package manager / runtime**: bun
+- **Dev server**: `bun run dev` (starts Vite dev server on port 3000 + Hono API server on port 3001 via `concurrently`)
+- **Mocked mode**: `bun run mocked` (sets `VITE_MOCK_DATA=true`, Vite-only — no API keys or server required)
+- **Build (frontend)**: `bun run build`
+- **Build (desktop app)**: `bun run build:stable`
+- **Lint**: `bun run lint` (ESLint)
 
 No test framework is configured.
 
 ## Architecture
 
-This is a Next.js 16 app (Pages Router) providing cryptocurrency tools for Binance, Kraken, and SwissBorg exchanges, plus AI-powered asset classification via Anthropic.
+This is a **Vite + React Router + Hono** app providing cryptocurrency tools for Binance and Kraken exchanges, plus AI-powered asset classification via Anthropic. The desktop app is built with **[Electrobun](https://electrobun.dev/)**.
+
+The project is split into two runtime targets:
+
+- **`src/views/`** — React frontend, built by Vite, served on port 3000 in dev
+- **`src/server/`** — Hono API server, run by Bun, served on port 3001 in dev
+
+Vite proxies all `/api/*` requests to the Hono server during development. In production (web), the Hono server serves the built frontend as static files. In the desktop app (Electrobun), the Hono server runs in the Electrobun main process and the frontend is loaded from `views://main/index.html`.
 
 ### Layers
 
-**Pages** (`pages/`) — file-based routing. Each exchange has its own subdirectory (`binance/`, `kraken/`, `swissborg/`). `pages/api/` contains server-side API routes that proxy to external exchange APIs.
+**Pages** (`src/views/pages/`) — React Router route components. Each exchange has its own subdirectory (`binance/`, `kraken/`). `settings.jsx` handles API key management.
 
-**Components** (`components/`) — exchange-specific components live in `components/binance/`, `components/kraken/`, and `components/swissborg/`. Custom wrapper components (NumericInput, Checkbox, Select, DatePicker, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: false`, and `radix-nova` style.
+**Components** (`src/views/components/`) — exchange-specific components live in `components/binance/` and `components/kraken/`. Custom wrapper components (NumericInput, Checkbox, Select, DatePicker, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: false`, and `radix-nova` style.
 
-**Adapters** (`lib/adapters/`) — each external API has an adapter directory (`binance-api/`, `binance-gateway-api/`, `kraken-api/`, `anthropic/`) following a three-layer pattern documented in `lib/adapters/README.md`:
+**Adapters** (`src/server/adapters/`) — each external API has an adapter directory (`binance-api/`, `binance-gateway-api/`, `kraken-api/`, `anthropic/`) following a three-layer pattern:
 - `adapter.js` — public interface with domain methods (constructor function, default export)
 - `resource.js` — raw HTTP endpoint calls (named exports)
 - `authenticator.js` — request signing as a higher-order function: `authenticator(credentials)` returns `async (request) => signedRequest`
 
-Two HTTP requester singletons (`lib/adapters/http-requester/`) abstract the transport layer: `server-http-requester.js` uses `got` (Node.js), `browser-http-requester.js` uses `fetch`. Both export `httpRequester` as a pre-instantiated singleton.
+A single HTTP requester (`src/server/adapters/http-requester/server-http-requester.js`) abstracts the transport layer using Bun's native `fetch`. It exports `httpRequester` as a pre-instantiated singleton.
 
-**Services** (`lib/services/`) — `rate-finder.js` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT.
+**Routes** (`src/server/routes/`) — Hono route handlers, one file per exchange (`binance.js`, `kraken.js`). Each route destructures credentials from the request body, validates they exist (401 if missing), instantiates the appropriate adapter, and returns JSON.
 
-**Utils** (`utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`). `swissborg-config.js` provides chart color, yield rate multiplier, and default-visible asset configuration for SwissBorg components.
+**Services** (`src/server/services/`) — `rate-finder.js` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT.
+
+**Utils** (`src/utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`).
+
+**Electrobun main process** (`src/electrobun/index.ts`) — TypeScript entry point for the desktop app. Starts the Hono server on port 3001, opens a `BrowserWindow`, and wires up menus and external link handling.
 
 ### Data Flow
 
 1. Pages fetch data via SWR. Public/read-only data uses `useSWR` (auto-fetch); authenticated operations use `useSWRMutation` (manual trigger).
-2. The global SWR fetcher in `pages/_app.js` routes GET vs POST based on the presence of `params.arg`.
-3. API routes destructure credentials from `req.body.credentials`, validate they exist (401 if missing), instantiate the appropriate adapter with `new AdapterName(credentials)`, and return JSON.
-4. API keys are stored in `localStorage` per provider (e.g. `binance.api.key`, `kraken.api.secret`) with fallback to `NEXT_PUBLIC_*` env vars. Always guard localStorage access with `typeof window !== 'undefined'`.
-
-### Database & Cron
-
-SwissBorg data (community index scores, yield averages) is stored in a PostgreSQL database via the `postgres` package (`lib/db.js`). Cron routes in `pages/api/swissborg/cron/` periodically fetch and store this data. The database connection string is configured via the `POSTGRES_URL` environment variable and cron requests are authenticated with a `CRON_KEY`.
+2. The global SWR fetcher in `src/views/app.jsx` routes GET vs POST based on the presence of `params.arg`.
+3. Hono route handlers destructure credentials from `req.body.credentials`, validate they exist (401 if missing), instantiate the appropriate adapter, and return JSON.
+4. API keys are stored in `localStorage` per provider (e.g. `binance.api.key`, `kraken.api.secret`) with fallback to `VITE_*` env vars. Always guard localStorage access with `typeof window !== 'undefined'`.
 
 ### AI Integration
 
-`lib/adapters/anthropic/adapter.js` uses Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) with Zod-validated structured output to classify Kraken tokenized assets as stock/ETF/unknown. Called from the `/api/kraken/xstocks` route.
+`src/server/adapters/anthropic/adapter.js` uses Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) with Zod-validated structured output to classify Kraken tokenized assets as stock/ETF/unknown. Called from the `/api/kraken/xstocks` Hono route.
 
 ### Mocked Mode
 
-The app supports a mocked mode for development and demos, activated via `pnpm mocked` or `NEXT_PUBLIC_MOCK_DATA=true`. In `pages/_app.js`, the global SWR fetcher checks this env var and routes all API calls through `mockFetcher()` from `lib/mocks/index.js` instead of making real HTTP requests. Mock data generators live in `lib/mocks/` with per-exchange files (`kraken.js`, `binance.js`, `swissborg.js`). On startup, `initMockCredentials()` auto-populates `localStorage` with fake API keys so authenticated features work without configuration.
+The app supports a mocked mode for development and demos, activated via `bun run mocked` or `VITE_MOCK_DATA=true`. In `src/views/app.jsx`, the global SWR fetcher checks this env var and routes all API calls through `mockFetcher()` from `src/views/mocks/index.js` instead of making real HTTP requests. Mock data generators live in `src/views/mocks/` with per-exchange files (`kraken.js`, `binance.js`). On startup, `initMockCredentials()` auto-populates `localStorage` with fake API keys so authenticated features work without configuration.
 
 ## Code Conventions
 
 - **3-space indentation**, no semicolons, single quotes (enforced by ESLint; `react-hooks/exhaustive-deps` is disabled)
-- **Styling**: Tailwind CSS v4 + shadcn/ui components — no custom CSS, no daisyUI
+- **Styling**: Tailwind CSS v4 + shadcn/ui components — no custom CSS
 - **Precision math**: use `big.js` for all numeric calculations involving asset amounts or rates
 - **Constructor functions** over ES6 classes (e.g. `export default function BinanceAPI(credentials) { this.method = async function () { ... } }`)
 - **Functional React components** with hooks; no class components, no global state libraries
-- All files use `.js` extension (no TypeScript); shadcn/ui components use `.jsx`
-- **Path alias**: `@/*` maps to project root (configured in `jsconfig.json`)
-- **Class merging**: use `cn()` from `lib/utils.js` (`clsx` + `tailwind-merge`) for conditional Tailwind classes
+- All files use `.js`/`.jsx` extension (no TypeScript except `src/electrobun/index.ts` and `electrobun.config.ts`); shadcn/ui components use `.jsx`
+- **Path alias**: `@/*` maps to `src/views/` (configured in `jsconfig.json` and `vite.config.js`)
+- **Class merging**: use `cn()` from `src/views/lib/utils.js` (`clsx` + `tailwind-merge`) for conditional Tailwind classes
 
 ## Branching workflow
 
@@ -83,4 +91,5 @@ Common types: `feat`, `fix`, `chore`, `docs`, `refactor`, `ci`, `perf`, `build`,
 - `docs`: documentation only
 - `refactor`: code change with no behaviour change
 - `ci`: CI/CD workflow changes
-- `build`: changes to build system (electron-builder, next.config, etc.)
+- `build`: changes to build system (electrobun.config.ts, vite.config.js, etc.)
+
