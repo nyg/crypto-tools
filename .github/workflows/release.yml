@@ -157,3 +157,27 @@ jobs:
             -F git-cliff/CHANGELOG.md
         env:
           GH_TOKEN: ${{ github.token }}
+
+      - name: Compute DMG SHA256
+        id: sha
+        run: |
+          # GitHub converts spaces to dots in asset names; CryptoTools.dmg has no spaces
+          gh release download "v${{ needs.prepare.outputs.release_version }}" \
+            --repo nyg/crypto-tools --pattern "CryptoTools.dmg" --output crypto-tools.dmg
+          SHA256=$(sha256sum crypto-tools.dmg | awk '{print $1}')
+          echo "dmg_sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          rm crypto-tools.dmg
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Trigger homebrew tap cask update
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          repository: nyg/homebrew-tap
+          event-type: update-crypto-tools-cask
+          client-payload: >-
+            {
+              "version": "${{ needs.prepare.outputs.release_version }}",
+              "dmg_sha256": "${{ steps.sha.outputs.dmg_sha256 }}"
+            }
