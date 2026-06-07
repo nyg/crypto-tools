@@ -1,8 +1,6 @@
 # Crypto Tools
 
-A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Binance](https://www.binance.com/), and [SwissBorg](https://swissborg.com/) exchanges. Built with Next.js, React, and Tailwind CSS.
-
-> **Live version**: https://crypto-tools.andstuff.dev
+A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [Binance](https://www.binance.com/) exchanges. Built with Vite, React, React Router, Hono, and Tailwind CSS.
 
 ## Features
 
@@ -25,20 +23,17 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![Binance Staking](public/screenshot-binance-staking.png)
 
-### SwissBorg
-
-- **Smart Yield** — Interactive chart of SwissBorg Smart Yield rates over time with configurable yield rate types, line types, and time frames. Toggle individual yield lines via the chart legend — hidden yields are also removed from the averages table below.
-- **Community Index** — Historical chart of the SwissBorg Community Index score.
-
-![SwissBorg Smart Yield](public/screenshot-swissborg-smart-yield.png)
-
 ## Desktop App
 
-A standalone desktop app is available for macOS (Apple Silicon, no Node.js or Git required):
+Standalone desktop apps are available for macOS (Apple Silicon) and Windows — no Bun or Git required:
 
-1. Download `CryptoTools-{version}-arm64.dmg` from the [releases page](https://github.com/nyg/crypto-tools/releases)
-2. Open the DMG and drag **CryptoTools.app** to your **Applications** folder
-3. Double-click **CryptoTools** in Applications to launch
+1. Download the installer from the [releases page](https://github.com/nyg/crypto-tools/releases):
+   - macOS: `CryptoTools.dmg`
+   - Windows: `CryptoTools.zip`
+2. **macOS**: open the DMG, drag **CryptoTools.app** to your **Applications** folder, then double-click to launch
+3. **Windows**: extract the ZIP and run the executable inside
+
+API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
 
 ### macOS Gatekeeper
 
@@ -51,88 +46,81 @@ Because the app is not signed with an Apple Developer certificate, macOS will bl
 
 You only need to do this once per installation.
 
-### Debugging a crash
-
-If the app launches but immediately quits without showing a window, run it from Terminal to see the full log output:
-
-```sh
-/Applications/CryptoTools.app/Contents/MacOS/CryptoTools
-```
-
-You can also check **Console.app** or crash reports in `~/Library/Logs/DiagnosticReports/`.
-
-API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
-
 ### Building the desktop app
 
 ```sh
-pnpm electron:build   # produces dist/CryptoTools-{version}-arm64.dmg
+bun run build:stable   # produces artifacts/ with .dmg (macOS) or .zip (Windows)
 ```
 
-To test the desktop app locally without building a distributable:
+To run the desktop app locally without building a distributable:
 
 ```sh
-pnpm electron:dev
+bun run desktop:dev
 ```
 
-## Web App Installation
+## Development
 
-1. Install [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/)
-2. Clone the repository
+### Prerequisites
+
+- [Bun](https://bun.sh/) — runtime and package manager
+
+### Installation
+
+1. Clone the repository
    ```sh
    git clone https://github.com/nyg/crypto-tools.git
    cd crypto-tools
    ```
-3. Install dependencies
+2. Install dependencies
    ```sh
-   pnpm install
+   bun install
    ```
-4. (Optional) Copy `.env.development.local.example` to `.env.development.local` and fill in your API keys
-5. Start the development server
+3. (Optional) Copy `.env.development.local.example` to `.env.development.local` and fill in your API keys
+4. Start the development server
    ```sh
-   pnpm dev
+   bun run dev
    ```
-6. Open http://localhost:3000
+5. Open http://localhost:3000
+
+`bun run dev` starts both the Vite dev server (port 3000) and the Hono API server (port 3001) concurrently. Vite proxies `/api` requests to the Hono server.
 
 ### Mocked Mode
 
-Run the app with mock data (no API keys or database required):
+Run the frontend only with mock data (no API keys or server required):
 
 ```sh
-pnpm mocked
+bun run mocked
 ```
 
-This sets `NEXT_PUBLIC_MOCK_DATA=true`, which intercepts all API calls with a mock fetcher and auto-initializes `localStorage` with fake credentials. Useful for development and demos.
+This sets `VITE_MOCK_DATA=true`, which intercepts all API calls with a mock fetcher and auto-initializes `localStorage` with fake credentials. Useful for development and demos.
 
 ## Usage
 
 Navigate via the top menu bar to access each exchange's tools. Each exchange section has sub-navigation for its specific features.
 
-API keys for Kraken, Binance, and Anthropic can be configured on the **Settings** page (stored in `localStorage`) or via environment variables.
+API keys for Kraken, Binance, and Anthropic can be configured on the **Settings** page (stored in `localStorage`) or via environment variables (`VITE_*`).
 
 ## Project Structure
 
 ```
-pages/                  File-based routing (Next.js Pages Router)
-├── api/                Server-side API routes
-│   ├── binance/        Binance API proxy routes
-│   ├── kraken/         Kraken API proxy routes
-│   └── swissborg/      SwissBorg API & cron routes
-├── binance/            Binance pages
-├── kraken/             Kraken pages
-├── swissborg/          SwissBorg pages
-└── settings.js         API key management
-components/             React components
-├── binance/            Binance-specific components
-├── kraken/             Kraken-specific components
-├── swissborg/          SwissBorg-specific components
-├── lib/                Custom wrapper components
-└── ui/                 shadcn/ui primitives
-lib/
-├── adapters/           External API adapters (Binance, Kraken, Anthropic)
-│   └── http-requester/ HTTP transport abstraction (got for server, fetch for browser)
-└── services/           Business logic (rate finder using Dijkstra's algorithm)
-utils/                  Utility functions (crypto, formatting, event bus)
+src/
+├── electrobun/         Electrobun main process (TypeScript)
+├── server/             Hono API server (runs on Bun)
+│   ├── adapters/       External API adapters (Binance, Kraken, Anthropic)
+│   │   └── http-requester/  HTTP transport abstraction
+│   ├── routes/         Hono route handlers (binance.js, kraken.js)
+│   └── services/       Business logic (rate finder using Dijkstra's algorithm)
+├── utils/              Shared utility functions (crypto, formatting, event bus)
+└── views/              React frontend (built by Vite)
+    ├── components/     React components
+    │   ├── binance/    Binance-specific components
+    │   ├── kraken/     Kraken-specific components
+    │   ├── lib/        Custom wrapper components (NumericInput, Select, etc.)
+    │   └── ui/         shadcn/ui primitives
+    ├── mocks/          Mock data generators for development
+    └── pages/          Page-level React components
+        ├── binance/
+        └── kraken/
 ```
 
 ## Disclaimer
