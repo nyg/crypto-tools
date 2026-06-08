@@ -1,6 +1,30 @@
 # Changelog
 
 
+## [0.0.10](https://github.com/nyg/crypto-tools/compare/v0.0.9..v0.0.10) - 2026-06-08
+
+### 🐛 Bug Fixes
+
+- [`9d575de`](https://github.com/nyg/crypto-tools/commit/9d575defb15219bb5eeba8778c729d4dc11660bc) *(deps)* Update all stable non-major dependencies to v7.17.0 ([#182](https://github.com/nyg/crypto-tools/issues/182))
+- [`40d0493`](https://github.com/nyg/crypto-tools/commit/40d049396415d879bcb38c23580b470595d4201a) *(deps)* Update all stable non-major dependencies ([#173](https://github.com/nyg/crypto-tools/issues/173))
+- [`b2692c1`](https://github.com/nyg/crypto-tools/commit/b2692c1975ed5ed67f948d6de4300c67cd9adb4d) *(deps)* Update dependency react-router to v7.15.0 [security] ([#171](https://github.com/nyg/crypto-tools/issues/171))
+- [`7f44197`](https://github.com/nyg/crypto-tools/commit/7f44197bf167eb200c5fe2154f11e13cc22dfc93) *(deps)* Update dependency hono to v4.12.21 [security] ([#170](https://github.com/nyg/crypto-tools/issues/170))
+
+### 📚 Documentation
+
+- [`c109b0e`](https://github.com/nyg/crypto-tools/commit/c109b0ef952678270f05d64eeb3a38888999e1ef) Clarify macOS Gatekeeper "damaged" is not corruption ([#183](https://github.com/nyg/crypto-tools/issues/183))
+
+### ⚙️ Miscellaneous
+
+- [`01f7eb3`](https://github.com/nyg/crypto-tools/commit/01f7eb319495ccad5d2ffa74adb528c8b17db36a) *(deps)* Lock file maintenance ([#181](https://github.com/nyg/crypto-tools/issues/181))
+- [`b97ad07`](https://github.com/nyg/crypto-tools/commit/b97ad07092b45cfaf9c6e28aa45d26af8ee96463) *(deps)* Update eslint monorepo to v10 ([#178](https://github.com/nyg/crypto-tools/issues/178))
+- [`746049b`](https://github.com/nyg/crypto-tools/commit/746049b79fa085753694726295febc2388754e42) *(deps)* Update react monorepo to v7 ([#180](https://github.com/nyg/crypto-tools/issues/180))
+- [`85e6c96`](https://github.com/nyg/crypto-tools/commit/85e6c96344b855e15c1159ecf2a3d83cb8f2855c) *(deps)* Pin dependencies ([#172](https://github.com/nyg/crypto-tools/issues/172))
+- [`4aeda99`](https://github.com/nyg/crypto-tools/commit/4aeda9953a43276a69fc80494f3217204035a3b4) *(deps)* Update dependency @vitejs/plugin-react to v6 ([#175](https://github.com/nyg/crypto-tools/issues/175))
+- [`1a25d4d`](https://github.com/nyg/crypto-tools/commit/1a25d4dc2bd640c4f28a07561bc2659d178ca886) *(deps)* Update dependency globals to v17 ([#177](https://github.com/nyg/crypto-tools/issues/177))
+- [`6547c78`](https://github.com/nyg/crypto-tools/commit/6547c783263313c44bfbce0fa1cfb29b8e8d1114) *(deps)* Update dependency concurrently to v10 ([#176](https://github.com/nyg/crypto-tools/issues/176))
+- [`1c35063`](https://github.com/nyg/crypto-tools/commit/1c3506345ce6064db17a72dc3f233a2764c6b47a) *(deps)* Update dependency vite to v6.4.2 [security] ([#169](https://github.com/nyg/crypto-tools/issues/169))
+
 ## [0.0.9](https://github.com/nyg/crypto-tools/compare/v0.0.8..v0.0.9) - 2026-06-07
 
 ### 🐛 Bug Fixes
