@@ -148,6 +148,30 @@ jobs:
         with:
           args: --latest --strip all
 
+      - name: Append macOS install guidance to release notes
+        run: |
+          cat >> git-cliff/CHANGELOG.md <<'EOF'
+
+          ## Installing on macOS
+
+          The app is ad-hoc signed but **not notarized**, so macOS quarantines it after
+          download and blocks the first launch (you may see *"CryptoTools.app is damaged"*
+          or *"Apple could not verify…"* — both mean the same thing; the app is not corrupted).
+
+          **Easiest — Homebrew** (handles this automatically):
+
+          ```sh
+          brew install --cask nyg/tap/crypto-tools
+          ```
+
+          **Manual DMG** — after copying CryptoTools.app to Applications, remove the
+          quarantine flag once:
+
+          ```sh
+          xattr -dr com.apple.quarantine /Applications/CryptoTools.app
+          ```
+          EOF
+
       - name: Create GitHub release
         run: |
           gh release create "v${{ needs.prepare.outputs.release_version }}" \
