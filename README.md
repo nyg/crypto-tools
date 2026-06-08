@@ -25,26 +25,50 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 
 ## Desktop App
 
-Standalone desktop apps are available for macOS (Apple Silicon) and Windows — no Bun or Git required:
+Standalone desktop apps are available for macOS (Apple Silicon) and Windows — no Bun or Git required.
+
+**macOS (recommended — Homebrew):**
+
+```sh
+brew install --cask nyg/tap/crypto-tools
+```
+
+This handles the Gatekeeper step for you (see below), so the app launches normally.
+
+**macOS (manual) / Windows:**
 
 1. Download the installer from the [releases page](https://github.com/nyg/crypto-tools/releases):
    - macOS: `CryptoTools.dmg`
    - Windows: `CryptoTools.zip`
-2. **macOS**: open the DMG, drag **CryptoTools.app** to your **Applications** folder, then double-click to launch
+2. **macOS**: open the DMG, drag **CryptoTools.app** to your **Applications** folder, then see [macOS Gatekeeper](#macos-gatekeeper) below before first launch
 3. **Windows**: extract the ZIP and run the executable inside
 
 API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
 
 ### macOS Gatekeeper
 
-Because the app is not signed with an Apple Developer certificate, macOS will block it on first launch. To allow it:
+The app is **ad-hoc signed but not notarized** (it is not signed with a paid Apple Developer certificate). It is **not damaged or corrupted** — but because it is not notarized, macOS quarantines it after download and blocks the first launch. Depending on your macOS version and state, you may see either:
 
-1. Try to open the app — macOS will show a warning and block it
-2. Open **System Settings → Privacy & Security**
-3. Scroll down to the security section — you will see *"CryptoTools was blocked from use because it is not from an identified developer"*
-4. Click **Open Anyway**, then confirm in the dialog
+- *"CryptoTools.app" is damaged and can't be opened. You should move it to the Trash.*, or
+- *Apple could not verify "CryptoTools.app" is free of malware…*
+
+Both mean the same thing: macOS is blocking an un-notarized, quarantined app. The app is safe to open.
+
+**Easiest fix — install via Homebrew** (`brew install --cask nyg/tap/crypto-tools`), which strips the quarantine flag automatically.
+
+**If you downloaded the DMG manually**, remove the quarantine flag once after copying the app to Applications:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/CryptoTools.app
+```
+
+Then double-click to launch. This works for **both** dialogs above.
+
+Alternatively, for the *"could not verify"* dialog only, you can use the GUI path: open **System Settings → Privacy & Security**, scroll to the security section, click **Open Anyway**, then confirm. (This option is not offered for the *"damaged"* dialog — use the `xattr` command above instead.)
 
 You only need to do this once per installation.
+
+> The only way to make the app launch with no prompt at all is Apple **notarization**, which requires a paid Apple Developer account and is intentionally not used here.
 
 ### Building the desktop app
 
