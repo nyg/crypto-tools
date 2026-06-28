@@ -32,7 +32,7 @@
       "lint": "eslint src --fix"
    },
    "dependencies": {
-      "@ai-sdk/anthropic": "3.0.81",
+      "@ai-sdk/anthropic": "4.0.0",
       "ai": "6.0.196",
       "big.js": "7.0.1",
       "class-variance-authority": "0.7.1",
