@@ -170,6 +170,22 @@ jobs:
           ```sh
           xattr -dr com.apple.quarantine /Applications/CryptoTools.app
           ```
+
+          ## Installing on Windows
+
+          **Easiest — Scoop** (no admin rights, no SmartScreen prompt):
+
+          ```powershell
+          scoop bucket add nyg https://github.com/nyg/scoop-bucket
+          scoop install crypto-tools
+          ```
+
+          **Manual ZIP** — download `CryptoTools.zip`, extract it, and run
+          `CryptoTools-Setup.exe` inside. The app installs per-user to
+          `%LOCALAPPDATA%` (no admin rights needed). Because the app is not
+          code-signed, SmartScreen shows *"Windows protected your PC"* — click
+          **More info → Run anyway** (offered to administrators only). Installing
+          via Scoop avoids this prompt entirely.
           EOF
 
       - name: Create GitHub release
@@ -194,6 +210,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Compute ZIP SHA256
+        id: zip_sha
+        run: |
+          # GitHub converts spaces to dots in asset names; CryptoTools.zip has no spaces
+          gh release download "v${{ needs.prepare.outputs.release_version }}" \
+            --repo nyg/crypto-tools --pattern "CryptoTools.zip" --output crypto-tools.zip
+          SHA256=$(sha256sum crypto-tools.zip | awk '{print $1}')
+          echo "zip_sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          rm crypto-tools.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Trigger homebrew tap cask update
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
@@ -204,4 +232,16 @@ jobs:
             {
               "version": "${{ needs.prepare.outputs.release_version }}",
               "dmg_sha256": "${{ steps.sha.outputs.dmg_sha256 }}"
+            }
+
+      - name: Trigger scoop bucket manifest update
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          repository: nyg/scoop-bucket
+          event-type: update-crypto-tools
+          client-payload: >-
+            {
+              "version": "${{ needs.prepare.outputs.release_version }}",
+              "zip_sha256": "${{ steps.zip_sha.outputs.zip_sha256 }}"
             }
