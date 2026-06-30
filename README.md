@@ -89,7 +89,7 @@ The app is **not code-signed** (it is not signed with a paid Authenticode / EV c
 
 - *Windows protected your PC — Microsoft Defender SmartScreen prevented an unrecognised app from starting.*
 
-**Easiest fix — install via Scoop** (`scoop install crypto-tools`), which downloads and extracts the app itself. Files extracted by Scoop don't carry the "mark of the web", so SmartScreen never fires — this works for standard (non-admin) users too.
+**Easiest fix — install via Scoop** (see [Desktop App](#desktop-app) for the `scoop bucket add` + `scoop install` commands), which downloads and extracts the app itself. Files extracted by Scoop don't carry the "mark of the web", so SmartScreen never fires — this works for standard (non-admin) users too.
 
 **If you downloaded the ZIP manually**, after extracting it, click **More info → Run anyway** on the SmartScreen dialog.
 
