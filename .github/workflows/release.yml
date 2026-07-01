@@ -143,6 +143,25 @@ jobs:
           find artifacts -name '*.dmg' -exec mv {} 'artifacts/CryptoTools.dmg' \;
           find artifacts -name '*.zip' -exec mv {} 'artifacts/CryptoTools.zip' \;
 
+      - name: Create Scoop ZIP
+        run: |
+          set -euo pipefail
+          mkdir -p _scoop_build
+          # The Windows ZIP ships a self-extracting CryptoTools-Setup.exe; the
+          # actual app files are in .installer/CryptoTools-Setup.tar.zst inside
+          # the same ZIP.  Extract them into a flat zip that Scoop can consume
+          # directly (no installer script required).
+          unzip -p artifacts/CryptoTools.zip .installer/CryptoTools-Setup.tar.zst \
+            > _scoop_build/setup.tar.zst
+          zstd -d _scoop_build/setup.tar.zst -o _scoop_build/setup.tar
+          tar -xf _scoop_build/setup.tar -C _scoop_build
+          # Zip the contents of CryptoTools/ so Scoop places bin\launcher.exe
+          # directly under ~\scoop\apps\crypto-tools\current\bin\.
+          cd _scoop_build/CryptoTools
+          zip -r ../../artifacts/CryptoTools-Scoop.zip .
+          cd ../..
+          rm -rf _scoop_build
+
       - name: Generate release notes
         uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
         with:
@@ -192,6 +211,7 @@ jobs:
         run: |
           gh release create "v${{ needs.prepare.outputs.release_version }}" \
             'artifacts/CryptoTools.dmg' 'artifacts/CryptoTools.zip' \
+            'artifacts/CryptoTools-Scoop.zip' \
             --title "v${{ needs.prepare.outputs.release_version }}" \
             --verify-tag \
             -F git-cliff/CHANGELOG.md
@@ -213,12 +233,11 @@ jobs:
       - name: Compute ZIP SHA256
         id: zip_sha
         run: |
-          # GitHub converts spaces to dots in asset names; CryptoTools.zip has no spaces
           gh release download "v${{ needs.prepare.outputs.release_version }}" \
-            --repo nyg/crypto-tools --pattern "CryptoTools.zip" --output crypto-tools.zip
-          SHA256=$(sha256sum crypto-tools.zip | awk '{print $1}')
+            --repo nyg/crypto-tools --pattern "CryptoTools-Scoop.zip" --output crypto-tools-scoop.zip
+          SHA256=$(sha256sum crypto-tools-scoop.zip | awk '{print $1}')
           echo "zip_sha256=$SHA256" >> "$GITHUB_OUTPUT"
-          rm crypto-tools.zip
+          rm crypto-tools-scoop.zip
         env:
           GH_TOKEN: ${{ github.token }}
 
