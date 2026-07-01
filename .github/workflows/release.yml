@@ -253,14 +253,32 @@ jobs:
               "dmg_sha256": "${{ steps.sha.outputs.dmg_sha256 }}"
             }
 
-      - name: Trigger scoop bucket manifest update
-        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
-        with:
-          token: ${{ secrets.RELEASE_TOKEN }}
-          repository: nyg/scoop-bucket
-          event-type: update-crypto-tools
-          client-payload: >-
-            {
-              "version": "${{ needs.prepare.outputs.release_version }}",
-              "zip_sha256": "${{ steps.zip_sha.outputs.zip_sha256 }}"
-            }
+      - name: Update Scoop bucket manifest
+        env:
+          VERSION: ${{ needs.prepare.outputs.release_version }}
+          ZIP_SHA256: ${{ steps.zip_sha.outputs.zip_sha256 }}
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${RELEASE_TOKEN}@github.com/nyg/scoop-bucket.git" _scoop_bucket
+          cd _scoop_bucket
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          jq -n \
+            --arg version "$VERSION" \
+            --arg url "https://github.com/nyg/crypto-tools/releases/download/v${VERSION}/CryptoTools-Scoop.zip" \
+            --arg hash "sha256:${ZIP_SHA256}" \
+            '{
+              version: $version,
+              description: "A collection of cryptocurrency tools for Kraken and Binance exchanges.",
+              homepage: "https://github.com/nyg/crypto-tools",
+              license: "MIT",
+              architecture: {
+                "64bit": {url: $url, hash: $hash}
+              },
+              bin: "bin\\launcher.exe",
+              shortcuts: [["bin\\launcher.exe", "Crypto Tools"]]
+            }' > crypto-tools.json
+          git add crypto-tools.json
+          git commit -m "chore: update crypto-tools to v${VERSION}"
+          git push
