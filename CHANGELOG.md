@@ -1,6 +1,22 @@
 # Changelog
 
 
+## [0.0.11](https://github.com/nyg/crypto-tools/compare/v0.0.10..v0.0.11) - 2026-07-01
+
+### 🐛 Bug Fixes
+
+- [`66d5d5a`](https://github.com/nyg/crypto-tools/commit/66d5d5a7b84d60b926e4b16c1d78a93c47e851e6) *(deps)* Update dependency lucide-react to v1.22.0 ([#191](https://github.com/nyg/crypto-tools/issues/191))
+- [`4ae2729`](https://github.com/nyg/crypto-tools/commit/4ae2729241a81fb5ca7d6657dd1a5f1d8990e767) *(deps)* Update all stable non-major dependencies ([#190](https://github.com/nyg/crypto-tools/issues/190))
+- [`02a9af6`](https://github.com/nyg/crypto-tools/commit/02a9af6d31062144a4397564fbdb3bda777a8724) *(deps)* Update dependency ai to v7 ([#188](https://github.com/nyg/crypto-tools/issues/188))
+- [`a151d3b`](https://github.com/nyg/crypto-tools/commit/a151d3b6ffb69aea2e2a0596b26f7e34409d20b4) *(deps)* Update dependency @ai-sdk/anthropic to v4 ([#187](https://github.com/nyg/crypto-tools/issues/187))
+- [`2f745e1`](https://github.com/nyg/crypto-tools/commit/2f745e17d250724a2cd57c01394cd14f3780a074) *(deps)* Update react-router monorepo to v8 ([#186](https://github.com/nyg/crypto-tools/issues/186))
+- [`2db2e49`](https://github.com/nyg/crypto-tools/commit/2db2e49a968ccf17ba9edfcca432920fa6e34935) *(deps)* Update dependency hono to v4.12.25 [security] ([#184](https://github.com/nyg/crypto-tools/issues/184))
+
+### ⚙️ Miscellaneous
+
+- [`ae4badf`](https://github.com/nyg/crypto-tools/commit/ae4badfe9c63bf4c9df43ccd7fa59536840af02a) Distribute the Windows desktop app via a Scoop bucket ([#189](https://github.com/nyg/crypto-tools/issues/189))
+- [`6ba5b19`](https://github.com/nyg/crypto-tools/commit/6ba5b190e2babd187f41474ab09ee371ea69bd8b) *(deps)* Update actions/checkout action to v7 ([#185](https://github.com/nyg/crypto-tools/issues/185))
+
 ## [0.0.10](https://github.com/nyg/crypto-tools/compare/v0.0.9..v0.0.10) - 2026-06-08
 
 ### 🐛 Bug Fixes
