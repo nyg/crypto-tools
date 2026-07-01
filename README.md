@@ -35,13 +35,26 @@ brew install --cask nyg/tap/crypto-tools
 
 This handles the Gatekeeper step for you (see below), so the app launches normally.
 
-**macOS (manual) / Windows:**
+**Windows (recommended — Scoop):**
+
+```powershell
+scoop bucket add nyg https://github.com/nyg/scoop-bucket
+scoop install crypto-tools
+```
+
+Scoop installs per-user (no admin rights) and avoids the SmartScreen prompt (see [Windows SmartScreen](#windows-smartscreen) below). If you don't have Scoop, install it first (no admin required):
+
+```powershell
+irm get.scoop.sh | iex
+```
+
+**macOS (manual) / Windows (manual):**
 
 1. Download the installer from the [releases page](https://github.com/nyg/crypto-tools/releases):
    - macOS: `CryptoTools.dmg`
    - Windows: `CryptoTools.zip`
 2. **macOS**: open the DMG, drag **CryptoTools.app** to your **Applications** folder, then see [macOS Gatekeeper](#macos-gatekeeper) below before first launch
-3. **Windows**: extract the ZIP and run the executable inside
+3. **Windows**: extract the ZIP and run **CryptoTools-Setup.exe** inside (installs per-user to `%LOCALAPPDATA%` — no admin rights). See [Windows SmartScreen](#windows-smartscreen) below before first launch.
 
 API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
 
@@ -69,6 +82,20 @@ Alternatively, for the *"could not verify"* dialog only, you can use the GUI pat
 You only need to do this once per installation.
 
 > The only way to make the app launch with no prompt at all is Apple **notarization**, which requires a paid Apple Developer account and is intentionally not used here.
+
+### Windows SmartScreen
+
+The app is **not code-signed** (it is not signed with a paid Authenticode / EV certificate). It is **not a virus** — but because it is unsigned and has no SmartScreen reputation, Windows blocks the first launch with:
+
+- *Windows protected your PC — Microsoft Defender SmartScreen prevented an unrecognised app from starting.*
+
+**Easiest fix — install via Scoop** (see [Desktop App](#desktop-app) for the `scoop bucket add` + `scoop install` commands), which downloads and extracts the app itself. Files extracted by Scoop don't carry the "mark of the web", so SmartScreen never fires — this works for standard (non-admin) users too.
+
+**If you downloaded the ZIP manually**, after extracting it, click **More info → Run anyway** on the SmartScreen dialog.
+
+> **Note:** the *More info → Run anyway* option is only offered to **administrator** accounts. Standard (non-admin) users get a hard block with no bypass when running the manually-downloaded installer — for those users, **Scoop is the only no-admin install path** (short of paid Windows code signing, which is intentionally not used here).
+
+The app installs per-user to `%LOCALAPPDATA%` and never requires admin rights.
 
 ### Building the desktop app
 

@@ -143,6 +143,49 @@ jobs:
           find artifacts -name '*.dmg' -exec mv {} 'artifacts/CryptoTools.dmg' \;
           find artifacts -name '*.zip' -exec mv {} 'artifacts/CryptoTools.zip' \;
 
+      - name: Create Scoop ZIP
+        run: |
+          set -euo pipefail
+          mkdir -p _scoop_build
+          # Scoop distributes a flat portable bundle and updates it via the
+          # bucket manifest written below. This app currently does not set
+          # release.baseUrl or call Electrobun.Updater, so Scoop installs do
+          # not self-update. If a future channel enables Electrobun auto-update,
+          # exclude the Scoop build from it or it will overwrite Scoop's
+          # managed install directory.
+          #
+          # The Windows ZIP ships a self-extracting *-Setup.exe; the actual app
+          # files are in .installer/*.tar.zst inside the same ZIP. Extract them
+          # into a flat zip that Scoop can consume directly (bin\launcher.exe
+          # at the root), so no Scoop installer script is required.
+          unzip -q artifacts/CryptoTools.zip '.installer/*' -d _scoop_build
+          mapfile -t tarballs < <(find _scoop_build/.installer -mindepth 1 -maxdepth 1 -type f -name '*.tar.zst' -print)
+          if [ "${#tarballs[@]}" -ne 1 ]; then
+            found='(none)'
+            if [ "${#tarballs[@]}" -gt 0 ]; then
+              found=$(printf '%s ' "${tarballs[@]}")
+            fi
+            echo "::error::Expected exactly one .tar.zst under _scoop_build/.installer, found: ${found}"
+            exit 1
+          fi
+          zstd -d "${tarballs[0]}" -o _scoop_build/setup.tar
+          tar -xf _scoop_build/setup.tar -C _scoop_build
+          mapfile -t appdirs < <(find _scoop_build -mindepth 1 -maxdepth 1 -type d ! -name '.installer' -print)
+          if [ "${#appdirs[@]}" -ne 1 ]; then
+            found='(none)'
+            if [ "${#appdirs[@]}" -gt 0 ]; then
+              found=$(printf '%s ' "${appdirs[@]}")
+            fi
+            echo "::error::Expected exactly one app directory under _scoop_build, found: ${found}"
+            exit 1
+          fi
+          if [ ! -f "${appdirs[0]}/bin/launcher.exe" ]; then
+            echo "::error::bin/launcher.exe not found under ${appdirs[0]} — Electrobun layout may have changed"
+            exit 1
+          fi
+          ( cd "${appdirs[0]}" && zip -r "$GITHUB_WORKSPACE/artifacts/CryptoTools-Scoop.zip" . )
+          rm -rf _scoop_build
+
       - name: Generate release notes
         uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
         with:
@@ -170,12 +213,29 @@ jobs:
           ```sh
           xattr -dr com.apple.quarantine /Applications/CryptoTools.app
           ```
+
+          ## Installing on Windows
+
+          **Easiest — Scoop** (no admin rights, no SmartScreen prompt):
+
+          ```powershell
+          scoop bucket add nyg https://github.com/nyg/scoop-bucket
+          scoop install crypto-tools
+          ```
+
+          **Manual ZIP** — download `CryptoTools.zip`, extract it, and run
+          `CryptoTools-Setup.exe` inside. The app installs per-user to
+          `%LOCALAPPDATA%` (no admin rights needed). Because the app is not
+          code-signed, SmartScreen shows *"Windows protected your PC"* — click
+          **More info → Run anyway** (offered to administrators only). Installing
+          via Scoop avoids this prompt entirely.
           EOF
 
       - name: Create GitHub release
         run: |
           gh release create "v${{ needs.prepare.outputs.release_version }}" \
             'artifacts/CryptoTools.dmg' 'artifacts/CryptoTools.zip' \
+            'artifacts/CryptoTools-Scoop.zip' \
             --title "v${{ needs.prepare.outputs.release_version }}" \
             --verify-tag \
             -F git-cliff/CHANGELOG.md
@@ -194,6 +254,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Compute ZIP SHA256
+        id: zip_sha
+        run: |
+          gh release download "v${{ needs.prepare.outputs.release_version }}" \
+            --repo nyg/crypto-tools --pattern "CryptoTools-Scoop.zip" --output crypto-tools-scoop.zip
+          SHA256=$(sha256sum crypto-tools-scoop.zip | awk '{print $1}')
+          echo "zip_sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          rm crypto-tools-scoop.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Trigger homebrew tap cask update
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
@@ -205,3 +276,34 @@ jobs:
               "version": "${{ needs.prepare.outputs.release_version }}",
               "dmg_sha256": "${{ steps.sha.outputs.dmg_sha256 }}"
             }
+
+      - name: Update Scoop bucket manifest
+        env:
+          VERSION: ${{ needs.prepare.outputs.release_version }}
+          ZIP_SHA256: ${{ steps.zip_sha.outputs.zip_sha256 }}
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${RELEASE_TOKEN}@github.com/nyg/scoop-bucket.git" _scoop_bucket
+          cd _scoop_bucket
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p bucket
+          jq -n \
+            --arg version "$VERSION" \
+            --arg url "https://github.com/nyg/crypto-tools/releases/download/v${VERSION}/CryptoTools-Scoop.zip" \
+            --arg hash "sha256:${ZIP_SHA256}" \
+            '{
+              version: $version,
+              description: "A collection of cryptocurrency tools for Kraken and Binance exchanges.",
+              homepage: "https://github.com/nyg/crypto-tools",
+              license: "MIT",
+              architecture: {
+                "64bit": {url: $url, hash: $hash}
+              },
+              bin: "bin\\launcher.exe",
+              shortcuts: [["bin\\launcher.exe", "Crypto Tools"]]
+            }' > bucket/crypto-tools.json
+          git add bucket/crypto-tools.json
+          git commit -m "chore: update crypto-tools to v${VERSION}"
+          git push
