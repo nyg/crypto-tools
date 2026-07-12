@@ -2,7 +2,7 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import useSWRMutation from 'swr/mutation'
 import Big from 'big.js'
-import { Loader2Icon } from 'lucide-react'
+import { Loader2Icon, InfoIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import ExternalLink from '../../components/lib/external-link'
 import OrderBatchForm from '../../components/kraken/order-batch-params'
@@ -131,12 +131,15 @@ export default function KrakenOrderBatch() {
    return (
       <KrakenLayout name="Order Batch">
          <div className="space-y-6">
-            <p className="max-w-3xl text-sm text-muted-foreground">
-               Create multiple limit orders for a trading pair in one go — for example a ladder of
-               buy orders below the current price, or sell orders above it. Orders are {postLimitOrders} and
-               the quote currency is used for fees. Depending on your verification level Kraken allows
-               between {maxOpenOrders} across all pairs. Orders are sent in batches of 15 (Kraken API limit).
-            </p>
+            <Alert>
+               <InfoIcon />
+               <AlertDescription>
+                  Create multiple limit orders for a trading pair in one go — for example a ladder of
+                  buy orders below the current price, or sell orders above it. Orders are {postLimitOrders} and
+                  the quote currency is used for fees. Depending on your verification level Kraken allows
+                  between {maxOpenOrders} across all pairs. Orders are sent in batches of 15 (Kraken API limit).
+               </AlertDescription>
+            </Alert>
 
             <Card>
                <CardHeader>

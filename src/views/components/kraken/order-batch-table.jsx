@@ -3,22 +3,25 @@ import { asDecimal } from '../../../utils/format'
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 
-function StatusCell({ result }) {
+function ApiResponseCell({ result }) {
    if (!result) {
       return <span className="text-muted-foreground">—</span>
    }
    if (result.error) {
       return <Badge variant="destructive">{result.error}</Badge>
    }
-   if (result.txid) {
-      return (
-         <span className="flex items-center gap-2">
-            <Badge>Created</Badge>
-            <span className="font-mono text-xs text-muted-foreground">{result.txid}</span>
-         </span>
-      )
-   }
-   return <Badge variant="secondary">Validated</Badge>
+   const orderDescr = result.descr?.order
+   return (
+      <div className="space-y-1">
+         <div className="flex flex-wrap items-center gap-2">
+            {result.txid
+               ? <Badge>Created</Badge>
+               : <Badge variant="secondary">Validated</Badge>}
+            {result.txid && <span className="font-mono text-xs text-muted-foreground">{result.txid}</span>}
+         </div>
+         {orderDescr && <div className="font-mono text-xs text-muted-foreground">{orderDescr}</div>}
+      </div>
+   )
 }
 
 export default function OrderBatchTable({ ordersParams, tradingPairs, createdOrders }) {
@@ -47,7 +50,7 @@ export default function OrderBatchTable({ ordersParams, tradingPairs, createdOrd
                <TableHead className="text-right">Volume ({base})</TableHead>
                <TableHead className="text-right">Price ({quote})</TableHead>
                <TableHead className="text-right">Value ({quote})</TableHead>
-               <TableHead>Status</TableHead>
+               <TableHead>API response</TableHead>
             </TableRow>
          </TableHeader>
          <TableBody>
@@ -60,7 +63,7 @@ export default function OrderBatchTable({ ordersParams, tradingPairs, createdOrd
                      <TableCell className="text-right">{asDecimal(order.volume.toNumber(), 5)}</TableCell>
                      <TableCell className="text-right">{asDecimal(order.price.toNumber())}</TableCell>
                      <TableCell className="text-right">{asDecimal(quoteValue.toNumber())}</TableCell>
-                     <TableCell><StatusCell result={createdOrders?.[i]} /></TableCell>
+                     <TableCell><ApiResponseCell result={createdOrders?.[i]} /></TableCell>
                   </TableRow>
                )
             })}
