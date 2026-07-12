@@ -26,8 +26,8 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
    const pairOptions = Object.keys(tradingPairs || {}).map(pair => ({ value: pair, label: tradingPairs[pair].name }))
 
    return (
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+         <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
             <ComboboxField
                name="pair"
                label="Pair"

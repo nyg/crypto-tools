@@ -69,7 +69,7 @@ export default function NumericInput({ name, value, onChange, label, className =
    }
 
    return (
-      <div className={`space-y-1.5 ${className}`}>
+      <div className={`space-y-1 ${className}`}>
          <Label htmlFor={name}>{label}</Label>
          <ShadcnInput
             ref={inputRef}

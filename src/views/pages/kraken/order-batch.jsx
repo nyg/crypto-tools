@@ -131,17 +131,17 @@ export default function KrakenOrderBatch() {
    return (
       <KrakenLayout name="Order Batch">
          <div className="space-y-6">
-            <Alert>
-               <InfoIcon />
-               <AlertDescription>
+            <div className="flex items-center gap-3 rounded-lg border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/25 dark:bg-amber-950/30 dark:text-amber-100">
+               <InfoIcon className="size-5 shrink-0" />
+               <p>
                   Create multiple limit orders for a trading pair in one go — for example a ladder of
                   buy orders below the current price, or sell orders above it. Orders are {postLimitOrders} and
                   the quote currency is used for fees. Depending on your verification level Kraken allows
                   between {maxOpenOrders} across all pairs. Orders are sent in batches of 15 (Kraken API limit).
-               </AlertDescription>
-            </Alert>
+               </p>
+            </div>
 
-            <Card>
+            <Card size="sm">
                <CardHeader>
                   <CardTitle>Parameters</CardTitle>
                </CardHeader>

@@ -24,7 +24,7 @@ export default function ComboboxField({
    const selected = options.find(option => option.value === value)
 
    return (
-      <div className={`space-y-1.5 ${className}`}>
+      <div className={`space-y-1 ${className}`}>
          <Label htmlFor={name}>{label}</Label>
          <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
