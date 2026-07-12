@@ -1,5 +1,6 @@
 import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
+import ComboboxField from '../lib/combobox-field'
 import { Button } from '@/components/ui/button'
 
 const directionOptions = [
@@ -27,13 +28,15 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
    return (
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            <SelectField
+            <ComboboxField
                name="pair"
                label="Pair"
                value={formValues.pair}
                onValueChange={(value) => handleChange('pair', value)}
                options={pairOptions}
-               placeholder={isLoading ? 'Loading…' : undefined}
+               placeholder={isLoading ? 'Loading…' : 'Select a pair'}
+               searchPlaceholder="Search pairs…"
+               emptyText="No pair found."
                disabled={isLoading}
             />
             <SelectField
