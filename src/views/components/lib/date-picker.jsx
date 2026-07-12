@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/style.css'
 import { Label } from '@/components/ui/label'
@@ -34,6 +34,7 @@ export default function DatePicker({ name, label, defaultValue, className = '' }
             parseInt(seconds) || 0
          ))
          setSelectedDate(newDate)
+         setInputValue(formatDisplayDate(newDate, hours, minutes, seconds))
       }
    }
 
@@ -53,12 +54,8 @@ export default function DatePicker({ name, label, defaultValue, className = '' }
       setHours(newHours)
       setMinutes(newMinutes)
       setSeconds(newSeconds)
+      setInputValue(formatDisplayDate(newDate, newHours, newMinutes, newSeconds))
    }
-
-   // Keep inputValue in sync when date/time changes via picker
-   useEffect(() => {
-      setInputValue(formatDisplayDate(selectedDate, hours, minutes, seconds))
-   }, [selectedDate, hours, minutes, seconds])
 
    const handleInputChange = (e) => {
       setInputValue(e.target.value)
@@ -71,10 +68,14 @@ export default function DatePicker({ name, label, defaultValue, className = '' }
             parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(),
             parsed.getUTCHours(), parsed.getUTCMinutes(), parsed.getUTCSeconds()
          ))
+         const newHours = utc.getUTCHours().toString().padStart(2, '0')
+         const newMinutes = utc.getUTCMinutes().toString().padStart(2, '0')
+         const newSeconds = utc.getUTCSeconds().toString().padStart(2, '0')
          setSelectedDate(utc)
-         setHours(utc.getUTCHours().toString().padStart(2, '0'))
-         setMinutes(utc.getUTCMinutes().toString().padStart(2, '0'))
-         setSeconds(utc.getUTCSeconds().toString().padStart(2, '0'))
+         setHours(newHours)
+         setMinutes(newMinutes)
+         setSeconds(newSeconds)
+         setInputValue(formatDisplayDate(utc, newHours, newMinutes, newSeconds))
       } else {
          setInputValue(formatDisplayDate(selectedDate, hours, minutes, seconds))
       }
