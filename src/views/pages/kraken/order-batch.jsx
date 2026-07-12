@@ -1,12 +1,15 @@
 import { useState } from 'react'
+import useSWR from 'swr'
 import useSWRMutation from 'swr/mutation'
 import Big from 'big.js'
+import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import ExternalLink from '../../components/lib/external-link'
-import useSWR from 'swr'
-import OrderBatchPreview from '../../components/kraken/order-batch-preview'
 import OrderBatchForm from '../../components/kraken/order-batch-params'
-import { Loader2Icon } from 'lucide-react'
+import OrderBatchTable from '../../components/kraken/order-batch-table'
+import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 
 
 const priceFunctions = {
@@ -23,7 +26,7 @@ const volumeFunctions = {
    }
 }
 
-const buildOrdersParams = (formValues) => {
+const buildOrdersParams = (formValues, dryRun) => {
    const orderCount = Number.parseInt(formValues.orderCount)
    const priceFrom = Big(formValues.priceFrom)
    const priceTo = Big(formValues.priceTo)
@@ -44,7 +47,7 @@ const buildOrdersParams = (formValues) => {
    return {
       pair: formValues.pair,
       direction: formValues.direction,
-      dryRun: formValues.dryRun,
+      dryRun,
       orders
    }
 }
@@ -61,10 +64,11 @@ const maxOpenOrders = <ExternalLink href="https://support.kraken.com/hc/en-us/ar
 export default function KrakenOrderBatch() {
 
    const { data: tradingPairs, isLoading } = useSWR('/api/kraken/trading-pairs')
-   const { data: createdOrders, isMutating, trigger: createOrders } = useSWRMutation('/api/kraken/order-batch')
+   const { data: createdOrders, isMutating, error, trigger: createOrders, reset } = useSWRMutation('/api/kraken/order-batch')
 
    const [ordersParams, setOrdersParams] = useState({})
-   const [credentials, setCredentials] = useState(() => ({
+   const [submittedMode, setSubmittedMode] = useState(null)
+   const [credentials] = useState(() => ({
       apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || '',
       apiSecret: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.secret')) || ''
    }))
@@ -76,55 +80,94 @@ export default function KrakenOrderBatch() {
       volume: '3.5',
       orderCount: '20',
       priceFn: 'linear',
-      volumeFn: 'linear-quote',
-      dryRun: true
+      volumeFn: 'linear-quote'
    })
 
    const showPreview = () => {
       setOrdersParams(buildOrdersParams(formValues))
+      setSubmittedMode(null)
+      reset()
    }
 
-   const showPreviewAndCreateOrders = () => {
-      const params = buildOrdersParams(formValues)
+   const createOrdersWith = (dryRun, mode) => {
+      const params = buildOrdersParams(formValues, dryRun)
       setOrdersParams(params)
-      createOrders({ credentials, ordersParams: params })
+      setSubmittedMode(mode)
+      reset()
+      createOrders({ credentials, ordersParams: params }).catch(() => {})
    }
 
    if (!credentials.apiKey) {
-      return <KrakenLayout name="Order Batch">
-         <div className="text-sm">
-            Generate an API key and secret on Kraken to be able to fetch your spot and staking balance.
-         </div>
-      </KrakenLayout>
+      return (
+         <KrakenLayout name="Order Batch">
+            <Alert>
+               <AlertDescription>
+                  Generate an API key and secret on Kraken and add them in Settings to create orders.
+               </AlertDescription>
+            </Alert>
+         </KrakenLayout>
+      )
+   }
+
+   let statusIndicator
+   if (isMutating) {
+      statusIndicator = (
+         <span className="flex items-center gap-1.5 text-sm font-normal text-muted-foreground">
+            <Loader2Icon className="size-4 animate-spin" />
+            {submittedMode === 'live' ? 'Creating orders…' : 'Validating…'}
+         </span>
+      )
+   }
+   else if (createdOrders?.some(order => order?.txid)) {
+      statusIndicator = <Badge>Orders created</Badge>
+   }
+   else if (createdOrders?.length > 0) {
+      statusIndicator = <Badge variant="secondary">Dry run · validated</Badge>
+   }
+   else if (ordersParams.orders?.length > 0) {
+      statusIndicator = <Badge variant="outline">Preview</Badge>
    }
 
    return (
       <KrakenLayout name="Order Batch">
-         <p className="mb-6 max-w-5xl text-justify text-sm">
-            This tool allows you to easily create multiple orders for a given
-            trading pair. The goal is to easily place multiple buy orders below
-            the current price, or sell orders above the current price. Orders
-            are {postLimitOrders} and the quote currency is used for fees.
-            Kraken allows you to have between {maxOpenOrders} across all trading
-            pairs depending on your verification level. Orders are created by
-            batches of 15 (Kraken API limitation).
-         </p>
+         <div className="space-y-6">
+            <p className="max-w-3xl text-sm text-muted-foreground">
+               Create multiple limit orders for a trading pair in one go — for example a ladder of
+               buy orders below the current price, or sell orders above it. Orders are {postLimitOrders} and
+               the quote currency is used for fees. Depending on your verification level Kraken allows
+               between {maxOpenOrders} across all pairs. Orders are sent in batches of 15 (Kraken API limit).
+            </p>
 
-         <div className="flex gap-8 text-sm tabular-nums">
-            <OrderBatchForm
-               formValues={formValues}
-               setFormValues={setFormValues}
-               tradingPairs={tradingPairs}
-               isLoading={isLoading}
-               onShowPreview={showPreview}
-               onCreateOrders={showPreviewAndCreateOrders} />
-            <OrderBatchPreview ordersParams={ordersParams} tradingPairs={tradingPairs} />
-            <div>
-               <h3 className="pb-2 font-semibold">API Response</h3>
-               {isMutating ? <Loader2Icon className="size-4 animate-spin" /> : createdOrders?.map(order =>
-                  <p key={order.descr?.order ?? order}>{JSON.stringify(order)}</p>
-               )}
-            </div>
+            <Card>
+               <CardHeader>
+                  <CardTitle>Parameters</CardTitle>
+               </CardHeader>
+               <CardContent>
+                  <OrderBatchForm
+                     formValues={formValues}
+                     setFormValues={setFormValues}
+                     tradingPairs={tradingPairs}
+                     isLoading={isLoading}
+                     onShowPreview={showPreview}
+                     onCreateDryRun={() => createOrdersWith(true, 'dry-run')}
+                     onCreateLive={() => createOrdersWith(false, 'live')} />
+               </CardContent>
+            </Card>
+
+            <Card>
+               <CardHeader>
+                  <CardTitle>Orders</CardTitle>
+                  {statusIndicator && <CardAction>{statusIndicator}</CardAction>}
+               </CardHeader>
+               <CardContent className="space-y-3">
+                  {error &&
+                     <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+                  <OrderBatchTable
+                     ordersParams={ordersParams}
+                     tradingPairs={tradingPairs}
+                     createdOrders={createdOrders} />
+               </CardContent>
+            </Card>
          </div>
       </KrakenLayout>
    )
