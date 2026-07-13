@@ -12,14 +12,12 @@ function ApiResponseCell({ result }) {
    }
    const orderDescr = result.descr?.order
    return (
-      <div className="space-y-1">
-         <div className="flex flex-wrap items-center gap-2">
-            {result.txid
-               ? <Badge>Created</Badge>
-               : <Badge variant="secondary">Validated</Badge>}
-            {result.txid && <span className="font-mono text-xs text-muted-foreground">{result.txid}</span>}
-         </div>
-         {orderDescr && <div className="font-mono text-xs text-muted-foreground">{orderDescr}</div>}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+         {result.txid
+            ? <Badge>Created</Badge>
+            : <Badge variant="secondary">Validated</Badge>}
+         {result.txid && <span className="font-mono text-xs whitespace-nowrap text-muted-foreground">{result.txid}</span>}
+         {orderDescr && <span className="font-mono text-xs whitespace-nowrap text-muted-foreground">{orderDescr}</span>}
       </div>
    )
 }
