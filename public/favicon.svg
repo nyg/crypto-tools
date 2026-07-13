@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="coin" x1="0.2" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#ffd54d"/>
+      <stop offset="0.5" stop-color="#f7931a"/>
+      <stop offset="1" stop-color="#e0750c"/>
+    </linearGradient>
+    <radialGradient id="coinSheen" cx="0.32" cy="0.18" r="0.95">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- bitcoin coin, simplified mark of the app icon -->
+  <circle cx="256" cy="256" r="252" fill="url(#coin)"/>
+  <circle cx="256" cy="256" r="252" fill="url(#coinSheen)"/>
+  <g transform="translate(256,256) scale(1.06)" fill="none" stroke="#ffffff" stroke-width="35" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-55 -110 V 110"/>
+    <path d="M-55 -110 H 5 A 51 51 0 0 1 5 -8 H -55"/>
+    <path d="M-55 -8 H 12 A 59 59 0 0 1 12 110 H -55"/>
+    <path d="M-18 -148 V -110"/>
+    <path d="M28 -148 V -102"/>
+    <path d="M-18 148 V 110"/>
+    <path d="M28 148 V 104"/>
+  </g>
+</svg>

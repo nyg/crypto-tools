@@ -1,0 +1,108 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#33456a"/>
+      <stop offset="1" stop-color="#0a1120"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.42" cy="0.36" r="0.62">
+      <stop offset="0" stop-color="#5d7cb1" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#5d7cb1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coin" x1="0.2" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#ffd54d"/>
+      <stop offset="0.5" stop-color="#f7931a"/>
+      <stop offset="1" stop-color="#e0750c"/>
+    </linearGradient>
+    <radialGradient id="coinSheen" cx="0.32" cy="0.18" r="0.95">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coinShade" cx="0.5" cy="1.12" r="0.85">
+      <stop offset="0" stop-color="#8a4104" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#8a4104" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coinRim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.65"/>
+      <stop offset="0.4" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#f2f6fb"/>
+      <stop offset="0.55" stop-color="#c3d0de"/>
+      <stop offset="1" stop-color="#8699af"/>
+    </linearGradient>
+    <radialGradient id="steelSheen" cx="0.25" cy="0.2" r="0.8">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="coinShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="22" stdDeviation="30" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <filter id="symShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#7a3a00" flood-opacity="0.45"/>
+    </filter>
+    <filter id="wrenchShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- macOS squircle background -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#glow)"/>
+
+  <!-- bitcoin coin -->
+  <g filter="url(#coinShadow)">
+    <circle cx="445" cy="415" r="240" fill="url(#coin)"/>
+    <circle cx="445" cy="415" r="240" fill="url(#coinShade)"/>
+    <circle cx="445" cy="415" r="240" fill="url(#coinSheen)"/>
+    <circle cx="445" cy="415" r="237" fill="none" stroke="url(#coinRim)" stroke-width="5"/>
+  </g>
+
+  <!-- bitcoin symbol -->
+  <g transform="translate(445,415)" filter="url(#symShadow)" fill="none" stroke="#ffffff" stroke-width="35" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-55 -110 V 110"/>
+    <path d="M-55 -110 H 5 A 51 51 0 0 1 5 -8 H -55"/>
+    <path d="M-55 -8 H 12 A 59 59 0 0 1 12 110 H -55"/>
+    <path d="M-18 -148 V -110"/>
+    <path d="M28 -148 V -102"/>
+    <path d="M-18 148 V 110"/>
+    <path d="M28 148 V 104"/>
+  </g>
+
+  <!-- combination wrench: open jaw gripping the coin, ring end toward the corner.
+       Drawn in local coords (jaw head at origin, handle along +x), rotated 45. -->
+  <g filter="url(#wrenchShadow)">
+    <g transform="translate(615,585) rotate(45)">
+      <path fill-rule="evenodd" fill="url(#steel)" stroke="#6d7f95" stroke-opacity="0.4" stroke-width="3"
+            d="M -84.85 -30
+               L 2 -30 A 8 8 0 0 1 10 -22
+               L 10 22 A 8 8 0 0 1 2 30
+               L -84.85 30
+               A 90 90 0 0 0 83.3 34
+               L 210.5 34
+               A 56 56 0 1 0 210.5 -34
+               L 83.3 -34
+               A 90 90 0 0 0 -84.85 -30
+               Z
+               M 282 0 A 27 27 0 1 0 228 0 A 27 27 0 1 0 282 0 Z"/>
+      <path fill-rule="evenodd" fill="url(#steelSheen)"
+            d="M -84.85 -30
+               L 2 -30 A 8 8 0 0 1 10 -22
+               L 10 22 A 8 8 0 0 1 2 30
+               L -84.85 30
+               A 90 90 0 0 0 83.3 34
+               L 210.5 34
+               A 56 56 0 1 0 210.5 -34
+               L 83.3 -34
+               A 90 90 0 0 0 -84.85 -30
+               Z
+               M 282 0 A 27 27 0 1 0 228 0 A 27 27 0 1 0 282 0 Z"/>
+      <!-- machined details -->
+      <line x1="95" y1="-26" x2="215" y2="-26" stroke="#ffffff" stroke-opacity="0.55" stroke-width="5" stroke-linecap="round"/>
+      <line x1="100" y1="2" x2="210" y2="2" stroke="#5b6b80" stroke-opacity="0.4" stroke-width="7" stroke-linecap="round"/>
+      <line x1="5" y1="-22" x2="5" y2="22" stroke="#5b6b80" stroke-opacity="0.35" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="255" cy="0" r="27" fill="none" stroke="#5b6b80" stroke-opacity="0.5" stroke-width="4"/>
+    </g>
+  </g>
+</svg>
