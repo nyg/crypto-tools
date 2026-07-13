@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useSWR from 'swr'
 import useSWRMutation from 'swr/mutation'
 import Big from 'big.js'
@@ -52,6 +52,30 @@ const buildOrdersParams = (formValues, dryRun) => {
    }
 }
 
+const STORAGE_KEY = 'kraken.orderBatch.formValues'
+
+const defaultFormValues = {
+   pair: 'XBTUSD',
+   direction: 'buy',
+   priceFrom: '500',
+   priceTo: '600',
+   volume: '0.1',
+   orderCount: '3',
+   priceFn: 'linear',
+   volumeFn: 'linear-quote'
+}
+
+const loadFormValues = () => {
+   if (typeof window === 'undefined') return defaultFormValues
+   try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      return saved ? { ...defaultFormValues, ...JSON.parse(saved) } : defaultFormValues
+   }
+   catch {
+      return defaultFormValues
+   }
+}
+
 const postLimitOrders = <ExternalLink href="https://support.kraken.com/hc/en-us/articles/203053246-Other-order-options" className="underline">
    post limit orders
 </ExternalLink>
@@ -72,16 +96,12 @@ export default function KrakenOrderBatch() {
       apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || '',
       apiSecret: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.secret')) || ''
    }))
-   const [formValues, setFormValues] = useState({
-      pair: 'XBTUSD',
-      direction: 'buy',
-      priceFrom: '40219',
-      priceTo: '59219',
-      volume: '3.5',
-      orderCount: '20',
-      priceFn: 'linear',
-      volumeFn: 'linear-quote'
-   })
+   const [formValues, setFormValues] = useState(loadFormValues)
+
+   // Remember the last entered parameters across navigations and app restarts.
+   useEffect(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formValues))
+   }, [formValues])
 
    const showPreview = () => {
       setOrdersParams(buildOrdersParams(formValues))
@@ -93,7 +113,8 @@ export default function KrakenOrderBatch() {
       const params = buildOrdersParams(formValues, dryRun)
       setOrdersParams(params)
       setSubmittedMode(mode)
-      reset()
+      // Don't reset() here: useSWRMutation keeps the previous result while the new
+      // request runs, so the table stays put instead of flashing back to "—".
       createOrders({ credentials, ordersParams: params }).catch(() => {})
    }
 
