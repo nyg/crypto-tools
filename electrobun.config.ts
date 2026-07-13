@@ -11,9 +11,11 @@ export default {
   },
   build: {
     mac: {
-      // A real .iconset directory with PNG icons at all required sizes is
-      // needed before distributing. Replace the placeholder in assets/icon.iconset/.
+      // Generated from assets/icon.svg, see scripts/generate-icons.sh.
       icons: "assets/icon.iconset",
+    },
+    win: {
+      icon: "assets/icon.ico",
     },
     bun: {
       entrypoint: "src/electrobun/index.ts",
@@ -24,6 +26,9 @@ export default {
       // add them here too.
       "dist/index.html": "views/main/index.html",
       "dist/assets": "views/main/assets",
+      "dist/favicon.ico": "views/main/favicon.ico",
+      "dist/favicon.svg": "views/main/favicon.svg",
+      "dist/apple-touch-icon.png": "views/main/apple-touch-icon.png",
     },
     watchIgnore: ["dist/**"],
   },

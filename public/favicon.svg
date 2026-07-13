@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="coin" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#fcd34d"/>
+      <stop offset="0.55" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="coinEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+  <!-- coin as hex nut, simplified mark of the app icon -->
+  <circle cx="256" cy="256" r="252" fill="url(#coinEdge)"/>
+  <circle cx="256" cy="256" r="232" fill="url(#coin)"/>
+  <path d="M256 140 l100.46 58 v116 l-100.46 58 l-100.46 -58 v-116 z" fill="#0d1526"/>
+</svg>
