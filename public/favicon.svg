@@ -10,8 +10,16 @@
       <stop offset="1" stop-color="#b45309"/>
     </linearGradient>
   </defs>
-  <!-- coin as hex nut, simplified mark of the app icon -->
+  <!-- bitcoin coin, simplified mark of the app icon -->
   <circle cx="256" cy="256" r="252" fill="url(#coinEdge)"/>
   <circle cx="256" cy="256" r="232" fill="url(#coin)"/>
-  <path d="M256 140 l100.46 58 v116 l-100.46 58 l-100.46 -58 v-116 z" fill="#0d1526"/>
+  <g transform="translate(256,256) scale(1.02)" fill="none" stroke="#0d1526" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-55 -110 V 110"/>
+    <path d="M-55 -110 H 5 A 51 51 0 0 1 5 -8 H -55"/>
+    <path d="M-55 -8 H 12 A 59 59 0 0 1 12 110 H -55"/>
+    <path d="M-18 -148 V -110"/>
+    <path d="M28 -148 V -102"/>
+    <path d="M-18 148 V 110"/>
+    <path d="M28 148 V 104"/>
+  </g>
 </svg>

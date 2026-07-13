@@ -38,9 +38,16 @@
   <g filter="url(#softShadow)">
     <circle cx="445" cy="415" r="245" fill="url(#coinEdge)"/>
     <circle cx="445" cy="415" r="227" fill="url(#coin)"/>
-    <!-- hexagonal hole -->
-    <path d="M445 310 l90.93 52.5 v105 l-90.93 52.5 l-90.93 -52.5 v-105 z" fill="#1a2438"/>
-    <path d="M445 327 l76.21 44 v88 l-76.21 44 l-76.21 -44 v-88 z" fill="#0d1526"/>
+    <!-- bitcoin symbol -->
+    <g transform="translate(445,415)" fill="none" stroke="#0d1526" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-55 -110 V 110"/>
+      <path d="M-55 -110 H 5 A 51 51 0 0 1 5 -8 H -55"/>
+      <path d="M-55 -8 H 12 A 59 59 0 0 1 12 110 H -55"/>
+      <path d="M-18 -148 V -110"/>
+      <path d="M28 -148 V -102"/>
+      <path d="M-18 148 V 110"/>
+      <path d="M28 148 V 104"/>
+    </g>
   </g>
 
   <!-- wrench (lucide style), mirrored so handle runs to bottom-right -->
