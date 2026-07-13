@@ -1,6 +1,26 @@
 # Changelog
 
 
+## [0.0.12](https://github.com/nyg/crypto-tools/compare/v0.0.11..v0.0.12) - 2026-07-13
+
+### ⛰️  Features
+
+- [`a2544ac`](https://github.com/nyg/crypto-tools/commit/a2544accfb82e817fc5e8ad6fd49aa3bfb2945ab) Add app icon and favicon ([#201](https://github.com/nyg/crypto-tools/issues/201))
+- [`6411ddb`](https://github.com/nyg/crypto-tools/commit/6411ddbbca7090baf357b71d4c988b6257369e12) Redesign the Kraken Order Batch tab ([#199](https://github.com/nyg/crypto-tools/issues/199))
+
+### 🐛 Bug Fixes
+
+- [`3ecb90d`](https://github.com/nyg/crypto-tools/commit/3ecb90d6ef09c28b7a0aad0e02fad38a5ca8e66b) Fix date-picker setState-in-effect lint error ([#200](https://github.com/nyg/crypto-tools/issues/200))
+
+### ⚙️ Miscellaneous
+
+- [`277468d`](https://github.com/nyg/crypto-tools/commit/277468df5620dd4d09c95c6d6d96dd1982b26745) *(deps)* Lock file maintenance ([#198](https://github.com/nyg/crypto-tools/issues/198))
+- [`b6324c9`](https://github.com/nyg/crypto-tools/commit/b6324c909777d5961a91e040b8e99baedcf7a6d9) *(deps)* Lock file maintenance ([#197](https://github.com/nyg/crypto-tools/issues/197))
+- [`092786a`](https://github.com/nyg/crypto-tools/commit/092786a20332c1f020e495712461f16d83aa1635) *(deps)* Lock file maintenance ([#196](https://github.com/nyg/crypto-tools/issues/196))
+- [`e55cc27`](https://github.com/nyg/crypto-tools/commit/e55cc27fa4c7b52e8503e3ea60569ade8e02b53d) *(deps)* Lock file maintenance ([#195](https://github.com/nyg/crypto-tools/issues/195))
+- [`3233f73`](https://github.com/nyg/crypto-tools/commit/3233f738530314474d7ce221e4f951edc2b6ecbd) *(deps)* Lock file maintenance ([#194](https://github.com/nyg/crypto-tools/issues/194))
+- [`bb21f33`](https://github.com/nyg/crypto-tools/commit/bb21f337ee973d84c5dff43a8813cd6d8043f969) *(deps)* Pin actions/checkout action to v7.0.0 ([#193](https://github.com/nyg/crypto-tools/issues/193))
+
 ## [0.0.11](https://github.com/nyg/crypto-tools/compare/v0.0.10..v0.0.11) - 2026-07-01
 
 ### 🐛 Bug Fixes
