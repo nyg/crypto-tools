@@ -1,92 +1,96 @@
-import Checkbox from '../lib/checkbox'
 import NumericInput from '../lib/numeric-input'
-import Select from '../lib/select'
+import SelectField from '../lib/select-field'
+import ComboboxField from '../lib/combobox-field'
 import { Button } from '@/components/ui/button'
 
-export default function OrderBatchParameters({ formValues, setFormValues, tradingPairs, isLoading, onShowPreview, onCreateOrders }) {
+const directionOptions = [
+   { value: 'buy', label: 'Buy' },
+   { value: 'sell', label: 'Sell' },
+]
+
+const priceFnOptions = [
+   { value: 'linear', label: 'Linear' },
+]
+
+const volumeFnOptions = [
+   { value: 'linear-base', label: 'Linear (base currency)' },
+   { value: 'linear-quote', label: 'Linear (quote currency)' },
+]
+
+export default function OrderBatchParameters({ formValues, setFormValues, tradingPairs, isLoading, onShowPreview, onCreateDryRun, onCreateLive }) {
 
    const handleChange = (name, value) => {
       setFormValues(prev => ({ ...prev, [name]: value }))
    }
 
+   const pairOptions = Object.keys(tradingPairs || {}).map(pair => ({ value: pair, label: tradingPairs[pair].name }))
+
    return (
-      <div>
-         <h3 className="pb-2 font-semibold">Parameters</h3>
-         <div className="space-y-2">
-            <form className="" onSubmit={(e) => e.preventDefault()}>
-               <Select
-                  name="pair"
-                  label="Pair"
-                  value={formValues.pair}
-                  onChange={(e) => handleChange('pair', e.target.value)}
-               >
-                  {isLoading
-                     ? <option>Loading...</option>
-                     : (Object.keys(tradingPairs || {}).map(pair =>
-                        <option key={pair} value={pair}>{tradingPairs[pair].name}</option>))}
-               </Select>
-               <Select
-                  name="direction"
-                  label="Direction"
-                  value={formValues.direction}
-                  onChange={(e) => handleChange('direction', e.target.value)}
-               >
-                  <option value="buy">Buy</option>
-                  <option value="sell">Sell</option>
-               </Select>
-               <NumericInput
-                  name="price-from"
-                  label="Starting price"
-                  value={formValues.priceFrom}
-                  onChange={(e) => handleChange('priceFrom', e.target.value)}
-               />
-               <NumericInput
-                  name="price-to"
-                  label="Ending price"
-                  value={formValues.priceTo}
-                  onChange={(e) => handleChange('priceTo', e.target.value)}
-               />
-               <NumericInput
-                  name="volume"
-                  label="Volume"
-                  value={formValues.volume}
-                  onChange={(e) => handleChange('volume', e.target.value)}
-               />
-               <NumericInput
-                  name="order-count"
-                  label="Number of orders"
-                  value={formValues.orderCount}
-                  onChange={(e) => handleChange('orderCount', e.target.value)}
-               />
-               <Select
-                  name="price-fn"
-                  label="Price function"
-                  value={formValues.priceFn}
-                  onChange={(e) => handleChange('priceFn', e.target.value)}
-               >
-                  <option value="linear">Linear</option>
-               </Select>
-               <Select
-                  name="volume-fn"
-                  label="Volume function"
-                  value={formValues.volumeFn}
-                  onChange={(e) => handleChange('volumeFn', e.target.value)}
-               >
-                  <option value="linear-base">Linear (base currency)</option>
-                  <option value="linear-quote">Linear (quote currency)</option>
-               </Select>
-               <Checkbox
-                  name="dry-run"
-                  label="Dry run"
-                  checked={formValues.dryRun}
-                  onChange={(e) => handleChange('dryRun', e.target.checked)}
-               />
-            </form>
-            <div className="space-x-4">
-               <Button variant="outline" size="sm" type="button" onClick={onShowPreview}>Show preview</Button>
-               <Button size="sm" type="button" onClick={onCreateOrders}>Create orders</Button>
-            </div>
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+         <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
+            <ComboboxField
+               name="pair"
+               label="Pair"
+               value={formValues.pair}
+               onValueChange={(value) => handleChange('pair', value)}
+               options={pairOptions}
+               placeholder={isLoading ? 'Loading…' : 'Select a pair'}
+               searchPlaceholder="Search pairs…"
+               emptyText="No pair found."
+               disabled={isLoading}
+            />
+            <SelectField
+               name="direction"
+               label="Direction"
+               value={formValues.direction}
+               onValueChange={(value) => handleChange('direction', value)}
+               options={directionOptions}
+            />
+            <NumericInput
+               name="price-from"
+               label="Starting price"
+               value={formValues.priceFrom}
+               onChange={(e) => handleChange('priceFrom', e.target.value)}
+            />
+            <NumericInput
+               name="price-to"
+               label="Ending price"
+               value={formValues.priceTo}
+               onChange={(e) => handleChange('priceTo', e.target.value)}
+            />
+            <NumericInput
+               name="volume"
+               label="Volume"
+               value={formValues.volume}
+               onChange={(e) => handleChange('volume', e.target.value)}
+            />
+            <NumericInput
+               name="order-count"
+               label="Number of orders"
+               value={formValues.orderCount}
+               onChange={(e) => handleChange('orderCount', e.target.value)}
+            />
+            <SelectField
+               name="price-fn"
+               label="Price function"
+               value={formValues.priceFn}
+               onValueChange={(value) => handleChange('priceFn', value)}
+               options={priceFnOptions}
+            />
+            <SelectField
+               name="volume-fn"
+               label="Volume function"
+               value={formValues.volumeFn}
+               onValueChange={(value) => handleChange('volumeFn', value)}
+               options={volumeFnOptions}
+            />
          </div>
-      </div>
+
+         <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" type="button" onClick={onShowPreview}>Show preview</Button>
+            <Button variant="secondary" size="sm" type="button" onClick={onCreateDryRun}>Create orders (dry run)</Button>
+            <Button size="sm" type="button" onClick={onCreateLive}>Create orders</Button>
+         </div>
+      </form>
    )
 }

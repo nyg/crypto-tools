@@ -34,6 +34,9 @@ async function main() {
 
   const win = new BrowserWindow({ title: "CryptoTools", url, frame: { x: 0, y: 0, width: 1280, height: 900 } });
 
+  // Launch maximized; the 1280x900 frame above is the restored (un-maximized) size.
+  win.maximize();
+
   // Open target="_blank" links in the default system browser instead of the WebView.
   (win.webview as any).on("new-window-open", (event: any) => {
     const detail = event?.data?.detail;

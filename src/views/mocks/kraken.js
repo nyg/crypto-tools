@@ -1,3 +1,5 @@
+import Big from 'big.js'
+
 const tradingPairs = {
    XBTUSD: { id: 'XBTUSD', name: 'XBT/USD', base: { name: 'XXBT', decimals: 8 }, quote: { name: 'ZUSD', decimals: 2 } },
    ETHUSD: { id: 'ETHUSD', name: 'ETH/USD', base: { name: 'XETH', decimals: 8 }, quote: { name: 'ZUSD', decimals: 2 } },
@@ -11,13 +13,21 @@ const tradingPairs = {
    MATICUSD: { id: 'MATICUSD', name: 'MATIC/USD', base: { name: 'MATIC', decimals: 8 }, quote: { name: 'ZUSD', decimals: 6 } },
 }
 
+const randomSegment = (length) =>
+   Array.from({ length }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'[Math.floor(Math.random() * 32)]).join('')
+
+const fakeTxid = () => `O${randomSegment(5)}-${randomSegment(5)}-${randomSegment(6)}`
+
 function orderBatch(params) {
-   const orders = params?.ordersParams?.orders ?? []
-   return orders.map((order, i) => ({
-      descr: {
-         order: `${params.ordersParams.direction} ${order.volume} XBTUSD @ limit ${order.price}`
+   const { direction, pair, dryRun, orders = [] } = params?.ordersParams ?? {}
+   return orders.map(order => {
+      const descr = `${direction} ${Big(order.volume).toFixed(5)} ${pair} @ limit ${Big(order.price).toFixed(2)}`
+      const result = { descr: { order: descr } }
+      if (!dryRun) {
+         result.txid = fakeTxid()
       }
-   }))
+      return result
+   })
 }
 
 const balances = {
