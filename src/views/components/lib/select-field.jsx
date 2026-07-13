@@ -12,7 +12,7 @@ import {
 export default function SelectField({ name, label, value, onValueChange, options, placeholder, disabled, className = '' }) {
    return (
       <div className={`space-y-1 ${className}`}>
-         <Label htmlFor={name}>{label}</Label>
+         <Label htmlFor={name} className="pl-2.5 text-xs">{label}</Label>
          <Select value={value} onValueChange={onValueChange} disabled={disabled}>
             <SelectTrigger id={name} className="w-full">
                <SelectValue placeholder={placeholder} />
