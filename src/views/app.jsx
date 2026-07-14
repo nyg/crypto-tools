@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router'
 import { SWRConfig } from 'swr'
 import './styles/global.css'
 import Home from './pages/home'
@@ -10,6 +10,10 @@ import KrakenOrderBatch from './pages/kraken/order-batch'
 import KrakenXStocks from './pages/kraken/xstocks'
 
 const isMockMode = import.meta.env.VITE_MOCK_DATA === 'true'
+// Under views:// (Electrobun) the page's origin is opaque and the History API is unusable,
+// so react-router Links trigger real navigations that macOS tries to open externally.
+// Hash-based routing keeps navigation inside the page regardless of scheme.
+const Router = window.location.protocol === 'views:' ? HashRouter : BrowserRouter
 // In Electrobun production, the page loads from views:// so relative /api paths won't reach
 // the Hono server. VITE_API_BASE is injected at build time by scripts/prebuild.ts.
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -49,7 +53,7 @@ async function fetcher(url, params) {
 export default function App() {
    return (
       <SWRConfig value={{ fetcher }}>
-         <BrowserRouter>
+         <Router>
             <Routes>
                <Route path="/" element={<Home />} />
                <Route path="/settings" element={<Settings />} />
@@ -58,11 +62,9 @@ export default function App() {
                <Route path="/kraken/closed-orders" element={<KrakenClosedOrders />} />
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
                <Route path="/kraken/xstocks" element={<KrakenXStocks />} />
-               {/* Catch-all: when loaded from views://main/index.html (Electrobun),
-                   BrowserRouter sees pathname /index.html — redirect to root. */}
                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-         </BrowserRouter>
+         </Router>
       </SWRConfig>
    )
 }
