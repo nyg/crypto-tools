@@ -1,22 +1,19 @@
-import MenuLink from '../lib/menu-link'
+import SubNav from '../lib/sub-nav'
 import Layout from '../layout'
 
+
+const tabs = [
+   { label: 'Order Batch', href: '/kraken/order-batch' },
+   { label: 'Closed Orders', href: '/kraken/closed-orders' },
+   { label: 'Balances', href: '/kraken/balances' },
+   { label: 'xStocks', href: '/kraken/xstocks' }
+]
 
 export default function KrakenLayout({ children, name }) {
    return (
       <Layout name={`Kraken ${name}`}>
-
-         <header className="px-3 py-2 mb-4 flex items-baseline gap-x-3 border-b border-border">
-            <MenuLink href="/kraken/order-batch">Order Batch</MenuLink>
-            <MenuLink href="/kraken/closed-orders">Closed Orders</MenuLink>
-            <MenuLink href="/kraken/balances">Balances</MenuLink>
-            <MenuLink href="/kraken/xstocks">xStocks</MenuLink>
-         </header>
-
-         <div className="px-3">
-            {children}
-         </div>
-
+         <SubNav items={tabs} />
+         {children}
       </Layout>
    )
 }

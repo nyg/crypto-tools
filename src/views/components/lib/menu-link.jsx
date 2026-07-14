@@ -7,15 +7,12 @@ export default function MenuLink({ children, href, isActive = (path, href) => pa
    const location = useLocation()
 
    const style = isActive(location.pathname, href)
-      ? 'text-foreground underline'
-      : 'text-muted-foreground hover:text-foreground hover:underline'
+      ? 'text-foreground'
+      : 'text-muted-foreground hover:text-foreground'
 
-   return (
-      <span className={`text-xs cursor-pointer ${style}`}>
-         {href.startsWith('https://')
-            ? <ExternalLink href={href}>{children}</ExternalLink>
-            : <Link to={href}>{children}</Link>
-         }
-      </span>
-   )
+   const className = `text-sm font-medium transition-colors ${style}`
+
+   return href.startsWith('https://')
+      ? <ExternalLink href={href} className={className}>{children}</ExternalLink>
+      : <Link to={href} className={className}>{children}</Link>
 }
