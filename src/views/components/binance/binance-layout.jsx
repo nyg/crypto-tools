@@ -1,19 +1,16 @@
-import MenuLink from '../lib/menu-link'
+import SubNav from '../lib/sub-nav'
 import Layout from '../layout'
 
+
+const tabs = [
+   { label: 'Staking', href: '/binance/staking' }
+]
 
 export default function BinanceLayout({ children, name }) {
    return (
       <Layout name={`Binance ${name}`}>
-
-         <header className="px-3 py-2 mb-4 flex items-baseline gap-x-3 border-b border-border">
-            <MenuLink href="/binance/staking">Staking</MenuLink>
-         </header>
-
-         <div className="px-3">
-            {children}
-         </div>
-
+         <SubNav items={tabs} />
+         {children}
       </Layout>
    )
 }
