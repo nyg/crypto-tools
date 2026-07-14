@@ -23,7 +23,7 @@ export default function Layout({ children, name }) {
       <div className="flex min-h-svh flex-col">
 
          <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
-            <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-4 px-4 sm:gap-6 sm:px-6">
+            <div className="flex h-14 w-full items-center gap-4 px-4 sm:gap-6 sm:px-6">
                <Link to="/" className="font-heading text-sm font-semibold tracking-tight whitespace-nowrap">
                   Crypto Tools
                </Link>
@@ -41,7 +41,7 @@ export default function Layout({ children, name }) {
             </div>
          </header>
 
-         <main className="mx-auto w-full max-w-6xl grow px-4 py-8 sm:px-6">
+         <main className="w-full grow px-4 py-8 sm:px-6">
             {children}
          </main>
 
