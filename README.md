@@ -1,6 +1,8 @@
 # Crypto Tools
 
-A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [Binance](https://www.binance.com/) exchanges. Built with Vite, React, React Router, Hono, and Tailwind CSS.
+A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [Binance](https://www.binance.com/) exchanges. Built with Vite, React, React Router, Hono, Tailwind CSS and [shadcn/ui](https://ui.shadcn.com/); the desktop app is powered by [Electrobun](https://electrobun.dev/).
+
+![Home](public/screenshot-home.png)
 
 ## Features
 
@@ -147,7 +149,7 @@ This sets `VITE_MOCK_DATA=true`, which intercepts all API calls with a mock fetc
 
 ## Usage
 
-Navigate via the top menu bar to access each exchange's tools. Each exchange section has sub-navigation for its specific features.
+The home page links to every tool; the top menu bar switches between exchanges and each exchange section has sub-navigation for its specific features.
 
 API keys for Kraken, Binance, and Anthropic can be configured on the **Settings** page (stored in `localStorage`) or via environment variables (`VITE_*`).
 
@@ -166,12 +168,14 @@ src/
     ├── components/     React components
     │   ├── binance/    Binance-specific components
     │   ├── kraken/     Kraken-specific components
-    │   ├── lib/        Custom wrapper components (NumericInput, Select, etc.)
+    │   ├── lib/        Custom wrapper components (NumericInput, SubNav, etc.)
     │   └── ui/         shadcn/ui primitives
+    ├── lib/            Frontend utilities (cn)
     ├── mocks/          Mock data generators for development
-    └── pages/          Page-level React components
-        ├── binance/
-        └── kraken/
+    ├── pages/          Page-level React components
+    │   ├── binance/
+    │   └── kraken/
+    └── styles/         Global stylesheet and theme tokens
 ```
 
 ## Disclaimer
