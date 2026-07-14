@@ -41,7 +41,7 @@ export default function Layout({ children, name }) {
             </div>
          </header>
 
-         <main className="w-full grow px-4 py-8 sm:px-6">
+         <main className="w-full grow px-4 pt-5 pb-8 sm:px-6">
             {children}
          </main>
 
