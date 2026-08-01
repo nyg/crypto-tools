@@ -1,6 +1,23 @@
 # Changelog
 
 
+## [0.1.0](https://github.com/nyg/crypto-tools/compare/v0.0.12..v0.1.0) - 2026-08-01
+
+### ⛰️  Features
+
+- [`9d33557`](https://github.com/nyg/crypto-tools/commit/9d335571e01e20f2364f71ef9abf74ddc693b2d1) *(kraken)* Serve Closed Orders from the local database ([#207](https://github.com/nyg/crypto-tools/issues/207))
+- [`7a26440`](https://github.com/nyg/crypto-tools/commit/7a26440b9e7fbc95335c51bc73a1565509f3564d) *(kraken)* Add a Fees dashboard backed by the ledger database ([#206](https://github.com/nyg/crypto-tools/issues/206))
+- [`c1a0655`](https://github.com/nyg/crypto-tools/commit/c1a0655034a27f107c3d59345465ad1cdf8ef006) *(kraken)* Add a Ledger page backed by a local database ([#205](https://github.com/nyg/crypto-tools/issues/205))
+
+### 🐛 Bug Fixes
+
+- [`724e252`](https://github.com/nyg/crypto-tools/commit/724e252b1cfdf507efed923f7cb08d1e143b971d) *(deps)* Update all stable non-major dependencies ([#204](https://github.com/nyg/crypto-tools/issues/204))
+- [`4911d71`](https://github.com/nyg/crypto-tools/commit/4911d71c4607d9f5118e62de77aca04ce3d7d9d0) *(deps)* Update dependency react-router to v8.3.0 [security] ([#203](https://github.com/nyg/crypto-tools/issues/203))
+
+### 🚜 Refactor
+
+- [`44fa045`](https://github.com/nyg/crypto-tools/commit/44fa045bbf8bb195e5f4974c537d55cd24799878) Redesign the main menu, sub menus and home page ([#202](https://github.com/nyg/crypto-tools/issues/202))
+
 ## [0.0.12](https://github.com/nyg/crypto-tools/compare/v0.0.11..v0.0.12) - 2026-07-13
 
 ### ⛰️  Features
