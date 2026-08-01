@@ -42,6 +42,44 @@ const migrations = [
          last_report_id  TEXT,
          last_error      TEXT
       ) STRICT;
+   `),
+
+   // v2 — trades, from Kraken's second export report. The ledger export carries no
+   // order id, so orders can only be rebuilt from here: a trade's txid is the refid
+   // the ledger entries of that trade already share.
+   db => db.exec(`
+      CREATE TABLE trade (
+         account_id  TEXT    NOT NULL,
+         txid        TEXT    NOT NULL,
+         ordertxid   TEXT    NOT NULL DEFAULT '',
+         order_key   TEXT    NOT NULL,
+         pair        TEXT    NOT NULL DEFAULT '',
+         pair_key    TEXT    NOT NULL DEFAULT '',
+         base_asset  TEXT    NOT NULL DEFAULT '',
+         quote_asset TEXT    NOT NULL DEFAULT '',
+         time        INTEGER NOT NULL,
+         type        TEXT    NOT NULL DEFAULT '',
+         ordertype   TEXT    NOT NULL DEFAULT '',
+         price       TEXT    NOT NULL,
+         cost        TEXT    NOT NULL,
+         fee         TEXT    NOT NULL,
+         vol         TEXT    NOT NULL,
+         margin      TEXT    NOT NULL DEFAULT '0',
+         misc        TEXT    NOT NULL DEFAULT '',
+         price_num   REAL    NOT NULL,
+         cost_num    REAL    NOT NULL,
+         fee_num     REAL    NOT NULL,
+         vol_num     REAL    NOT NULL,
+         synced_at   INTEGER NOT NULL,
+         PRIMARY KEY (account_id, txid)
+      ) STRICT;
+
+      CREATE INDEX idx_trade_account_order ON trade (account_id, order_key);
+      CREATE INDEX idx_trade_account_time  ON trade (account_id, time DESC, txid DESC);
+      CREATE INDEX idx_trade_account_pair  ON trade (account_id, pair_key, time DESC);
+
+      ALTER TABLE sync_state ADD COLUMN trades_covered_from INTEGER;
+      ALTER TABLE sync_state ADD COLUMN trades_covered_to   INTEGER;
    `)
 ]
 

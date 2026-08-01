@@ -1,34 +1,16 @@
 import { Hono } from 'hono'
 import LedgerRepository from '../db/ledger-repository.js'
-import { accountIdFor } from '../db/entry-key.js'
+import TradeRepository from '../db/trade-repository.js'
+import tradeRoutes from './kraken-trades.js'
+import { handleError, withAccount } from './with-account.js'
 import { dbSizeBytes } from '../db/paths.js'
 import { jobFor, isRunning, requestCancel, startSync } from '../services/kraken-ledger-sync.js'
 
 const app = new Hono()
 
-const handleError = (c, error) => {
-   if (error.message === 'HTTP Requester Error') {
-      console.log('An error happened while contacting the Kraken API:', error.cause)
-      return c.json({ error: `An error happened while contacting the Kraken API: ${error.cause}` }, 500)
-   }
-   console.error('An unexpected error happened:', error)
-   return c.json({ error: 'An unexpected error happened.' }, 500)
-}
-
-// Read endpoints never call Kraken; they only need the key to work out which
-// account's rows to read, which keeps the secret out of the SWR cache keys.
-async function withAccount(c, handler) {
-   const body = await c.req.json()
-   if (!body.credentials?.apiKey) return c.json({ error: 'No API credentials provided.' }, 401)
-
-   try {
-      const accountId = accountIdFor(body.credentials.apiKey)
-      return handler({ body, accountId, repository: new LedgerRepository(accountId) })
-   }
-   catch (error) {
-      return handleError(c, error)
-   }
-}
+// Nested under the ledger rather than alongside it: one database, one sync, one
+// clear — and the page's post-sync revalidation matches on this prefix.
+app.route('/trades', tradeRoutes)
 
 app.post('/sync', async (c) => {
 
@@ -45,8 +27,10 @@ app.post('/sync', async (c) => {
    }
 })
 
-app.post('/sync/status', async (c) => withAccount(c, ({ accountId, repository }) => {
+app.post('/sync/status', async (c) => withAccount(c, ({ accountId }) => {
 
+   const repository = new LedgerRepository(accountId)
+   const tradeRepository = new TradeRepository(accountId)
    const state = repository.readSyncState()
 
    return c.json({
@@ -55,6 +39,8 @@ app.post('/sync/status', async (c) => withAccount(c, ({ accountId, repository })
          ...state,
          accountId,
          entryCount: repository.countEntries(),
+         tradeCount: tradeRepository.countTrades(),
+         orderCount: tradeRepository.countOrders(),
          dbSizeBytes: dbSizeBytes(),
          otherAccounts: repository.otherAccounts()
       }
@@ -64,27 +50,27 @@ app.post('/sync/status', async (c) => withAccount(c, ({ accountId, repository })
 app.post('/sync/cancel', async (c) => withAccount(c, ({ accountId }) =>
    c.json({ job: requestCancel(accountId) })))
 
-app.post('/entries', async (c) => withAccount(c, ({ body, repository }) =>
-   c.json(repository.queryEntries({
+app.post('/entries', async (c) => withAccount(c, ({ body, accountId }) =>
+   c.json(new LedgerRepository(accountId).queryEntries({
       filters: body.filters,
       sort: body.sort,
       page: Math.max(0, Number(body.page) || 0),
       pageSize: Math.min(500, Math.max(1, Number(body.pageSize) || 50))
    }))))
 
-app.post('/filters', async (c) => withAccount(c, ({ repository }) =>
-   c.json(repository.distinctFilters())))
+app.post('/filters', async (c) => withAccount(c, ({ accountId }) =>
+   c.json(new LedgerRepository(accountId).distinctFilters())))
 
-app.post('/fees', async (c) => withAccount(c, ({ body, repository }) =>
-   c.json(repository.feeSummary(body.filters))))
+app.post('/fees', async (c) => withAccount(c, ({ body, accountId }) =>
+   c.json(new LedgerRepository(accountId).feeSummary(body.filters))))
 
-app.post('/clear', async (c) => withAccount(c, ({ accountId, repository }) => {
+app.post('/clear', async (c) => withAccount(c, ({ accountId }) => {
 
    if (isRunning(jobFor(accountId))) {
       return c.json({ error: 'A sync is running, cancel it before clearing the data.' }, 409)
    }
 
-   return c.json({ deleted: repository.clearAccount() })
+   return c.json(new LedgerRepository(accountId).clearAccount())
 }))
 
 export default app

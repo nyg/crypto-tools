@@ -3,19 +3,7 @@ import { Button } from '@/components/ui/button'
 import ComboboxField from '../lib/combobox-field'
 import SelectField from '../lib/select-field'
 import Input from '../lib/input'
-
-// Radix Select cannot hold an empty string as a value, so "no filter" travels as
-// this sentinel and is mapped back on the way out.
-const ANY = 'any'
-
-const withAnyOption = (values, label) => [
-   { value: ANY, label },
-   ...values.map(value => ({ value, label: value }))
-]
-
-const asDateInput = (timestamp) => timestamp
-   ? new Date(timestamp).toISOString().slice(0, 10)
-   : ''
+import { ANY, withAnyOption, asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
 
 export const defaultFilters = { asset: '', type: '', wallet: '', from: null, to: null, search: '' }
 
@@ -74,14 +62,14 @@ export default function LedgerFilters({ filters, options, onChange, onReset, sho
                type="date"
                label="From"
                value={asDateInput(filters.from)}
-               onChange={(e) => update({ from: e.target.value ? Date.parse(`${e.target.value}T00:00:00Z`) : null })} />
+               onChange={(e) => update({ from: fromDateValue(e.target.value) })} />
 
             <Input
                name="ledger-to"
                type="date"
                label="To"
                value={asDateInput(filters.to)}
-               onChange={(e) => update({ to: e.target.value ? Date.parse(`${e.target.value}T23:59:59Z`) : null })} />
+               onChange={(e) => update({ to: toDateValue(e.target.value) })} />
 
             {showSearch &&
                <Input

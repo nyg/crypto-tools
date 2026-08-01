@@ -1,5 +1,6 @@
 import KrakenAPI from '../adapters/kraken-api/adapter.js'
 import LedgerRepository from '../db/ledger-repository.js'
+import TradeRepository from '../db/trade-repository.js'
 import { accountIdFor } from '../db/entry-key.js'
 
 // Kraken can post a staking or earn entry dated a day or two in the past, so an
@@ -19,6 +20,11 @@ const REPORT_PREFIX = 'crypto-tools-'
 const ORPHAN_AGE_MS = 15 * 60 * 1000
 
 const CHUNK_SIZE = 5000
+
+// One run covers both reports. The ledger has the full picture of what moved; the
+// trades report is the only place Kraken puts the order id, so the Closed Orders
+// page cannot be built without it.
+const reports = ['ledgers', 'trades']
 
 const terminalPhases = ['done', 'error', 'cancelled']
 
@@ -55,14 +61,19 @@ export function startSync(credentials, mode = 'incremental') {
       accountId,
       mode,
       phase: 'requesting',
+      report: reports[0],
       startedAt: Date.now(),
       updatedAt: Date.now(),
       finishedAt: null,
+      // reportId is the one in flight, kept alongside the map so the status card can
+      // show what Kraken is currently preparing without knowing about either report.
       reportId: null,
+      reportIds: { ledgers: null, trades: null },
       reportStatus: null,
       pollCount: 0,
       requestedFrom: null,
       counts: { parsed: 0, stored: 0, inserted: 0, updated: 0, skipped: 0 },
+      results: {},
       error: null,
       cancelRequested: false
    }
@@ -87,39 +98,50 @@ async function runSync(job, credentials) {
 
    const krakenAPI = new KrakenAPI(credentials)
    const repository = new LedgerRepository(job.accountId)
+   const tradeRepository = new TradeRepository(job.accountId)
 
    try {
       await removeOrphanedReports(krakenAPI)
 
-      const fromDate = job.mode === 'full' ? 0 : incrementalStart(repository)
-      job.requestedFrom = fromDate
+      repository.writeSyncState({ apiKeyPrefix: credentials.apiKey.slice(0, 8) })
 
-      job.reportId = await krakenAPI.requestLedgerExport({
-         description: `${REPORT_PREFIX}${new Date().toISOString()}`,
-         fromDate
+      await runReport(job, krakenAPI, repository, {
+         report: 'ledgers',
+         fromDate: startFor(job, repository, tradeRepository, 'ledgers'),
+         read: async (reportId) => {
+            const { entries, skipped } = await krakenAPI.fetchLedgerEntries(reportId)
+            return { rows: entries, skipped }
+         },
+         count: () => repository.countEntries(),
+         upsert: (chunk, syncedAt) => repository.upsertEntries(chunk, syncedAt)
       })
 
-      // Persisted before polling so that a restart mid-run can still clean up.
-      repository.writeSyncState({
-         apiKeyPrefix: credentials.apiKey.slice(0, 8),
-         lastReportId: job.reportId
+      // Committed before the second report runs. That phase roughly doubles the
+      // window in which the run can die, and folding both watermarks into one write
+      // at the end would throw away this one's progress along with it.
+      finishLedgerState(repository)
+
+      throwIfCancelled(job)
+
+      // Only the trades report needs the pair index, so it is fetched here rather
+      // than paid for on a run that might already have failed above.
+      const pairIndex = await krakenAPI.fetchPairIndex()
+
+      await runReport(job, krakenAPI, repository, {
+         report: 'trades',
+         fromDate: startFor(job, repository, tradeRepository, 'trades'),
+         read: async (reportId) => {
+            const { trades, skipped } = await krakenAPI.fetchTradeEntries(reportId, pairIndex)
+            return { rows: trades, skipped }
+         },
+         count: () => tradeRepository.countTrades(),
+         upsert: (chunk, syncedAt) => tradeRepository.upsertTrades(chunk, syncedAt)
       })
 
-      setPhase(job, 'waiting')
-      await waitForReport(job, krakenAPI)
-
-      setPhase(job, 'downloading')
-      const { entries, skipped } = await krakenAPI.fetchLedgerEntries(job.reportId)
-
-      setPhase(job, 'parsing')
-      job.counts.parsed = entries.length
-      job.counts.skipped = skipped
-
-      setPhase(job, 'storing')
-      await storeEntries(job, repository, entries)
+      finishTradeState(repository, tradeRepository, job.startedAt)
 
       setPhase(job, 'cleaning')
-      finishSyncState(repository, entries)
+      finishSyncState(repository)
       setPhase(job, 'done')
    }
    catch (error) {
@@ -133,22 +155,84 @@ async function runSync(job, credentials) {
    finally {
       job.finishedAt = Date.now()
       job.updatedAt = Date.now()
-      if (job.reportId) await safeRemoveReport(krakenAPI, job.reportId)
+
+      // Both reports have to go, not just the one in flight when the run ended.
+      for (const reportId of Object.values(job.reportIds)) {
+         if (reportId) await safeRemoveReport(krakenAPI, reportId)
+      }
    }
 }
 
-function incrementalStart(repository) {
+// Requests one export, waits for Kraken to prepare it, then reads and stores it. The
+// phase names are the same for either report so that the page can render progress
+// without knowing which one is running; `job.report` says which it is.
+async function runReport(job, krakenAPI, repository, { report, fromDate, read, count, upsert }) {
+
+   job.report = report
+   job.pollCount = 0
+   job.reportStatus = null
+   job.requestedFrom = fromDate
+   job.counts = { parsed: 0, stored: 0, inserted: 0, updated: 0, skipped: 0 }
+
+   setPhase(job, 'requesting')
+   const reportId = await krakenAPI.requestExport({
+      report,
+      description: `${REPORT_PREFIX}${new Date().toISOString()}`,
+      fromDate
+   })
+
+   job.reportIds[report] = reportId
+   job.reportId = reportId
+
+   // Persisted before polling so that a restart mid-run can still clean up.
+   repository.writeSyncState({ lastReportId: reportId })
+
+   setPhase(job, 'waiting')
+   await waitForReport(job, krakenAPI, report)
+
+   setPhase(job, 'downloading')
+   const { rows, skipped } = await read(reportId)
+
+   setPhase(job, 'parsing')
+   job.counts.parsed = rows.length
+   job.counts.skipped = skipped
+
+   setPhase(job, 'storing')
+   await storeRows(job, rows, count, upsert)
+
+   job.results[report] = { ...job.counts }
+   console.log(`Kraken ${report} sync stored ${rows.length} rows`)
+}
+
+function throwIfCancelled(job) {
+   if (!job.cancelRequested) return
+   setPhase(job, 'cancelled')
+   throw new Error('Sync cancelled.')
+}
+
+function startFor(job, repository, tradeRepository, report) {
+   return job.mode === 'full' ? 0 : incrementalStart(repository, tradeRepository, report)
+}
+
+function incrementalStart(repository, tradeRepository, report) {
 
    const state = repository.readSyncState()
-   const { last } = repository.entryTimeRange()
 
-   const watermark = [state?.coveredTo, last].filter(Boolean)
+   // Each report keeps its own watermark. Sharing one would be worse than untidy:
+   // an account synced before trades were stored already has the ledger watermark at
+   // "now", so a shared value would ask for trades starting today and no historical
+   // trade would ever be backfilled.
+   const [coveredTo, range] = report === 'trades'
+      ? [state?.tradesCoveredTo, tradeRepository.tradeTimeRange()]
+      : [state?.coveredTo, repository.entryTimeRange()]
+
+   const watermark = [coveredTo, range.last].filter(Boolean)
    if (watermark.length === 0) return 0
 
    return Math.max(0, Math.min(...watermark) - OVERLAP_MS)
 }
 
-async function waitForReport(job, krakenAPI) {
+async function waitForReport(job, krakenAPI, report) {
 
    const deadline = Date.now() + MAX_WAIT_MS
 
@@ -156,75 +240,99 @@ async function waitForReport(job, krakenAPI) {
 
       await delay(pollDelays[Math.min(job.pollCount, pollDelays.length - 1)])
 
-      if (job.cancelRequested) {
-         setPhase(job, 'cancelled')
-         throw new Error('Sync cancelled.')
-      }
+      throwIfCancelled(job)
 
       job.pollCount++
       job.updatedAt = Date.now()
 
-      // One call covers every ledger report, so there is no need to poll per id.
-      const reports = await krakenAPI.fetchExportReports()
-      const report = reports.find(candidate => candidate.id === job.reportId)
+      // One call covers every report of this type, so there is no need to poll per
+      // id — but it must be this type: Kraken lists one type per call, and asking
+      // for the wrong one would simply never find the report.
+      const entries = await krakenAPI.fetchExportReports(report)
+      const entry = entries.find(candidate => candidate.id === job.reportId)
 
-      if (report) {
-         job.reportStatus = report.status
-         if (report.status?.toLowerCase() === 'processed') return
+      if (entry) {
+         job.reportStatus = entry.status
+         if (entry.status?.toLowerCase() === 'processed') return
       }
    }
 
-   throw new Error('Kraken did not finish preparing the export within 10 minutes.')
+   throw new Error(`Kraken did not finish preparing the ${report} export within 10 minutes.`)
 }
 
-async function storeEntries(job, repository, entries) {
+async function storeRows(job, rows, count, upsert) {
 
-   const before = repository.countEntries()
+   const before = count()
 
    // bun:sqlite is synchronous, so a single transaction over the whole export would
    // block the status endpoint for its entire duration. Committing in chunks keeps
    // the server answering and lets progress be reported.
-   for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
-      repository.upsertEntries(entries.slice(i, i + CHUNK_SIZE), Date.now())
-      job.counts.stored = Math.min(i + CHUNK_SIZE, entries.length)
+   for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+      upsert(rows.slice(i, i + CHUNK_SIZE), Date.now())
+      job.counts.stored = Math.min(i + CHUNK_SIZE, rows.length)
       job.updatedAt = Date.now()
       await delay(0)
    }
 
-   const after = repository.countEntries()
+   const after = count()
    job.counts.inserted = after - before
    job.counts.updated = job.counts.stored - job.counts.inserted
 }
 
-function finishSyncState(repository, entries) {
+// The watermarks come from the data Kraken returned rather than from the local
+// clock, so clock drift can never move one past what was actually fetched.
+function finishLedgerState(repository) {
 
    const { first, last } = repository.entryTimeRange()
    const state = repository.readSyncState()
-   const now = Date.now()
 
-   // The watermark comes from the data Kraken returned rather than from the local
-   // clock, so clock drift can never move it past what was actually fetched.
    repository.writeSyncState({
       coveredFrom: first,
-      coveredTo: last ?? state?.coveredTo ?? null,
+      coveredTo: last ?? state?.coveredTo ?? null
+   })
+}
+
+function finishTradeState(repository, tradeRepository, startedAt) {
+
+   const { first, last } = tradeRepository.tradeTimeRange()
+   const state = repository.readSyncState()
+
+   // An account that has never traded has no last trade to derive a watermark from.
+   // Falling back to when this run started records that everything up to here was
+   // read and found empty, rather than re-requesting the whole history every sync.
+   repository.writeSyncState({
+      tradesCoveredFrom: first,
+      tradesCoveredTo: last ?? state?.tradesCoveredTo ?? startedAt
+   })
+}
+
+function finishSyncState(repository) {
+
+   const state = repository.readSyncState()
+   const now = Date.now()
+
+   repository.writeSyncState({
       firstSyncedAt: state?.firstSyncedAt ?? now,
       lastSyncedAt: now,
       lastReportId: null,
       lastError: null
    })
-
-   console.log(`Ledger sync stored ${entries.length} entries`)
 }
 
 async function removeOrphanedReports(krakenAPI) {
    try {
       const cutoff = Date.now() - ORPHAN_AGE_MS
-      const reports = await krakenAPI.fetchExportReports()
 
+      // Both types, or stale trades reports pile up against Kraken's per-account
+      // limit until AddExport starts refusing new ones.
       for (const report of reports) {
-         if (report.description?.startsWith(REPORT_PREFIX) && report.createdDate < cutoff) {
-            console.log('Removing orphaned Kraken export:', report.id)
-            await safeRemoveReport(krakenAPI, report.id)
+         const entries = await krakenAPI.fetchExportReports(report)
+
+         for (const entry of entries) {
+            if (entry.description?.startsWith(REPORT_PREFIX) && entry.createdDate < cutoff) {
+               console.log('Removing orphaned Kraken export:', entry.id)
+               await safeRemoveReport(krakenAPI, entry.id)
+            }
          }
       }
    }

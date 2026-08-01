@@ -4,18 +4,9 @@ import { Loader2Icon, RefreshCwIcon, Trash2Icon } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import Field from '../lib/field'
+import { SyncStatusBadge, phaseLabel } from './sync-status'
 import { asLongDate } from '../../../utils/format'
-
-const phaseLabels = {
-   requesting: 'Requesting export…',
-   waiting: 'Kraken is preparing the export…',
-   downloading: 'Downloading export…',
-   parsing: 'Reading entries…',
-   storing: 'Saving entries…',
-   cleaning: 'Cleaning up…'
-}
 
 const asFileSize = (bytes) => {
    if (!bytes) return '—'
@@ -28,30 +19,14 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
 
    const [confirmingClear, setConfirmingClear] = useState(false)
 
-   let statusIndicator
-   if (isRunning) {
-      statusIndicator = (
-         <span className="flex items-center gap-1.5 text-sm font-normal text-muted-foreground">
-            <Loader2Icon className="size-4 animate-spin" />
-            {phaseLabels[job.phase] ?? 'Syncing…'}
-         </span>
-      )
-   }
-   else if (job?.phase === 'error') {
-      statusIndicator = <Badge variant="destructive">Failed</Badge>
-   }
-   else if (job?.phase === 'cancelled') {
-      statusIndicator = <Badge variant="outline">Cancelled</Badge>
-   }
-   else if (job?.phase === 'done') {
-      statusIndicator = <Badge>Synced</Badge>
-   }
-   else if (state?.lastSyncedAt) {
-      statusIndicator = <Badge variant="secondary">Up to date</Badge>
-   }
-   else {
-      statusIndicator = <Badge variant="outline">Never synced</Badge>
-   }
+   // While a run is in flight the phase says more than a badge would, and it has to
+   // name the report as well: the phases repeat once per export.
+   const statusIndicator = isRunning
+      ? <span className="flex items-center gap-1.5 text-sm font-normal text-muted-foreground">
+         <Loader2Icon className="size-4 animate-spin" />
+         {phaseLabel(job)}
+      </span>
+      : <SyncStatusBadge state={state} job={job} isRunning={isRunning} />
 
    const dataRange = state?.coveredFrom && state?.coveredTo
       ? `${asLongDate(state.coveredFrom)} — ${asLongDate(state.coveredTo)}`
@@ -65,7 +40,7 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
          </CardHeader>
          <CardContent className="space-y-4">
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-6">
                <Field label="Data range">{dataRange}</Field>
                <Field
                   label="Last sync"
@@ -75,6 +50,7 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                      : 'Never'}
                </Field>
                <Field label="Entries">{(state?.entryCount ?? 0).toLocaleString('en-GB')}</Field>
+               <Field label="Trades">{(state?.tradeCount ?? 0).toLocaleString('en-GB')}</Field>
                <Field label="Database">{asFileSize(state?.dbSizeBytes)}</Field>
                <Field label="Account">
                   <span className="font-mono text-xs">{state?.apiKeyPrefix ? `${state.apiKeyPrefix}…` : '—'}</span>
@@ -129,9 +105,10 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
             </div>
 
             <p className="text-xs text-muted-foreground">
-               <b>Sync</b> fetches everything since the last entry it holds. <b>Full resync</b> re-reads
-               your whole history and refreshes entries Kraken has amended since — it never deletes
-               anything.
+               <b>Sync</b> fetches everything since the last entry it holds, for both the ledger and
+               your trade history. <b>Full resync</b> re-reads your whole history and refreshes
+               entries Kraken has amended since — it never deletes anything. <b>Clear data</b> removes
+               the entries and the trades behind the Closed Orders page.
             </p>
 
             {(error || job?.error) &&

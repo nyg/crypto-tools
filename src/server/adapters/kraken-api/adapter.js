@@ -2,6 +2,7 @@ import Big from 'big.js'
 import { unzipSync } from 'fflate'
 import * as resource from './resource'
 import { assetCategory, normalizeAsset } from './assets'
+import { buildPairIndex, resolvePair } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
 
 // Amounts are kept as the exact strings Kraken wrote. Reading them through Big and
@@ -70,39 +71,10 @@ export default function KrakenAPI(credentials) {
       return responses.flatMap(response => response.result.orders)
    }
 
-   this.fetchClosedOrders = async function ({ assetFilter, fromDate, toDate }) {
-
-      let hasNext = true, orderOffset = 0, fetchedOrderCount = 0
-      const allOrders = []
-
-      while (hasNext) {
-         const orders = await resource.fetchClosedOrders(credentials, { showTrades: true, fromDate, toDate, orderOffset })
-         const orderIds = Object.keys(orders.result.closed)
-
-         fetchedOrderCount += orderIds.length
-         hasNext = fetchedOrderCount < orders.result.count
-         orderOffset += 50
-
-         const filteredOrders = orderIds
-            .filter(orderId => assetFilter ? orders.result.closed[orderId].descr.pair.includes(assetFilter) : true)
-            .filter(orderId => Number.parseFloat(orders.result.closed[orderId].vol_exec) !== 0) // TODO
-            .map(orderId => ({
-               orderId,
-               pair: orders.result.closed[orderId].descr.pair,
-               direction: orders.result.closed[orderId].descr.type,
-               volume: Big(orders.result.closed[orderId].vol_exec),
-               cost: Big(orders.result.closed[orderId].cost),
-               price: Big(orders.result.closed[orderId].price),
-               fee: Big(orders.result.closed[orderId].fee),
-               openedDate: orders.result.closed[orderId].opentm,
-               closedDate: orders.result.closed[orderId].closetm,
-               flags: orders.result.closed[orderId].oflags
-            }))
-
-         allOrders.push(...filteredOrders)
-      }
-
-      return allOrders.toSorted((a, b) => a.openedDate - b.openedDate)
+   // Every pair Kraken lists, keyed by each of the names the exports use for it.
+   this.fetchPairIndex = async function () {
+      const assetPairs = (await resource.fetchAllAssetPairs()).result
+      return buildPairIndex(assetPairs)
    }
 
    this.fetchBalances = async function () {
@@ -138,21 +110,21 @@ export default function KrakenAPI(credentials) {
       return response.result
    }
 
-   /* Ledger export */
+   /* Export reports — 'ledgers' and 'trades' share this machinery */
 
-   this.requestLedgerExport = async function ({ description, fromDate, toDate }) {
-      const response = await resource.addExport(credentials, { description, fromDate, toDate })
+   this.requestExport = async function ({ report, description, fromDate, toDate }) {
+      const response = await resource.addExport(credentials, { report, description, fromDate, toDate })
       return response.result.id
    }
 
-   this.fetchExportReports = async function () {
-      const response = await resource.fetchExportStatus(credentials)
-      return (response.result ?? []).map(report => ({
-         id: report.id,
-         description: report.descr,
-         status: report.status,
-         createdDate: Number(report.createdtm) * 1000,
-         completedDate: Number(report.completedtm) * 1000
+   this.fetchExportReports = async function (report = 'ledgers') {
+      const response = await resource.fetchExportStatus(credentials, report)
+      return (response.result ?? []).map(entry => ({
+         id: entry.id,
+         description: entry.descr,
+         status: entry.status,
+         createdDate: Number(entry.createdtm) * 1000,
+         completedDate: Number(entry.completedtm) * 1000
       }))
    }
 
@@ -160,9 +132,9 @@ export default function KrakenAPI(credentials) {
       await resource.removeExport(credentials, { reportId, type })
    }
 
-   // Downloads the prepared report and turns it into ledger entries. Kraken answers
-   // with a zip holding a single CSV.
-   this.fetchLedgerEntries = async function (reportId) {
+   // Downloads a prepared report and returns its rows. Kraken answers with a zip
+   // holding a single CSV, whichever report was asked for.
+   const readExportRows = async function (reportId) {
 
       const archive = await resource.retrieveExport(credentials, { reportId })
 
@@ -177,7 +149,12 @@ export default function KrakenAPI(credentials) {
       }
 
       console.log('Reading export entry:', fileName)
-      const rows = parseCsv(new TextDecoder().decode(files[fileName]))
+      return parseCsv(new TextDecoder().decode(files[fileName]))
+   }
+
+   this.fetchLedgerEntries = async function (reportId) {
+
+      const rows = await readExportRows(reportId)
 
       const entries = []
       let skipped = 0
@@ -210,5 +187,56 @@ export default function KrakenAPI(credentials) {
       }
 
       return { entries, skipped }
+   }
+
+   // The trades report is what carries the order id: the ledger export has none, and
+   // a trade's txid here is the refid its two ledger entries already share.
+   this.fetchTradeEntries = async function (reportId, pairIndex) {
+
+      const rows = await readExportRows(reportId)
+
+      const trades = []
+      let skipped = 0
+
+      for (const row of rows) {
+         const time = parseCsvTime(row.time)
+         const price = asDecimalString(row.price)
+         const cost = asDecimalString(row.cost)
+         const fee = asDecimalString(row.fee)
+         const vol = asDecimalString(row.vol)
+
+         // Without a txid the row cannot be keyed, and without usable amounts it
+         // cannot be summed into an order.
+         if (!row.txid || Number.isNaN(time) || [price, cost, fee, vol].includes(null)) {
+            skipped++
+            continue
+         }
+
+         const { baseAsset, quoteAsset, pairKey } = resolvePair(row.pair, pairIndex)
+
+         trades.push({
+            txid: row.txid,
+            ordertxid: row.ordertxid ?? '',
+            // Kraken occasionally writes a trade with no order id. Grouping on the
+            // bare column would collapse every one of them into a single phantom
+            // order, so they stand alone under their own trade id instead.
+            orderKey: row.ordertxid || row.txid,
+            pair: row.pair ?? '',
+            pairKey,
+            baseAsset,
+            quoteAsset,
+            time,
+            type: row.type ?? '',
+            ordertype: row.ordertype ?? '',
+            price,
+            cost,
+            fee,
+            vol,
+            margin: asDecimalString(row.margin) ?? '0',
+            misc: row.misc ?? ''
+         })
+      }
+
+      return { trades, skipped }
    }
 }
