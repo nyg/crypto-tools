@@ -43,12 +43,3 @@ export function assetCategory(asset) {
    if (/[A-Z]+[0-9]+\.S/.test(asset)) return 'staking'
    return 'free'
 }
-
-// Allocation movements share the staking and earn ledger types but are transfers
-// rather than income, so they are not rewards.
-const nonRewardSubTypes = ['allocation', 'deallocation', 'autoallocation', 'migration']
-
-export function isStakingReward({ type, subtype }) {
-   return ['staking', 'earn'].includes(type?.toLowerCase())
-      && !nonRewardSubTypes.includes(subtype?.toLowerCase())
-}

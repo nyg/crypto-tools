@@ -1,9 +1,7 @@
 import { Hono } from 'hono'
-import Big from 'big.js'
 import LedgerRepository from '../db/ledger-repository.js'
 import { accountIdFor } from '../db/entry-key.js'
 import { dbSizeBytes } from '../db/paths.js'
-import { isStakingReward } from '../adapters/kraken-api/assets.js'
 import { jobFor, isRunning, requestCancel, startSync } from '../services/kraken-ledger-sync.js'
 
 const app = new Hono()
@@ -76,60 +74,6 @@ app.post('/entries', async (c) => withAccount(c, ({ body, repository }) =>
 
 app.post('/filters', async (c) => withAccount(c, ({ repository }) =>
    c.json(repository.distinctFilters())))
-
-app.post('/summary', async (c) => withAccount(c, ({ body, repository }) => {
-
-   const rows = repository.summaryRows(body.filters)
-
-   // Totals are reduced with Big rather than summed in SQL: the amounts are stored
-   // as text precisely so that no step of this goes through a float.
-   const byAsset = rows.reduce((assets, row) => {
-      const asset = assets[row.baseAsset] ??= {
-         asset: row.baseAsset, count: 0,
-         netAmount: Big(0), feeTotal: Big(0), rewardAmount: Big(0)
-      }
-
-      asset.count++
-      asset.netAmount = asset.netAmount.plus(row.amount).minus(row.fee)
-      asset.feeTotal = asset.feeTotal.plus(row.fee)
-      if (isStakingReward(row)) {
-         asset.rewardAmount = asset.rewardAmount.plus(row.amount).minus(row.fee)
-      }
-
-      return assets
-   }, {})
-
-   const balances = repository.latestBalances().reduce((balances, row) => {
-      balances[row.baseAsset] = (balances[row.baseAsset] ?? Big(0)).plus(row.balance || 0)
-      return balances
-   }, {})
-
-   const types = rows.reduce((types, row) => {
-      types[row.type] = (types[row.type] ?? 0) + 1
-      return types
-   }, {})
-
-   const assets = Object.values(byAsset)
-      .map(asset => ({
-         asset: asset.asset,
-         count: asset.count,
-         netAmount: asset.netAmount.toFixed(),
-         feeTotal: asset.feeTotal.toFixed(),
-         rewardAmount: asset.rewardAmount.toFixed(),
-         balance: balances[asset.asset]?.toFixed() ?? null
-      }))
-      .toSorted((a, b) => b.count - a.count)
-
-   const { first, last } = repository.entryTimeRange()
-
-   return c.json({
-      totals: { entryCount: rows.length, assetCount: assets.length, from: first, to: last },
-      assets,
-      types: Object.entries(types)
-         .map(([type, count]) => ({ type, count }))
-         .toSorted((a, b) => b.count - a.count)
-   })
-}))
 
 app.post('/clear', async (c) => withAccount(c, ({ accountId, repository }) => {
 

@@ -105,7 +105,7 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
 
             <div className="flex flex-wrap items-center gap-2">
                <Button size="sm" type="button" disabled={isRunning || isStarting} onClick={onSync}>
-                  <RefreshCwIcon />
+                  <RefreshCwIcon className="size-3.5" />
                   Sync
                </Button>
                <Button variant="secondary" size="sm" type="button" disabled={isRunning || isStarting} onClick={onFullResync}>
@@ -131,7 +131,7 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                      }
                   }}
                   onBlur={() => setConfirmingClear(false)}>
-                  <Trash2Icon />
+                  <Trash2Icon className="size-3.5" />
                   {confirmingClear ? 'Click again to confirm' : 'Clear data'}
                </Button>
             </div>

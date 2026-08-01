@@ -115,7 +115,7 @@ export default function LedgerTable({ entries, sort, onSortChange, onPageChange,
                   aria-label="Previous page"
                   disabled={page === 0}
                   onClick={() => onPageChange(page - 1)}>
-                  <ChevronLeftIcon />
+                  <ChevronLeftIcon className="size-4" />
                </Button>
                <Button
                   variant="ghost"
@@ -124,7 +124,7 @@ export default function LedgerTable({ entries, sort, onSortChange, onPageChange,
                   aria-label="Next page"
                   disabled={lastRow >= total}
                   onClick={() => onPageChange(page + 1)}>
-                  <ChevronRightIcon />
+                  <ChevronRightIcon className="size-4" />
                </Button>
             </div>
          </div>

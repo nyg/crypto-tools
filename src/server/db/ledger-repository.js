@@ -93,26 +93,6 @@ export default function LedgerRepository(accountId) {
       return { rows, total, page, pageSize }
    }
 
-   this.summaryRows = function (filters = {}) {
-      const { where, params } = buildWhere(accountId, filters)
-      return db.query(`
-         SELECT base_asset AS baseAsset, type, subtype, amount, fee
-         FROM ledger_entry WHERE ${where}`).all(...params)
-   }
-
-   // The newest entry per asset and wallet carries the running balance Kraken
-   // reported at that point, which is the closest thing the export has to a balance.
-   this.latestBalances = function () {
-      return db.query(`
-         SELECT baseAsset, wallet, balance, time FROM (
-            SELECT base_asset AS baseAsset, wallet, balance, time,
-                   ROW_NUMBER() OVER (
-                      PARTITION BY asset, wallet ORDER BY time DESC, entry_key DESC) AS position
-            FROM ledger_entry
-            WHERE account_id = ? AND balance <> '')
-         WHERE position = 1`).all(accountId)
-   }
-
    this.distinctFilters = function () {
       const column = name => db
          .query(`SELECT DISTINCT ${name} AS value FROM ledger_entry

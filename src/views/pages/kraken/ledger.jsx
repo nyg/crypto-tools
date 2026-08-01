@@ -1,17 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import useSWRMutation from 'swr/mutation'
 import { InfoIcon, Loader2Icon, TriangleAlertIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import LedgerSyncCard from '../../components/kraken/ledger-sync-card'
-import LedgerSummaryCard from '../../components/kraken/ledger-summary-card'
 import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
 import LedgerTable from '../../components/kraken/ledger-table'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 20
 
 const terminalPhases = ['done', 'error', 'cancelled']
 const isJobRunning = job => Boolean(job) && !terminalPhases.includes(job.phase)
@@ -70,10 +69,6 @@ export default function KrakenLedger() {
 
    const { data: filterOptions } = useSWR(
       account ? ['/api/kraken/ledger/filters', { credentials: account }] : null)
-
-   const { data: summary } = useSWR(
-      account ? ['/api/kraken/ledger/summary', { credentials: account, filters }] : null,
-      { keepPreviousData: true })
 
    const { data: entries, isLoading } = useSWR(
       account ? ['/api/kraken/ledger/entries', { credentials: account, filters, sort, page, pageSize: PAGE_SIZE }] : null,
@@ -151,8 +146,6 @@ export default function KrakenLedger() {
                onFullResync={() => sync('full')}
                onCancel={() => cancelSync({ credentials: account }).catch(() => {})}
                onClear={() => clearLedger({ credentials: account }).then(refreshLedger).catch(() => {})} />
-
-            <LedgerSummaryCard summary={summary} />
 
             <Card>
                <CardHeader>
