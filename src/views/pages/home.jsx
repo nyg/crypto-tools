@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { CoinsIcon, HistoryIcon, KeyRoundIcon, LayersIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import { CoinsIcon, HistoryIcon, KeyRoundIcon, LayersIcon, ScrollTextIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 import Layout from '../components/layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -21,6 +21,12 @@ const toolGroups = [
             title: 'Closed Orders',
             description: 'Review executed orders over a time period, with totals per pair.',
             icon: HistoryIcon
+         },
+         {
+            href: '/kraken/ledger',
+            title: 'Ledger',
+            description: 'Sync your full ledger to a local database and browse it.',
+            icon: ScrollTextIcon
          },
          {
             href: '/kraken/balances',

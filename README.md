@@ -10,6 +10,7 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 
 - **Order Batch** — Create multiple buy or sell post-limit orders for a trading pair with configurable price and volume distribution functions. Supports dry-run mode for safe testing.
 - **Closed Orders** — View and filter closed orders by asset and date range. Displays buy and sell orders grouped by trading pair with volume, cost, and average price summaries.
+- **Ledger** — Download your complete ledger (trades, deposits, withdrawals, staking and earn rewards) through Kraken's export report endpoints and keep it in a local SQLite database, so other tools can use it without querying the API again. Syncs incrementally, and shows the stored date range, last sync time and entry count alongside a filterable table of entries.
 - **Balances** — View spot and staking account balances.
 - **xStocks** — AI-powered classification of Kraken tokenized assets (stocks and ETFs) using Anthropic Claude. Generates descriptions with configurable word count and supports filtering by asset type.
 
@@ -153,6 +154,12 @@ The home page links to every tool; the top menu bar switches between exchanges a
 
 API keys for Kraken, Binance, and Anthropic can be configured on the **Settings** page (stored in `localStorage`) or via environment variables (`VITE_*`).
 
+Prefer a dedicated Kraken API key for this app. Kraken requires nonces to increase on every private call for a given key, so sharing one key between two applications making concurrent requests can make either of them fail with `EAPI:Invalid nonce`.
+
+### Ledger storage
+
+The Ledger page stores its data in a SQLite database in the per-user application data directory — `~/Library/Application Support/CryptoTools` on macOS, `%APPDATA%\CryptoTools` on Windows, `$XDG_DATA_HOME/CryptoTools` on Linux. Set `CRYPTO_TOOLS_DATA_DIR` to override it. `bun run dev` writes to `ledger-dev.db` so it never touches the installed app's data. Nothing is uploaded anywhere; deleting the file (or using **Clear data**) simply means the next sync downloads everything again.
+
 ## Project Structure
 
 ```
@@ -161,8 +168,9 @@ src/
 ├── server/             Hono API server (runs on Bun)
 │   ├── adapters/       External API adapters (Binance, Kraken, Anthropic)
 │   │   └── http-requester/  HTTP transport abstraction
-│   ├── routes/         Hono route handlers (binance.js, kraken.js)
-│   └── services/       Business logic (rate finder using Dijkstra's algorithm)
+│   ├── db/             SQLite storage for the Kraken ledger (bun:sqlite)
+│   ├── routes/         Hono route handlers (binance.js, kraken.js, kraken-ledger.js)
+│   └── services/       Business logic (rate finder, Kraken ledger sync)
 ├── utils/              Shared utility functions (crypto, formatting, event bus)
 └── views/              React frontend (built by Vite)
     ├── components/     React components

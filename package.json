@@ -39,6 +39,7 @@
       "clsx": "2.1.1",
       "cmdk": "^1.1.1",
       "date-fns": "4.4.0",
+      "fflate": "0.8.3",
       "hono": "4.12.32",
       "lucide-react": "1.27.0",
       "modern-dijkstra": "1.1.2",

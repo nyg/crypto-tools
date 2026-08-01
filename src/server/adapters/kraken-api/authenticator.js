@@ -2,10 +2,20 @@ import { createHash, createHmac } from 'crypto'
 import { stringify } from 'qs'
 
 
+// Kraken requires strictly increasing nonces per API key. Date.now() on its own
+// collides whenever two private calls land in the same millisecond, which the
+// ledger sync's status polling makes routine.
+let lastNonce = 0
+
+function nextNonce() {
+   lastNonce = Math.max(Date.now(), lastNonce + 1)
+   return lastNonce
+}
+
 function RequestPayload({ apiKey, apiSecret }, params, path) {
 
    this.payload = {
-      nonce: Date.now(),
+      nonce: nextNonce(),
       ...params
    }
 

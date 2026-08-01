@@ -35,9 +35,11 @@ Vite proxies all `/api/*` requests to the Hono server during development. In pro
 
 A single HTTP requester (`src/server/adapters/http-requester/server-http-requester.js`) abstracts the transport layer using Bun's native `fetch`. It exports `httpRequester` as a pre-instantiated singleton.
 
-**Routes** (`src/server/routes/`) — Hono route handlers, one file per exchange (`binance.js`, `kraken.js`). Each route destructures credentials from the request body, validates they exist (401 if missing), instantiates the appropriate adapter, and returns JSON.
+**Routes** (`src/server/routes/`) — Hono route handlers, one file per exchange (`binance.js`, `kraken.js`). Each route destructures credentials from the request body, validates they exist (401 if missing), instantiates the appropriate adapter, and returns JSON. Sub-routers are mounted from within their exchange's file (`kraken.js` mounts `kraken-ledger.js` at `/ledger`) rather than in the server entry points, because `app.js` and `index.js` each declare their own route table and only one of them runs in a given environment.
 
-**Services** (`src/server/services/`) — `rate-finder.js` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT.
+**Database** (`src/server/db/`) — SQLite storage for the Kraken ledger via `bun:sqlite`. `paths.js` resolves a per-user OS application data directory (never a cwd-relative path: the desktop app launches from Finder, where `process.cwd()` is `/`). `database.js` opens a lazy singleton and applies `PRAGMA user_version`-based migrations. `ledger-repository.js` is a constructor function scoped to one `account_id`, derived from a hash of the API key so that several Kraken accounts can be stored side by side. Amounts are stored as the exact decimal strings the API returned, never as floats or via `Big`, which would rewrite small values in exponential notation.
+
+**Services** (`src/server/services/`) — `rate-finder.js` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT. `kraken-ledger-sync.js` runs the multi-step ledger export as a background job held in an in-memory registry keyed by account, which the page follows by polling a status endpoint.
 
 **Utils** (`src/utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`).
 
@@ -46,7 +48,7 @@ A single HTTP requester (`src/server/adapters/http-requester/server-http-request
 ### Data Flow
 
 1. Pages fetch data via SWR. Public/read-only data uses `useSWR` (auto-fetch); authenticated operations use `useSWRMutation` (manual trigger).
-2. The global SWR fetcher in `src/views/app.jsx` routes GET vs POST based on the presence of `params.arg`.
+2. The global SWR fetcher in `src/views/app.jsx` accepts either a string key or an `[url, body]` array key, and POSTs whenever a body is present (from the array key, or from `params.arg` for `useSWRMutation`). Array keys are how a `useSWR` call — which never receives an `arg` — can still send credentials in a request body.
 3. Hono route handlers destructure credentials from `req.body.credentials`, validate they exist (401 if missing), instantiate the appropriate adapter, and return JSON.
 4. API keys are stored in `localStorage` per provider (e.g. `binance.api.key`, `kraken.api.secret`) with fallback to `VITE_*` env vars. Always guard localStorage access with `typeof window !== 'undefined'`.
 

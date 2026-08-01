@@ -2,8 +2,13 @@ import { Hono } from 'hono'
 import Big from 'big.js'
 import KrakenAPI from '../adapters/kraken-api/adapter.js'
 import AnthropicAPI from '../adapters/anthropic/adapter.js'
+import ledgerRoutes from './kraken-ledger.js'
 
 const app = new Hono()
+
+// Mounted here rather than in the server entry points, which each declare their own
+// route table: adding it in only one of them would 404 in the other runtime.
+app.route('/ledger', ledgerRoutes)
 
 app.post('/balances', async (c) => {
 
