@@ -1,9 +1,13 @@
 // Deterministic pseudo-random source, so the fixture is identical across reloads.
+// The low bits of a linear congruential generator cycle far too quickly to be taken
+// modulo anything — the lowest one alternates every draw, so `state % 10` came out
+// even nine times out of ten and the rarer entry types never appeared. The draw is
+// taken from the high bits instead.
 function randomizer(seed) {
    let state = seed
    return (max) => {
       state = (state * 1103515245 + 12345) % 2147483648
-      return state % max
+      return Math.floor(state / 65536) % max
    }
 }
 
@@ -50,8 +54,10 @@ function buildEntries() {
             asset, baseAsset, wallet: 'earn', amount: (random(100000) / 10000).toFixed(8), balance })
       }
       else if (roll < 9) {
+         // Kraken charges on some fiat funding methods, so deposits carry a fee too.
          push({ txid: `L${i}`, refid: `DP${i}`, time, type: 'deposit',
-            asset: 'ZUSD', baseAsset: 'USD', amount: `${500 + random(4500)}.0000`, balance })
+            asset: 'ZUSD', baseAsset: 'USD', amount: `${500 + random(4500)}.0000`,
+            fee: (random(600) / 100).toFixed(4), balance })
       }
       else {
          push({ txid: `L${i}`, refid: `WD${i}`, time, type: 'withdrawal',
@@ -206,6 +212,61 @@ export function ledgerEntries(body = {}) {
    const pageSize = body.pageSize ?? 50
 
    return { rows: sorted.slice(page * pageSize, (page + 1) * pageSize), total: filtered.length, page, pageSize }
+}
+
+// Mirrors LedgerRepository.feeSummary: same groupings, same shape, computed over the
+// fixture so the page exercises its real rendering rather than a canned response.
+export function ledgerFees(body = {}) {
+
+   const charged = applyFilters(body.filters).filter(entry => Number(entry.fee) !== 0)
+
+   const group = (keyOf) => {
+      const groups = new Map()
+      for (const entry of charged) {
+         const key = keyOf(entry)
+         const group = groups.get(key)
+            ?? { total: 0, entries: 0, first: entry.time, last: entry.time }
+         group.total += Number(entry.fee)
+         group.entries += 1
+         group.first = Math.min(group.first, entry.time)
+         group.last = Math.max(group.last, entry.time)
+         groups.set(key, group)
+      }
+      return groups
+   }
+
+   const monthOf = entry => new Date(entry.time).toISOString().slice(0, 7)
+
+   const assets = [...group(entry => entry.baseAsset)]
+      .map(([asset, group]) => ({ asset, ...group }))
+      .toSorted((a, b) => b.entries - a.entries || a.asset.localeCompare(b.asset))
+
+   const byType = [...group(entry => `${entry.baseAsset}|${entry.type}`)]
+      .map(([key, group]) => ({ asset: key.split('|')[0], type: key.split('|')[1], total: group.total, entries: group.entries }))
+      .toSorted((a, b) => b.entries - a.entries)
+
+   const byMonth = [...group(entry => `${monthOf(entry)}|${entry.baseAsset}|${entry.type}`)]
+      .map(([key, group]) => {
+         const [month, asset, type] = key.split('|')
+         return { month, asset, type, total: group.total, entries: group.entries }
+      })
+      .toSorted((a, b) => a.month.localeCompare(b.month))
+
+   // Ranked per asset, like the SQL window function does.
+   const largest = assets.flatMap(({ asset }) => charged
+      .filter(entry => entry.baseAsset === asset)
+      .toSorted((a, b) => Number(b.fee) - Number(a.fee))
+      .slice(0, 10))
+
+   return {
+      assets,
+      byType,
+      byMonth,
+      largest,
+      entries: charged.length,
+      first: charged.length > 0 ? Math.min(...charged.map(entry => entry.time)) : null,
+      last: charged.length > 0 ? Math.max(...charged.map(entry => entry.time)) : null
+   }
 }
 
 export function ledgerFilters() {

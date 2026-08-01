@@ -75,6 +75,9 @@ app.post('/entries', async (c) => withAccount(c, ({ body, repository }) =>
 app.post('/filters', async (c) => withAccount(c, ({ repository }) =>
    c.json(repository.distinctFilters())))
 
+app.post('/fees', async (c) => withAccount(c, ({ body, repository }) =>
+   c.json(repository.feeSummary(body.filters))))
+
 app.post('/clear', async (c) => withAccount(c, ({ accountId, repository }) => {
 
    if (isRunning(jobFor(accountId))) {
