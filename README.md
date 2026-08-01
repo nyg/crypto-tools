@@ -11,6 +11,7 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 - **Order Batch** — Create multiple buy or sell post-limit orders for a trading pair with configurable price and volume distribution functions. Supports dry-run mode for safe testing.
 - **Closed Orders** — View and filter closed orders by asset and date range. Displays buy and sell orders grouped by trading pair with volume, cost, and average price summaries.
 - **Ledger** — Download your complete ledger (trades, deposits, withdrawals, staking and earn rewards) through Kraken's export report endpoints and keep it in a local SQLite database, so other tools can use it without querying the API again. Syncs incrementally, and shows the stored date range, last sync time and entry count alongside a filterable table of entries.
+- **Fees** — Dashboard of everything Kraken has charged since the account was opened — trade fees, withdrawal fees and anything else the ledger records — read from the local database. Totals per asset, a breakdown by ledger entry type, and a stacked chart over time by month, quarter or year. Fees are kept in the asset they were charged in and never converted between currencies.
 - **Balances** — View spot and staking account balances.
 - **xStocks** — AI-powered classification of Kraken tokenized assets (stocks and ETFs) using Anthropic Claude. Generates descriptions with configurable word count and supports filtering by asset type.
 

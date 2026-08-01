@@ -4,6 +4,7 @@ import Layout from '../layout'
 
 const tabs = [
    { label: 'Ledger', href: '/kraken/ledger' },
+   { label: 'Fees', href: '/kraken/fees' },
    { label: 'Order Batch', href: '/kraken/order-batch' },
    { label: 'Closed Orders', href: '/kraken/closed-orders' },
    { label: 'Balances', href: '/kraken/balances' },
