@@ -1,5 +1,11 @@
 import { createHash } from 'crypto'
 
+// A partition key rather than a credential digest: it keeps the rows of two
+// Kraken accounts apart in the same local database, and nothing is ever verified
+// against it. A slow key derivation function would add nothing here — the input
+// is a high-entropy random API key rather than a guessable password, the
+// plaintext already sits beside it in localStorage, and this runs on every
+// request. Static analysis tends to read it as password hashing; it isn't.
 export function accountIdFor(apiKey) {
    return createHash('sha256').update(apiKey ?? '').digest('hex').slice(0, 16)
 }
