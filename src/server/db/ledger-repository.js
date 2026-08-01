@@ -10,6 +10,12 @@ const sortableColumns = {
    type: 'type'
 }
 
+// Kraken charges a fee on the row it belongs to, in that row's own asset, so every
+// aggregate below stays grouped by base_asset — there is nothing to convert between.
+// Fees are stored as the exact decimal strings the export returned; casting to REAL
+// is only ever done to add them up for display, never written back to a row.
+const nonZeroFee = 'CAST(fee AS REAL) <> 0'
+
 const upsertStatement = `
    INSERT INTO ledger_entry (
       account_id, entry_key, txid, refid, time, type, subtype, aclass,
@@ -100,6 +106,61 @@ export default function LedgerRepository(accountId) {
          .all(accountId).map(row => row.value)
 
       return { assets: column('base_asset'), types: column('type'), wallets: column('wallet') }
+   }
+
+   this.feeSummary = function (filters = {}) {
+
+      const built = buildWhere(accountId, filters)
+      const where = `${built.where} AND ${nonZeroFee}`
+      const params = built.params
+
+      const assets = db.query(`
+         SELECT base_asset AS asset, SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries,
+                MIN(time) AS first, MAX(time) AS last
+         FROM ledger_entry
+         WHERE ${where}
+         GROUP BY base_asset
+         ORDER BY entries DESC, asset`).all(...params)
+
+      const byType = db.query(`
+         SELECT base_asset AS asset, type, SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
+         FROM ledger_entry
+         WHERE ${where}
+         GROUP BY base_asset, type
+         ORDER BY entries DESC`).all(...params)
+
+      // Months are the finest bucket returned; quarters and years are rolled up from
+      // them on the page, so changing the granularity costs no request.
+      // time is in milliseconds, and integer division by 1000 gives the seconds
+      // strftime expects; 'unixepoch' keeps the bucket in UTC like every other date here.
+      const byMonth = db.query(`
+         SELECT strftime('%Y-%m', time / 1000, 'unixepoch') AS month,
+                base_asset AS asset, type,
+                SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
+         FROM ledger_entry
+         WHERE ${where}
+         GROUP BY month, base_asset, type
+         ORDER BY month`).all(...params)
+
+      // Ranked per asset rather than overall: a fee of 5000 DOGE is not "bigger" than
+      // one of 100 EUR, so the page shows the ranking for the asset being looked at.
+      const largest = db.query(`
+         SELECT time, type, subtype, asset, baseAsset, wallet, fee, refid, txid FROM (
+            SELECT time, type, subtype, asset, base_asset AS baseAsset, wallet, fee, refid, txid,
+                   ROW_NUMBER() OVER (PARTITION BY base_asset ORDER BY CAST(fee AS REAL) DESC) AS feeRank
+            FROM ledger_entry
+            WHERE ${where})
+         WHERE feeRank <= 10`).all(...params)
+
+      return {
+         assets,
+         byType,
+         byMonth,
+         largest,
+         entries: assets.reduce((count, asset) => count + asset.entries, 0),
+         first: assets.length > 0 ? Math.min(...assets.map(asset => asset.first)) : null,
+         last: assets.length > 0 ? Math.max(...assets.map(asset => asset.last)) : null
+      }
    }
 
    this.readSyncState = function () {

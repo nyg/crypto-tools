@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { CoinsIcon, HistoryIcon, KeyRoundIcon, LayersIcon, ScrollTextIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import { CoinsIcon, HistoryIcon, KeyRoundIcon, LayersIcon, ReceiptIcon, ScrollTextIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 import Layout from '../components/layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -27,6 +27,12 @@ const toolGroups = [
             title: 'Ledger',
             description: 'Sync your full ledger and trade history to a local database and browse it.',
             icon: ScrollTextIcon
+         },
+         {
+            href: '/kraken/fees',
+            title: 'Fees',
+            description: 'Everything Kraken has charged you, totalled per asset and over time.',
+            icon: ReceiptIcon
          },
          {
             href: '/kraken/balances',

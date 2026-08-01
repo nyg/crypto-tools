@@ -17,6 +17,15 @@ export function asDecimal(number, decimalCount = 2) {
    return new Intl.NumberFormat(locales, options).format(number)
 }
 
+// Asset amounts run from fiat totals down to satoshis, so the precision follows the
+// magnitude rather than being fixed: 1 234.56 stays readable and 0.00000420 survives.
+export function asAssetAmount(number) {
+   const magnitude = Math.abs(number)
+   if (magnitude >= 1) return asDecimal(number, 2)
+   if (magnitude >= 0.01) return asDecimal(number, 4)
+   return asDecimal(number, 8)
+}
+
 export function asDecimalOne(number) {
    return decimalOneFormatter.format(number)
 }

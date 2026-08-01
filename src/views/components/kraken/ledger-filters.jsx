@@ -10,7 +10,9 @@ export const defaultFilters = { asset: '', type: '', wallet: '', from: null, to:
 // Changing the filters from outside (Reset, or clicking a reference in the table)
 // remounts this component through its key, so the search box needs no separate
 // effect to stay in step with the filters it was given.
-export default function LedgerFilters({ filters, options, onChange, onReset }) {
+// showSearch is off on aggregate views, where narrowing to a single transaction id
+// says nothing.
+export default function LedgerFilters({ filters, options, onChange, onReset, showSearch = true }) {
 
    const [search, setSearch] = useState(filters.search)
 
@@ -24,11 +26,11 @@ export default function LedgerFilters({ filters, options, onChange, onReset }) {
    const update = (changes) => onChange({ ...filters, ...changes })
 
    const isFiltered = filters.asset || filters.type || filters.wallet
-      || filters.from || filters.to || filters.search
+      || filters.from || filters.to || (showSearch && filters.search)
 
    return (
       <div className="space-y-3">
-         <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-6">
+         <div className={`grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 ${showSearch ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
 
             <ComboboxField
                name="ledger-asset"
@@ -69,11 +71,12 @@ export default function LedgerFilters({ filters, options, onChange, onReset }) {
                value={asDateInput(filters.to)}
                onChange={(e) => update({ to: toDateValue(e.target.value) })} />
 
-            <Input
-               name="ledger-search"
-               label="Search id"
-               value={search}
-               onChange={(e) => setSearch(e.target.value)} />
+            {showSearch &&
+               <Input
+                  name="ledger-search"
+                  label="Search id"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)} />}
 
          </div>
 

@@ -4,6 +4,7 @@ import { Loader2Icon, RefreshCwIcon, Trash2Icon } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import Field from '../lib/field'
 import { SyncStatusBadge, phaseLabel } from './sync-status'
 import { asLongDate } from '../../../utils/format'
 
@@ -12,15 +13,6 @@ const asFileSize = (bytes) => {
    const units = ['B', 'kB', 'MB', 'GB']
    const exponent = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
    return `${(bytes / 1024 ** exponent).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`
-}
-
-function Field({ label, children, title }) {
-   return (
-      <div className="space-y-0.5">
-         <p className="text-xs text-muted-foreground">{label}</p>
-         <p className="text-sm tabular-nums" title={title}>{children}</p>
-      </div>
-   )
 }
 
 export default function LedgerSyncCard({ state, job, isRunning, error, isStarting, onSync, onFullResync, onCancel, onClear }) {
