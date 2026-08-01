@@ -6,6 +6,7 @@ import Settings from './pages/settings'
 import BinanceStaking from './pages/binance/staking'
 import KrakenBalances from './pages/kraken/balances'
 import KrakenClosedOrders from './pages/kraken/closed-orders'
+import KrakenLedger from './pages/kraken/ledger'
 import KrakenOrderBatch from './pages/kraken/order-batch'
 import KrakenXStocks from './pages/kraken/xstocks'
 
@@ -22,18 +23,24 @@ if (isMockMode) {
    import('./mocks').then(({ initMockCredentials }) => initMockCredentials())
 }
 
-async function fetcher(url, params) {
+async function fetcher(key, params) {
+
+   // SWR hands the whole key to the fetcher: a plain string, or the array itself for
+   // array keys. useSWRMutation passes the body separately as { arg }. An array key
+   // is how a useSWR call (which has no arg) can still POST a request body.
+   const url = Array.isArray(key) ? key[0] : key
+   const body = Array.isArray(key) ? key[1] : params?.arg
 
    if (isMockMode) {
       const { mockFetcher } = await import('./mocks')
-      return mockFetcher(url, params)
+      return mockFetcher(url, body ? { arg: body } : undefined)
    }
 
    let response
-   if (params?.arg) {
+   if (body) {
       response = await fetch(API_BASE + url, {
          method: 'POST',
-         body: JSON.stringify(params.arg),
+         body: JSON.stringify(body),
          headers: { 'Content-Type': 'application/json' }
       })
    }
@@ -60,6 +67,7 @@ export default function App() {
                <Route path="/binance/staking" element={<BinanceStaking />} />
                <Route path="/kraken/balances" element={<KrakenBalances />} />
                <Route path="/kraken/closed-orders" element={<KrakenClosedOrders />} />
+               <Route path="/kraken/ledger" element={<KrakenLedger />} />
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
                <Route path="/kraken/xstocks" element={<KrakenXStocks />} />
                <Route path="*" element={<Navigate to="/" replace />} />

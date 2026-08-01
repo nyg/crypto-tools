@@ -12,6 +12,11 @@ const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
 const closedOrdersEndpoint = '/0/private/ClosedOrders'
 
+const addExportEndpoint = '/0/private/AddExport'
+const exportStatusEndpoint = '/0/private/ExportStatus'
+const retrieveExportEndpoint = '/0/private/RetrieveExport'
+const removeExportEndpoint = '/0/private/RemoveExport'
+
 /* Public endpoints */
 
 export async function fetchAssetInfo(type = 'currency') {
@@ -45,6 +50,49 @@ export async function fetchClosedOrders(apiCrendentials, { showTrades, fromDate,
          }
       }
    )
+}
+
+/* Export report endpoints, used to fetch the full ledger in one go */
+
+export async function addExport(apiCredentials, { description, fromDate, toDate }) {
+   return await httpRequester.private(
+      urlFor(addExportEndpoint),
+      authenticator(apiCredentials),
+      {
+         method: 'POST',
+         bodyParams: {
+            report: 'ledgers',
+            format: 'CSV',
+            fields: 'all',
+            description,
+            // Kraken expects seconds here, not milliseconds.
+            starttm: Math.floor(fromDate / 1000),
+            // endtm is deliberately left out so that Kraken decides where "now" is.
+            ...(toDate ? { endtm: Math.floor(toDate / 1000) } : {})
+         }
+      }
+   )
+}
+
+export async function fetchExportStatus(apiCredentials) {
+   return await httpRequester.private(
+      urlFor(exportStatusEndpoint),
+      authenticator(apiCredentials),
+      { method: 'POST', bodyParams: { report: 'ledgers' } })
+}
+
+export async function retrieveExport(apiCredentials, { reportId }) {
+   return await httpRequester.private(
+      urlFor(retrieveExportEndpoint),
+      authenticator(apiCredentials),
+      { method: 'POST', bodyParams: { id: reportId }, responseType: 'binary' })
+}
+
+export async function removeExport(apiCredentials, { reportId, type = 'delete' }) {
+   return await httpRequester.private(
+      urlFor(removeExportEndpoint),
+      authenticator(apiCredentials),
+      { method: 'POST', bodyParams: { id: reportId, type } })
 }
 
 export async function createOrderBatch(apiCredentials, { pair, direction, dryRun, orders }) {
