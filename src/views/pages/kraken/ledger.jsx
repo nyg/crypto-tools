@@ -145,7 +145,7 @@ export default function KrakenLedger() {
                onSync={() => sync('incremental')}
                onFullResync={() => sync('full')}
                onCancel={() => cancelSync({ credentials: account }).catch(() => {})}
-               onClear={() => clearLedger({ credentials: account }).then(refreshLedger).catch(() => {})} />
+               onClear={() => clearLedger({ credentials: account }).then(refreshStoredData).catch(() => {})} />
 
             <Card>
                <CardHeader>
