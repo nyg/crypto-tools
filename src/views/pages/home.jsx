@@ -19,13 +19,13 @@ const toolGroups = [
          {
             href: '/kraken/closed-orders',
             title: 'Closed Orders',
-            description: 'Review executed orders over a time period, with totals per pair.',
+            description: 'Browse the orders that filled, rebuilt from your stored trade history.',
             icon: HistoryIcon
          },
          {
             href: '/kraken/ledger',
             title: 'Ledger',
-            description: 'Sync your full ledger to a local database and browse it.',
+            description: 'Sync your full ledger and trade history to a local database and browse it.',
             icon: ScrollTextIcon
          },
          {

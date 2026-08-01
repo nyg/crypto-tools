@@ -1,3 +1,5 @@
+import { tradeCount, orderCount, allTradeCount, clearTrades, restoreTrades } from './kraken-trades'
+
 // Deterministic pseudo-random source, so the fixture is identical across reloads.
 function randomizer(seed) {
    let state = seed
@@ -70,6 +72,8 @@ let syncState = {
    apiKeyPrefix: 'MOCKKEY1',
    coveredFrom: entries[0].time,
    coveredTo: entries.at(-1).time,
+   tradesCoveredFrom: entries[0].time,
+   tradesCoveredTo: entries.at(-1).time,
    firstSyncedAt: Date.now() - 6 * 86400000,
    lastSyncedAt: Date.now() - 3600000,
    lastReportId: null,
@@ -78,16 +82,24 @@ let syncState = {
 }
 
 // Phases are derived from elapsed time so that mocked mode drives the real polling
-// loop and shows the whole progression rather than jumping straight to done.
+// loop and shows the whole progression rather than jumping straight to done. A run
+// walks them twice, once per export report, as the server does.
 const schedule = [
-   [0, 'requesting', 'Queued'],
-   [1500, 'waiting', 'Processing'],
-   [7000, 'downloading', 'Processed'],
-   [8500, 'parsing', 'Processed'],
-   [9500, 'storing', 'Processed'],
-   [10500, 'cleaning', 'Processed'],
-   [11000, 'done', 'Processed']
+   [0, 'requesting', 'Queued', 'ledgers'],
+   [1500, 'waiting', 'Processing', 'ledgers'],
+   [7000, 'downloading', 'Processed', 'ledgers'],
+   [8500, 'parsing', 'Processed', 'ledgers'],
+   [9500, 'storing', 'Processed', 'ledgers'],
+   [10500, 'requesting', 'Queued', 'trades'],
+   [12000, 'waiting', 'Processing', 'trades'],
+   [16000, 'downloading', 'Processed', 'trades'],
+   [17000, 'parsing', 'Processed', 'trades'],
+   [18000, 'storing', 'Processed', 'trades'],
+   [19000, 'cleaning', 'Processed', 'trades'],
+   [19500, 'done', 'Processed', 'trades']
 ]
+
+const SYNC_MS = 19500
 
 let job = null
 
@@ -99,21 +111,26 @@ function currentJob() {
       return { ...job, phase: 'cancelled', finishedAt: job.startedAt + elapsed }
    }
 
-   const [, phase, reportStatus] = schedule.findLast(([at]) => elapsed >= at) ?? schedule[0]
-   const parsed = phase === 'requesting' || phase === 'waiting' ? 0 : allEntries.length
+   const [, phase, reportStatus, report] = schedule.findLast(([at]) => elapsed >= at) ?? schedule[0]
+
+   // Counts belong to the report in flight, so they restart when the second one does.
+   const rowCount = report === 'trades' ? allTradeCount() : allEntries.length
+   const parsed = phase === 'requesting' || phase === 'waiting' ? 0 : rowCount
 
    return {
       ...job,
       phase,
+      report,
       reportStatus,
+      reportIds: { ledgers: job.reportId, trades: 'TCWJRA-9KLMN-QRSTU' },
       pollCount: Math.floor(elapsed / 1500),
       updatedAt: Date.now(),
-      finishedAt: phase === 'done' ? job.startedAt + 11000 : null,
+      finishedAt: phase === 'done' ? job.startedAt + SYNC_MS : null,
       counts: {
          parsed,
-         stored: ['storing', 'cleaning', 'done'].includes(phase) ? allEntries.length : 0,
+         stored: ['storing', 'cleaning', 'done'].includes(phase) ? rowCount : 0,
          inserted: phase === 'done' ? (job.mode === 'full' ? 0 : 3) : 0,
-         updated: phase === 'done' ? allEntries.length : 0,
+         updated: phase === 'done' ? rowCount : 0,
          skipped: 0
       }
    }
@@ -141,8 +158,12 @@ export function ledgerSync(body) {
 export function ledgerSyncStatus() {
    const current = currentJob()
 
+   // A sync after a clear puts the fixture back, so the mocked pages can be emptied
+   // and refilled rather than staying blank for the rest of the session.
    if (current?.phase === 'done') {
       syncState = { ...syncState, lastSyncedAt: Date.now(), lastError: null }
+      entries = allEntries
+      restoreTrades()
    }
 
    return {
@@ -151,7 +172,9 @@ export function ledgerSyncStatus() {
          ...syncState,
          accountId: 'mock-account',
          entryCount: entries.length,
-         dbSizeBytes: 1024 * 1024 * 3 + entries.length * 180
+         tradeCount: tradeCount(),
+         orderCount: orderCount(),
+         dbSizeBytes: 1024 * 1024 * 3 + entries.length * 180 + tradeCount() * 220
       }
    }
 }
@@ -163,9 +186,15 @@ export function ledgerSyncCancel() {
 
 export function ledgerClear() {
    entries = []
-   syncState = { ...syncState, coveredFrom: null, coveredTo: null, lastSyncedAt: null, firstSyncedAt: null }
+   const trades = clearTrades()
+   syncState = {
+      ...syncState,
+      coveredFrom: null, coveredTo: null,
+      tradesCoveredFrom: null, tradesCoveredTo: null,
+      lastSyncedAt: null, firstSyncedAt: null
+   }
    job = null
-   return { deleted: allEntries.length }
+   return { entries: allEntries.length, trades }
 }
 
 function applyFilters(filters = {}) {

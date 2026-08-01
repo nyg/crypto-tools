@@ -38,27 +38,6 @@ const balances = {
    SOL: '42.5600000000',
 }
 
-const closedOrders = {
-   XBTUSD: {
-      pair: { id: 'XBTUSD', name: 'XBT/USD', base: { name: 'XXBT', decimals: 8 }, quote: { name: 'ZUSD', decimals: 2 } },
-      buy: {
-         orders: [
-            { openedDate: 1704067200, volume: 0.025, cost: 1082.50, flags: 'fciq', fee: 0.28, price: 43300.00, orderId: 'OABC12-DEF34-GHI567' },
-            { openedDate: 1704153600, volume: 0.015, cost: 654.75, flags: 'fciq', fee: 0.17, price: 43650.00, orderId: 'OJKL89-MNO01-PQR234' },
-            { openedDate: 1704326400, volume: 0.030, cost: 1323.00, flags: 'fciq', fee: 0.34, price: 44100.00, orderId: 'OSTU56-VWX78-YZA901' },
-         ],
-         summary: { volume: 0.07, cost: 3060.25, price: 43717.86 },
-      },
-      sell: {
-         orders: [
-            { openedDate: 1706745600, volume: 0.020, cost: 892.00, flags: 'fciq', fee: 0.23, price: 44600.00, orderId: 'OBCD23-EFG45-HIJ678' },
-            { openedDate: 1707004800, volume: 0.010, cost: 451.50, flags: 'fciq', fee: 0.12, price: 45150.00, orderId: 'OKLM90-NOP12-QRS345' },
-         ],
-         summary: { volume: 0.03, cost: 1343.50, price: 44783.33 },
-      },
-   },
-}
-
 const xstocks = {
    output: [
       { name: 'XTSLA', type: 'stock', description: 'Tesla, Inc. is an American multinational automotive and clean energy company. It designs, manufactures, and sells electric vehicles, battery energy storage, and solar panels.' },
@@ -71,4 +50,4 @@ const xstocks = {
    usage: { input_tokens: 1250, output_tokens: 820 },
 }
 
-export { tradingPairs, orderBatch, balances, closedOrders, xstocks }
+export { tradingPairs, orderBatch, balances, xstocks }

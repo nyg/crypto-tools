@@ -6,14 +6,12 @@ import KrakenLayout from '../../components/kraken/kraken-layout'
 import LedgerSyncCard from '../../components/kraken/ledger-sync-card'
 import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
 import LedgerTable from '../../components/kraken/ledger-table'
+import { isJobRunning } from '../../components/kraken/sync-status'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 
 const PAGE_SIZE = 20
-
-const terminalPhases = ['done', 'error', 'cancelled']
-const isJobRunning = job => Boolean(job) && !terminalPhases.includes(job.phase)
 
 
 export default function KrakenLedger() {
@@ -101,6 +99,16 @@ export default function KrakenLedger() {
          .catch(() => {})
    }
 
+   // The status key is refreshed explicitly rather than through refreshStoredData,
+   // which skips the sync endpoints to avoid revalidating in a loop from its own
+   // callback. Without it the card keeps showing the counts of what was just deleted.
+   const clear = () => clearLedger({ credentials: account })
+      .then(() => Promise.all([
+         refreshStoredData(),
+         mutate(['/api/kraken/ledger/sync/status', { credentials: account }])
+      ]))
+      .catch(() => {})
+
    const changeFilters = (next) => {
       setFilters(next)
       setPage(0)
@@ -120,9 +128,10 @@ export default function KrakenLedger() {
                <InfoIcon className="size-5 shrink-0" />
                <p>
                   Downloads your complete Kraken ledger — trades, deposits, withdrawals, staking and
-                  earn rewards — and keeps it in a database on this machine so other tools can use it
-                  without querying the API again. Kraken prepares the export in the background, so a
-                  first sync can take a few minutes. Nothing is uploaded anywhere.
+                  earn rewards — along with your trade history, and keeps both in a database on this
+                  machine so other tools can use them without querying the API again. Kraken prepares
+                  each export in the background, so a first sync can take several minutes. Nothing is
+                  uploaded anywhere.
                </p>
             </div>
 
@@ -145,7 +154,7 @@ export default function KrakenLedger() {
                onSync={() => sync('incremental')}
                onFullResync={() => sync('full')}
                onCancel={() => cancelSync({ credentials: account }).catch(() => {})}
-               onClear={() => clearLedger({ credentials: account }).then(refreshLedger).catch(() => {})} />
+               onClear={clear} />
 
             <Card>
                <CardHeader>

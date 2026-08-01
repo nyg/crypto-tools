@@ -10,7 +10,6 @@ const assetInfoEndpoint = '/0/public/Assets'
 
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
-const closedOrdersEndpoint = '/0/private/ClosedOrders'
 
 const addExportEndpoint = '/0/private/AddExport'
 const exportStatusEndpoint = '/0/private/ExportStatus'
@@ -27,6 +26,13 @@ export async function fetchAssetPairs(type = 'currency') {
    return await httpRequester.public(urlFor(assetPairsEndpoint), { aclass_base: type })
 }
 
+// Every pair, not just the currency ones, because a trade may have been made in a
+// class the caller isn't filtering for — a tokenized asset, say — and its assets
+// still have to resolve.
+export async function fetchAllAssetPairs() {
+   return await httpRequester.public(urlFor(assetPairsEndpoint), {})
+}
+
 /* Private endpoints */
 
 export async function fetchExtendedBalance(apiCredentials) {
@@ -36,32 +42,16 @@ export async function fetchExtendedBalance(apiCredentials) {
       { method: 'POST' })
 }
 
-export async function fetchClosedOrders(apiCrendentials, { showTrades, fromDate, toDate, orderOffset }) {
-   return await httpRequester.private(
-      urlFor(closedOrdersEndpoint),
-      authenticator(apiCrendentials),
-      {
-         method: 'POST',
-         bodyParams: {
-            trades: showTrades,
-            start: fromDate,
-            end: toDate,
-            ofs: orderOffset
-         }
-      }
-   )
-}
+/* Export report endpoints, used to fetch the full ledger and trade history in one go */
 
-/* Export report endpoints, used to fetch the full ledger in one go */
-
-export async function addExport(apiCredentials, { description, fromDate, toDate }) {
+export async function addExport(apiCredentials, { report = 'ledgers', description, fromDate, toDate }) {
    return await httpRequester.private(
       urlFor(addExportEndpoint),
       authenticator(apiCredentials),
       {
          method: 'POST',
          bodyParams: {
-            report: 'ledgers',
+            report,
             format: 'CSV',
             fields: 'all',
             description,
@@ -74,11 +64,14 @@ export async function addExport(apiCredentials, { description, fromDate, toDate 
    )
 }
 
-export async function fetchExportStatus(apiCredentials) {
+// Kraken lists reports of one type per call, so this has to be asked the same type
+// that was exported — a ledgers-only listing never contains the trades report, and
+// waiting for it there would simply time out.
+export async function fetchExportStatus(apiCredentials, report = 'ledgers') {
    return await httpRequester.private(
       urlFor(exportStatusEndpoint),
       authenticator(apiCredentials),
-      { method: 'POST', bodyParams: { report: 'ledgers' } })
+      { method: 'POST', bodyParams: { report } })
 }
 
 export async function retrieveExport(apiCredentials, { reportId }) {

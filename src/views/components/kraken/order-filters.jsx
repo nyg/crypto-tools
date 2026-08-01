@@ -5,12 +5,12 @@ import SelectField from '../lib/select-field'
 import Input from '../lib/input'
 import { ANY, withAnyOption, asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
 
-export const defaultFilters = { asset: '', type: '', wallet: '', from: null, to: null, search: '' }
+export const defaultFilters = { pair: '', direction: '', ordertype: '', from: null, to: null, search: '' }
 
-// Changing the filters from outside (Reset, or clicking a reference in the table)
+// Changing the filters from outside (Reset, or clicking an order in the table)
 // remounts this component through its key, so the search box needs no separate
 // effect to stay in step with the filters it was given.
-export default function LedgerFilters({ filters, options, onChange, onReset }) {
+export default function OrderFilters({ filters, options, onChange, onReset }) {
 
    const [search, setSearch] = useState(filters.search)
 
@@ -23,7 +23,7 @@ export default function LedgerFilters({ filters, options, onChange, onReset }) {
 
    const update = (changes) => onChange({ ...filters, ...changes })
 
-   const isFiltered = filters.asset || filters.type || filters.wallet
+   const isFiltered = filters.pair || filters.direction || filters.ordertype
       || filters.from || filters.to || filters.search
 
    return (
@@ -31,46 +31,46 @@ export default function LedgerFilters({ filters, options, onChange, onReset }) {
          <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-6">
 
             <ComboboxField
-               name="ledger-asset"
-               label="Asset"
-               value={filters.asset}
-               onValueChange={(value) => update({ asset: value })}
-               options={[{ value: '', label: 'All assets' },
-                  ...(options?.assets ?? []).map(asset => ({ value: asset, label: asset }))]}
-               placeholder="All assets"
-               searchPlaceholder="Search assets…"
-               emptyText="No asset found." />
+               name="order-pair"
+               label="Pair"
+               value={filters.pair}
+               onValueChange={(value) => update({ pair: value })}
+               options={[{ value: '', label: 'All pairs' },
+                  ...(options?.pairs ?? []).map(pair => ({ value: pair, label: pair }))]}
+               placeholder="All pairs"
+               searchPlaceholder="Search pairs…"
+               emptyText="No pair found." />
 
             <SelectField
-               name="ledger-type"
+               name="order-direction"
+               label="Side"
+               value={filters.direction || ANY}
+               onValueChange={(value) => update({ direction: value === ANY ? '' : value })}
+               options={withAnyOption(options?.directions ?? [], 'Buy and sell')} />
+
+            <SelectField
+               name="order-type"
                label="Type"
-               value={filters.type || ANY}
-               onValueChange={(value) => update({ type: value === ANY ? '' : value })}
-               options={withAnyOption(options?.types ?? [], 'All types')} />
-
-            <SelectField
-               name="ledger-wallet"
-               label="Wallet"
-               value={filters.wallet || ANY}
-               onValueChange={(value) => update({ wallet: value === ANY ? '' : value })}
-               options={withAnyOption(options?.wallets ?? [], 'All wallets')} />
+               value={filters.ordertype || ANY}
+               onValueChange={(value) => update({ ordertype: value === ANY ? '' : value })}
+               options={withAnyOption(options?.ordertypes ?? [], 'All types')} />
 
             <Input
-               name="ledger-from"
+               name="order-from"
                type="date"
                label="From"
                value={asDateInput(filters.from)}
                onChange={(e) => update({ from: fromDateValue(e.target.value) })} />
 
             <Input
-               name="ledger-to"
+               name="order-to"
                type="date"
                label="To"
                value={asDateInput(filters.to)}
                onChange={(e) => update({ to: toDateValue(e.target.value) })} />
 
             <Input
-               name="ledger-search"
+               name="order-search"
                label="Search id"
                value={search}
                onChange={(e) => setSearch(e.target.value)} />

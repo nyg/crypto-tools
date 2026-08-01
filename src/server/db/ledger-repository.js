@@ -106,6 +106,7 @@ export default function LedgerRepository(accountId) {
       return db.query(`
          SELECT account_id AS accountId, api_key_prefix AS apiKeyPrefix,
                 covered_from AS coveredFrom, covered_to AS coveredTo,
+                trades_covered_from AS tradesCoveredFrom, trades_covered_to AS tradesCoveredTo,
                 first_synced_at AS firstSyncedAt, last_synced_at AS lastSyncedAt,
                 last_report_id AS lastReportId, last_error AS lastError
          FROM sync_state WHERE account_id = ?`).get(accountId) ?? null
@@ -117,12 +118,16 @@ export default function LedgerRepository(accountId) {
 
       db.query(`
          INSERT INTO sync_state (account_id, api_key_prefix, covered_from, covered_to,
+                                 trades_covered_from, trades_covered_to,
                                  first_synced_at, last_synced_at, last_report_id, last_error)
          VALUES ($accountId, $apiKeyPrefix, $coveredFrom, $coveredTo,
+                 $tradesCoveredFrom, $tradesCoveredTo,
                  $firstSyncedAt, $lastSyncedAt, $lastReportId, $lastError)
          ON CONFLICT (account_id) DO UPDATE SET
             api_key_prefix = excluded.api_key_prefix,
             covered_from = excluded.covered_from, covered_to = excluded.covered_to,
+            trades_covered_from = excluded.trades_covered_from,
+            trades_covered_to = excluded.trades_covered_to,
             first_synced_at = excluded.first_synced_at, last_synced_at = excluded.last_synced_at,
             last_report_id = excluded.last_report_id, last_error = excluded.last_error`)
          .run({
@@ -130,6 +135,8 @@ export default function LedgerRepository(accountId) {
             $apiKeyPrefix: merged.apiKeyPrefix ?? '',
             $coveredFrom: merged.coveredFrom ?? null,
             $coveredTo: merged.coveredTo ?? null,
+            $tradesCoveredFrom: merged.tradesCoveredFrom ?? null,
+            $tradesCoveredTo: merged.tradesCoveredTo ?? null,
             $firstSyncedAt: merged.firstSyncedAt ?? null,
             $lastSyncedAt: merged.lastSyncedAt ?? null,
             $lastReportId: merged.lastReportId ?? null,
@@ -137,13 +144,20 @@ export default function LedgerRepository(accountId) {
          })
    }
 
+   // Trades are cleared alongside the entries: they come from the same sync, for the
+   // same account, and leaving them behind would show orders the ledger no longer has.
    this.clearAccount = function () {
-      const deleted = this.countEntries()
+      const entries = this.countEntries()
+      const trades = db.query('SELECT COUNT(*) AS count FROM trade WHERE account_id = ?')
+         .get(accountId).count
+
       db.transaction(() => {
          db.query('DELETE FROM ledger_entry WHERE account_id = ?').run(accountId)
+         db.query('DELETE FROM trade WHERE account_id = ?').run(accountId)
          db.query('DELETE FROM sync_state WHERE account_id = ?').run(accountId)
       })()
-      return deleted
+
+      return { entries, trades }
    }
 
    // Entries belong to whichever API key downloaded them, so rotating a key leaves

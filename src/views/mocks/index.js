@@ -1,8 +1,9 @@
-import { tradingPairs, orderBatch, balances, closedOrders, xstocks } from './kraken'
+import { tradingPairs, orderBatch, balances, xstocks } from './kraken'
 import {
    ledgerSync, ledgerSyncStatus, ledgerSyncCancel, ledgerClear,
    ledgerEntries, ledgerFilters
 } from './kraken-ledger'
+import { tradeOrders, tradeFilters } from './kraken-trades'
 import { aggregateBalance } from './binance'
 
 
@@ -10,7 +11,6 @@ const mockRoutes = {
    '/api/kraken/trading-pairs': () => tradingPairs,
    '/api/kraken/order-batch': (params) => orderBatch(params?.arg),
    '/api/kraken/balances': () => balances,
-   '/api/kraken/closed-orders': () => closedOrders,
    '/api/kraken/xstocks': () => xstocks,
    '/api/kraken/ledger/sync': (params) => ledgerSync(params?.arg),
    '/api/kraken/ledger/sync/status': () => ledgerSyncStatus(),
@@ -18,6 +18,8 @@ const mockRoutes = {
    '/api/kraken/ledger/entries': (params) => ledgerEntries(params?.arg),
    '/api/kraken/ledger/filters': () => ledgerFilters(),
    '/api/kraken/ledger/clear': () => ledgerClear(),
+   '/api/kraken/ledger/trades/orders': (params) => tradeOrders(params?.arg),
+   '/api/kraken/ledger/trades/filters': () => tradeFilters(),
    '/api/binance/aggregate-balance': () => aggregateBalance,
 }
 
