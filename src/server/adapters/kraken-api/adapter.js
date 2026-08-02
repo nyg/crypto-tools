@@ -79,11 +79,22 @@ export default function KrakenAPI(credentials) {
 
    // The total Kraken holds per asset, and how much of it is reserved by open orders.
    //
-   // Deliberately not split by wallet the way the ledger is: BalanceEx has no wallet
-   // field, and a modern Earn allocation carries no suffix to infer one from — only
-   // the retired staking names (DOT28.S) ever did. Splitting here would invent a
-   // breakdown. This answers "how much, in total, and how much of it is spoken for";
-   // where each coin sits is the ledger's question.
+   // Deliberately not split by placement, even though BalanceEx does key earn positions
+   // separately and does so accurately — checked against a real response, its suffixed
+   // balances match the ledger's per-wallet amounts to the last digit. Two reasons the
+   // breakdown is still read from the ledger:
+   //
+   //  - The suffix does not name the wallet, and the names it does carry are Kraken's
+   //    product vocabulary rather than the one its own Earn screen shows: .S is
+   //    "staked" but sits in the bonded wallet, .M is "opt-in rewards" but is the
+   //    flexible one, .B is "new yield-bearing products" but is the locked one. The
+   //    letters are also not stable — a position keyed XBT.F in mid-2025 is XBT.M now.
+   //  - Auto Earn has no suffix at all. Kraken pays those rewards onto the plain spot
+   //    balance, so an asset earning that way is indistinguishable here from one that
+   //    is doing nothing. The ledger's reward entries are the only way to tell.
+   //
+   // This answers "how much, in total, and how much of it is spoken for"; where each
+   // coin sits is the ledger's question.
    this.fetchLiveBalances = async function () {
 
       const response = await resource.fetchExtendedBalance(credentials)

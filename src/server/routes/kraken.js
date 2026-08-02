@@ -21,10 +21,11 @@ app.post('/balances', async (c) => {
    try {
       const krakenAPI = new KrakenAPI(credentials)
 
-      const [assets, openOrders] = await Promise.all([
-         krakenAPI.fetchLiveBalances(),
-         krakenAPI.fetchOpenOrders()
-      ])
+      // Sequentially, not with Promise.all: Kraken wants the nonce of each private
+      // call to arrive in increasing order, and two requests in flight at once can
+      // reach it the other way round — which it answers with EAPI:Invalid nonce.
+      const assets = await krakenAPI.fetchLiveBalances()
+      const openOrders = await krakenAPI.fetchOpenOrders()
 
       return c.json({ fetchedAt: Date.now(), assets, openOrders })
    }
