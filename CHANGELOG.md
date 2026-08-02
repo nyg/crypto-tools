@@ -1,6 +1,13 @@
 # Changelog
 
 
+## [0.1.2](https://github.com/nyg/crypto-tools/compare/v0.1.1..v0.1.2) - 2026-08-02
+
+### ⛰️  Features
+
+- [`c4f4324`](https://github.com/nyg/crypto-tools/commit/c4f432450ebe250f4173534994c8e627e21558b1) Name the app "Crypto Tools" everywhere, fix sub-nav alignment ([#213](https://github.com/nyg/crypto-tools/issues/213))
+- [`262aac0`](https://github.com/nyg/crypto-tools/commit/262aac0ca281370902ca70f92f3e6532933fe148) *(kraken)* Redesign the Balances page and read it from the ledger ([#212](https://github.com/nyg/crypto-tools/issues/212))
+
 ## [0.1.1](https://github.com/nyg/crypto-tools/compare/v0.1.0..v0.1.1) - 2026-08-02
 
 ### ⛰️  Features
