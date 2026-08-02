@@ -44,8 +44,19 @@ export default function RewardChartCard({ rewards, rates }) {
    const colors = new Map(slices.map((slice, index) =>
       [slice.asset, slice.asset === OTHERS ? 'var(--muted-foreground)' : `var(--chart-${(index % 8) + 1})`]))
 
+   // The share is carried in the legend rather than in a paragraph under the chart:
+   // it is what the card is read for, and it costs no vertical space there.
    const config = Object.fromEntries(slices.map(slice =>
-      [slice.asset, { label: slice.asset, color: colors.get(slice.asset) }]))
+      [slice.asset, {
+         color: colors.get(slice.asset),
+         label:
+            <span className="flex w-full items-baseline justify-between gap-3">
+               <span>{slice.asset === OTHERS ? `${slice.assets} others` : slice.asset}</span>
+               <span className="tabular-nums text-muted-foreground">
+                  {asPercentage(slice.value / total)}
+               </span>
+            </span>
+      }]))
 
    return (
       <Card>
@@ -58,7 +69,7 @@ export default function RewardChartCard({ rewards, rates }) {
                ? <p className="text-sm text-muted-foreground">
                   Nothing to chart: none of the rewarded assets could be valued in USD.
                </p>
-               : <ChartContainer config={config} className="h-[320px] w-full">
+               : <ChartContainer config={config} className="h-[260px] w-full">
                   <PieChart>
                      <ChartTooltip content={
                         <ChartTooltipContent
@@ -95,17 +106,16 @@ export default function RewardChartCard({ rewards, rates }) {
                         {slices.map(slice =>
                            <Cell key={slice.asset} fill={colors.get(slice.asset)} />)}
                      </Pie>
-                     <ChartLegend content={<ChartLegendContent nameKey="asset" />} />
+                     <ChartLegend
+                        layout="vertical"
+                        align="right"
+                        verticalAlign="middle"
+                        width={140}
+                        content={<ChartLegendContent
+                           nameKey="asset"
+                           className="flex-col items-stretch gap-2 pt-0 pl-3" />} />
                   </PieChart>
                </ChartContainer>}
-
-            <p className="text-xs text-muted-foreground">
-               What each asset is worth as a share of every reward earned, at today&apos;s prices —
-               so this is where the value sits now, not where it was earned.
-               {slices.some(slice => slice.asset === OTHERS) &&
-                  ` Everything outside the top ${MAX_SLICES - 1} is folded into ${OTHERS}, worth ` +
-                  `${asPercentage((slices.at(-1).value) / total)} of the total between them.`}
-            </p>
 
          </CardContent>
       </Card>

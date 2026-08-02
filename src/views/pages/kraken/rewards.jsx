@@ -6,6 +6,7 @@ import KrakenLayout from '../../components/kraken/kraken-layout'
 import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import RewardSummaryCard from '../../components/kraken/reward-summary-card'
 import RewardChartCard from '../../components/kraken/reward-chart-card'
+import RewardHistoryCard from '../../components/kraken/reward-history-card'
 import RewardTable from '../../components/kraken/reward-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -100,13 +101,14 @@ export default function KrakenRewards() {
                counts={`${(status?.state?.entryCount ?? 0).toLocaleString('en-GB')} ledger entries`}
                emptyLabel="No ledger stored yet" />
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                <RewardSummaryCard
                   rewards={rewards}
                   rates={rateData?.rates}
                   isLoading={isLoading}
                   isLoadingRates={isLoadingRates} />
                <RewardChartCard rewards={rewards} rates={rateData?.rates} />
+               <RewardHistoryCard rewards={rewards} rates={rateData?.rates} />
             </div>
 
             <RewardTable rewards={rewards} rates={rateData?.rates} />
