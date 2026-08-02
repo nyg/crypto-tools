@@ -1,7 +1,7 @@
 import Big from 'big.js'
 import { unzipSync } from 'fflate'
 import * as resource from './resource'
-import { assetCategory, normalizeAsset } from './assets'
+import { normalizeAsset } from './assets'
 import { buildPairIndex, resolvePair } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
 
@@ -77,32 +77,67 @@ export default function KrakenAPI(credentials) {
       return buildPairIndex(assetPairs)
    }
 
-   this.fetchBalances = async function () {
+   // The total Kraken holds per asset, and how much of it is reserved by open orders.
+   //
+   // Deliberately not split by wallet the way the ledger is: BalanceEx has no wallet
+   // field, and a modern Earn allocation carries no suffix to infer one from — only
+   // the retired staking names (DOT28.S) ever did. Splitting here would invent a
+   // breakdown. This answers "how much, in total, and how much of it is spoken for";
+   // where each coin sits is the ledger's question.
+   this.fetchLiveBalances = async function () {
 
       const response = await resource.fetchExtendedBalance(credentials)
-      return Object.keys(response.result)
-         .reduce((balances, asset) => {
 
-            const normalizedAsset = normalizeAsset(asset)
-            const category = assetCategory(asset)
+      const totals = new Map()
 
-            const freeBalance = Big(response.result[asset].balance)
-            const holdTradeBalance = Big(response.result[asset].hold_trade)
+      for (const [asset, entry] of Object.entries(response.result ?? {})) {
 
-            if (freeBalance.add(holdTradeBalance).eq(0)) {
-               return balances
-            }
+         const normalizedAsset = normalizeAsset(asset)
+         const held = Big(entry.balance ?? 0)
+         const hold = Big(entry.hold_trade ?? 0)
 
-            balances[normalizedAsset] ??= {}
-            if (!freeBalance.eq(0)) {
-               balances[normalizedAsset][category] = freeBalance.add(balances[normalizedAsset][category] ?? 0)
-            }
-            if (!holdTradeBalance.eq(0)) {
-               balances[normalizedAsset].trade = holdTradeBalance.add(balances[normalizedAsset].trade ?? 0)
-            }
+         if (held.add(hold).eq(0)) continue
 
-            return balances
-         }, {})
+         const total = totals.get(normalizedAsset) ?? { total: Big(0), hold: Big(0) }
+         // Kraken reports hold_trade as part of the balance, not on top of it.
+         totals.set(normalizedAsset, { total: total.total.add(held), hold: total.hold.add(hold) })
+      }
+
+      return [...totals.entries()]
+         .map(([asset, { total, hold }]) => ({
+            asset,
+            total: total.toFixed(),
+            totalNum: Number(total),
+            hold: hold.toFixed(),
+            holdNum: Number(hold)
+         }))
+         .toSorted((a, b) => a.asset.localeCompare(b.asset))
+   }
+
+   // The orders behind the hold above, so that a balance that looks short can be
+   // explained rather than just flagged.
+   this.fetchOpenOrders = async function () {
+
+      const response = await resource.fetchOpenOrders(credentials)
+      const orders = Object.entries(response.result?.open ?? {})
+      if (orders.length === 0) return []
+
+      // Resolved through the same index the trade sync uses, so an open order reads
+      // with the names the rest of the app shows (XXBTZUSD becomes BTC/USD).
+      const pairIndex = await this.fetchPairIndex()
+
+      return orders
+         .map(([txid, order]) => ({
+            txid,
+            ...resolvePair(order.descr?.pair, pairIndex),
+            type: order.descr?.type ?? '',
+            ordertype: order.descr?.ordertype ?? '',
+            price: order.descr?.price ?? '0',
+            volume: order.vol ?? '0',
+            executed: order.vol_exec ?? '0',
+            opened: Math.round((order.opentm ?? 0) * 1000)
+         }))
+         .toSorted((a, b) => b.opened - a.opened)
    }
 
    // What one unit of each asset is worth in USD right now, for the assets asked for.

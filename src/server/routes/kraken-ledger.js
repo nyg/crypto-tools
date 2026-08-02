@@ -67,6 +67,9 @@ app.post('/fees', async (c) => withAccount(c, ({ body, accountId }) =>
 app.post('/rewards', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new LedgerRepository(accountId).rewardSummary())))
 
+app.post('/balances', async (c) => withAccount(c, ({ accountId }) =>
+   c.json(new LedgerRepository(accountId).balanceSummary())))
+
 app.post('/clear', async (c) => withAccount(c, ({ accountId }) => {
 
    if (isRunning(jobFor(accountId))) {

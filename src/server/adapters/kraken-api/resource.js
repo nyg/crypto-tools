@@ -11,6 +11,7 @@ const tickerEndpoint = '/0/public/Ticker'
 
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
+const openOrdersEndpoint = '/0/private/OpenOrders'
 
 const addExportEndpoint = '/0/private/AddExport'
 const exportStatusEndpoint = '/0/private/ExportStatus'
@@ -45,6 +46,16 @@ export async function fetchTicker(pairs) {
 export async function fetchExtendedBalance(apiCredentials) {
    return await httpRequester.private(
       urlFor(balanceExtendedEndpoint),
+      authenticator(apiCredentials),
+      { method: 'POST' })
+}
+
+// What is still on the book. The ledger only ever learns about an order once it has
+// filled, so this is the one thing it cannot answer: which of the balance it shows is
+// already spoken for.
+export async function fetchOpenOrders(apiCredentials) {
+   return await httpRequester.private(
+      urlFor(openOrdersEndpoint),
       authenticator(apiCredentials),
       { method: 'POST' })
 }
