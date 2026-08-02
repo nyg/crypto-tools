@@ -9,6 +9,7 @@ import KrakenClosedOrders from './pages/kraken/closed-orders'
 import KrakenFees from './pages/kraken/fees'
 import KrakenLedger from './pages/kraken/ledger'
 import KrakenOrderBatch from './pages/kraken/order-batch'
+import KrakenRewards from './pages/kraken/rewards'
 import KrakenXStocks from './pages/kraken/xstocks'
 
 const isMockMode = import.meta.env.VITE_MOCK_DATA === 'true'
@@ -71,6 +72,7 @@ export default function App() {
                <Route path="/kraken/fees" element={<KrakenFees />} />
                <Route path="/kraken/ledger" element={<KrakenLedger />} />
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
+               <Route path="/kraken/rewards" element={<KrakenRewards />} />
                <Route path="/kraken/xstocks" element={<KrakenXStocks />} />
                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

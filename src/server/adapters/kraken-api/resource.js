@@ -7,6 +7,7 @@ const urlFor = endpoint => apiUrl + endpoint
 
 const assetPairsEndpoint = '/0/public/AssetPairs'
 const assetInfoEndpoint = '/0/public/Assets'
+const tickerEndpoint = '/0/public/Ticker'
 
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
@@ -31,6 +32,12 @@ export async function fetchAssetPairs(type = 'currency') {
 // still have to resolve.
 export async function fetchAllAssetPairs() {
    return await httpRequester.public(urlFor(assetPairsEndpoint), {})
+}
+
+// Kraken takes the pairs as one comma-separated list and answers with a result keyed
+// by its own name for each of them, which is not always the name that was asked for.
+export async function fetchTicker(pairs) {
+   return await httpRequester.public(urlFor(tickerEndpoint), { pair: pairs.join(',') })
 }
 
 /* Private endpoints */

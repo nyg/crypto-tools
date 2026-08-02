@@ -298,6 +298,43 @@ export function ledgerFees(body = {}) {
    }
 }
 
+// Mirrors LedgerRepository.rewardSummary: the same reward predicate and the same pivot,
+// computed over the fixture.
+export function ledgerRewards() {
+
+   const excludedSubtypes = ['allocation', 'deallocation', 'autoallocation', 'migration']
+   const rewards = entries.filter(entry =>
+      ['staking', 'earn'].includes(entry.type) && !excludedSubtypes.includes(entry.subtype))
+
+   const assets = new Map()
+
+   for (const entry of rewards) {
+      const year = new Date(entry.time).getUTCFullYear()
+      const amount = Number(entry.amount) - Number(entry.fee)
+
+      const asset = assets.get(entry.baseAsset)
+         ?? { asset: entry.baseAsset, total: 0, entries: 0, first: entry.time, last: entry.time, byYear: {} }
+
+      asset.byYear[year] = (asset.byYear[year] ?? 0) + amount
+      asset.total += amount
+      asset.entries += 1
+      asset.first = Math.min(asset.first, entry.time)
+      asset.last = Math.max(asset.last, entry.time)
+      assets.set(entry.baseAsset, asset)
+   }
+
+   const years = [...new Set([...assets.values()].flatMap(asset => Object.keys(asset.byYear).map(Number)))]
+      .toSorted((a, b) => a - b)
+
+   return {
+      years,
+      assets: [...assets.values()].toSorted((a, b) => a.asset.localeCompare(b.asset)),
+      entries: rewards.length,
+      first: rewards.length > 0 ? Math.min(...rewards.map(entry => entry.time)) : null,
+      last: rewards.length > 0 ? Math.max(...rewards.map(entry => entry.time)) : null
+   }
+}
+
 export function ledgerFilters() {
    const distinct = pick => [...new Set(entries.map(pick))].filter(Boolean).toSorted()
    return {
