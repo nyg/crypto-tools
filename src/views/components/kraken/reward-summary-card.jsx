@@ -24,8 +24,12 @@ export default function RewardSummaryCard({ rewards, rates, isLoading, isLoading
                   : <Badge variant="outline">{asCount(entries, 'reward')}</Badge>}
             </CardAction>
          </CardHeader>
-         <CardContent>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
+         {/* The chart beside this card is the taller of the two, so the stats are centred
+             in whatever height it sets rather than left hanging at the top. */}
+         <CardContent className="flex flex-1 items-center">
+            {/* Two columns rather than four: the card sits beside the chart, and the
+                stats read better stacked in a narrow column than squeezed into one row. */}
+            <div className="grid w-full grid-cols-2 gap-x-6 gap-y-8">
                <Field label="Assets rewarded">{assets.length.toLocaleString('en-GB')}</Field>
                <Field
                   label="Worth today"

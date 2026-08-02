@@ -100,13 +100,14 @@ export default function KrakenRewards() {
                counts={`${(status?.state?.entryCount ?? 0).toLocaleString('en-GB')} ledger entries`}
                emptyLabel="No ledger stored yet" />
 
-            <RewardSummaryCard
-               rewards={rewards}
-               rates={rateData?.rates}
-               isLoading={isLoading}
-               isLoadingRates={isLoadingRates} />
-
-            <RewardChartCard rewards={rewards} rates={rateData?.rates} />
+            <div className="grid gap-6 lg:grid-cols-2">
+               <RewardSummaryCard
+                  rewards={rewards}
+                  rates={rateData?.rates}
+                  isLoading={isLoading}
+                  isLoadingRates={isLoadingRates} />
+               <RewardChartCard rewards={rewards} rates={rateData?.rates} />
+            </div>
 
             <RewardTable rewards={rewards} rates={rateData?.rates} />
 
