@@ -1,10 +1,9 @@
 import SubNav from '../lib/sub-nav'
 import Layout from '../layout'
+import { subNavItems } from '@/lib/tools'
 
 
-const tabs = [
-   { label: 'Staking', href: '/binance/staking' }
-]
+const tabs = subNavItems('Binance')
 
 export default function BinanceLayout({ children, name }) {
    return (

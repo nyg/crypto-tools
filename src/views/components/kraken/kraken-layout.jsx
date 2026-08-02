@@ -1,16 +1,9 @@
 import SubNav from '../lib/sub-nav'
 import Layout from '../layout'
+import { subNavItems } from '@/lib/tools'
 
 
-const tabs = [
-   { label: 'Ledger', href: '/kraken/ledger' },
-   { label: 'Fees', href: '/kraken/fees' },
-   { label: 'Rewards', href: '/kraken/rewards' },
-   { label: 'Order Batch', href: '/kraken/order-batch' },
-   { label: 'Closed Orders', href: '/kraken/closed-orders' },
-   { label: 'Balances', href: '/kraken/balances' },
-   { label: 'xStocks', href: '/kraken/xstocks' }
-]
+const tabs = subNavItems('Kraken')
 
 export default function KrakenLayout({ children, name }) {
    return (
