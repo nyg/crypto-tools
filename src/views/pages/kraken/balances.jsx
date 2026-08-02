@@ -1,61 +1,165 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
+import useSWR, { useSWRConfig } from 'swr'
 import useSWRMutation from 'swr/mutation'
+import { InfoIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import { asDecimal } from '../../../utils/format'
-import { Button } from '@/components/ui/button'
+import SyncStatusStrip from '../../components/kraken/sync-status-strip'
+import BalanceSummaryCard from '../../components/kraken/balance-summary-card'
+import BalancePlacementCard from '../../components/kraken/balance-placement-card'
+import BalanceChartCard from '../../components/kraken/balance-chart-card'
+import BalanceTable from '../../components/kraken/balance-table'
+import { defaultFilters } from '../../components/kraken/balance-filters'
+import { isJobRunning } from '../../components/kraken/sync-status'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2Icon } from 'lucide-react'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 
 export default function KrakenBalances() {
 
-   const { data, error, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
-
-   const [credentials, setCredentials] = useState(() => ({
+   const [credentials] = useState(() => ({
       apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || '',
       apiSecret: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.secret')) || ''
    }))
 
-   let content
-   if (error) {
-      content = <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
-   }
-   else if (isMutating) {
-      content = <div className="flex items-center gap-2"><Loader2Icon className="size-4 animate-spin" /> Fetching data…</div>
-   }
-   else if (!data && !credentials.apiKey) {
-      content = <div>Generate an API key and secret on Kraken to be able to fetch your spot and staking balance.</div>
-   }
-   else if (!data) {
-      content = <Button size="sm" onClick={() => trigger({ credentials })}>
-         Fetch data
-      </Button>
-   }
-   else {
-      content = (
-         <Table>
-            <TableHeader>
-               <TableRow>
-                  <TableHead className="text-left">Asset</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-               </TableRow>
-            </TableHeader>
-            <TableBody>
-               {Object.keys(data).map(asset =>
-                  <TableRow key={asset}>
-                     <TableCell className="pr-8">{asset}</TableCell>
-                     <TableCell className="text-right tabular-nums">{asDecimal(Number.parseFloat(data[asset]), 18)}</TableCell>
-                  </TableRow>)}
-            </TableBody>
-         </Table>
+   const [filters, setFilters] = useState(defaultFilters)
+
+   const wasRunningRef = useRef(false)
+   const { mutate } = useSWRConfig()
+
+   // The balances themselves come from the ledger the Ledger tab downloaded, so the
+   // secret is not sent with them, and the rates on top are public data.
+   const account = credentials.apiKey ? { apiKey: credentials.apiKey } : null
+
+   // A sync is started on the Ledger page but rewrites the balances read here, so the
+   // run is followed and the summary revalidated when it lands.
+   const { data: status } = useSWR(
+      account ? ['/api/kraken/ledger/sync/status', { credentials: account }] : null,
+      {
+         refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
+         onSuccess: (latest) => {
+            const running = isJobRunning(latest?.job)
+            if (!running && wasRunningRef.current) {
+               mutate(key => Array.isArray(key) && key[0] === '/api/kraken/ledger/balances')
+            }
+            wasRunningRef.current = running
+         }
+      })
+
+   const { data: balances, error, isLoading } = useSWR(
+      account ? ['/api/kraken/ledger/balances', { credentials: account }] : null,
+      { keepPreviousData: true })
+
+   // Asked for separately, and only once the assets are known, so the table renders
+   // from the local database straight away and a failed rate lookup costs the amounts
+   // nothing.
+   const assets = (balances?.assets ?? []).map(asset => asset.asset)
+   const { data: rateData, isLoading: isLoadingRates } = useSWR(
+      assets.length > 0 ? ['/api/kraken/asset-rates', { assets }] : null,
+      { keepPreviousData: true })
+
+   // What Kraken says right now: the totals to check the stored ledger against, and the
+   // open orders holding part of it. This is the one call that needs the secret, so it
+   // stays a mutation — a useSWR key would put the secret in the cache key, which is why
+   // every other read on these pages sends the api key alone. Triggered on mount rather
+   // than left to a button, so the page is complete without being asked twice.
+   const { data: live, error: liveError, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
+
+   const canCheckLive = Boolean(credentials.apiKey && credentials.apiSecret)
+   const checkLive = () => trigger({ credentials }).catch(() => {})
+
+   // Guarded because StrictMode runs this twice in development, and each run costs two
+   // private calls against Kraken's rate limit. The button below is unaffected: it
+   // calls checkLive directly.
+   const hasCheckedRef = useRef(false)
+
+   useEffect(() => {
+      if (!canCheckLive || hasCheckedRef.current) return
+      hasCheckedRef.current = true
+      checkLive()
+   }, [canCheckLive])
+
+   if (!credentials.apiKey) {
+      return (
+         <KrakenLayout name="Balances">
+            <Alert>
+               <AlertDescription>
+                  Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+               </AlertDescription>
+            </Alert>
+         </KrakenLayout>
       )
    }
 
    return (
-      <KrakenLayout name="Balance">
-         <div className="grow text-sm space-y-6 tabular-nums">
-            {content}
+      <KrakenLayout name="Balances">
+         <div className="space-y-6">
+
+            <div className="flex items-center gap-3 rounded-lg border border-blue-300/60 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/25 dark:bg-blue-950/30 dark:text-blue-100">
+               <InfoIcon className="size-5 shrink-0" />
+               <p>
+                  What you hold, rebuilt from the local database the Ledger tab fills, and
+                  grouped by <b>where each coin actually sits</b> — your spot wallet, or one
+                  of Kraken&apos;s Earn strategies. Coins left in spot that are still being
+                  paid are marked <b>Opt-In Rewards</b>, since they keep earning without
+                  leaving the wallet they can be traded from. Totals are checked against
+                  Kraken live, which also says how much an open order has already reserved.
+               </p>
+            </div>
+
+            {error &&
+               <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+               </Alert>}
+
+            {balances?.entries === 0 &&
+               <Alert>
+                  <AlertDescription>
+                     No ledger stored yet. Sync it on the{' '}
+                     <Link to="/kraken/ledger" className="font-medium text-foreground underline underline-offset-4">
+                        Ledger
+                     </Link>{' '}
+                     tab first, then come back.
+                  </AlertDescription>
+               </Alert>}
+
+            {!canCheckLive &&
+               <Alert>
+                  <AlertDescription>
+                     Add your API secret in Settings to check these balances against Kraken and
+                     see what your open orders have reserved.
+                  </AlertDescription>
+               </Alert>}
+
+            <SyncStatusStrip
+               state={status?.state}
+               job={status?.job}
+               isRunning={isJobRunning(status?.job)}
+               counts={`${(status?.state?.entryCount ?? 0).toLocaleString('en-GB')} ledger entries`}
+               emptyLabel="No ledger stored yet" />
+
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+               <BalanceSummaryCard
+                  balances={balances}
+                  rates={rateData?.rates}
+                  live={live}
+                  liveError={liveError}
+                  isLoading={isLoading}
+                  isLoadingRates={isLoadingRates}
+                  isLoadingLive={isMutating}
+                  onRefreshLive={checkLive} />
+               <BalancePlacementCard balances={balances} rates={rateData?.rates} />
+               <BalanceChartCard balances={balances} rates={rateData?.rates} />
+            </div>
+
+            <BalanceTable
+               balances={balances}
+               rates={rateData?.rates}
+               live={live}
+               filters={filters}
+               onFiltersChange={setFilters}
+               onReset={() => setFilters(defaultFilters)}
+               isLoading={isLoading} />
+
          </div>
       </KrakenLayout>
    )

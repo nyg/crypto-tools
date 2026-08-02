@@ -23,23 +23,14 @@ export function normalizeAsset(asset) {
    if (!asset) return ''
 
    // Strip any staking, earn or parachain suffix: DOT28.S becomes DOT, XBT.F becomes
-   // XBT. Tickers that are entirely digits-and-letters (0G, 1INCH) fall back to the
-   // original, since splitting them would leave nothing.
-   let base = asset.split(/[0-9.]/)[0] || asset
+   // XBT. Only a trailing suffix is removed, digits and all — splitting on the first
+   // digit anywhere would turn AI16Z into AI and USD1 into USD, which are different
+   // assets entirely. Tickers that carry no suffix (0G, 1INCH, AI16Z) come back whole.
+   let base = asset.replace(/\d*\.[A-Z]+$/, '') || asset
 
    if (prefixedAssets.has(asset) || prefixedAssets.has(base)) {
       base = base.slice(1)
    }
 
    return assetAliases[base] ?? assetAliases[asset] ?? base
-}
-
-// Which balance bucket an asset name belongs to. The order matters: DOT28.S is
-// staking rather than earning because the earn pattern needs a letter immediately
-// before the dot.
-export function assetCategory(asset) {
-   if (/[A-Z]+\.P/.test(asset)) return 'parachain'
-   if (/[A-Z]+\.[SFMB]/.test(asset)) return 'earning'
-   if (/[A-Z]+[0-9]+\.S/.test(asset)) return 'staking'
-   return 'free'
 }

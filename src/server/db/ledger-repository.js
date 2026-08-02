@@ -1,3 +1,4 @@
+import Big from 'big.js'
 import { getDatabase } from './database.js'
 import { entryKeyFor } from './entry-key.js'
 
@@ -207,6 +208,103 @@ export default function LedgerRepository(accountId) {
          entries: rows.reduce((count, row) => count + row.entries, 0),
          first: rows.length > 0 ? Math.min(...rows.map(row => row.first)) : null,
          last: rows.length > 0 ? Math.max(...rows.map(row => row.last)) : null
+      }
+   }
+
+   // What is held right now, per asset and per wallet, rebuilt from the entries
+   // themselves rather than read off Kraken's running balance column: that column is
+   // only ever a snapshot of the last row written for a wallet, and says nothing about
+   // an asset whose most recent entry was somewhere else.
+   //
+   // Kraken's own running balance is what this was checked against — summing
+   // amount - fee per (asset, wallet) reproduces it to the last digit for every asset
+   // in the database, which is why the fold below is done with Big rather than the
+   // REAL mirrors the fee and reward summaries use. A balance is compared against
+   // Kraken by eye; a rounding artefact in the eighth decimal would look like a bug.
+   this.balanceSummary = function () {
+
+      const amounts = db.query(`
+         SELECT base_asset AS baseAsset, wallet, asset AS rawAsset, amount, fee
+         FROM ledger_entry WHERE account_id = ?`).all(accountId)
+
+      const positions = new Map()
+      const keyFor = row => `${row.baseAsset} ${row.wallet}`
+
+      for (const row of amounts) {
+         const position = positions.get(keyFor(row))
+            ?? { asset: row.baseAsset, wallet: row.wallet, amount: Big(0), rawAssets: new Set() }
+
+         position.amount = position.amount.plus(row.amount || 0).minus(row.fee || 0)
+         position.rawAssets.add(row.rawAsset)
+         positions.set(keyFor(row), position)
+      }
+
+      // Counted separately from the fold: the row count and the first and last time an
+      // asset moved are what SQLite is good at, and neither needs exact arithmetic.
+      for (const row of db.query(`
+         SELECT base_asset AS baseAsset, wallet, COUNT(*) AS entries,
+                MIN(time) AS first, MAX(time) AS last
+         FROM ledger_entry WHERE account_id = ?
+         GROUP BY base_asset, wallet`).all(accountId)) {
+         const position = positions.get(keyFor(row))
+         if (position) Object.assign(position, { entries: row.entries, first: row.first, last: row.last })
+      }
+
+      // When a wallet last paid out. Kraken now pays Auto Earn rewards straight into
+      // the spot wallet instead of moving the coins, so this is the only thing that
+      // tells a spot position that earns from one that just sits there.
+      for (const row of db.query(`
+         SELECT base_asset AS baseAsset, wallet, MAX(time) AS lastRewardAt,
+                COUNT(*) AS rewardEntries
+         FROM ledger_entry
+         WHERE account_id = ? AND ${isReward}
+         GROUP BY base_asset, wallet`).all(accountId)) {
+         const position = positions.get(keyFor(row))
+         if (position) Object.assign(position, { lastRewardAt: row.lastRewardAt, rewardEntries: row.rewardEntries })
+      }
+
+      const assets = new Map()
+
+      for (const position of positions.values()) {
+
+         // An exactly zero position is one that was closed, not a dust holding: the
+         // coins left, and listing it would bury the assets that are still held.
+         if (position.amount.eq(0)) continue
+
+         const asset = assets.get(position.asset)
+            ?? { asset: position.asset, total: Big(0), positions: [] }
+
+         asset.total = asset.total.plus(position.amount)
+         asset.positions.push({
+            wallet: position.wallet,
+            amount: position.amount.toFixed(),
+            amountNum: Number(position.amount),
+            // Sorted so that the plain ticker leads and a legacy staking name (DOT.S)
+            // reads as the footnote it is.
+            rawAssets: [...position.rawAssets].toSorted(),
+            entries: position.entries ?? 0,
+            first: position.first ?? null,
+            last: position.last ?? null,
+            lastRewardAt: position.lastRewardAt ?? null,
+            rewardEntries: position.rewardEntries ?? 0
+         })
+         assets.set(position.asset, asset)
+      }
+
+      const range = this.entryTimeRange()
+      const held = [...assets.values()]
+
+      return {
+         assets: held.map(asset => ({
+            asset: asset.asset,
+            total: asset.total.toFixed(),
+            totalNum: Number(asset.total),
+            positions: asset.positions.toSorted((a, b) => b.amountNum - a.amountNum)
+         })),
+         positions: held.reduce((count, asset) => count + asset.positions.length, 0),
+         entries: amounts.length,
+         first: range.first,
+         last: range.last
       }
    }
 

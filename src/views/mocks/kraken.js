@@ -1,4 +1,5 @@
 import Big from 'big.js'
+import { ledgerBalances } from './kraken-ledger'
 
 const tradingPairs = {
    XBTUSD: { id: 'XBTUSD', name: 'XBT/USD', base: { name: 'XXBT', decimals: 8 }, quote: { name: 'ZUSD', decimals: 2 } },
@@ -30,18 +31,46 @@ function orderBatch(params) {
    })
 }
 
-const balances = {
-   XXBT: '1.2534000000',
-   XETH: '15.8721000000',
-   DOT: '245.0000000000',
-   ADA: '5200.0000000000',
-   SOL: '42.5600000000',
+// What BalanceEx and OpenOrders answer, which is what the Balances page asks Kraken
+// for on top of the ledger. Built from the ledger fixture so the two agree, except for
+// BTC — deliberately out of step, so the "the stored ledger is behind" path is visible
+// in mocked mode without having to break a sync.
+const balances = () => {
+
+   const ledger = ledgerBalances()
+   const holds = { BTC: 0.05, ADA: 400 }
+
+   return {
+      fetchedAt: Date.now(),
+      assets: ledger.assets.map(asset => {
+         const total = asset.totalNum + (asset.asset === 'BTC' ? 0.017 : 0)
+         return {
+            asset: asset.asset,
+            total: total.toFixed(8),
+            totalNum: total,
+            hold: (holds[asset.asset] ?? 0).toFixed(8),
+            holdNum: holds[asset.asset] ?? 0
+         }
+      }),
+      openOrders: [
+         {
+            txid: 'OQCLML-BW3P3-BUCMWZ', baseAsset: 'BTC', quoteAsset: 'USD', pairKey: 'BTC/USD',
+            type: 'sell', ordertype: 'limit', price: '71000.0', volume: '0.05000000',
+            executed: '0.00000000', opened: Date.now() - 3 * 86400000
+         },
+         {
+            txid: 'OQCLML-9XKQ2-JJTRDK', baseAsset: 'ADA', quoteAsset: 'USD', pairKey: 'ADA/USD',
+            type: 'sell', ordertype: 'limit', price: '0.9200', volume: '400.00000000',
+            executed: '0.00000000', opened: Date.now() - 11 * 3600000
+         }
+      ]
+   }
 }
 
 // Roughly the market as of the fixture's writing. SOL has no mocked rate on purpose,
 // so the "no USD pair" path stays visible in mocked mode.
 const assetRates = (params) => {
-   const known = { BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, USD: 1 }
+   const known = { BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, LINK: 12.5, USD: 1 }
    return {
       rates: (params?.assets ?? [])
          .filter(asset => known[asset] !== undefined)
