@@ -73,6 +73,27 @@ app.post('/order-batch', async (c) => {
    }
 })
 
+// Public data, so no credentials: the caller says which assets it holds, not who it is.
+app.post('/asset-rates', async (c) => {
+
+   const { assets = [] } = await c.req.json()
+
+   try {
+      const krakenAPI = new KrakenAPI()
+      return c.json({ rates: await krakenAPI.fetchUsdRates(assets) })
+   }
+   catch (error) {
+      if (error.message === 'HTTP Requester Error') {
+         console.log('An error happened while contacting the Kraken API:', error.cause)
+         return c.json({ error: `An error happened while contacting the Kraken API: ${error.cause}` }, 500)
+      }
+      else {
+         console.error('An unexpected error happened:', error)
+         return c.json({ error: 'An unexpected error happened.' }, 500)
+      }
+   }
+})
+
 app.get('/trading-pairs', async (c) => {
 
    try {

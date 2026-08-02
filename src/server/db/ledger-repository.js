@@ -16,6 +16,12 @@ const sortableColumns = {
 // is only ever done to add them up for display, never written back to a row.
 const nonZeroFee = 'CAST(fee AS REAL) <> 0'
 
+// What Kraken pays out for holding an asset, as opposed to moving it in and out of a
+// staking or earn position: the allocation subtypes are transfers between the spot and
+// earn wallets, not income, and would otherwise dwarf the rewards themselves.
+const isReward = `type IN ('staking', 'earn')
+   AND subtype NOT IN ('allocation', 'deallocation', 'autoallocation', 'migration')`
+
 const upsertStatement = `
    INSERT INTO ledger_entry (
       account_id, entry_key, txid, refid, time, type, subtype, aclass,
@@ -160,6 +166,47 @@ export default function LedgerRepository(accountId) {
          entries: assets.reduce((count, asset) => count + asset.entries, 0),
          first: assets.length > 0 ? Math.min(...assets.map(asset => asset.first)) : null,
          last: assets.length > 0 ? Math.max(...assets.map(asset => asset.last)) : null
+      }
+   }
+
+   // One row per asset and year, reshaped into the pivot the page draws. Amounts are
+   // net of the fee, like every other total here, and the year is taken in UTC to match
+   // the timestamps Kraken writes.
+   this.rewardSummary = function () {
+
+      const rows = db.query(`
+         SELECT base_asset AS asset,
+                CAST(strftime('%Y', time / 1000, 'unixepoch') AS INTEGER) AS year,
+                SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total,
+                COUNT(*) AS entries,
+                MIN(time) AS first, MAX(time) AS last
+         FROM ledger_entry
+         WHERE account_id = ? AND ${isReward}
+         GROUP BY asset, year
+         ORDER BY asset, year`).all(accountId)
+
+      const assets = new Map()
+
+      for (const row of rows) {
+         const asset = assets.get(row.asset)
+            ?? { asset: row.asset, total: 0, entries: 0, first: row.first, last: row.last, byYear: {} }
+
+         asset.byYear[row.year] = (asset.byYear[row.year] ?? 0) + row.total
+         asset.total += row.total
+         asset.entries += row.entries
+         asset.first = Math.min(asset.first, row.first)
+         asset.last = Math.max(asset.last, row.last)
+         assets.set(row.asset, asset)
+      }
+
+      const years = [...new Set(rows.map(row => row.year))].toSorted((a, b) => a - b)
+
+      return {
+         years,
+         assets: [...assets.values()],
+         entries: rows.reduce((count, row) => count + row.entries, 0),
+         first: rows.length > 0 ? Math.min(...rows.map(row => row.first)) : null,
+         last: rows.length > 0 ? Math.max(...rows.map(row => row.last)) : null
       }
    }
 

@@ -105,6 +105,52 @@ export default function KrakenAPI(credentials) {
          }, {})
    }
 
+   // What one unit of each asset is worth in USD right now, for the assets asked for.
+   // The USD pair is looked up rather than spelled out: Kraken quotes BTC as XBTUSD and
+   // DOGE as XDGUSD, and the ticker answers under yet another name (XXBTZUSD), so both
+   // directions go through the same normalized asset names the ledger is stored with.
+   this.fetchUsdRates = async function (assets) {
+
+      const wanted = new Set(assets.filter(asset => asset && asset !== 'USD'))
+      const rates = { USD: 1 }
+      if (wanted.size === 0) return rates
+
+      const assetPairs = (await resource.fetchAllAssetPairs()).result
+      const pairIndex = buildPairIndex(assetPairs)
+
+      const altnames = new Map()
+      for (const pair of Object.values(assetPairs ?? {})) {
+         // Darkpool pairs (XBT/USD.d) quote the same asset but trade separately, and
+         // an offline pair has no meaningful last trade.
+         if (!pair.altname || pair.altname.includes('.')) continue
+         if (pair.status && pair.status !== 'online') continue
+         // Matched exactly rather than through normalizeAsset, which strips the digit
+         // off Kraken's USD1 stablecoin and would let the thin ETHUSD1 book stand in
+         // for ETHUSD.
+         if (!['USD', 'ZUSD'].includes(pair.quote)) continue
+
+         const baseAsset = normalizeAsset(pair.base)
+         if (wanted.has(baseAsset) && !altnames.has(baseAsset)) {
+            altnames.set(baseAsset, pair.altname)
+         }
+      }
+
+      if (altnames.size === 0) return rates
+
+      // Assets Kraken has no USD pair for are left out rather than valued at zero, so
+      // the page can tell "not traded here" apart from "worth nothing".
+      const ticker = (await resource.fetchTicker([...altnames.values()])).result ?? {}
+      for (const [name, entry] of Object.entries(ticker)) {
+         const { baseAsset } = resolvePair(name, pairIndex)
+         const price = Number(entry?.c?.[0])
+         if (wanted.has(baseAsset) && Number.isFinite(price)) {
+            rates[baseAsset] = price
+         }
+      }
+
+      return rates
+   }
+
    this.fetchAssets = async function (type) {
       const response = await resource.fetchAssetInfo(type)
       return response.result

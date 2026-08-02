@@ -38,6 +38,17 @@ const balances = {
    SOL: '42.5600000000',
 }
 
+// Roughly the market as of the fixture's writing. SOL has no mocked rate on purpose,
+// so the "no USD pair" path stays visible in mocked mode.
+const assetRates = (params) => {
+   const known = { BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, USD: 1 }
+   return {
+      rates: (params?.assets ?? [])
+         .filter(asset => known[asset] !== undefined)
+         .reduce((rates, asset) => ({ ...rates, [asset]: known[asset] }), { USD: 1 })
+   }
+}
+
 const xstocks = {
    output: [
       { name: 'XTSLA', type: 'stock', description: 'Tesla, Inc. is an American multinational automotive and clean energy company. It designs, manufactures, and sells electric vehicles, battery energy storage, and solar panels.' },
@@ -50,4 +61,4 @@ const xstocks = {
    usage: { input_tokens: 1250, output_tokens: 820 },
 }
 
-export { tradingPairs, orderBatch, balances, xstocks }
+export { tradingPairs, orderBatch, balances, assetRates, xstocks }

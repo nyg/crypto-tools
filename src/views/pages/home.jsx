@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { CoinsIcon, HistoryIcon, KeyRoundIcon, LayersIcon, ReceiptIcon, ScrollTextIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import { CoinsIcon, GiftIcon, HistoryIcon, KeyRoundIcon, LayersIcon, ReceiptIcon, ScrollTextIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 import Layout from '../components/layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -33,6 +33,12 @@ const toolGroups = [
             title: 'Fees',
             description: 'Everything Kraken has charged you, totalled per asset and over time.',
             icon: ReceiptIcon
+         },
+         {
+            href: '/kraken/rewards',
+            title: 'Rewards',
+            description: 'Staking and earn rewards, per asset and per year, valued in USD.',
+            icon: GiftIcon
          },
          {
             href: '/kraken/balances',
