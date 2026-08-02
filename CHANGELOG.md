@@ -1,6 +1,21 @@
 # Changelog
 
 
+## [0.1.1](https://github.com/nyg/crypto-tools/compare/v0.1.0..v0.1.1) - 2026-08-02
+
+### ⛰️  Features
+
+- [`91ad612`](https://github.com/nyg/crypto-tools/commit/91ad612ca6c1aa9fa89d3e236d153bcafad5d99b) *(kraken)* Add a Rewards page backed by the ledger database ([#209](https://github.com/nyg/crypto-tools/issues/209))
+
+### 🐛 Bug Fixes
+
+- [`b7e4fe2`](https://github.com/nyg/crypto-tools/commit/b7e4fe296c8e42791f9256371b101874edf32f10) *(deps)* Pin dependency cmdk to 1.1.1 ([#210](https://github.com/nyg/crypto-tools/issues/210))
+- [`eb2227a`](https://github.com/nyg/crypto-tools/commit/eb2227a9525984edf6dff0952625cad2f8a52d39) *(deps)* Update all stable non-major dependencies ([#208](https://github.com/nyg/crypto-tools/issues/208))
+
+### ⚙️ Miscellaneous
+
+- [`7a0bcc8`](https://github.com/nyg/crypto-tools/commit/7a0bcc8b0a69432d52f4d276bc5e53b0a1662645) *(deps)* Lock file maintenance ([#211](https://github.com/nyg/crypto-tools/issues/211))
+
 ## [0.1.0](https://github.com/nyg/crypto-tools/compare/v0.0.12..v0.1.0) - 2026-08-01
 
 ### ⛰️  Features
