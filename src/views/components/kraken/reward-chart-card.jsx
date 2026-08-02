@@ -3,8 +3,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart'
 import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
 
-// Past this many slices the chart stops saying anything: the tail is folded into one
-// "Others" slice, which the table above still breaks down asset by asset.
+// A slice thinner than this is a sliver on the ring and a line in the legend that says
+// nothing, so the whole tail is folded into one "Others" slice — the table below still
+// breaks it down asset by asset. The cap is the backstop for a spread flat enough that
+// nothing falls under the threshold.
+const MIN_SHARE = 0.01
 const MAX_SLICES = 8
 const OTHERS = 'Others'
 
@@ -21,12 +24,18 @@ function buildSlices(assets, rates) {
       .filter(slice => slice.value > 0)
       .toSorted((a, b) => b.value - a.value)
 
-   if (valued.length <= MAX_SLICES) return valued
+   const total = valued.reduce((sum, slice) => sum + slice.value, 0)
 
-   const others = valued.slice(MAX_SLICES - 1)
+   const keptByShare = valued.filter(slice => slice.value / total >= MIN_SHARE)
+   const kept = keptByShare.slice(0, MAX_SLICES - 1)
+
+   const others = valued.slice(kept.length)
+
+   // Folding a single asset into "Others" hides its name for nothing.
+   if (others.length <= 1) return valued
 
    return [
-      ...valued.slice(0, MAX_SLICES - 1),
+      ...kept,
       {
          asset: OTHERS,
          value: others.reduce((sum, slice) => sum + slice.value, 0),
@@ -106,11 +115,15 @@ export default function RewardChartCard({ rewards, rates }) {
                         {slices.map(slice =>
                            <Cell key={slice.asset} fill={colors.get(slice.asset)} />)}
                      </Pie>
+                     {/* itemSorter defaults to 'value', which for a pie legend is the
+                         slice name — the legend would come out alphabetical while the
+                         ring runs biggest-first. Null keeps both in the same order. */}
                      <ChartLegend
                         layout="vertical"
                         align="right"
                         verticalAlign="middle"
                         width={140}
+                        itemSorter={null}
                         content={<ChartLegendContent
                            nameKey="asset"
                            className="flex-col items-stretch gap-2 pt-0 pl-3" />} />

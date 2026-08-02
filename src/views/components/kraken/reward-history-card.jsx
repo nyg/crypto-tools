@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import SelectField from '../lib/select-field'
+import ComboboxField from '../lib/combobox-field'
 import { asAssetAmount, asDollarAmount } from '../../../utils/format'
 
 const EVERYTHING = 'ALL'
@@ -52,12 +52,16 @@ export default function RewardHistoryCard({ rewards, rates }) {
          <CardHeader>
             <CardTitle>Over time</CardTitle>
             <CardAction>
-               <SelectField
+               {/* Searchable: an account can hold dozens of rewarded assets, and
+                   scrolling a plain select past them is slower than typing three letters. */}
+               <ComboboxField
                   name="reward-history-asset"
                   className="w-44"
                   value={isTotal ? EVERYTHING : asset}
                   onValueChange={setAsset}
                   options={options}
+                  searchPlaceholder="Search assets…"
+                  emptyText="No asset found."
                   disabled={assets.length === 0} />
             </CardAction>
          </CardHeader>
