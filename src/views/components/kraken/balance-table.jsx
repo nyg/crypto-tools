@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon, Loader2Icon } from 'lucide-react'
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon, DownloadIcon, Loader2Icon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import BalanceFilters, { DUST_USD } from './balance-filters'
 import { PLACEMENT_ORDER, isEarning, placementColor, placementDescription, placementLabel, placementOf } from './placement'
@@ -18,6 +19,22 @@ const valueOf = (amount, rate) => rate == null ? null : (amount ?? 0) * rate
 // USD.M. They are the reason a holding can read as one asset on Kraken and another
 // here, so they are shown; the plain ticker alongside them says nothing.
 const suffixedNames = position => position.rawAssets.filter(name => name.includes('.'))
+
+// Asset and amount, semicolon-separated like the export this page used to serve from
+// the server. The amount is the exact string the ledger stores rather than the rounded,
+// thousand-separated one in the table: this file is meant to be read by something else.
+function downloadCsv(rows) {
+
+   const csv = ['asset;amount', ...rows.map(row => `${row.asset};${row.exact}`)].join('\n')
+   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+
+   const link = document.createElement('a')
+   link.href = url
+   link.download = `kraken-balances-${new Date().toISOString().slice(0, 10)}.csv`
+   link.click()
+
+   URL.revokeObjectURL(url)
+}
 
 function SortIcon({ isActive, direction }) {
 
@@ -148,7 +165,17 @@ export default function BalanceTable({ balances, rates, live, filters, onFilters
       <Card>
          <CardHeader>
             <CardTitle>Holdings</CardTitle>
-            <CardAction>
+            <CardAction className="flex items-center gap-2">
+               {/* Exports what the table is showing, filters and sorting included: the
+                   button sits next to the count, and the count is of the same rows. */}
+               <Button
+                  variant="ghost"
+                  size="xs"
+                  disabled={sorted.length === 0}
+                  onClick={() => downloadCsv(sorted)}>
+                  <DownloadIcon className="size-3.5" />
+                  Export CSV
+               </Button>
                {isLoading
                   ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
                   : <Badge variant="outline">{asCount(sorted.length, 'asset')}</Badge>}
