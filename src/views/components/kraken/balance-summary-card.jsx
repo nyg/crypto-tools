@@ -41,7 +41,7 @@ export default function BalanceSummaryCard({ balances, rates, live, liveError, i
    const totalValue = valued.reduce((sum, asset) => sum + valueOf(asset), 0)
 
    // Split by whether the coins are being paid anything, which is the question the
-   // page exists to answer — not by spot against earn, since Auto Earn is both.
+   // page exists to answer — not by spot against earn, since an opted-in holding is both.
    const earningValue = valued.reduce((sum, asset) => sum + asset.positions
       .filter(position => isEarning(placementOf(position)))
       .reduce((value, position) => value + position.amountNum * rates[asset.asset], 0), 0)

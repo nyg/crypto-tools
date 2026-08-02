@@ -72,7 +72,7 @@ function buildEntries() {
 
    // A tail of deterministic entries, so that every placement the Balances page can draw
    // is present whatever the random draw did: a coin in each earn wallet, a spot holding
-   // still being paid (Auto Earn), a position carrying a retired staking name alongside
+   // still being paid (Opt-In Rewards), a position carrying a retired staking name alongside
    // its current one, and one worth too little to be worth a row.
    const recently = days => Date.now() - days * 86400000
 

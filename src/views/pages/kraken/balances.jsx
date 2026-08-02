@@ -67,8 +67,15 @@ export default function KrakenBalances() {
    const canCheckLive = Boolean(credentials.apiKey && credentials.apiSecret)
    const checkLive = () => trigger({ credentials }).catch(() => {})
 
+   // Guarded because StrictMode runs this twice in development, and each run costs two
+   // private calls against Kraken's rate limit. The button below is unaffected: it
+   // calls checkLive directly.
+   const hasCheckedRef = useRef(false)
+
    useEffect(() => {
-      if (canCheckLive) checkLive()
+      if (!canCheckLive || hasCheckedRef.current) return
+      hasCheckedRef.current = true
+      checkLive()
    }, [canCheckLive])
 
    if (!credentials.apiKey) {
@@ -91,11 +98,11 @@ export default function KrakenBalances() {
                <InfoIcon className="size-5 shrink-0" />
                <p>
                   What you hold, rebuilt from the local database the Ledger tab fills, and
-                  grouped by <b>where each coin actually sits</b> — the spot wallet, or one of
-                  Kraken&apos;s earn products. Coins left in spot that are still being paid
-                  rewards are marked <b>Auto Earn</b>, which is the distinction the Kraken
-                  interface does not draw. Totals are checked against Kraken live, which also
-                  says how much an open order has already reserved.
+                  grouped by <b>where each coin actually sits</b> — your spot wallet, or one
+                  of Kraken&apos;s Earn strategies. Coins left in spot that are still being
+                  paid are marked <b>Opt-In Rewards</b>, since they keep earning without
+                  leaving the wallet they can be traded from. Totals are checked against
+                  Kraken live, which also says how much an open order has already reserved.
                </p>
             </div>
 

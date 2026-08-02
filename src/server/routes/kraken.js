@@ -21,9 +21,9 @@ app.post('/balances', async (c) => {
    try {
       const krakenAPI = new KrakenAPI(credentials)
 
-      // Sequentially, not with Promise.all: Kraken wants the nonce of each private
-      // call to arrive in increasing order, and two requests in flight at once can
-      // reach it the other way round — which it answers with EAPI:Invalid nonce.
+      // Sequentially rather than with Promise.all. The resource layer would queue them
+      // anyway — Kraken rejects private calls whose nonces arrive out of order — and
+      // asking for them one at a time says so at the call site.
       const assets = await krakenAPI.fetchLiveBalances()
       const openOrders = await krakenAPI.fetchOpenOrders()
 

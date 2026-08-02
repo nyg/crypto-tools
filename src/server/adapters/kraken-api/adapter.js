@@ -89,7 +89,7 @@ export default function KrakenAPI(credentials) {
    //    "staked" but sits in the bonded wallet, .M is "opt-in rewards" but is the
    //    flexible one, .B is "new yield-bearing products" but is the locked one. The
    //    letters are also not stable — a position keyed XBT.F in mid-2025 is XBT.M now.
-   //  - Auto Earn has no suffix at all. Kraken pays those rewards onto the plain spot
+   //  - An opted-in holding has no suffix at all. Kraken pays those rewards onto the spot
    //    balance, so an asset earning that way is indistinguishable here from one that
    //    is doing nothing. The ledger's reward entries are the only way to tell.
    //
