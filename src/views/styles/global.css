@@ -141,3 +141,22 @@
     @apply font-sans;
     }
 }
+
+/* Recharts hard-codes #ccc and #fff strokes on its grids, dots and sectors, which have
+   to be repainted in the theme's colours. These five live here rather than in the chart
+   container's class list: an attribute selector inside a Tailwind arbitrary variant has
+   its quotes escaped on the way out, and the [stroke=\'#ccc\'] that lands in the
+   stylesheet is not parseable CSS — one build warning each. */
+[data-slot='chart'] .recharts-cartesian-grid line[stroke='#ccc'] {
+    stroke: color-mix(in oklab, var(--border) 50%, transparent);
+}
+
+[data-slot='chart'] .recharts-polar-grid [stroke='#ccc'],
+[data-slot='chart'] .recharts-reference-line [stroke='#ccc'] {
+    stroke: var(--border);
+}
+
+[data-slot='chart'] .recharts-dot[stroke='#fff'],
+[data-slot='chart'] .recharts-sector[stroke='#fff'] {
+    stroke: transparent;
+}
