@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpDownIcon } from 'lucide-react'
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
@@ -10,6 +10,16 @@ import { asAssetAmount, asDollarAmount } from '../../../utils/format'
 // whichever column is sorted on.
 const valueOf = (amount, rate) => rate == null ? null : (amount ?? 0) * rate
 
+// The sorted column shows the single arrow it is sorted by, drawn heavier; the rest
+// keep the two-headed arrow that says they can be sorted at all.
+function SortIcon({ isActive, direction }) {
+
+   if (!isActive) return <ArrowUpDownIcon className="size-3 opacity-40" />
+
+   const Icon = direction === 'asc' ? ArrowUpIcon : ArrowDownIcon
+   return <Icon className="size-3.5" strokeWidth={3} />
+}
+
 function SortableHead({ column, sort, onSortChange, children }) {
    const isActive = sort.column === column
    return (
@@ -17,13 +27,14 @@ function SortableHead({ column, sort, onSortChange, children }) {
          <button
             type="button"
             title="Sort by value in USD"
-            className="ml-auto inline-flex items-center gap-1 hover:text-foreground"
+            className={cn('ml-auto inline-flex items-center gap-1 hover:text-foreground',
+               isActive && 'font-semibold text-foreground')}
             onClick={() => onSortChange({
                column,
                direction: isActive && sort.direction === 'desc' ? 'asc' : 'desc'
             })}>
             {children}
-            <ArrowUpDownIcon className={cn('size-3', isActive ? 'opacity-100' : 'opacity-40')} />
+            <SortIcon isActive={isActive} direction={sort.direction} />
          </button>
       </TableHead>
    )
@@ -51,8 +62,9 @@ const RewardCell = ({ amount, rate }) => {
 export default function RewardTable({ rewards, rates }) {
 
    // Sorting is local: every row is already on the page, so re-ordering costs no
-   // request and there is nothing to page through.
-   const [sort, setSort] = useState({ column: 'total', direction: 'desc' })
+   // request and there is nothing to page through. Null until the header is clicked,
+   // because the column it starts on is a function of the data, which arrives later.
+   const [sort, setSort] = useState(null)
 
    const years = rewards?.years ?? []
    const assets = rewards?.assets ?? []
@@ -74,11 +86,17 @@ export default function RewardTable({ rewards, rates }) {
 
    const rateFor = asset => rates?.[asset] ?? null
 
+   // What is being earned right now is what the page is opened for, so the table starts
+   // on this year. A ledger that stops short of it falls back to its most recent year.
+   const currentYear = new Date().getUTCFullYear()
+   const defaultColumn = years.includes(currentYear) ? currentYear : (years.at(-1) ?? 'total')
+   const activeSort = sort ?? { column: defaultColumn, direction: 'desc' }
+
    // Every column is ranked by what it is worth, never by the amount: a number of PEPE
    // and a number of BTC cannot be compared.
-   const sortValue = asset => sort.column === 'total'
+   const sortValue = asset => activeSort.column === 'total'
       ? valueOf(asset.total, rateFor(asset.asset))
-      : valueOf(asset.byYear[sort.column], rateFor(asset.asset))
+      : valueOf(asset.byYear[activeSort.column], rateFor(asset.asset))
 
    const rows = assets.toSorted((a, b) => {
       const [left, right] = [sortValue(a), sortValue(b)]
@@ -86,7 +104,7 @@ export default function RewardTable({ rewards, rates }) {
       if (left == null) return 1
       if (right == null) return -1
       if (left === right) return a.asset.localeCompare(b.asset)
-      return sort.direction === 'desc' ? right - left : left - right
+      return activeSort.direction === 'desc' ? right - left : left - right
    })
 
    // Totals are in USD only: adding an amount of DOT to an amount of PEPE means nothing.
@@ -106,10 +124,10 @@ export default function RewardTable({ rewards, rates }) {
                      <TableRow>
                         <TableHead>Asset</TableHead>
                         {years.map(year =>
-                           <SortableHead key={year} column={year} sort={sort} onSortChange={setSort}>
+                           <SortableHead key={year} column={year} sort={activeSort} onSortChange={setSort}>
                               {year}
                            </SortableHead>)}
-                        <SortableHead column="total" sort={sort} onSortChange={setSort}>
+                        <SortableHead column="total" sort={activeSort} onSortChange={setSort}>
                            Total
                         </SortableHead>
                      </TableRow>
