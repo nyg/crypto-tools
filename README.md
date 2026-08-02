@@ -55,10 +55,10 @@ irm get.scoop.sh | iex
 **macOS (manual) / Windows (manual):**
 
 1. Download the installer from the [releases page](https://github.com/nyg/crypto-tools/releases):
-   - macOS: `CryptoTools.dmg`
-   - Windows: `CryptoTools.zip`
-2. **macOS**: open the DMG, drag **CryptoTools.app** to your **Applications** folder, then see [macOS Gatekeeper](#macos-gatekeeper) below before first launch
-3. **Windows**: extract the ZIP and run **CryptoTools-Setup.exe** inside (installs per-user to `%LOCALAPPDATA%` — no admin rights). See [Windows SmartScreen](#windows-smartscreen) below before first launch.
+   - macOS (Apple Silicon): `crypto-tools-<version>-macos-arm64.dmg`
+   - Windows (x64): `crypto-tools-<version>-windows-x64-setup.zip`
+2. **macOS**: open the DMG, drag **Crypto Tools.app** to your **Applications** folder, then see [macOS Gatekeeper](#macos-gatekeeper) below before first launch
+3. **Windows**: extract the ZIP and run **Crypto Tools-Setup.exe** inside (installs per-user to `%LOCALAPPDATA%` — no admin rights). See [Windows SmartScreen](#windows-smartscreen) below before first launch.
 
 API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
 
@@ -66,8 +66,8 @@ API keys can be configured in the app on the **Settings** page (stored in `local
 
 The app is **ad-hoc signed but not notarized** (it is not signed with a paid Apple Developer certificate). It is **not damaged or corrupted** — but because it is not notarized, macOS quarantines it after download and blocks the first launch. Depending on your macOS version and state, you may see either:
 
-- *"CryptoTools.app" is damaged and can't be opened. You should move it to the Trash.*, or
-- *Apple could not verify "CryptoTools.app" is free of malware…*
+- *"Crypto Tools.app" is damaged and can't be opened. You should move it to the Trash.*, or
+- *Apple could not verify "Crypto Tools.app" is free of malware…*
 
 Both mean the same thing: macOS is blocking an un-notarized, quarantined app. The app is safe to open.
 
@@ -76,7 +76,7 @@ Both mean the same thing: macOS is blocking an un-notarized, quarantined app. Th
 **If you downloaded the DMG manually**, remove the quarantine flag once after copying the app to Applications:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/CryptoTools.app
+xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"
 ```
 
 Then double-click to launch. This works for **both** dialogs above.
@@ -159,7 +159,7 @@ Prefer a dedicated Kraken API key for this app. Kraken requires nonces to increa
 
 ### Ledger storage
 
-The Ledger page stores its data in a SQLite database in the per-user application data directory — `~/Library/Application Support/CryptoTools` on macOS, `%APPDATA%\CryptoTools` on Windows, `$XDG_DATA_HOME/CryptoTools` on Linux. Set `CRYPTO_TOOLS_DATA_DIR` to override it. `bun run dev` writes to `ledger-dev.db` so it never touches the installed app's data. Nothing is uploaded anywhere; deleting the file (or using **Clear data**) simply means the next sync downloads everything again.
+The Ledger page stores its data in a SQLite database in the per-user application data directory — `~/Library/Application Support/Crypto Tools` on macOS, `%APPDATA%\Crypto Tools` on Windows, `$XDG_DATA_HOME/crypto-tools` on Linux. A directory left behind by a version older than v0.1.2 (named `CryptoTools`) is moved across on first launch. Set `CRYPTO_TOOLS_DATA_DIR` to override it. `bun run dev` writes to `ledger-dev.db` so it never touches the installed app's data. Nothing is uploaded anywhere; deleting the file (or using **Clear data**) simply means the next sync downloads everything again.
 
 ## Project Structure
 

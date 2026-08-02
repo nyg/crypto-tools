@@ -138,12 +138,20 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      # Electrobun names its artifacts after the channel, OS and arch; the release
+      # assets instead say which OS and CPU they are for and which version they are,
+      # so a download is unambiguous once it sits in a Downloads folder.
       - name: Rename release assets
+        env:
+          VERSION: ${{ needs.prepare.outputs.release_version }}
         run: |
-          find artifacts -name '*.dmg' -exec mv {} 'artifacts/CryptoTools.dmg' \;
-          find artifacts -name '*.zip' -exec mv {} 'artifacts/CryptoTools.zip' \;
+          set -euo pipefail
+          find artifacts -name '*.dmg' -exec mv {} "artifacts/crypto-tools-${VERSION}-macos-arm64.dmg" \;
+          find artifacts -name '*.zip' -exec mv {} "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip" \;
 
       - name: Create Scoop ZIP
+        env:
+          VERSION: ${{ needs.prepare.outputs.release_version }}
         run: |
           set -euo pipefail
           mkdir -p _scoop_build
@@ -158,7 +166,7 @@ jobs:
           # files are in .installer/*.tar.zst inside the same ZIP. Extract them
           # into a flat zip that Scoop can consume directly (bin\launcher.exe
           # at the root), so no Scoop installer script is required.
-          unzip -q artifacts/CryptoTools.zip '.installer/*' -d _scoop_build
+          unzip -q "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip" '.installer/*' -d _scoop_build
           mapfile -t tarballs < <(find _scoop_build/.installer -mindepth 1 -maxdepth 1 -type f -name '*.tar.zst' -print)
           if [ "${#tarballs[@]}" -ne 1 ]; then
             found='(none)'
@@ -183,7 +191,7 @@ jobs:
             echo "::error::bin/launcher.exe not found under ${appdirs[0]} — Electrobun layout may have changed"
             exit 1
           fi
-          ( cd "${appdirs[0]}" && zip -r "$GITHUB_WORKSPACE/artifacts/CryptoTools-Scoop.zip" . )
+          ( cd "${appdirs[0]}" && zip -r "$GITHUB_WORKSPACE/artifacts/crypto-tools-${VERSION}-windows-x64-scoop.zip" . )
           rm -rf _scoop_build
 
       - name: Generate release notes
@@ -198,7 +206,7 @@ jobs:
           ## Installing on macOS
 
           The app is ad-hoc signed but **not notarized**, so macOS quarantines it after
-          download and blocks the first launch (you may see *"CryptoTools.app is damaged"*
+          download and blocks the first launch (you may see *"Crypto Tools.app is damaged"*
           or *"Apple could not verify…"* — both mean the same thing; the app is not corrupted).
 
           **Easiest — Homebrew** (handles this automatically):
@@ -207,11 +215,11 @@ jobs:
           brew install --cask nyg/tap/crypto-tools
           ```
 
-          **Manual DMG** — after copying CryptoTools.app to Applications, remove the
+          **Manual DMG** — after copying Crypto Tools.app to Applications, remove the
           quarantine flag once:
 
           ```sh
-          xattr -dr com.apple.quarantine /Applications/CryptoTools.app
+          xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"
           ```
 
           ## Installing on Windows
@@ -223,8 +231,8 @@ jobs:
           scoop install crypto-tools
           ```
 
-          **Manual ZIP** — download `CryptoTools.zip`, extract it, and run
-          `CryptoTools-Setup.exe` inside. The app installs per-user to
+          **Manual ZIP** — download the `…-windows-x64-setup.zip` asset, extract it, and
+          run `Crypto Tools-Setup.exe` inside. The app installs per-user to
           `%LOCALAPPDATA%` (no admin rights needed). Because the app is not
           code-signed, SmartScreen shows *"Windows protected your PC"* — click
           **More info → Run anyway** (offered to administrators only). Installing
@@ -232,38 +240,44 @@ jobs:
           EOF
 
       - name: Create GitHub release
-        run: |
-          gh release create "v${{ needs.prepare.outputs.release_version }}" \
-            'artifacts/CryptoTools.dmg' 'artifacts/CryptoTools.zip' \
-            'artifacts/CryptoTools-Scoop.zip' \
-            --title "v${{ needs.prepare.outputs.release_version }}" \
-            --verify-tag \
-            -F git-cliff/CHANGELOG.md
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          gh release create "v${VERSION}" \
+            "artifacts/crypto-tools-${VERSION}-macos-arm64.dmg" \
+            "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip" \
+            "artifacts/crypto-tools-${VERSION}-windows-x64-scoop.zip" \
+            --title "v${VERSION}" \
+            --verify-tag \
+            -F git-cliff/CHANGELOG.md
 
       - name: Compute DMG SHA256
         id: sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.release_version }}
         run: |
-          # GitHub converts spaces to dots in asset names; CryptoTools.dmg has no spaces
-          gh release download "v${{ needs.prepare.outputs.release_version }}" \
-            --repo nyg/crypto-tools --pattern "CryptoTools.dmg" --output crypto-tools.dmg
+          set -euo pipefail
+          gh release download "v${VERSION}" --repo nyg/crypto-tools \
+            --pattern "crypto-tools-${VERSION}-macos-arm64.dmg" --output crypto-tools.dmg
           SHA256=$(sha256sum crypto-tools.dmg | awk '{print $1}')
           echo "dmg_sha256=$SHA256" >> "$GITHUB_OUTPUT"
           rm crypto-tools.dmg
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Compute ZIP SHA256
         id: zip_sha
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.release_version }}
         run: |
-          gh release download "v${{ needs.prepare.outputs.release_version }}" \
-            --repo nyg/crypto-tools --pattern "CryptoTools-Scoop.zip" --output crypto-tools-scoop.zip
+          set -euo pipefail
+          gh release download "v${VERSION}" --repo nyg/crypto-tools \
+            --pattern "crypto-tools-${VERSION}-windows-x64-scoop.zip" --output crypto-tools-scoop.zip
           SHA256=$(sha256sum crypto-tools-scoop.zip | awk '{print $1}')
           echo "zip_sha256=$SHA256" >> "$GITHUB_OUTPUT"
           rm crypto-tools-scoop.zip
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Trigger homebrew tap cask update
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
@@ -291,7 +305,7 @@ jobs:
           mkdir -p bucket
           jq -n \
             --arg version "$VERSION" \
-            --arg url "https://github.com/nyg/crypto-tools/releases/download/v${VERSION}/CryptoTools-Scoop.zip" \
+            --arg url "https://github.com/nyg/crypto-tools/releases/download/v${VERSION}/crypto-tools-${VERSION}-windows-x64-scoop.zip" \
             --arg hash "sha256:${ZIP_SHA256}" \
             '{
               version: $version,
