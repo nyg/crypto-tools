@@ -32,7 +32,7 @@ async function main() {
 
   console.log(`✓ API server listening on http://127.0.0.1:${PORT}`);
 
-  const win = new BrowserWindow({ title: "CryptoTools", url, frame: { x: 0, y: 0, width: 1280, height: 900 } });
+  const win = new BrowserWindow({ title: "Crypto Tools", url, frame: { x: 0, y: 0, width: 1280, height: 900 } });
 
   // Launch maximized; the 1280x900 frame above is the restored (un-maximized) size.
   win.maximize();
@@ -48,7 +48,7 @@ async function main() {
 
   ApplicationMenu.setApplicationMenu([
     {
-      label: "CryptoTools",
+      label: "Crypto Tools",
       submenu: [
         { role: "about" },
         { type: "separator" },

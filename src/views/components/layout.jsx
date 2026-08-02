@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router'
 import MenuLink from './lib/menu-link'
 import { Button } from '@/components/ui/button'
+import { groupHref } from '@/lib/tools'
 
 
 const isSection = (path, href) => path.split('/')[1] === href.split('/')[1]
@@ -29,8 +30,8 @@ export default function Layout({ children, name }) {
                   Crypto Tools
                </Link>
                <nav className="flex items-center gap-3 sm:gap-4">
-                  <MenuLink href="/kraken/order-batch" isActive={isSection}>Kraken</MenuLink>
-                  <MenuLink href="/binance/staking" isActive={isSection}>Binance</MenuLink>
+                  <MenuLink href={groupHref('Kraken')} isActive={isSection}>Kraken</MenuLink>
+                  <MenuLink href={groupHref('Binance')} isActive={isSection}>Binance</MenuLink>
                   <MenuLink href="/settings" isActive={isSection}>Settings</MenuLink>
                </nav>
                <Button asChild variant="ghost" size="icon-sm" className="ml-auto text-muted-foreground hover:text-foreground">

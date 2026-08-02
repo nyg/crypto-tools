@@ -8,7 +8,9 @@ export default function SubNav({ items }) {
 
    return (
       <div className="mb-6 border-b border-border">
-         <nav className="-mb-px flex items-center gap-1 overflow-x-auto">
+         {/* -ml-3 cancels the first link's px-3 so its label lines up with the page
+             heading and the header wordmark, which sit flush against the container. */}
+         <nav className="-mb-px -ml-3 flex items-center gap-1 overflow-x-auto">
             {items.map(({ label, href }) => (
                <Link
                   key={href}

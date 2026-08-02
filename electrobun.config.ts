@@ -5,7 +5,7 @@ const { version } = JSON.parse(readFileSync("./package.json", "utf-8")) as { ver
 
 export default {
   app: {
-    name: "CryptoTools",
+    name: "Crypto Tools",
     identifier: "io.github.nyg.crypto-tools",
     version,
   },
