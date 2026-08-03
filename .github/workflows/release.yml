@@ -303,6 +303,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p bucket
+          # bin is given an alias: the Electrobun entry point is always named
+          # launcher.exe, so without one Scoop would shim it as `launcher` and every
+          # Electrobun app in the bucket would fight over that same name.
           jq -n \
             --arg version "$VERSION" \
             --arg url "https://github.com/nyg/crypto-tools/releases/download/v${VERSION}/crypto-tools-${VERSION}-windows-x64-scoop.zip" \
@@ -315,7 +318,7 @@ jobs:
               architecture: {
                 "64bit": {url: $url, hash: $hash}
               },
-              bin: "bin\\launcher.exe",
+              bin: [["bin\\launcher.exe", "crypto-tools"]],
               shortcuts: [["bin\\launcher.exe", "Crypto Tools"]]
             }' > bucket/crypto-tools.json
           git add bucket/crypto-tools.json
