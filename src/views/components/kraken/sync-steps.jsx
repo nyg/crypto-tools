@@ -11,8 +11,11 @@ export default function SyncSteps({ job }) {
 
    if (!job?.steps?.length) return null
 
+   // Bled to the card's edges and given a tint of its own: nested inside a border it
+   // read as a box within a box, and the phases of the two reports have to line up
+   // vertically to be comparable at a glance.
    return (
-      <div className="divide-y divide-border rounded-lg border border-border">
+      <div className="-mx-4 divide-y divide-border border-y border-border bg-muted/40 group-data-[size=sm]/card:-mx-3">
          {job.steps.map(step => <SyncStep key={step.report} step={step} job={job} />)}
       </div>
    )
@@ -29,33 +32,40 @@ function SyncStep({ step, job }) {
       : null
 
    return (
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-3 py-2.5 text-sm">
+      <div className="px-4 py-2.5 text-sm group-data-[size=sm]/card:px-3">
 
-         <span className="flex items-center gap-2 font-medium">
+         {/* The report name holds a column of its own so that every phase label starts
+             at the same x, whatever the name in front of it is. */}
+         <div className="grid grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 sm:grid-cols-[1rem_9rem_minmax(0,1fr)]">
+
             <StepIcon step={step} running={running} />
-            {reportLabels[step.report] ?? step.report}
-         </span>
 
-         <span className={cn('text-muted-foreground', step.phase === 'error' && 'text-destructive')}>
-            {stepLabel(step)}
-         </span>
+            <span className="font-medium">{reportLabels[step.report] ?? step.report}</span>
 
-         <span className="ml-auto flex items-baseline gap-3 tabular-nums text-muted-foreground">
-            <StepCounts step={step} running={running} />
-            {elapsed !== null && <span className="w-12 text-right">{elapsed}s</span>}
-         </span>
+            <div className="col-span-2 flex items-baseline justify-between gap-x-4 gap-y-1 sm:col-span-1">
+               <span className={cn('text-muted-foreground', step.phase === 'error' && 'text-destructive')}>
+                  {stepLabel(step)}
+               </span>
+               <span className="flex shrink-0 items-baseline gap-4 tabular-nums text-muted-foreground">
+                  <StepCounts step={step} running={running} />
+                  {elapsed !== null && <span className="w-10 text-right">{elapsed}s</span>}
+               </span>
+            </div>
+
+         </div>
 
          {/* The report id is what Kraken's own export page lists a run under, so it is
-             worth showing while there is still something to look up. */}
+             worth showing while there is still something to look up. Indented to the
+             name column, so it hangs off the row it belongs to. */}
          {running && step.reportId &&
-            <span className="w-full font-mono text-xs text-muted-foreground">
+            <p className="mt-1 font-mono text-xs text-muted-foreground sm:pl-[1.75rem]">
                {step.reportId}
                {step.reportStatus && <> · {step.reportStatus}</>}
                {step.pollCount > 0 && <> · checked {step.pollCount}×</>}
-            </span>}
+            </p>}
 
          {step.error &&
-            <span className="w-full text-xs text-destructive">{step.error}</span>}
+            <p className="mt-1 text-xs text-destructive sm:pl-[1.75rem]">{step.error}</p>}
 
       </div>
    )

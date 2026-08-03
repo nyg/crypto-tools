@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Field from '../lib/field'
 import SyncSteps from './sync-steps'
+import { asCount } from '../lib/filter-options'
 import { SyncStatusBadge, phaseLabel } from './sync-status'
 import { asLongDate } from '../../../utils/format'
 
@@ -41,7 +42,7 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
          </CardHeader>
          <CardContent className="space-y-4">
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-6">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
                <Field label="Data range">{dataRange}</Field>
                <Field
                   label="Last sync"
@@ -50,16 +51,18 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                      ? `${formatDistanceToNow(state.lastSyncedAt)} ago`
                      : 'Never'}
                </Field>
-               <Field label="Entries">{(state?.entryCount ?? 0).toLocaleString('en-GB')}</Field>
-               <Field label="Trades">{(state?.tradeCount ?? 0).toLocaleString('en-GB')}</Field>
-               <Field label="Database">{asFileSize(state?.dbSizeBytes)}</Field>
-               <Field label="Account">
-                  <span className="font-mono text-xs">{state?.apiKeyPrefix ? `${state.apiKeyPrefix}…` : '—'}</span>
+               {/* One field rather than two: the split between them is what the step
+                   rows below are for, and six labels made the card read as a form. */}
+               <Field label="Stored">
+                  {asCount(state?.entryCount, 'entry', 'entries')} · {asCount(state?.tradeCount, 'trade')}
                </Field>
+               <Field label="Database">{asFileSize(state?.dbSizeBytes)}</Field>
             </div>
 
-            {/* Kept after the run as well: it is the only place that says how much of
-                what was downloaded was actually new. */}
+            {/* Full width of the card rather than a bordered box inside it, so the run
+                reads as its own band between the stored figures and the actions. Kept
+                after the run as well: it is the only place that says how much of what
+                was downloaded was actually new. */}
             <SyncSteps job={job} />
 
             <div className="flex flex-wrap items-center gap-2">

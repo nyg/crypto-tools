@@ -162,11 +162,10 @@ export default function KrakenLedger() {
    const isTradeFiltered = Object.keys(defaultTradeFilters)
       .some(key => tradeFilters[key] !== defaultTradeFilters[key])
 
-   // The badge counts whatever the open tab is showing. 'entry' is spelled out rather
-   // than run through asCount, which only knows how to add an s.
+   // The badge counts whatever the open tab is showing.
    const count = showTrades
       ? { isLoading: isLoadingTrades, label: asCount(trades?.total, 'trade') }
-      : { isLoading, label: `${(entries?.total ?? 0).toLocaleString('en-GB')} entries` }
+      : { isLoading, label: asCount(entries?.total, 'entry', 'entries') }
 
    return (
       <KrakenLayout name="Ledger">
