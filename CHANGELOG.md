@@ -1,6 +1,24 @@
 # Changelog
 
 
+## [0.1.3](https://github.com/nyg/crypto-tools/compare/v0.1.2..v0.1.3) - 2026-08-03
+
+### ⛰️  Features
+
+- [`3a8962e`](https://github.com/nyg/crypto-tools/commit/3a8962e0f6121559da1fca1feedb780f70de1f7d) *(kraken)* Show both sync steps on the Ledger page, add a Trades tab ([#217](https://github.com/nyg/crypto-tools/issues/217))
+
+### 🐛 Bug Fixes
+
+- [`174a269`](https://github.com/nyg/crypto-tools/commit/174a26997a5a2d0002b041e3f74f3ce820b93e8e) Give the Scoop bin entry an alias ([#218](https://github.com/nyg/crypto-tools/issues/218))
+
+### ⚙️ Miscellaneous
+
+- [`075a1af`](https://github.com/nyg/crypto-tools/commit/075a1af11cbd64cf00cc8b207cb91789f60f640e) *(deps)* Lock file maintenance ([#220](https://github.com/nyg/crypto-tools/issues/220))
+- [`01f7eb1`](https://github.com/nyg/crypto-tools/commit/01f7eb144754039800f96faa12f4b9eb16c170f3) *(deps)* Lock file maintenance ([#219](https://github.com/nyg/crypto-tools/issues/219))
+- [`4658cec`](https://github.com/nyg/crypto-tools/commit/4658cec43afe6d98f8ac6d6dc2870e01b1a6e2be) *(deps)* Lock file maintenance ([#216](https://github.com/nyg/crypto-tools/issues/216))
+- [`b51eedc`](https://github.com/nyg/crypto-tools/commit/b51eedc5bc026d0960ee6e2f8883f16822b08683) *(deps)* Lock file maintenance ([#215](https://github.com/nyg/crypto-tools/issues/215))
+- [`283f1f2`](https://github.com/nyg/crypto-tools/commit/283f1f2604feb07d236cf8d8dfffa4f540ae377f) *(deps)* Lock file maintenance ([#214](https://github.com/nyg/crypto-tools/issues/214))
+
 ## [0.1.2](https://github.com/nyg/crypto-tools/compare/v0.1.1..v0.1.2) - 2026-08-02
 
 ### ⛰️  Features
