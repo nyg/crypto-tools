@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/componen
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Field from '../lib/field'
+import SyncSteps from './sync-steps'
+import { asCount } from '../lib/filter-options'
 import { SyncStatusBadge, phaseLabel } from './sync-status'
 import { asLongDate } from '../../../utils/format'
 
@@ -19,8 +21,8 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
 
    const [confirmingClear, setConfirmingClear] = useState(false)
 
-   // While a run is in flight the phase says more than a badge would, and it has to
-   // name the report as well: the phases repeat once per export.
+   // While a run is in flight the phase says more than a badge would. Which report it
+   // belongs to is left to the step rows below, which show both at once.
    const statusIndicator = isRunning
       ? <span className="flex items-center gap-1.5 text-sm font-normal text-muted-foreground">
          <Loader2Icon className="size-4 animate-spin" />
@@ -40,7 +42,7 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
          </CardHeader>
          <CardContent className="space-y-4">
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-6">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
                <Field label="Data range">{dataRange}</Field>
                <Field
                   label="Last sync"
@@ -49,27 +51,19 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                      ? `${formatDistanceToNow(state.lastSyncedAt)} ago`
                      : 'Never'}
                </Field>
-               <Field label="Entries">{(state?.entryCount ?? 0).toLocaleString('en-GB')}</Field>
-               <Field label="Trades">{(state?.tradeCount ?? 0).toLocaleString('en-GB')}</Field>
-               <Field label="Database">{asFileSize(state?.dbSizeBytes)}</Field>
-               <Field label="Account">
-                  <span className="font-mono text-xs">{state?.apiKeyPrefix ? `${state.apiKeyPrefix}…` : '—'}</span>
+               {/* One field rather than two: the split between them is what the step
+                   rows below are for, and six labels made the card read as a form. */}
+               <Field label="Stored">
+                  {asCount(state?.entryCount, 'entry', 'entries')} · {asCount(state?.tradeCount, 'trade')}
                </Field>
+               <Field label="Database">{asFileSize(state?.dbSizeBytes)}</Field>
             </div>
 
-            {isRunning &&
-               <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-border pt-3 md:grid-cols-4">
-                  <Field label="Report">
-                     <span className="font-mono text-xs">{job.reportId ?? '—'}</span>
-                  </Field>
-                  <Field label="Kraken status">{job.reportStatus ?? 'Queued'}</Field>
-                  <Field label="Elapsed">{Math.round((job.updatedAt - job.startedAt) / 1000)}s</Field>
-                  <Field label="Entries read">
-                     {job.counts.stored > 0
-                        ? `${job.counts.stored.toLocaleString('en-GB')} saved`
-                        : (job.counts.parsed || 0).toLocaleString('en-GB')}
-                  </Field>
-               </div>}
+            {/* Full width of the card rather than a bordered box inside it, so the run
+                reads as its own band between the stored figures and the actions. Kept
+                after the run as well: it is the only place that says how much of what
+                was downloaded was actually new. */}
+            <SyncSteps job={job} />
 
             <div className="flex flex-wrap items-center gap-2">
                <Button size="sm" type="button" disabled={isRunning || isStarting} onClick={onSync}>
@@ -79,15 +73,14 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                <Button variant="secondary" size="sm" type="button" disabled={isRunning || isStarting} onClick={onFullResync}>
                   Full resync
                </Button>
-               {isRunning &&
-                  <Button variant="outline" size="sm" type="button" onClick={onCancel}>
-                     Cancel
-                  </Button>}
+               {/* Alongside the other two rather than pushed to the far edge: it is one
+                   of the three things this card does, and the destructive variant is
+                   what marks it out. */}
                <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="sm"
                   type="button"
-                  className="ml-auto text-destructive hover:text-destructive"
+                  className="border-destructive/40"
                   disabled={isRunning}
                   onClick={() => {
                      if (confirmingClear) {
@@ -102,16 +95,26 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                   <Trash2Icon className="size-3.5" />
                   {confirmingClear ? 'Click again to confirm' : 'Clear data'}
                </Button>
+               {/* Last, and only while there is something to cancel, so the three
+                   buttons above never move under the pointer mid-run. */}
+               {isRunning &&
+                  <Button variant="outline" size="sm" type="button" onClick={onCancel}>
+                     Cancel
+                  </Button>}
             </div>
 
             <p className="text-xs text-muted-foreground">
-               <b>Sync</b> fetches everything since the last entry it holds, for both the ledger and
-               your trade history. <b>Full resync</b> re-reads your whole history and refreshes
-               entries Kraken has amended since — it never deletes anything. <b>Clear data</b> removes
-               the entries and the trades behind the Closed Orders page.
+               <b>Sync</b> fetches everything since the last row it holds, as two exports: your
+               ledger, then your trade history. Each export is deleted from Kraken as soon as its
+               rows are stored. <b>Full resync</b> re-reads your whole history and refreshes rows
+               Kraken has amended since — it never deletes anything. <b>Clear data</b> empties the
+               entries and the trades behind the Closed Orders page, leaving the database itself in
+               place.
             </p>
 
-            {(error || job?.error) &&
+            {/* A failure the steps already carry is not repeated here; this is for the
+                ones that belong to no step, such as the request to start being refused. */}
+            {(error || (job?.error && !job.steps?.some(step => step.error))) &&
                <Alert variant="destructive">
                   <AlertDescription>{error ?? job.error}</AlertDescription>
                </Alert>}

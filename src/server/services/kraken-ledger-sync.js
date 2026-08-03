@@ -28,6 +28,10 @@ const reports = ['ledgers', 'trades']
 
 const terminalPhases = ['done', 'error', 'cancelled']
 
+// A step is over once it reaches one of these; 'pending' is the other end, before the
+// step has started. Anything in between is a step Kraken is currently working on.
+const finishedStepPhases = ['done', 'error', 'cancelled', 'skipped']
+
 const jobs = new Map()
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -60,20 +64,14 @@ export function startSync(credentials, mode = 'incremental') {
    const job = {
       accountId,
       mode,
-      phase: 'requesting',
-      report: reports[0],
+      // The run's own lifecycle. What each report is doing lives in its own step: a
+      // single shared phase could only ever describe one of the two, so the page saw
+      // the ledger's progress replaced by the trades' halfway through the run.
+      phase: 'running',
       startedAt: Date.now(),
       updatedAt: Date.now(),
       finishedAt: null,
-      // reportId is the one in flight, kept alongside the map so the status card can
-      // show what Kraken is currently preparing without knowing about either report.
-      reportId: null,
-      reportIds: { ledgers: null, trades: null },
-      reportStatus: null,
-      pollCount: 0,
-      requestedFrom: null,
-      counts: { parsed: 0, stored: 0, inserted: 0, updated: 0, skipped: 0 },
-      results: {},
+      steps: reports.map(newStep),
       error: null,
       cancelRequested: false
    }
@@ -89,8 +87,40 @@ export function startSync(credentials, mode = 'incremental') {
    return { job, alreadyRunning: false }
 }
 
+// Kept in the order the run walks them, so the page renders them in that order
+// without having to know which report comes first.
+function newStep(report) {
+   return {
+      report,
+      phase: 'pending',
+      reportId: null,
+      reportStatus: null,
+      // Whether the export has already been handed back to Kraken. The run removes
+      // each one as soon as its rows are stored, and the cleanup at the end has to
+      // know which are left rather than asking Kraken to delete a report twice.
+      reportRemoved: false,
+      requestedFrom: null,
+      startedAt: null,
+      finishedAt: null,
+      pollCount: 0,
+      counts: { parsed: 0, stored: 0, inserted: 0, updated: 0, skipped: 0 },
+      error: null
+   }
+}
+
+const stepFor = (job, report) => job.steps.find(step => step.report === report)
+
+// The step Kraken is working on: started, not finished. There is at most one.
+const activeStep = job => job.steps.find(step =>
+   step.phase !== 'pending' && !finishedStepPhases.includes(step.phase))
+
 function setPhase(job, phase) {
    job.phase = phase
+   job.updatedAt = Date.now()
+}
+
+function setStepPhase(job, step, phase) {
+   step.phase = phase
    job.updatedAt = Date.now()
 }
 
@@ -140,7 +170,6 @@ async function runSync(job, credentials) {
 
       finishTradeState(repository, tradeRepository, job.startedAt)
 
-      setPhase(job, 'cleaning')
       finishSyncState(repository)
       setPhase(job, 'done')
    }
@@ -148,64 +177,86 @@ async function runSync(job, credentials) {
       if (job.phase !== 'cancelled') {
          setPhase(job, 'error')
          job.error = String(error.cause ?? error.message ?? error)
+
+         // The failure belongs to whichever report was in flight, so that the page can
+         // show one step failed while the other still reports what it did.
+         const step = activeStep(job)
+         if (step) {
+            step.error = job.error
+            step.phase = 'error'
+         }
+
          console.error('Ledger sync failed:', job.error)
          repository.writeSyncState({ lastError: job.error })
+      }
+
+      // A report the run never reached is neither done nor failed: it was dropped
+      // because the one before it ended the run.
+      for (const step of job.steps) {
+         if (step.phase === 'pending') step.phase = 'skipped'
       }
    }
    finally {
       job.finishedAt = Date.now()
       job.updatedAt = Date.now()
 
-      // Both reports have to go, not just the one in flight when the run ended.
-      for (const reportId of Object.values(job.reportIds)) {
-         if (reportId) await safeRemoveReport(krakenAPI, reportId)
-      }
+      // Whatever the run did not already hand back: the export of a step that failed,
+      // or one Kraken was still preparing when the sync was cancelled.
+      for (const step of job.steps) await removeStepReport(krakenAPI, step)
    }
 }
 
-// Requests one export, waits for Kraken to prepare it, then reads and stores it. The
-// phase names are the same for either report so that the page can render progress
-// without knowing which one is running; `job.report` says which it is.
+// Requests one export, waits for Kraken to prepare it, then reads, stores and removes
+// it. Both reports walk the same phases, each recorded on its own step, so the page
+// can show one finished while the other is still running.
 async function runReport(job, krakenAPI, repository, { report, fromDate, read, count, upsert }) {
 
-   job.report = report
-   job.pollCount = 0
-   job.reportStatus = null
-   job.requestedFrom = fromDate
-   job.counts = { parsed: 0, stored: 0, inserted: 0, updated: 0, skipped: 0 }
+   const step = stepFor(job, report)
+   step.startedAt = Date.now()
+   step.requestedFrom = fromDate
 
-   setPhase(job, 'requesting')
+   setStepPhase(job, step, 'requesting')
    const reportId = await krakenAPI.requestExport({
       report,
       description: `${REPORT_PREFIX}${new Date().toISOString()}`,
       fromDate
    })
 
-   job.reportIds[report] = reportId
-   job.reportId = reportId
+   step.reportId = reportId
 
    // Persisted before polling so that a restart mid-run can still clean up.
    repository.writeSyncState({ lastReportId: reportId })
 
-   setPhase(job, 'waiting')
-   await waitForReport(job, krakenAPI, report)
+   setStepPhase(job, step, 'waiting')
+   await waitForReport(job, krakenAPI, step)
 
-   setPhase(job, 'downloading')
+   setStepPhase(job, step, 'downloading')
    const { rows, skipped } = await read(reportId)
 
-   setPhase(job, 'parsing')
-   job.counts.parsed = rows.length
-   job.counts.skipped = skipped
+   setStepPhase(job, step, 'parsing')
+   step.counts.parsed = rows.length
+   step.counts.skipped = skipped
 
-   setPhase(job, 'storing')
-   await storeRows(job, rows, count, upsert)
+   setStepPhase(job, step, 'storing')
+   await storeRows(job, step, rows, count, upsert)
 
-   job.results[report] = { ...job.counts }
+   // Handed back as soon as its rows are safely stored rather than at the end of the
+   // run: an export left on Kraken counts against the per-account limit for as long
+   // as it sits there, and the trades report that follows can take minutes.
+   setStepPhase(job, step, 'cleaning')
+   await removeStepReport(krakenAPI, step)
+
+   step.finishedAt = Date.now()
+   setStepPhase(job, step, 'done')
    console.log(`Kraken ${report} sync stored ${rows.length} rows`)
 }
 
 function throwIfCancelled(job) {
    if (!job.cancelRequested) return
+
+   const step = activeStep(job)
+   if (step) step.phase = 'cancelled'
+
    setPhase(job, 'cancelled')
    throw new Error('Sync cancelled.')
 }
@@ -232,35 +283,35 @@ function incrementalStart(repository, tradeRepository, report) {
    return Math.max(0, Math.min(...watermark) - OVERLAP_MS)
 }
 
-async function waitForReport(job, krakenAPI, report) {
+async function waitForReport(job, krakenAPI, step) {
 
    const deadline = Date.now() + MAX_WAIT_MS
 
    while (Date.now() < deadline) {
 
-      await delay(pollDelays[Math.min(job.pollCount, pollDelays.length - 1)])
+      await delay(pollDelays[Math.min(step.pollCount, pollDelays.length - 1)])
 
       throwIfCancelled(job)
 
-      job.pollCount++
+      step.pollCount++
       job.updatedAt = Date.now()
 
       // One call covers every report of this type, so there is no need to poll per
       // id — but it must be this type: Kraken lists one type per call, and asking
       // for the wrong one would simply never find the report.
-      const entries = await krakenAPI.fetchExportReports(report)
-      const entry = entries.find(candidate => candidate.id === job.reportId)
+      const entries = await krakenAPI.fetchExportReports(step.report)
+      const entry = entries.find(candidate => candidate.id === step.reportId)
 
       if (entry) {
-         job.reportStatus = entry.status
+         step.reportStatus = entry.status
          if (entry.status?.toLowerCase() === 'processed') return
       }
    }
 
-   throw new Error(`Kraken did not finish preparing the ${report} export within 10 minutes.`)
+   throw new Error(`Kraken did not finish preparing the ${step.report} export within 10 minutes.`)
 }
 
-async function storeRows(job, rows, count, upsert) {
+async function storeRows(job, step, rows, count, upsert) {
 
    const before = count()
 
@@ -269,14 +320,14 @@ async function storeRows(job, rows, count, upsert) {
    // the server answering and lets progress be reported.
    for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
       upsert(rows.slice(i, i + CHUNK_SIZE), Date.now())
-      job.counts.stored = Math.min(i + CHUNK_SIZE, rows.length)
+      step.counts.stored = Math.min(i + CHUNK_SIZE, rows.length)
       job.updatedAt = Date.now()
       await delay(0)
    }
 
    const after = count()
-   job.counts.inserted = after - before
-   job.counts.updated = job.counts.stored - job.counts.inserted
+   step.counts.inserted = after - before
+   step.counts.updated = step.counts.stored - step.counts.inserted
 }
 
 // The watermarks come from the data Kraken returned rather than from the local
@@ -331,7 +382,8 @@ async function removeOrphanedReports(krakenAPI) {
          for (const entry of entries) {
             if (entry.description?.startsWith(REPORT_PREFIX) && entry.createdDate < cutoff) {
                console.log('Removing orphaned Kraken export:', entry.id)
-               await safeRemoveReport(krakenAPI, entry.id)
+               await safeRemoveReport(krakenAPI, entry.id,
+                  entry.status?.toLowerCase() === 'processed' ? 'delete' : 'cancel')
             }
          }
       }
@@ -342,9 +394,22 @@ async function removeOrphanedReports(krakenAPI) {
    }
 }
 
-async function safeRemoveReport(krakenAPI, reportId) {
+async function removeStepReport(krakenAPI, step) {
+
+   if (!step.reportId || step.reportRemoved) return
+
+   // Kraken only deletes a report it has finished preparing. One still queued or
+   // processing — which is what a cancelled run leaves behind — has to be cancelled
+   // instead, and asking to delete it just fails.
+   const type = step.reportStatus?.toLowerCase() === 'processed' ? 'delete' : 'cancel'
+
+   await safeRemoveReport(krakenAPI, step.reportId, type)
+   step.reportRemoved = true
+}
+
+async function safeRemoveReport(krakenAPI, reportId, type = 'delete') {
    try {
-      await krakenAPI.removeExport(reportId)
+      await krakenAPI.removeExport(reportId, type)
    }
    catch (error) {
       // Never let a failed cleanup mask the error that actually ended the run.

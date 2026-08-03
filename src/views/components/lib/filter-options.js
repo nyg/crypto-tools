@@ -17,5 +17,6 @@ export const asDateInput = (timestamp) => timestamp
 export const fromDateValue = (value) => value ? Date.parse(`${value}T00:00:00Z`) : null
 export const toDateValue = (value) => value ? Date.parse(`${value}T23:59:59Z`) : null
 
-export const asCount = (count, noun) =>
-   `${(count ?? 0).toLocaleString('en-GB')} ${noun}${count === 1 ? '' : 's'}`
+// The plural is spelled out only for the nouns an s cannot make, such as entries.
+export const asCount = (count, noun, plural) =>
+   `${(count ?? 0).toLocaleString('en-GB')} ${count === 1 ? noun : plural ?? `${noun}s`}`

@@ -14,6 +14,16 @@ app.post('/orders', async (c) => withAccount(c, ({ body, accountId }) =>
       pageSize: Math.min(500, Math.max(1, Number(body.pageSize) || 50))
    }))))
 
+// The stored fills, ungrouped — what the Ledger page's Trades tab browses, next to
+// the ledger entries the same sync wrote.
+app.post('/fills', async (c) => withAccount(c, ({ body, accountId }) =>
+   c.json(new TradeRepository(accountId).queryTrades({
+      filters: body.filters,
+      sort: body.sort,
+      page: Math.max(0, Number(body.page) || 0),
+      pageSize: Math.min(500, Math.max(1, Number(body.pageSize) || 50))
+   }))))
+
 app.post('/filters', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new TradeRepository(accountId).distinctOrderFilters())))
 
