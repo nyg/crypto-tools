@@ -352,6 +352,8 @@ export default function LedgerRepository(accountId) {
 
    // Trades are cleared alongside the entries: they come from the same sync, for the
    // same account, and leaving them behind would show orders the ledger no longer has.
+   // Rows only — the tables and the database file stay, so another account's data
+   // survives and the next sync writes into the same schema.
    this.clearAccount = function () {
       const entries = this.countEntries()
       const trades = db.query('SELECT COUNT(*) AS count FROM trade WHERE account_id = ?')
@@ -362,6 +364,12 @@ export default function LedgerRepository(accountId) {
          db.query('DELETE FROM trade WHERE account_id = ?').run(accountId)
          db.query('DELETE FROM sync_state WHERE account_id = ?').run(accountId)
       })()
+
+      // Deleting rows only frees pages for reuse, so the file keeps its size and the
+      // sync card would still report a 40 MB database after clearing everything out
+      // of it. VACUUM rewrites the file at its real size; it cannot run inside a
+      // transaction, hence after the one above rather than in it.
+      db.exec('VACUUM')
 
       return { entries, trades }
    }

@@ -185,6 +185,59 @@ export function tradeOrders(body = {}) {
    return { rows: sorted.slice(page * pageSize, (page + 1) * pageSize), total: orders.length, page, pageSize }
 }
 
+// The fills themselves, ungrouped, as the Ledger page's Trades tab reads them. A
+// filter selects a row here rather than the order behind it — nothing is folded.
+export function tradeFills(body = {}) {
+
+   const filtered = trades.filter(trade => matches(trade, body.filters))
+
+   const columns = ['time', 'pair', 'direction', 'ordertype', 'volume', 'price', 'cost', 'fee']
+   const column = columns.includes(body.sort?.column) ? body.sort.column : 'time'
+   const factor = body.sort?.direction === 'asc' ? 1 : -1
+
+   const numeric = ['volume', 'price', 'cost', 'fee'].includes(column)
+   const value = trade => {
+      if (column === 'volume') return Number(trade.vol)
+      if (column === 'pair') return trade.pairKey
+      if (column === 'direction') return trade.type
+      if (numeric) return Number(trade[column])
+      return trade[column]
+   }
+
+   const sorted = filtered.toSorted((a, b) => {
+      const [left, right] = [value(a), value(b)]
+      if (left < right) return -factor
+      if (left > right) return factor
+      return a.txid < b.txid ? -factor : factor
+   })
+
+   const page = Math.max(0, body.page ?? 0)
+   const pageSize = body.pageSize ?? 50
+
+   // The server renames columns on the way out; the fixture has to answer in the same
+   // shape or the table would render blanks under mocked data only.
+   const rows = sorted.slice(page * pageSize, (page + 1) * pageSize).map(trade => ({
+      txid: trade.txid,
+      orderId: trade.ordertxid,
+      orderKey: trade.orderKey,
+      time: trade.time,
+      pair: trade.pairKey,
+      rawPair: trade.pair,
+      baseAsset: trade.baseAsset,
+      quoteAsset: trade.quoteAsset,
+      direction: trade.type,
+      ordertype: trade.ordertype,
+      price: trade.price,
+      cost: trade.cost,
+      fee: trade.fee,
+      volume: trade.vol,
+      margin: trade.margin,
+      misc: trade.misc
+   }))
+
+   return { rows, total: filtered.length, page, pageSize }
+}
+
 export function tradeFilters() {
    const distinct = pick => [...new Set(trades.map(pick))].filter(Boolean).toSorted()
    return {

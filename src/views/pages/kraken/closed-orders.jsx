@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
 import { InfoIcon, Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
@@ -20,7 +21,15 @@ export default function KrakenClosedOrders() {
       apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || ''
    }))
 
-   const [filters, setFilters] = useState(defaultFilters)
+   // ?order=… arrives from the Ledger page's Trades tab, where a fill links to the
+   // order it belongs to. Read once as the initial filter: after that the filter bar
+   // owns the value, and rewriting it from the URL would fight with it.
+   const [searchParams] = useSearchParams()
+   const [filters, setFilters] = useState(() => {
+      const order = searchParams.get('order')
+      return order ? { ...defaultFilters, search: order } : defaultFilters
+   })
+
    const [filtersKey, setFiltersKey] = useState(0)
    const [sort, setSort] = useState({ column: 'time', direction: 'desc' })
    const [page, setPage] = useState(0)

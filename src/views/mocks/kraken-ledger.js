@@ -138,57 +138,95 @@ let syncState = {
 }
 
 // Phases are derived from elapsed time so that mocked mode drives the real polling
-// loop and shows the whole progression rather than jumping straight to done. A run
-// walks them twice, once per export report, as the server does.
-const schedule = [
-   [0, 'requesting', 'Queued', 'ledgers'],
-   [1500, 'waiting', 'Processing', 'ledgers'],
-   [7000, 'downloading', 'Processed', 'ledgers'],
-   [8500, 'parsing', 'Processed', 'ledgers'],
-   [9500, 'storing', 'Processed', 'ledgers'],
-   [10500, 'requesting', 'Queued', 'trades'],
-   [12000, 'waiting', 'Processing', 'trades'],
-   [16000, 'downloading', 'Processed', 'trades'],
-   [17000, 'parsing', 'Processed', 'trades'],
-   [18000, 'storing', 'Processed', 'trades'],
-   [19000, 'cleaning', 'Processed', 'trades'],
-   [19500, 'done', 'Processed', 'trades']
+// loop and shows the whole progression rather than jumping straight to done. One step
+// walks these; the run walks the steps one after the other, as the server does.
+const stepSchedule = [
+   [0, 'requesting', null],
+   [1500, 'waiting', 'Queued'],
+   [3000, 'waiting', 'Processing'],
+   [7000, 'downloading', 'Processed'],
+   [8500, 'parsing', 'Processed'],
+   [9500, 'storing', 'Processed'],
+   [10000, 'cleaning', 'Processed'],
+   [10500, 'done', 'Processed']
 ]
 
-const SYNC_MS = 19500
+const STEP_MS = 10500
+const SYNC_MS = 2 * STEP_MS
+
+const reportIds = { ledgers: 'TCWJRA-2JBAB-DHZE7X', trades: 'TCWJRA-9KLMN-QRSTU' }
 
 let job = null
+
+// The step's own view of the run: `offset` is when its turn starts, so everything
+// before that reads as pending and everything after as finished.
+function stepAt(report, elapsed, offset, mode) {
+
+   const rowCount = report === 'trades' ? allTradeCount() : allEntries.length
+   const local = elapsed - offset
+
+   const base = {
+      report,
+      reportId: local >= 0 ? reportIds[report] : null,
+      reportStatus: null,
+      reportRemoved: false,
+      requestedFrom: null,
+      startedAt: local >= 0 ? job.startedAt + offset : null,
+      finishedAt: null,
+      pollCount: 0,
+      counts: { parsed: 0, stored: 0, inserted: 0, updated: 0, skipped: 0 },
+      error: null
+   }
+
+   if (local < 0) return { ...base, phase: 'pending' }
+
+   const [, phase, reportStatus] = stepSchedule.findLast(([at]) => local >= at) ?? stepSchedule[0]
+   const stored = ['storing', 'cleaning', 'done'].includes(phase)
+
+   return {
+      ...base,
+      phase,
+      reportStatus,
+      reportRemoved: phase === 'done',
+      pollCount: Math.floor(Math.min(local, 7000) / 1500),
+      finishedAt: phase === 'done' ? job.startedAt + offset + STEP_MS : null,
+      counts: {
+         parsed: ['requesting', 'waiting'].includes(phase) ? 0 : rowCount,
+         stored: stored ? rowCount : 0,
+         inserted: phase === 'done' ? (mode === 'full' ? 0 : 3) : 0,
+         updated: phase === 'done' ? rowCount - (mode === 'full' ? 0 : 3) : 0,
+         skipped: 0
+      }
+   }
+}
 
 function currentJob() {
    if (!job) return null
 
    const elapsed = Date.now() - job.startedAt
+   const steps = ['ledgers', 'trades']
+      .map((report, index) => stepAt(report, elapsed, index * STEP_MS, job.mode))
+
    if (job.cancelRequested) {
-      return { ...job, phase: 'cancelled', finishedAt: job.startedAt + elapsed }
+      return {
+         ...job,
+         phase: 'cancelled',
+         updatedAt: Date.now(),
+         finishedAt: job.startedAt + elapsed,
+         // Whichever step was in flight was cancelled with the run; one that never
+         // started was dropped, exactly as the server records it.
+         steps: steps.map(step => step.phase === 'done'
+            ? step
+            : { ...step, phase: step.phase === 'pending' ? 'skipped' : 'cancelled' })
+      }
    }
-
-   const [, phase, reportStatus, report] = schedule.findLast(([at]) => elapsed >= at) ?? schedule[0]
-
-   // Counts belong to the report in flight, so they restart when the second one does.
-   const rowCount = report === 'trades' ? allTradeCount() : allEntries.length
-   const parsed = phase === 'requesting' || phase === 'waiting' ? 0 : rowCount
 
    return {
       ...job,
-      phase,
-      report,
-      reportStatus,
-      reportIds: { ledgers: job.reportId, trades: 'TCWJRA-9KLMN-QRSTU' },
-      pollCount: Math.floor(elapsed / 1500),
+      phase: elapsed >= SYNC_MS ? 'done' : 'running',
+      steps,
       updatedAt: Date.now(),
-      finishedAt: phase === 'done' ? job.startedAt + SYNC_MS : null,
-      counts: {
-         parsed,
-         stored: ['storing', 'cleaning', 'done'].includes(phase) ? rowCount : 0,
-         inserted: phase === 'done' ? (job.mode === 'full' ? 0 : 3) : 0,
-         updated: phase === 'done' ? rowCount : 0,
-         skipped: 0
-      }
+      finishedAt: elapsed >= SYNC_MS ? job.startedAt + SYNC_MS : null
    }
 }
 
@@ -202,8 +240,6 @@ export function ledgerSync(body) {
       accountId: 'mock-account',
       mode: body?.mode === 'full' ? 'full' : 'incremental',
       startedAt: Date.now(),
-      reportId: 'TCWJRA-2JBAB-DHZE7X',
-      requestedFrom: body?.mode === 'full' ? 0 : syncState.coveredTo - 72 * 3600000,
       error: null,
       cancelRequested: false
    }

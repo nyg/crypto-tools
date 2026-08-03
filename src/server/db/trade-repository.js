@@ -17,6 +17,19 @@ const sortableOrderColumns = {
    price: 'CASE WHEN SUM(vol_num) > 0 THEN SUM(cost_num) / SUM(vol_num) ELSE 0 END'
 }
 
+// The same idea for the ungrouped fills, where each column stands on its own. The
+// numeric ones read the REAL mirrors too, for the reason given above.
+const sortableTradeColumns = {
+   time: 'time',
+   pair: 'pair_key',
+   direction: 'type',
+   ordertype: 'ordertype',
+   volume: 'vol_num',
+   price: 'price_num',
+   cost: 'cost_num',
+   fee: 'fee_num'
+}
+
 const upsertStatement = `
    INSERT INTO trade (
       account_id, txid, ordertxid, order_key, pair, pair_key, base_asset, quote_asset,
@@ -129,6 +142,34 @@ export default function TradeRepository(accountId) {
          .map(row => row.orderKey)
 
       return { rows: withExactAmounts(db, accountId, orderKeys), total, page, pageSize }
+   }
+
+   // The fills themselves, ungrouped: one row per trade, the way Kraken's export
+   // wrote it and the way the sync stored it. Nothing is recomputed here — an order's
+   // totals are the derived view above, a fill is just a row.
+   this.queryTrades = function ({ filters = {}, sort = {}, page = 0, pageSize = 50 }) {
+
+      const { where, params } = buildTradeWhere(accountId, filters)
+
+      const column = sortableTradeColumns[sort.column] ?? sortableTradeColumns.time
+      const direction = sort.direction === 'asc' ? 'ASC' : 'DESC'
+
+      const total = db.query(`SELECT COUNT(*) AS count FROM trade WHERE ${where}`)
+         .get(...params).count
+
+      // txid breaks the tie for the same reason order_key does above: the fills of one
+      // order share a timestamp, and without it rows shuffle between pages.
+      const rows = db.query(`
+         SELECT txid, ordertxid AS orderId, order_key AS orderKey, time,
+                pair_key AS pair, pair AS rawPair, base_asset AS baseAsset,
+                quote_asset AS quoteAsset, type AS direction, ordertype,
+                price, cost, fee, vol AS volume, margin, misc
+         FROM trade
+         WHERE ${where}
+         ORDER BY ${column} ${direction}, txid ${direction}
+         LIMIT ? OFFSET ?`).all(...params, pageSize, page * pageSize)
+
+      return { rows, total, page, pageSize }
    }
 
    this.distinctOrderFilters = function () {
