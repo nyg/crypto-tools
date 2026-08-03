@@ -73,15 +73,14 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                <Button variant="secondary" size="sm" type="button" disabled={isRunning || isStarting} onClick={onFullResync}>
                   Full resync
                </Button>
-               {isRunning &&
-                  <Button variant="outline" size="sm" type="button" onClick={onCancel}>
-                     Cancel
-                  </Button>}
+               {/* Alongside the other two rather than pushed to the far edge: it is one
+                   of the three things this card does, and the destructive variant is
+                   what marks it out. */}
                <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="sm"
                   type="button"
-                  className="ml-auto text-destructive hover:text-destructive"
+                  className="border-destructive/40"
                   disabled={isRunning}
                   onClick={() => {
                      if (confirmingClear) {
@@ -96,6 +95,12 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                   <Trash2Icon className="size-3.5" />
                   {confirmingClear ? 'Click again to confirm' : 'Clear data'}
                </Button>
+               {/* Last, and only while there is something to cancel, so the three
+                   buttons above never move under the pointer mid-run. */}
+               {isRunning &&
+                  <Button variant="outline" size="sm" type="button" onClick={onCancel}>
+                     Cancel
+                  </Button>}
             </div>
 
             <p className="text-xs text-muted-foreground">

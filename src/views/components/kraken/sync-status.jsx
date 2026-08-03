@@ -41,16 +41,20 @@ export function phaseLabel(job) {
    return `${stepLabel(step)} (${reportLabels[step.report] ?? step.report})`
 }
 
-// Only states that can actually be known get a badge. Nothing here can tell whether
-// Kraken has entries newer than the last run — the watermark is what was downloaded,
-// not what exists — so a stored ledger shows no badge at all and the "last synced"
-// time next to it is left to say how old it is.
+// Only states that can actually be known get a badge, and only where nothing else
+// already says it. A run that finished used to earn a "Synced" badge, which claimed
+// more than it knew: nothing here can tell whether Kraken has rows newer than the
+// last run — the watermark is what was downloaded, not what exists — so it only ever
+// meant "the last run did not fail", which the steps and the last-synced time say
+// between them. A run that did fail is worth flagging, because nothing else does.
 export function SyncStatusBadge({ state, job, isRunning }) {
 
    if (isRunning) return <Badge variant="secondary">Syncing</Badge>
    if (job?.phase === 'error') return <Badge variant="destructive">Failed</Badge>
    if (job?.phase === 'cancelled') return <Badge variant="outline">Cancelled</Badge>
-   if (job?.phase === 'done') return <Badge>Synced</Badge>
+   // Read from the stored watermark rather than from the job, so that clearing the
+   // data goes back to "never synced" instead of staying quiet on the strength of a
+   // finished run whose rows are gone.
    if (state?.lastSyncedAt) return null
 
    return <Badge variant="outline">Never synced</Badge>
