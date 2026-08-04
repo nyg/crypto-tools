@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/select'
 
 // shadcn-idiomatic labeled Select field (Radix based).
-// Mirrors the space-y-1.5 field pattern used by NumericInput.
+// Mirrors the space-y-1 field pattern used by NumericInput.
 export default function SelectField({ name, label, value, onValueChange, options, placeholder, disabled, className = '' }) {
    return (
       <div className={`space-y-1 ${className}`}>

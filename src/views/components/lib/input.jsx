@@ -6,8 +6,8 @@ export default function Input({ name, type = 'text', defaultValue, value, onChan
    const autoComplete = type === 'password' ? 'current-password' : 'none'
 
    return (
-      <div className={`space-y-1.5 ${className}`}>
-         <Label htmlFor={name}>{label}</Label>
+      <div className={`space-y-1 ${className}`}>
+         <Label htmlFor={name} className="pl-2.5 text-xs">{label}</Label>
          <ShadcnInput
             type={type}
             id={name}
