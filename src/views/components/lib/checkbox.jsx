@@ -11,7 +11,7 @@ export default function Checkbox({ name, defaultChecked, checked, onChange, labe
             defaultChecked={defaultChecked}
             onCheckedChange={(val) => onChange?.({ target: { checked: val } })}
          />
-         <Label htmlFor={name} className="cursor-pointer font-normal">{label}</Label>
+         <Label htmlFor={name} className="cursor-pointer text-xs font-normal">{label}</Label>
       </div>
    )
 }
