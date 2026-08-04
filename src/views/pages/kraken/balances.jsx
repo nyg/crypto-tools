@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
 import useSWRMutation from 'swr/mutation'
-import { InfoIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
+import InfoBanner from '../../components/lib/info-banner'
 import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import BalanceSummaryCard from '../../components/kraken/balance-summary-card'
 import BalancePlacementCard from '../../components/kraken/balance-placement-card'
@@ -94,17 +94,14 @@ export default function KrakenBalances() {
       <KrakenLayout name="Balances">
          <div className="space-y-6">
 
-            <div className="flex items-center gap-3 rounded-lg border border-blue-300/60 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/25 dark:bg-blue-950/30 dark:text-blue-100">
-               <InfoIcon className="size-5 shrink-0" />
-               <p>
-                  What you hold, rebuilt from the local database the Ledger tab fills, and
-                  grouped by <b>where each coin actually sits</b> — your spot wallet, or one
-                  of Kraken&apos;s Earn strategies. Coins left in spot that are still being
-                  paid are marked <b>Opt-In Rewards</b>, since they keep earning without
-                  leaving the wallet they can be traded from. Totals are checked against
-                  Kraken live, which also says how much an open order has already reserved.
-               </p>
-            </div>
+            <InfoBanner>
+               What you hold, rebuilt from the local database the Ledger tab fills, and
+               grouped by <b>where each coin actually sits</b> — your spot wallet, or one
+               of Kraken&apos;s Earn strategies. Coins left in spot that are still being
+               paid are marked <b>Opt-In Rewards</b>, since they keep earning without
+               leaving the wallet they can be traded from. Totals are checked against
+               Kraken live, which also says how much an open order has already reserved.
+            </InfoBanner>
 
             {error &&
                <Alert variant="destructive">

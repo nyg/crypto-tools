@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router'
 import MenuLink from './lib/menu-link'
 import { Button } from '@/components/ui/button'
+import { Toaster } from '@/components/ui/sonner'
 import { groupHref } from '@/lib/tools'
 
 
@@ -46,6 +47,8 @@ export default function Layout({ children, name }) {
          <main className="w-full grow px-4 pt-5 pb-8 sm:px-6">
             {children}
          </main>
+
+         <Toaster />
 
       </div>
    )

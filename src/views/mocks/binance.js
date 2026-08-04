@@ -92,6 +92,18 @@ const aggregateBalance = {
                   info: { productId: 'AVAX-30', asset: 'AVAX', duration: 30, apy: 0.0450, soldOut: true, maxStakingAmount: 5000, positionsAmount: 0, minStakingAmount: 5 },
                   positions: [],
                },
+               {
+                  info: { productId: 'AVAX-60', asset: 'AVAX', duration: 60, apy: 0.0510, soldOut: false, maxStakingAmount: 100, positionsAmount: 100, minStakingAmount: 5 },
+                  positions: [],
+               },
+               {
+                  info: { productId: 'AVAX-90', asset: 'AVAX', duration: 90, apy: 0.0560, soldOut: false, maxStakingAmount: 100, positionsAmount: 98, minStakingAmount: 5 },
+                  positions: [],
+               },
+               {
+                  info: { productId: 'AVAX-120', asset: 'AVAX', duration: 120, apy: 0.0605, soldOut: false, maxStakingAmount: 100, positionsAmount: 50, minStakingAmount: 5 },
+                  positions: [],
+               },
             ],
          },
          total: 85.5,
