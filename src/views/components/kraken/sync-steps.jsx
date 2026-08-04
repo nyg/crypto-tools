@@ -2,7 +2,7 @@ import { CheckIcon, CircleIcon, Loader2Icon, MinusIcon, XIcon } from 'lucide-rea
 import { cn } from '@/lib/utils'
 import { isStepRunning, reportLabels, stepLabel } from './sync-status'
 
-const asCount = value => (value ?? 0).toLocaleString('en-GB')
+const asCount = value => (value ?? 0).toLocaleString()
 
 // A sync downloads two exports, one after the other. Both are shown for the whole run
 // and afterwards, so that the ledger's progress does not disappear the moment the

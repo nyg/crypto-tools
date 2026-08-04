@@ -120,8 +120,8 @@ export default function OrderTable({ orders, isFiltered, hasTrades, sort, onSort
 
          <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-               Showing {firstRow.toLocaleString('en-GB')}–{lastRow.toLocaleString('en-GB')} of{' '}
-               {total.toLocaleString('en-GB')}
+               Showing {firstRow.toLocaleString()}–{lastRow.toLocaleString()} of{' '}
+               {total.toLocaleString()}
             </p>
             <div className="flex items-center gap-1">
                <Button

@@ -123,7 +123,7 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                <p className="text-xs text-muted-foreground">
                   Entries from other API keys are also stored:{' '}
                   {state.otherAccounts.map(account =>
-                     `${account.apiKeyPrefix || 'unknown'}… (${account.entryCount.toLocaleString('en-GB')})`
+                     `${account.apiKeyPrefix || 'unknown'}… (${account.entryCount.toLocaleString()})`
                   ).join(', ')}.
                </p>}
 

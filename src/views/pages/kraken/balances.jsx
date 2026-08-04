@@ -131,7 +131,7 @@ export default function KrakenBalances() {
                state={status?.state}
                job={status?.job}
                isRunning={isJobRunning(status?.job)}
-               counts={`${(status?.state?.entryCount ?? 0).toLocaleString('en-GB')} ledger entries`}
+               counts={`${(status?.state?.entryCount ?? 0).toLocaleString()} ledger entries`}
                emptyLabel="No ledger stored yet" />
 
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">

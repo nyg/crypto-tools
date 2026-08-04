@@ -19,7 +19,7 @@ export default function FeeSummaryCard({ fees, filters, filtersKey, options, isL
             <CardAction>
                {isLoading
                   ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-                  : <Badge variant="outline">{entries.toLocaleString('en-GB')} charged</Badge>}
+                  : <Badge variant="outline">{entries.toLocaleString()} charged</Badge>}
             </CardAction>
          </CardHeader>
          <CardContent className="space-y-4">
@@ -33,8 +33,8 @@ export default function FeeSummaryCard({ fees, filters, filtersKey, options, isL
                showSearch={false} />
 
             <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-border pt-4 md:grid-cols-4">
-               <Field label="Assets charged in">{assets.length.toLocaleString('en-GB')}</Field>
-               <Field label="Fees charged">{entries.toLocaleString('en-GB')}</Field>
+               <Field label="Assets charged in">{assets.length.toLocaleString()}</Field>
+               <Field label="Fees charged">{entries.toLocaleString()}</Field>
                <Field label="First fee">{fees?.first ? asLongDate(fees.first) : '—'}</Field>
                <Field label="Last fee">{fees?.last ? asLongDate(fees.last) : '—'}</Field>
             </div>
@@ -63,7 +63,7 @@ export default function FeeSummaryCard({ fees, filters, filtersKey, options, isL
                                  {asAssetAmount(asset.total)}
                               </TableCell>
                               <TableCell className="text-right text-muted-foreground">
-                                 {asset.entries.toLocaleString('en-GB')}
+                                 {asset.entries.toLocaleString()}
                               </TableCell>
                               <TableCell className="text-right text-muted-foreground">
                                  {asPercentage(asset.entries / entries)}
