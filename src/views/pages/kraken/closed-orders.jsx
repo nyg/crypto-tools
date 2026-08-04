@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
-import { InfoIcon, Loader2Icon } from 'lucide-react'
+import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
+import InfoBanner from '../../components/lib/info-banner'
 import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import OrderFilters, { defaultFilters } from '../../components/kraken/order-filters'
 import OrderTable from '../../components/kraken/order-table'
@@ -93,15 +94,12 @@ export default function KrakenClosedOrders() {
       <KrakenLayout name="Closed Orders">
          <div className="space-y-6">
 
-            <div className="flex items-center gap-3 rounded-lg border border-blue-300/60 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/25 dark:bg-blue-950/30 dark:text-blue-100">
-               <InfoIcon className="size-5 shrink-0" />
-               <p>
-                  Every order that filled, rebuilt from the trade history stored on this machine —
-                  an order filled in several trades is shown once, with its total volume and the
-                  average price it achieved. Nothing is fetched from Kraken here; sync on the Ledger
-                  page to bring it up to date.
-               </p>
-            </div>
+            <InfoBanner>
+               Every order that filled, rebuilt from the trade history stored on this machine —
+               an order filled in several trades is shown once, with its total volume and the
+               average price it achieved. Nothing is fetched from Kraken here; sync on the Ledger
+               page to bring it up to date.
+            </InfoBanner>
 
             <SyncStatusStrip
                state={status?.state}

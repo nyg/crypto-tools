@@ -1,51 +1,119 @@
+import { useState } from 'react'
+import { Link } from 'react-router'
 import useSWRMutation from 'swr/mutation'
+import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
+import BinanceLayout from '../../components/binance/binance-layout'
+import InfoBanner from '../../components/lib/info-banner'
 import CurrentPositions from '../../components/binance/current-positions'
 import NextRedemptions from '../../components/binance/next-redemptions'
-import BinanceLayout from '../../components/binance/binance-layout'
+import StakingProducts from '../../components/binance/staking-products'
 import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2Icon } from 'lucide-react'
 
 
 export default function BinanceStaking() {
 
-   const { data, error, isMutating, trigger: fetchAggregatedBalance } = useSWRMutation('/api/binance/aggregate-balance')
+   const { data, error, isMutating, trigger } = useSWRMutation('/api/binance/aggregate-balance')
 
-   const getCredentials = () => ({
-      apiKey: localStorage.getItem('binance.api.key') || '',
-      apiSecret: localStorage.getItem('binance.api.secret') || ''
-   })
+   const [credentials] = useState(() => ({
+      apiKey: (typeof window !== 'undefined' && localStorage.getItem('binance.api.key')) || '',
+      apiSecret: (typeof window !== 'undefined' && localStorage.getItem('binance.api.secret')) || ''
+   }))
 
-   const fetchDataButton = <Button size="sm" onClick={() => fetchAggregatedBalance({ credentials: getCredentials() })}>
-      Fetch data
-   </Button>
+   const fetchData = () => trigger({ credentials }).catch(() => {})
+
+   if (!credentials.apiKey || !credentials.apiSecret) {
+      return (
+         <BinanceLayout name="Staking">
+            <Alert>
+               <AlertDescription>
+                  Generate an API key and secret on Binance and add them in{' '}
+                  <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
+                     Settings
+                  </Link>{' '}
+                  to fetch your staking positions.
+               </AlertDescription>
+            </Alert>
+         </BinanceLayout>
+      )
+   }
+
+   const fetchButton = (
+      <Button size="sm" onClick={fetchData} disabled={isMutating}>
+         {isMutating
+            ? <Loader2Icon className="animate-spin" />
+            : <RefreshCwIcon />}
+         {data ? 'Refresh' : 'Fetch data'}
+      </Button>
+   )
 
    let content
-   if (error) {
-      content = <>
-         <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-         </Alert>
-         {fetchDataButton}
-      </>
-   }
-   else if (isMutating) {
-      content = <div className="flex items-center gap-2"><Loader2Icon className="size-4 animate-spin" /> Fetching data…</div>
+   if (isMutating && !data) {
+      content = (
+         <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2Icon className="size-4 animate-spin" />
+            Fetching from Binance…
+         </span>
+      )
    }
    else if (!data) {
-      content = fetchDataButton
+      content = (
+         <p className="text-sm text-muted-foreground">
+            Nothing fetched yet — select Fetch data to read your balances from Binance.
+         </p>
+      )
    }
    else {
-      content = <>
-         <NextRedemptions data={data} />
-         <CurrentPositions data={data} />
-      </>
+      content = <CurrentPositions data={data} />
    }
 
    return (
       <BinanceLayout name="Staking">
-         <div className="grow text-sm space-y-4 tabular-nums">
-            {content}
+         <div className="space-y-6">
+
+            <InfoBanner>
+               Your spot and staking balances, read live from Binance each time you ask for
+               them — unlike the Kraken pages there is no local database behind this one, so
+               nothing is shown until you fetch. Locked staking positions are listed with the
+               date each one is released and the products they were subscribed to.
+            </InfoBanner>
+
+            {error &&
+               <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+               </Alert>}
+
+            <Card>
+               <CardHeader>
+                  <CardTitle>Holdings</CardTitle>
+                  <CardAction>{fetchButton}</CardAction>
+               </CardHeader>
+               <CardContent>
+                  {content}
+               </CardContent>
+            </Card>
+
+            {data &&
+               <Card>
+                  <CardHeader>
+                     <CardTitle>Next redemptions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                     <NextRedemptions data={data} />
+                  </CardContent>
+               </Card>}
+
+            {data &&
+               <Card>
+                  <CardHeader>
+                     <CardTitle>Staking products</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                     <StakingProducts data={data} />
+                  </CardContent>
+               </Card>}
+
          </div>
       </BinanceLayout>
    )

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import useSWR from 'swr'
-import { InfoIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
+import InfoBanner from '../../components/lib/info-banner'
 import FeeSummaryCard from '../../components/kraken/fee-summary-card'
 import FeeChartCard from '../../components/kraken/fee-chart-card'
 import FeeBreakdownCard from '../../components/kraken/fee-breakdown-card'
@@ -72,15 +72,12 @@ export default function KrakenFees() {
       <KrakenLayout name="Fees">
          <div className="space-y-6">
 
-            <div className="flex items-center gap-3 rounded-lg border border-blue-300/60 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/25 dark:bg-blue-950/30 dark:text-blue-100">
-               <InfoIcon className="size-5 shrink-0" />
-               <p>
-                  Everything Kraken has charged you since the account was opened — mostly trade
-                  fees, but also withdrawal fees and anything else the ledger records — read from
-                  the local database the Ledger tab fills. Fees are kept in the asset they were
-                  charged in and never converted, so each asset is totalled on its own.
-               </p>
-            </div>
+            <InfoBanner>
+               Everything Kraken has charged you since the account was opened — mostly trade
+               fees, but also withdrawal fees and anything else the ledger records — read from
+               the local database the Ledger tab fills. Fees are kept in the asset they were
+               charged in and never converted, so each asset is totalled on its own.
+            </InfoBanner>
 
             {error &&
                <Alert variant="destructive">
