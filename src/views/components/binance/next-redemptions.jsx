@@ -1,35 +1,40 @@
-import * as format from '../../../utils/format'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption } from '@/components/ui/table'
+import { asAssetAmount, asPercentage, asLongDate } from '../../../utils/format'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 
 export default function NextRedemptions({ data }) {
 
-   const positions = data.balance.flatMap(b => b.staking.positions)
+   const positions = data.balance.flatMap(asset => asset.staking.positions)
    positions.sort((p, q) => p.deliverDate - q.deliverDate)
 
+   if (positions.length === 0) {
+      return <p className="text-sm text-muted-foreground">No staking positions are currently open.</p>
+   }
+
    return (
-      <div className="w-1/3 h-32 overflow-auto">
-         <Table className="w-full">
-            <TableCaption className="caption-top mt-0 mb-2">Next redemptions</TableCaption>
+      <div className="overflow-x-auto">
+         <Table>
             <TableHeader>
                <TableRow>
-                  <TableHead className="text-left">Asset</TableHead>
+                  <TableHead>Asset</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">APY</TableHead>
-                  <TableHead className="text-right">Duration</TableHead>
+                  <TableHead className="text-right">Progress</TableHead>
                   <TableHead className="text-right">Redemption date</TableHead>
                </TableRow>
             </TableHeader>
             <TableBody>
-               {positions.map(position => (
+               {positions.map(position =>
                   <TableRow key={position.id}>
-                     <TableCell className="text-left">{position.asset}</TableCell>
-                     <TableCell className="text-right">{format.asDecimal(position.amount)}</TableCell>
-                     <TableCell className="text-right">{format.asPercentage(position.apy)}</TableCell>
-                     <TableCell className="text-right">{position.accrualDays} of {position.duration}</TableCell>
-                     <TableCell className="text-right">{format.asLongDate(position.endDate)}</TableCell>
+                     <TableCell className="font-medium">{position.asset}</TableCell>
+                     <TableCell className="text-right tabular-nums">{asAssetAmount(position.amount)}</TableCell>
+                     <TableCell className="text-right tabular-nums">{asPercentage(position.apy)}</TableCell>
+                     <TableCell className="text-right tabular-nums">
+                        {position.accrualDays} of {position.duration} days
+                     </TableCell>
+                     <TableCell className="text-right tabular-nums">{asLongDate(position.endDate)}</TableCell>
                   </TableRow>
-               ))}
+               )}
             </TableBody>
          </Table>
       </div>
