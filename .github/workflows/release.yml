@@ -205,9 +205,7 @@ jobs:
 
           ## Installing on macOS
 
-          The app is ad-hoc signed but **not notarized**, so macOS quarantines it after
-          download and blocks the first launch (you may see *"Crypto Tools.app is damaged"*
-          or *"Apple could not verify…"* — both mean the same thing; the app is not corrupted).
+          The app is ad-hoc signed but **not notarized**, so macOS quarantines it after download and blocks the first launch (you may see *"Crypto Tools.app is damaged"* or *"Apple could not verify…"* — both mean the same thing; the app is not corrupted).
 
           **Easiest — Homebrew** (handles this automatically):
 
@@ -215,8 +213,7 @@ jobs:
           brew install --cask nyg/tap/crypto-tools
           ```
 
-          **Manual DMG** — after copying Crypto Tools.app to Applications, remove the
-          quarantine flag once:
+          **Manual DMG** — after copying Crypto Tools.app to Applications, remove the quarantine flag once:
 
           ```sh
           xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"
@@ -231,12 +228,7 @@ jobs:
           scoop install crypto-tools
           ```
 
-          **Manual ZIP** — download the `…-windows-x64-setup.zip` asset, extract it, and
-          run `Crypto Tools-Setup.exe` inside. The app installs per-user to
-          `%LOCALAPPDATA%` (no admin rights needed). Because the app is not
-          code-signed, SmartScreen shows *"Windows protected your PC"* — click
-          **More info → Run anyway** (offered to administrators only). Installing
-          via Scoop avoids this prompt entirely.
+          **Manual ZIP** — download the `…-windows-x64-setup.zip` asset, extract it, and run `Crypto Tools-Setup.exe` inside. The app installs per-user to `%LOCALAPPDATA%` (no admin rights needed). Because the app is not code-signed, SmartScreen shows *"Windows protected your PC"* — click **More info → Run anyway** (offered to administrators only). Installing via Scoop avoids this prompt entirely.
           EOF
 
       - name: Create GitHub release
@@ -244,14 +236,35 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.prepare.outputs.release_version }}
         run: |
-          set -euo pipefail
-          gh release create "v${VERSION}" \
-            "artifacts/crypto-tools-${VERSION}-macos-arm64.dmg" \
-            "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip" \
-            "artifacts/crypto-tools-${VERSION}-windows-x64-scoop.zip" \
-            --title "v${VERSION}" \
-            --verify-tag \
-            -F git-cliff/CHANGELOG.md
+          set -uo pipefail
+          assets=(
+            "artifacts/crypto-tools-${VERSION}-macos-arm64.dmg"
+            "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip"
+            "artifacts/crypto-tools-${VERSION}-windows-x64-scoop.zip"
+          )
+
+          for attempt in 1 2 3 4 5; do
+            if gh release view "v${VERSION}" >/dev/null 2>&1; then
+              echo "Release v${VERSION} already exists; uploading assets to it."
+              if gh release upload "v${VERSION}" "${assets[@]}" --clobber; then
+                exit 0
+              fi
+            elif gh release create "v${VERSION}" "${assets[@]}" \
+                   --title "v${VERSION}" \
+                   --verify-tag \
+                   -F git-cliff/CHANGELOG.md; then
+              exit 0
+            fi
+
+            if (( attempt < 5 )); then
+              delay=$(( attempt * 15 ))
+              echo "::warning::Release publication attempt ${attempt} failed, retrying in ${delay}s"
+              sleep "$delay"
+            fi
+          done
+
+          echo "::error::Could not publish release v${VERSION} after 5 attempts"
+          exit 1
 
       - name: Compute DMG SHA256
         id: sha
