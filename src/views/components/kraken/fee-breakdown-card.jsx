@@ -53,7 +53,7 @@ export default function FeeBreakdownCard({ fees, colors, asset }) {
                                  {asAssetAmount(row.total)}
                               </TableCell>
                               <TableCell className="text-right text-muted-foreground">
-                                 {row.entries.toLocaleString('en-GB')}
+                                 {row.entries.toLocaleString()}
                               </TableCell>
                               <TableCell className="text-right text-muted-foreground">
                                  {assetTotals.get(row.asset)

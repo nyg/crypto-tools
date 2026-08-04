@@ -1,5 +1,4 @@
-// const locales = typeof navigator !== 'undefined' ? navigator.language : 'en-GB'
-const locales = 'en-GB'
+const locales = undefined
 
 const shortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' })
 const longDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric' })

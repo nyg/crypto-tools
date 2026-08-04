@@ -74,7 +74,7 @@ export default function BalanceSummaryCard({ balances, rates, live, liveError, i
                      ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
                      : rates ? asDollarAmount(totalValue) : '—'}
                </Field>
-               <Field label="Assets held">{assets.length.toLocaleString('en-GB')}</Field>
+               <Field label="Assets held">{assets.length.toLocaleString()}</Field>
                <Field label="Earning">
                   {isLoadingRates
                      ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />

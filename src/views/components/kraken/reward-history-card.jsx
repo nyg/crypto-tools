@@ -12,8 +12,8 @@ const EVERYTHING = 'ALL'
 const asAxisTick = (value) => {
    const magnitude = Math.abs(value)
    if (magnitude === 0) return '0'
-   if (magnitude >= 1000) return value.toLocaleString('en-GB', { notation: 'compact', maximumFractionDigits: 1 })
-   if (magnitude >= 1) return value.toLocaleString('en-GB', { maximumFractionDigits: 1 })
+   if (magnitude >= 1000) return value.toLocaleString(undefined, { notation: 'compact', maximumFractionDigits: 1 })
+   if (magnitude >= 1) return value.toLocaleString(undefined, { maximumFractionDigits: 1 })
    return Number(value.toPrecision(2)).toString()
 }
 
