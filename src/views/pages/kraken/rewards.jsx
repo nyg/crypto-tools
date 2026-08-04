@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
-import { InfoIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
+import InfoBanner from '../../components/lib/info-banner'
 import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import RewardSummaryCard from '../../components/kraken/reward-summary-card'
 import RewardChartCard from '../../components/kraken/reward-chart-card'
@@ -68,15 +68,12 @@ export default function KrakenRewards() {
       <KrakenLayout name="Rewards">
          <div className="space-y-6">
 
-            <div className="flex items-center gap-3 rounded-lg border border-blue-300/60 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/25 dark:bg-blue-950/30 dark:text-blue-100">
-               <InfoIcon className="size-5 shrink-0" />
-               <p>
-                  Everything Kraken has paid you for staking and earning, per asset and per
-                  year, read from the local database the Ledger tab fills. Moving coins in and
-                  out of an earn position is not income and is left out. Each amount is valued
-                  at today&apos;s market price, so the USD figures move with the market.
-               </p>
-            </div>
+            <InfoBanner>
+               Everything Kraken has paid you for staking and earning, per asset and per
+               year, read from the local database the Ledger tab fills. Moving coins in and
+               out of an earn position is not income and is left out. Each amount is valued
+               at today&apos;s market price, so the USD figures move with the market.
+            </InfoBanner>
 
             {error &&
                <Alert variant="destructive">

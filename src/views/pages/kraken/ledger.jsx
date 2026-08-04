@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import useSWRMutation from 'swr/mutation'
-import { InfoIcon, Loader2Icon, TriangleAlertIcon } from 'lucide-react'
+import { Loader2Icon, TriangleAlertIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
+import InfoBanner from '../../components/lib/info-banner'
 import LedgerSyncCard from '../../components/kraken/ledger-sync-card'
 import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
 import LedgerTable from '../../components/kraken/ledger-table'
@@ -171,15 +172,12 @@ export default function KrakenLedger() {
       <KrakenLayout name="Ledger">
          <div className="space-y-6">
 
-            <div className="flex items-center gap-3 rounded-lg border border-blue-300/60 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-500/25 dark:bg-blue-950/30 dark:text-blue-100">
-               <InfoIcon className="size-5 shrink-0" />
-               <p>
-                  Downloads two exports from Kraken — your complete ledger and your trade history —
-                  and keeps both in a database on this machine, so the other tools can use them
-                  without querying the API again. Kraken prepares each export in the background, so
-                  a first sync can take several minutes. Nothing is uploaded anywhere.
-               </p>
-            </div>
+            <InfoBanner>
+               Downloads two exports from Kraken — your complete ledger and your trade history —
+               and keeps both in a database on this machine, so the other tools can use them
+               without querying the API again. Kraken prepares each export in the background, so
+               a first sync can take several minutes. Nothing is uploaded anywhere.
+            </InfoBanner>
 
             {wasInterrupted &&
                <Alert>
