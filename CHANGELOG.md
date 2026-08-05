@@ -1,6 +1,26 @@
 # Changelog
 
 
+## [0.1.4](https://github.com/nyg/crypto-tools/compare/v0.1.3..v0.1.4) - 2026-08-05
+
+### ⛰️  Features
+
+- [`c374c17`](https://github.com/nyg/crypto-tools/commit/c374c1783bce63b2263f62e52566c155f93ac306) *(ui)* Finish the design-system rollout across every page ([#223](https://github.com/nyg/crypto-tools/issues/223))
+
+### 🐛 Bug Fixes
+
+- [`226214a`](https://github.com/nyg/crypto-tools/commit/226214ab79e49a3b2300ffda7e944229662cd06c) *(format)* Resolve the locale instead of guessing it ([#226](https://github.com/nyg/crypto-tools/issues/226))
+- [`7579f77`](https://github.com/nyg/crypto-tools/commit/7579f7732af5cdc7ee3eae98c7f48d89ca72f415) *(format)* Render dates in the user's locale, drop unused next-themes ([#225](https://github.com/nyg/crypto-tools/issues/225))
+- [`edae1ba`](https://github.com/nyg/crypto-tools/commit/edae1babd0c04c4dbcf4f8aa865750e495ef42b3) *(deps)* Update dependency hono to v4.12.34 [security] ([#221](https://github.com/nyg/crypto-tools/issues/221))
+
+### 🚜 Refactor
+
+- [`9d32afc`](https://github.com/nyg/crypto-tools/commit/9d32afc4283d7960fe7fea5648e41dc079a2b8c0) Align shared form-field labels and drop dead code ([#224](https://github.com/nyg/crypto-tools/issues/224))
+
+### ⚙️ Miscellaneous
+
+- [`87765ef`](https://github.com/nyg/crypto-tools/commit/87765ef9387fa2a63b6b85362ba583ea291f6837) Retry GitHub release creation on transient API failures ([#222](https://github.com/nyg/crypto-tools/issues/222))
+
 ## [0.1.3](https://github.com/nyg/crypto-tools/compare/v0.1.2..v0.1.3) - 2026-08-03
 
 ### ⛰️  Features
