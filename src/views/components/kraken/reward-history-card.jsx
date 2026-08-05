@@ -3,7 +3,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import ComboboxField from '../lib/combobox-field'
-import { asAssetAmount, asDollarAmount } from '../../../utils/format'
+import { asAssetAmount, asCompact, asDollarAmount, asRounded } from '../../../utils/format'
 
 const EVERYTHING = 'ALL'
 
@@ -12,8 +12,8 @@ const EVERYTHING = 'ALL'
 const asAxisTick = (value) => {
    const magnitude = Math.abs(value)
    if (magnitude === 0) return '0'
-   if (magnitude >= 1000) return value.toLocaleString(undefined, { notation: 'compact', maximumFractionDigits: 1 })
-   if (magnitude >= 1) return value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+   if (magnitude >= 1000) return asCompact(value)
+   if (magnitude >= 1) return asRounded(value)
    return Number(value.toPrecision(2)).toString()
 }
 

@@ -8,7 +8,7 @@ import Field from '../lib/field'
 import SyncSteps from './sync-steps'
 import { asCount } from '../lib/filter-options'
 import { SyncStatusBadge, phaseLabel } from './sync-status'
-import { asLongDate } from '../../../utils/format'
+import { asNumber, asLongDate } from '../../../utils/format'
 
 const asFileSize = (bytes) => {
    if (!bytes) return '—'
@@ -123,7 +123,7 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                <p className="text-xs text-muted-foreground">
                   Entries from other API keys are also stored:{' '}
                   {state.otherAccounts.map(account =>
-                     `${account.apiKeyPrefix || 'unknown'}… (${account.entryCount.toLocaleString()})`
+                     `${account.apiKeyPrefix || 'unknown'}… (${asNumber(account.entryCount)})`
                   ).join(', ')}.
                </p>}
 

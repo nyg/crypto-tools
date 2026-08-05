@@ -4,7 +4,7 @@ import {
    ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent
 } from '@/components/ui/chart'
 import SelectField from '../lib/select-field'
-import { asAssetAmount, asShortMonthYearDate } from '../../../utils/format'
+import { asAssetAmount, asCompact, asRounded, asShortMonthYearDate } from '../../../utils/format'
 
 const granularities = [
    { value: 'month', label: 'Month' },
@@ -17,8 +17,8 @@ const granularities = [
 const asAxisTick = (value) => {
    const magnitude = Math.abs(value)
    if (magnitude === 0) return '0'
-   if (magnitude >= 1000) return value.toLocaleString(undefined, { notation: 'compact', maximumFractionDigits: 1 })
-   if (magnitude >= 1) return value.toLocaleString(undefined, { maximumFractionDigits: 1 })
+   if (magnitude >= 1000) return asCompact(value)
+   if (magnitude >= 1) return asRounded(value)
    return Number(value.toPrecision(2)).toString()
 }
 

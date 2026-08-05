@@ -9,6 +9,7 @@ import RewardChartCard from '../../components/kraken/reward-chart-card'
 import RewardHistoryCard from '../../components/kraken/reward-history-card'
 import RewardTable from '../../components/kraken/reward-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
+import { asCount } from '../../components/lib/filter-options'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 
@@ -95,7 +96,7 @@ export default function KrakenRewards() {
                state={status?.state}
                job={status?.job}
                isRunning={isJobRunning(status?.job)}
-               counts={`${(status?.state?.entryCount ?? 0).toLocaleString()} ledger entries`}
+               counts={asCount(status?.state?.entryCount, 'ledger entry', 'ledger entries')}
                emptyLabel="No ledger stored yet" />
 
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">

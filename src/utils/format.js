@@ -1,12 +1,15 @@
-const locales = undefined
+import { locales } from './locale'
 
 const shortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' })
 const longDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric' })
 const monthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long' })
 const shortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const usDollarFormatter = new Intl.NumberFormat(locales, { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const usDollarFormatter = new Intl.NumberFormat(locales, { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const decimalOneFormatter = new Intl.NumberFormat(locales, { style: 'decimal', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const countFormatter = new Intl.NumberFormat(locales)
+const compactFormatter = new Intl.NumberFormat(locales, { notation: 'compact', maximumFractionDigits: 1 })
+const roundedFormatter = new Intl.NumberFormat(locales, { maximumFractionDigits: 1 })
 
 const dateFormat = (formatter, date) =>
    formatter.format(date).replace('\u00a0', ' ')
@@ -27,6 +30,18 @@ export function asAssetAmount(number) {
 
 export function asDecimalOne(number) {
    return decimalOneFormatter.format(number)
+}
+
+export function asNumber(number) {
+   return countFormatter.format(number ?? 0)
+}
+
+export function asCompact(number) {
+   return compactFormatter.format(number)
+}
+
+export function asRounded(number) {
+   return roundedFormatter.format(number)
 }
 
 export function asShortDate(timestamp) {

@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/componen
 import { Badge } from '@/components/ui/badge'
 import Field from '../lib/field'
 import { asCount } from '../lib/filter-options'
-import { asDollarAmount, asLongDate } from '../../../utils/format'
+import { asDollarAmount, asNumber, asLongDate } from '../../../utils/format'
 
 
 export default function RewardSummaryCard({ rewards, rates, isLoading, isLoadingRates }) {
@@ -28,7 +28,7 @@ export default function RewardSummaryCard({ rewards, rates, isLoading, isLoading
             {/* Two columns rather than four: the card sits beside the charts, and the
                 stats read better stacked in a narrow column than squeezed into one row. */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-6">
-               <Field label="Assets rewarded">{assets.length.toLocaleString()}</Field>
+               <Field label="Assets rewarded">{asNumber(assets.length)}</Field>
                <Field
                   label="Worth today"
                   title={valued.length < assets.length

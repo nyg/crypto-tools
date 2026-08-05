@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { asNumber } from '../../../utils/format'
 
 // Kraken records ledger times in UTC; rendering them in the browser's zone would
 // silently shift every entry.
@@ -104,8 +105,8 @@ export default function LedgerTable({ entries, sort, onSortChange, onPageChange,
 
          <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-               Showing {firstRow.toLocaleString()}–{lastRow.toLocaleString()} of{' '}
-               {total.toLocaleString()}
+               Showing {asNumber(firstRow)}–{asNumber(lastRow)} of{' '}
+               {asNumber(total)}
             </p>
             <div className="flex items-center gap-1">
                <Button
