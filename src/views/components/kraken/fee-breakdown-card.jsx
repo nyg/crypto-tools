@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asAssetAmount, asPercentage } from '../../../utils/format'
+import { asAssetAmount, asNumber, asPercentage } from '../../../utils/format'
 
 // Kraken records ledger times in UTC; rendering them in the browser's zone would
 // silently shift every entry.
@@ -53,7 +53,7 @@ export default function FeeBreakdownCard({ fees, colors, asset }) {
                                  {asAssetAmount(row.total)}
                               </TableCell>
                               <TableCell className="text-right text-muted-foreground">
-                                 {row.entries.toLocaleString()}
+                                 {asNumber(row.entries)}
                               </TableCell>
                               <TableCell className="text-right text-muted-foreground">
                                  {assetTotals.get(row.asset)

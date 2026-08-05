@@ -1,6 +1,7 @@
 /// <reference types="bun-types" />
 import { ApplicationMenu, BrowserWindow, Utils, app } from "electrobun/bun";
 import { createApp } from "../server/app.js";
+import { systemLocales } from "./locale";
 
 const PORT = 3001;
 const DEV_SERVER_URL = "http://localhost:3000";
@@ -32,7 +33,10 @@ async function main() {
 
   console.log(`✓ API server listening on http://127.0.0.1:${PORT}`);
 
-  const win = new BrowserWindow({ title: "Crypto Tools", url, frame: { x: 0, y: 0, width: 1280, height: 900 } });
+  const locales = systemLocales();
+  const preload = locales.length ? `window.__LOCALES__ = ${JSON.stringify(locales)};` : null;
+
+  const win = new BrowserWindow({ title: "Crypto Tools", url, preload, frame: { x: 0, y: 0, width: 1280, height: 900 } });
 
   // Launch maximized; the 1280x900 frame above is the restored (un-maximized) size.
   win.maximize();

@@ -1,3 +1,5 @@
+import { asNumber } from '../../../utils/format'
+
 // Radix Select cannot hold an empty string as a value, so "no filter" travels as
 // this sentinel and is mapped back on the way out.
 export const ANY = 'any'
@@ -19,4 +21,4 @@ export const toDateValue = (value) => value ? Date.parse(`${value}T23:59:59Z`) :
 
 // The plural is spelled out only for the nouns an s cannot make, such as entries.
 export const asCount = (count, noun, plural) =>
-   `${(count ?? 0).toLocaleString()} ${count === 1 ? noun : plural ?? `${noun}s`}`
+   `${asNumber(count)} ${count === 1 ? noun : plural ?? `${noun}s`}`

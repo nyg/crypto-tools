@@ -1,8 +1,7 @@
 import { CheckIcon, CircleIcon, Loader2Icon, MinusIcon, XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isStepRunning, reportLabels, stepLabel } from './sync-status'
-
-const asCount = value => (value ?? 0).toLocaleString()
+import { asNumber } from '../../../utils/format'
 
 // A sync downloads two exports, one after the other. Both are shown for the whole run
 // and afterwards, so that the ledger's progress does not disappear the moment the
@@ -91,19 +90,19 @@ function StepCounts({ step, running }) {
    const { parsed, stored, inserted, skipped } = step.counts ?? {}
 
    if (step.phase === 'storing') {
-      return <span>{asCount(stored)} of {asCount(parsed)} saved</span>
+      return <span>{asNumber(stored)} of {asNumber(parsed)} saved</span>
    }
 
    if (running || step.phase === 'pending') {
-      return parsed > 0 ? <span>{asCount(parsed)} rows</span> : null
+      return parsed > 0 ? <span>{asNumber(parsed)} rows</span> : null
    }
 
    if (step.phase !== 'done') return null
 
    return (
       <span>
-         {asCount(parsed)} read · {asCount(inserted)} new
-         {skipped > 0 && <> · {asCount(skipped)} skipped</>}
+         {asNumber(parsed)} read · {asNumber(inserted)} new
+         {skipped > 0 && <> · {asNumber(skipped)} skipped</>}
       </span>
    )
 }

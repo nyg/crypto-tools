@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Field from '../lib/field'
 import { asCount } from '../lib/filter-options'
-import { asDollarAmount, asPercentage } from '../../../utils/format'
+import { asDollarAmount, asNumber, asPercentage } from '../../../utils/format'
 import { isEarning, placementOf } from './placement'
 
 // Kraken and the ledger agree to far more digits than this; the tolerance is relative
@@ -74,7 +74,7 @@ export default function BalanceSummaryCard({ balances, rates, live, liveError, i
                      ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
                      : rates ? asDollarAmount(totalValue) : '—'}
                </Field>
-               <Field label="Assets held">{assets.length.toLocaleString()}</Field>
+               <Field label="Assets held">{asNumber(assets.length)}</Field>
                <Field label="Earning">
                   {isLoadingRates
                      ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
