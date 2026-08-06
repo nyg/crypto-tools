@@ -139,6 +139,12 @@ bun run desktop:dev
 
 `bun run dev` starts both the Vite dev server (port 3000) and the Hono API server (port 3001) concurrently. Vite proxies `/api` requests to the Hono server.
 
+### Network binding
+
+Every listening socket the app opens is bound to `127.0.0.1`, so nothing is reachable from the local network and Windows Firewall never prompts on first launch.
+
+Two of the three are ours: the Hono API in desktop mode (`src/electrobun/index.ts`) and in web mode (`src/server/index.js`, overridable with `HOST` for reverse-proxy or container deployments). The third belongs to Electrobun — it opens a WebSocket RPC server between the Bun process and the WebView on the first free port from 50000 upwards, and up to and including 1.18.1 it passes no `hostname` to `Bun.serve`, so Bun binds the wildcard address. On Windows that is what triggers *"Do you want to allow public and private networks to access this app?"* attributed to Bun (publisher Oven). `patches/electrobun@1.18.1.patch` adds the missing `hostname`; Bun applies it on `bun install` via `patchedDependencies` in `package.json`. Revisit the patch when upgrading Electrobun — 1.18.4 moves this socket into the native core, so it may become unnecessary or need reworking.
+
 ### Mocked Mode
 
 Run the frontend only with mock data (no API keys or server required):

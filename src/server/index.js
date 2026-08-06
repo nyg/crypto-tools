@@ -6,6 +6,7 @@ import binanceRoutes from './routes/binance.js'
 import krakenRoutes from './routes/kraken.js'
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
+const HOST = process.env.HOST ?? '127.0.0.1'
 const IS_PROD = process.env.NODE_ENV === 'production'
 
 const app = new Hono()
@@ -54,7 +55,8 @@ if (IS_PROD) {
 
 Bun.serve({
    port: PORT,
+   hostname: HOST,
    fetch: app.fetch,
 })
 
-console.log(`✓ Server listening on http://localhost:${PORT}`)
+console.log(`✓ Server listening on http://${HOST}:${PORT}`)

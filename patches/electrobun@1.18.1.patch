@@ -1,0 +1,12 @@
+diff --git a/dist/api/bun/core/Socket.ts b/dist/api/bun/core/Socket.ts
+index cdaa2bca0fabe577cb667056aa6f8f84211189c2..792949d6e9c9da0939301c513294e38a1f0308b9 100644
+--- a/dist/api/bun/core/Socket.ts
++++ b/dist/api/bun/core/Socket.ts
+@@ -66,6 +66,7 @@ const startRPCServer = () => {
+ 		try {
+ 			server = Bun.serve<{ webviewId: number }>({
+ 				port,
++				hostname: "127.0.0.1",
+ 				fetch(req: Request, server: Server<{ webviewId: number }>) {
+ 					const url = new URL(req.url);
+ 					//   const token = new URL(req.url).searchParams.get("token");
