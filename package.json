@@ -57,6 +57,9 @@
       "zod": "4.4.3"
    },
    "devDependencies": {
+      "@babel/core": "8.0.1",
+      "@babel/eslint-parser": "8.0.1",
+      "@babel/preset-typescript": "8.0.1",
       "@tailwindcss/vite": "4.3.3",
       "@vitejs/plugin-react": "6.0.4",
       "concurrently": "10.0.4",

@@ -1,4 +1,5 @@
 import { defineConfig, globalIgnores } from 'eslint/config'
+import babelParser from '@babel/eslint-parser'
 import globals from 'globals'
 import reactHooksPlugin from 'eslint-plugin-react-hooks'
 
@@ -6,6 +7,16 @@ const commonRules = {
    indent: ['error', 3, { SwitchCase: 1 }],
    semi: ['error', 'never'],
    quotes: ['error', 'single'],
+}
+
+const typescriptLanguageOptions = {
+   parser: babelParser,
+   parserOptions: {
+      requireConfigFile: false,
+      babelOptions: {
+         presets: ['@babel/preset-typescript'],
+      },
+   },
 }
 
 const eslintConfig = defineConfig([
@@ -29,6 +40,14 @@ const eslintConfig = defineConfig([
    {
       files: ['src/server/**/*.js', 'src/utils/**/*.js'],
       languageOptions: {
+         globals: globals.node,
+      },
+      rules: commonRules,
+   },
+   {
+      files: ['src/electrobun/**/*.ts'],
+      languageOptions: {
+         ...typescriptLanguageOptions,
          globals: globals.node,
       },
       rules: commonRules,
