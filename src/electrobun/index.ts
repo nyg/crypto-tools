@@ -2,6 +2,7 @@
 import { ApplicationMenu, BrowserWindow, Utils, app } from 'electrobun/bun'
 import { createApp } from '../server/app.js'
 import { systemLocales } from './locale'
+import { resolveInitialWindowState, trackWindowState } from './window-state'
 
 const PORT = 3001
 const DEV_SERVER_URL = 'http://localhost:3000'
@@ -36,10 +37,16 @@ async function main() {
    const locales = systemLocales()
    const preload = locales.length ? `window.__LOCALES__ = ${JSON.stringify(locales)};` : null
 
-   const win = new BrowserWindow({ title: 'Crypto Tools', url, preload, frame: { x: 0, y: 0, width: 1280, height: 900 } })
-
-   // Launch maximized; the 1280x900 frame above is the restored (un-maximized) size.
-   win.maximize();
+   // Created hidden so the geometry is applied before the window is ever drawn; the frame
+   // is the restored (un-maximized) size, the maximized rectangle is left to the OS.
+   const initialWindowState = resolveInitialWindowState()
+   const win = new BrowserWindow({
+      title: 'Crypto Tools',
+      url,
+      preload,
+      frame: initialWindowState.frame,
+      hidden: true,
+   });
 
    // Open target="_blank" links in the default system browser instead of the WebView.
    (win.webview as any).on('new-window-open', (event: any) => {
@@ -49,6 +56,19 @@ async function main() {
          Utils.openExternal(href)
       }
    })
+
+   trackWindowState(win, initialWindowState)
+
+   try {
+      if (initialWindowState.maximized && !win.isMaximized()) {
+         win.maximize()
+      }
+   }
+   catch (error) {
+      console.error('✗ Could not restore the maximized window state:', error)
+   }
+
+   win.show()
 
    ApplicationMenu.setApplicationMenu([
       {
