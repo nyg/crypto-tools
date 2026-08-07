@@ -13,7 +13,7 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 - **Ledger** — Download your complete ledger (trades, deposits, withdrawals, staking and earn rewards) and your trade history through Kraken's export report endpoints and keep both in a local SQLite database, so other tools can use them without querying the API again. Syncs incrementally, and shows the stored date range, last sync time, entry and trade counts alongside a filterable table of entries.
 - **Fees** — Dashboard of everything Kraken has charged since the account was opened — trade fees, withdrawal fees and anything else the ledger records — read from the local database. Totals per asset, a breakdown by ledger entry type, and a stacked chart over time by month, quarter or year. Fees are kept in the asset they were charged in and never converted between currencies.
 - **Balances** — View spot and staking account balances.
-- **xStocks** — AI-powered classification of Kraken tokenized assets (stocks and ETFs) using Anthropic Claude. Generates descriptions with configurable word count and supports filtering by asset type.
+- **xStocks** — which of Kraken's tokenized assets are stocks and which are ETFs, from a reference list shipped with the app, so it loads instantly and needs no API key. Anthropic Claude fills in listings Kraken has added since that list was refreshed, and writes descriptions on demand at a configurable word count; both are cached locally so they are billed once. Searchable and filterable by asset type.
 
 ![Kraken Order Batch](public/screenshot-kraken-order-batch.png)
 

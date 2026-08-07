@@ -1,4 +1,7 @@
-import { tradingPairs, orderBatch, balances, assetRates, xstocks } from './kraken'
+import {
+   tradingPairs, orderBatch, balances, assetRates,
+   xstockListings, xstockClassify, xstockDescribe
+} from './kraken'
 import {
    ledgerSync, ledgerSyncStatus, ledgerSyncCancel, ledgerClear,
    ledgerEntries, ledgerFilters, ledgerFees, ledgerRewards, ledgerBalances
@@ -12,7 +15,9 @@ const mockRoutes = {
    '/api/kraken/order-batch': (params) => orderBatch(params?.arg),
    '/api/kraken/balances': () => balances(),
    '/api/kraken/asset-rates': (params) => assetRates(params?.arg),
-   '/api/kraken/xstocks': () => xstocks,
+   '/api/kraken/xstocks/listings': (params) => xstockListings(params?.arg),
+   '/api/kraken/xstocks/classify': (params) => xstockClassify(params?.arg),
+   '/api/kraken/xstocks/describe': (params) => xstockDescribe(params?.arg),
    '/api/kraken/ledger/sync': (params) => ledgerSync(params?.arg),
    '/api/kraken/ledger/sync/status': () => ledgerSyncStatus(),
    '/api/kraken/ledger/sync/cancel': () => ledgerSyncCancel(),

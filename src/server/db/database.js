@@ -80,6 +80,31 @@ const migrations = [
 
       ALTER TABLE sync_state ADD COLUMN trades_covered_from INTEGER;
       ALTER TABLE sync_state ADD COLUMN trades_covered_to   INTEGER;
+   `),
+
+   db => db.exec(`
+      CREATE TABLE xstock_listing (
+         ticker        TEXT    NOT NULL PRIMARY KEY,
+         altname       TEXT    NOT NULL,
+         name          TEXT    NOT NULL DEFAULT '',
+         exchange      TEXT    NOT NULL DEFAULT '',
+         type          TEXT    NOT NULL DEFAULT 'unknown',
+         subtype       TEXT    NOT NULL DEFAULT '',
+         confidence    TEXT    NOT NULL DEFAULT '',
+         sources       TEXT    NOT NULL DEFAULT '',
+         origin        TEXT    NOT NULL DEFAULT 'ai',
+         classified_at INTEGER NOT NULL
+      ) STRICT;
+
+      CREATE TABLE xstock_description (
+         ticker       TEXT    NOT NULL,
+         word_count   INTEGER NOT NULL,
+         description  TEXT    NOT NULL,
+         sources      TEXT    NOT NULL DEFAULT '',
+         model        TEXT    NOT NULL DEFAULT '',
+         generated_at INTEGER NOT NULL,
+         PRIMARY KEY (ticker, word_count)
+      ) STRICT;
    `)
 ]
 

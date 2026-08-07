@@ -1,0 +1,1008 @@
+{
+   "generatedAt": "2026-08-07",
+   "source": "stockanalysis.com",
+   "listings": {
+      "AAPL": {
+         "name": "Apple Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ABBV": {
+         "name": "AbbVie Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ABT": {
+         "name": "Abbott Laboratories",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ACN": {
+         "name": "Accenture plc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ADBE": {
+         "name": "Adobe Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "AMAT": {
+         "name": "Applied Materials, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "AMBR": {
+         "name": "Amber International Holding Limited",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "AMD": {
+         "name": "Advanced Micro Devices, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "AMZN": {
+         "name": "Amazon.com, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ANET": {
+         "name": "Arista Networks, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "APLD": {
+         "name": "Applied Digital Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "APP": {
+         "name": "AppLovin Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ASML": {
+         "name": "ASML Holding N.V.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ASTS": {
+         "name": "AST SpaceMobile, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "AVGO": {
+         "name": "Broadcom Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "AZN": {
+         "name": "AstraZeneca PLC",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BAC": {
+         "name": "Bank of America Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BITX": {
+         "name": "Volatility Shares 2x Bitcoin ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "leveraged"
+      },
+      "BMNR": {
+         "name": "Bitmine Immersion Technologies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BOT": {
+         "name": "Robostrategy, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BRK.B": {
+         "name": "Berkshire Hathaway Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BSP": {
+         "name": "Bending Spoons S.p.A.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BTBT": {
+         "name": "Bit Digital, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BTGO": {
+         "name": "Bitgo Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CEG": {
+         "name": "Constellation Energy Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CLSK": {
+         "name": "CleanSpark, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CMCSA": {
+         "name": "Comcast Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "COIN": {
+         "name": "Coinbase Global, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "COPX": {
+         "name": "Global X Copper Miners ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "CORZ": {
+         "name": "Core Scientific, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CRCL": {
+         "name": "Circle Internet Group, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CRM": {
+         "name": "Salesforce, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CRWD": {
+         "name": "CrowdStrike Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CSCO": {
+         "name": "Cisco Systems, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CVX": {
+         "name": "Chevron Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "DAX": {
+         "name": "Global X DAX Germany ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "DELL": {
+         "name": "Dell Technologies Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "DFDV": {
+         "name": "DeFi Development Corp.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "DHR": {
+         "name": "Danaher Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ENHA": {
+         "name": "Enhanced Group Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ETN": {
+         "name": "Eaton Corporation plc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "EWG": {
+         "name": "iShares MSCI Germany ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "EWQ": {
+         "name": "iShares MSCI France ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "EWU": {
+         "name": "iShares MSCI United Kingdom ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "EWY": {
+         "name": "iShares MSCI South Korea ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "FAAA": {
+         "name": "Fidelity AAA CLO ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "bond"
+      },
+      "FEZ": {
+         "name": "State Street SPDR EURO STOXX 50 ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "FGDL": {
+         "name": "Franklin Responsibly Sourced Gold ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "commodity-trust"
+      },
+      "FLBL": {
+         "name": "Franklin Senior Loan ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "bond"
+      },
+      "FLQM": {
+         "name": "Franklin U.S. Mid Cap Multifactor Index ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "FSML": {
+         "name": "Franklin Small Cap Enhanced ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "GDX": {
+         "name": "VanEck Gold Miners ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "GEV": {
+         "name": "GE Vernova Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "GLD": {
+         "name": "SPDR Gold Shares",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "commodity-trust"
+      },
+      "GLXY": {
+         "name": "Galaxy Digital Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "GME": {
+         "name": "GameStop Corp.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "GOOGL": {
+         "name": "Alphabet Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "GS": {
+         "name": "The Goldman Sachs Group, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "HD": {
+         "name": "The Home Depot, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "HIMS": {
+         "name": "Hims & Hers Health, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "HON": {
+         "name": "Honeywell International Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "HOOD": {
+         "name": "Robinhood Markets, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "HUT": {
+         "name": "Hut 8 Corp.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "IBM": {
+         "name": "International Business Machines Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "IEMG": {
+         "name": "iShares Core MSCI Emerging Markets ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "IJR": {
+         "name": "iShares Core S&P Small Cap ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "INTC": {
+         "name": "Intel Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "IQM": {
+         "name": "Franklin Intelligent Machines ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "IREN": {
+         "name": "IREN Limited",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ITA": {
+         "name": "iShares U.S. Aerospace & Defense ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "IWM": {
+         "name": "iShares Russell 2000 ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "JAAA": {
+         "name": "Janus Henderson AAA CLO ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "bond"
+      },
+      "JMKE": {
+         "name": "Jersey Mike's Subs Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "JNJ": {
+         "name": "Johnson & Johnson",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "JPM": {
+         "name": "JPMorgan Chase & Co.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "JPST": {
+         "name": "JPMorgan Ultra-Short Income ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "bond"
+      },
+      "KLAC": {
+         "name": "KLA Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "KO": {
+         "name": "The Coca-Cola Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "KRAQ": {
+         "name": "KRAKacquisition Corp.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LIN": {
+         "name": "Linde plc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LITE": {
+         "name": "Lumentum Holdings Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LLY": {
+         "name": "Eli Lilly and Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LNG": {
+         "name": "Cheniere Energy, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LRCX": {
+         "name": "Lam Research Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MA": {
+         "name": "Mastercard Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MARA": {
+         "name": "MARA Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MCD": {
+         "name": "McDonald's Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MDT": {
+         "name": "Medtronic plc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "META": {
+         "name": "Meta Platforms, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MOO": {
+         "name": "VanEck Agribusiness ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "MRK": {
+         "name": "Merck & Co., Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MRVL": {
+         "name": "Marvell Technology, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MSFT": {
+         "name": "Microsoft Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MSTR": {
+         "name": "Strategy Inc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MU": {
+         "name": "Micron Technology, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NET": {
+         "name": "Cloudflare, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NFLX": {
+         "name": "Netflix, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NLR": {
+         "name": "VanEck Uranium and Nuclear ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "NVDA": {
+         "name": "NVIDIA Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NVO": {
+         "name": "Novo Nordisk A/S",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "OKLO": {
+         "name": "Oklo Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ONDS": {
+         "name": "Ondas Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "OPEN": {
+         "name": "Opendoor Technologies Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ORCL": {
+         "name": "Oracle Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PALL": {
+         "name": "abrdn Physical Palladium Shares ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "commodity-trust"
+      },
+      "PANW": {
+         "name": "Palo Alto Networks, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PEP": {
+         "name": "PepsiCo, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PFE": {
+         "name": "Pfizer Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PG": {
+         "name": "The Procter & Gamble Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PL": {
+         "name": "Planet Labs PBC",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PLTR": {
+         "name": "Palantir Technologies Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PM": {
+         "name": "Philip Morris International Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PPLT": {
+         "name": "abrdn Physical Platinum Shares ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "commodity-trust"
+      },
+      "PWR": {
+         "name": "Quanta Services, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PYPL": {
+         "name": "PayPal Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "QQQ": {
+         "name": "Invesco QQQ Trust Series I",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "RBLX": {
+         "name": "Roblox Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RCAT": {
+         "name": "Red Cat Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RIOT": {
+         "name": "Riot Platforms, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SATA": {
+         "name": "Strive, Inc. Variable Rate Series A Perpetual Preferred Stock",
+         "exchange": "",
+         "type": "stock",
+         "subtype": "preferred"
+      },
+      "SBET": {
+         "name": "Sharplink, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SCHF": {
+         "name": "Schwab International Equity ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "SGOV": {
+         "name": "iShares 0-3 Month Treasury Bond ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "bond"
+      },
+      "SKHY": {
+         "name": "SK hynix Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SLV": {
+         "name": "iShares Silver Trust",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "commodity-trust"
+      },
+      "SMCI": {
+         "name": "Super Micro Computer, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SMH": {
+         "name": "VanEck Semiconductor ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "SMR": {
+         "name": "NuScale Power Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SNDK": {
+         "name": "Sandisk Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SOXL": {
+         "name": "Direxion Daily Semiconductor Bull 3X ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "leveraged"
+      },
+      "SOXX": {
+         "name": "iShares Semiconductor ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "SPCE": {
+         "name": "Virgin Galactic Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SPCX": {
+         "name": "Space Exploration Technologies Corp.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SPY": {
+         "name": "State Street SPDR S&P 500 ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "STRC": {
+         "name": "Strategy Inc. Variable Rate Series A Perpetual Stretch Preferred Stock",
+         "exchange": "",
+         "type": "stock",
+         "subtype": "preferred"
+      },
+      "TBLL": {
+         "name": "Invesco Short Term Treasury ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "bond"
+      },
+      "TER": {
+         "name": "Teradyne, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TMO": {
+         "name": "Thermo Fisher Scientific Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TMUS": {
+         "name": "T-Mobile US, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TONX": {
+         "name": "TON Strategy Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TQQQ": {
+         "name": "ProShares UltraPro QQQ",
+         "exchange": "",
+         "type": "etf",
+         "subtype": "leveraged"
+      },
+      "TSLA": {
+         "name": "Tesla, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TSM": {
+         "name": "Taiwan Semiconductor Manufacturing Company Limited",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "UBER": {
+         "name": "Uber Technologies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "UNH": {
+         "name": "UnitedHealth Group Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "URA": {
+         "name": "Global X Uranium ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "USAR": {
+         "name": "USA Rare Earth, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "USPX": {
+         "name": "Franklin U.S. Equity Index ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "UUUU": {
+         "name": "Energy Fuels Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "V": {
+         "name": "Visa Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VCX": {
+         "name": "Fundrise Growth Tech Fund, LLC",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VGK": {
+         "name": "Vanguard FTSE Europe ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "VIDA": {
+         "name": "VIDA Global Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VOO": {
+         "name": "Vanguard S&P 500 ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "VRT": {
+         "name": "Vertiv Holdings Co",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VT": {
+         "name": "Vanguard Total World Stock ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "VTI": {
+         "name": "Vanguard Total Stock Market ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "VUG": {
+         "name": "Vanguard Growth ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "VXUS": {
+         "name": "Vanguard Total International Stock ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "WBD": {
+         "name": "Warner Bros. Discovery, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WEN": {
+         "name": "The Wendy's Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WMT": {
+         "name": "Walmart Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WULF": {
+         "name": "TeraWulf Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "XLE": {
+         "name": "State Street Energy Select Sector SPDR ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "XOM": {
+         "name": "ExxonMobil Holdings Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "XOP": {
+         "name": "State Street SPDR S&P Oil & Gas Exploration & Production ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
+      "YLDE": {
+         "name": "Franklin ClearBridge Enhanced Income ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      }
+   }
+}

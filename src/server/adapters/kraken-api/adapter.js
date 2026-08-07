@@ -202,6 +202,17 @@ export default function KrakenAPI(credentials) {
       return response.result
    }
 
+   this.fetchTokenizedListings = async function () {
+      const assets = await this.fetchAssets('tokenized_asset')
+      return [...new Map(Object.values(assets)
+         .filter(asset => asset.status === 'enabled' && asset.altname)
+         .map(asset => [asset.altname, {
+            altname: asset.altname,
+            ticker: asset.altname.replace(/x$/, '')
+         }])).values()]
+         .sort((a, b) => a.ticker.localeCompare(b.ticker))
+   }
+
    /* Export reports — 'ledgers' and 'trades' share this machinery */
 
    this.requestExport = async function ({ report, description, fromDate, toDate }) {
