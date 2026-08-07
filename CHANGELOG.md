@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [0.2.0](https://github.com/nyg/crypto-tools/compare/v0.1.4..v0.2.0) - 2026-08-07
+
+### ⛰️  Features
+
+- [`fb753e1`](https://github.com/nyg/crypto-tools/commit/fb753e18e0298127f035c8bdfaec0d7caea186a7) *(desktop)* Remember window geometry and open without the maximize animation ([#235](https://github.com/nyg/crypto-tools/issues/235))
+
+### 🐛 Bug Fixes
+
+- [`4db037e`](https://github.com/nyg/crypto-tools/commit/4db037e2b7bc041291f4123adfe702b2a5a37a60) *(lint)* Cover the electrobun TypeScript sources ([#233](https://github.com/nyg/crypto-tools/issues/233))
+
 ## [0.1.4](https://github.com/nyg/crypto-tools/compare/v0.1.3..v0.1.4) - 2026-08-05
 
 ### ⛰️  Features
