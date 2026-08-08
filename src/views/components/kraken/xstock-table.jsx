@@ -138,7 +138,7 @@ export default function XStockTable({
                         {listing.description
                            ? <button
                               type="button"
-                              className={cn('w-full text-left leading-relaxed break-words hover:text-foreground',
+                              className={cn('w-full px-2.5 py-1 text-left leading-relaxed break-words hover:text-foreground',
                                  !expanded.has(listing.ticker) && 'line-clamp-2')}
                               title={expanded.has(listing.ticker) ? 'Collapse' : 'Expand'}
                               onClick={() => toggle(listing.ticker)}>

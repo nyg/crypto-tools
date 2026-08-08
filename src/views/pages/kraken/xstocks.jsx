@@ -31,10 +31,14 @@ const typeOptions = [
 ]
 
 const scopeOptions = [
-   { value: 'etf', label: 'ETFs only' },
-   { value: 'filtered', label: 'Everything in view' },
-   { value: 'all', label: 'Every listing' }
+   { value: 'etf', label: 'ETFs' },
+   { value: 'stock', label: 'Stocks' },
+   { value: 'all', label: 'All listings' }
 ]
+
+const scopeValues = new Set(scopeOptions.map(option => option.value))
+
+const inScope = (listing, scope) => scope === 'all' || listing.type === scope
 
 const numericColumns = new Set(['volumeUsd24h'])
 
@@ -59,7 +63,7 @@ export default function KrakenXStocks() {
    const [searchInput, setSearchInput] = useState('')
    const [search, setSearch] = useState('')
    const [type, setType] = useState(() => settings.type ?? ANY)
-   const [scope, setScope] = useState(() => settings.scope ?? 'etf')
+   const [scope, setScope] = useState(() => scopeValues.has(settings.scope) ? settings.scope : 'etf')
    const [sort, setSort] = useState(() => settings.sort ?? { column: 'volumeUsd24h', direction: 'desc' })
    const [page, setPage] = useState(0)
    const [describing, setDescribing] = useState(() => new Set())
@@ -191,20 +195,17 @@ export default function KrakenXStocks() {
          'classify',
          batch => classify({ credentials, tickers: batch }))
 
-   const describeScope = () => {
-      const pool = scope === 'filtered' ? filtered : listings
-      const wanted = scope === 'etf' ? pool.filter(listing => listing.type === 'etf') : pool
-      return generateDescriptions(wanted.filter(listing => !listing.description).map(listing => listing.ticker))
-   }
+   const describeScope = () =>
+      generateDescriptions(listings
+         .filter(listing => inScope(listing, scope) && !listing.description)
+         .map(listing => listing.ticker))
 
    const isBusy = progress !== null
    const canDescribe = Boolean(credentials.apiKey) && !isBusy
 
-   const pendingInScope = useMemo(() => {
-      const pool = scope === 'filtered' ? filtered : listings
-      const wanted = scope === 'etf' ? pool.filter(listing => listing.type === 'etf') : pool
-      return wanted.filter(listing => !listing.description).length
-   }, [scope, filtered, listings])
+   const pendingInScope = useMemo(
+      () => listings.filter(listing => inScope(listing, scope) && !listing.description).length,
+      [scope, listings])
 
    let tableContent
    if (error) {
@@ -266,7 +267,7 @@ export default function KrakenXStocks() {
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
 
-               <Card size="sm">
+               <Card>
                   <CardHeader>
                      <CardTitle>Descriptions</CardTitle>
                      <CardAction>
@@ -327,7 +328,7 @@ export default function KrakenXStocks() {
                   </CardContent>
                </Card>
 
-               <Card size="sm" className="lg:w-72">
+               <Card className="lg:w-72">
                   <CardContent className="grid grid-cols-2 gap-4">
                      <Field label="Listings">{counts.total}</Field>
                      <Field label="Stocks">{counts.stocks}</Field>
