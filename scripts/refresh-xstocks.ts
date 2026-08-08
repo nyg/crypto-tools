@@ -58,6 +58,18 @@ async function fetchKrakenTickers(): Promise<string[]> {
    return [...altnames].map(altname => altname.replace(/x$/, "")).sort();
 }
 
+const htmlEntities: Record<string, string> = {
+   "&amp;": "&",
+   "&lt;": "<",
+   "&gt;": ">",
+   "&quot;": '"',
+   "&apos;": "'",
+   "&#39;": "'",
+};
+
+const decodeEntities = (value: string) =>
+   value.replace(/&(?:amp|lt|gt|quot|apos|#39);/g, entity => htmlEntities[entity]);
+
 async function resolve(ticker: string): Promise<Listing | null> {
    const response = await fetch(`https://stockanalysis.com/stocks/${ticker.toLowerCase()}/`, {
       headers: { "User-Agent": "Mozilla/5.0" },
@@ -72,9 +84,7 @@ async function resolve(ticker: string): Promise<Listing | null> {
    const heading = body.match(/<h1[^>]*>([^<]*)<\/h1>/);
    if (!heading) return null;
 
-   const name = heading[1]
-      .replace(/&amp;/g, "&")
-      .replace(/&#39;/g, "'")
+   const name = decodeEntities(heading[1])
       .replace(/\s*\([^)]*\)\s*$/, "")
       .trim();
 
