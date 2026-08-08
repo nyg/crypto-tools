@@ -279,18 +279,33 @@ export default function KrakenXStocks() {
                      </CardAction>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                     <div className="grid grid-cols-2 items-end gap-x-4 gap-y-3">
+                     <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
                         <SelectField
                            name="scope"
                            label="Generate for"
+                           className="min-w-44 flex-1"
                            value={scope}
                            onValueChange={setScope}
                            options={scopeOptions} />
                         <NumericInput
                            name="wordCount"
                            label="Words per description"
+                           className="min-w-44 flex-1"
                            value={wordCountInput}
                            onChange={(event) => setWordCountInput(event.target.value)} />
+                        <Button
+                           type="button"
+                           disabled={!canDescribe || pendingInScope === 0}
+                           onClick={describeScope}>
+                           {isBusy
+                              ? <Loader2Icon className="size-3.5 animate-spin" />
+                              : <SparklesIcon className="size-3.5" />}
+                           {isBusy ? 'Generating…' : 'Generate'}
+                        </Button>
+                        {isBusy &&
+                           <Button variant="ghost" type="button" onClick={() => { stopRequested.current = true }}>
+                              Stop
+                           </Button>}
                      </div>
 
                      {!credentials.apiKey &&
@@ -304,27 +319,12 @@ export default function KrakenXStocks() {
                            </AlertDescription>
                         </Alert>}
 
-                     <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                           type="button"
-                           size="sm"
-                           disabled={!canDescribe || pendingInScope === 0}
-                           onClick={describeScope}>
-                           {isBusy
-                              ? <Loader2Icon className="size-3.5 animate-spin" />
-                              : <SparklesIcon className="size-3.5" />}
-                           {isBusy ? 'Generating…' : 'Generate'}
-                        </Button>
-                        {isBusy
-                           ? <Button variant="ghost" size="sm" type="button" onClick={() => { stopRequested.current = true }}>
-                              Stop
-                           </Button>
-                           : <span className="text-sm text-muted-foreground">
-                              {pendingInScope === 0
-                                 ? 'Everything in scope already has a description.'
-                                 : `${asCount(pendingInScope, 'listing')} still to describe at ${wordCount} words.`}
-                           </span>}
-                     </div>
+                     {!isBusy &&
+                        <p className="text-sm text-muted-foreground">
+                           {pendingInScope === 0
+                              ? 'Everything in scope already has a description.'
+                              : `${asCount(pendingInScope, 'listing')} still to describe at ${wordCount} words.`}
+                        </p>}
                   </CardContent>
                </Card>
 
