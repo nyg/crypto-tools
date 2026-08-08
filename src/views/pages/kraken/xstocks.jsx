@@ -60,7 +60,7 @@ export default function KrakenXStocks() {
    const [search, setSearch] = useState('')
    const [type, setType] = useState(() => settings.type ?? ANY)
    const [scope, setScope] = useState(() => settings.scope ?? 'etf')
-   const [sort, setSort] = useState(() => settings.sort ?? { column: 'ticker', direction: 'asc' })
+   const [sort, setSort] = useState(() => settings.sort ?? { column: 'volumeUsd24h', direction: 'desc' })
    const [page, setPage] = useState(0)
    const [describing, setDescribing] = useState(() => new Set())
    const [progress, setProgress] = useState(null)

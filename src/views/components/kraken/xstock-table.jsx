@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpDownIcon, ChevronLeftIcon, ChevronRightIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,20 +25,29 @@ const originLabels = {
    ai: 'Classified by Claude'
 }
 
-function SortableHead({ column, sort, onSortChange, className, align, initialDirection = 'asc', children }) {
+function SortIcon({ isActive, direction }) {
+
+   if (!isActive) return <ArrowUpDownIcon className="size-3 opacity-40" />
+
+   const Icon = direction === 'asc' ? ArrowUpIcon : ArrowDownIcon
+   return <Icon className="size-3.5" strokeWidth={3} />
+}
+
+function SortableHead({ column, sort, onSortChange, className, align, children }) {
    const isActive = sort.column === column
-   const opposite = initialDirection === 'asc' ? 'desc' : 'asc'
    return (
       <TableHead className={className}>
          <button
             type="button"
-            className={cn('inline-flex items-center gap-1 hover:text-foreground', align === 'right' && 'justify-end')}
+            className={cn('inline-flex w-full items-center gap-1 hover:text-foreground',
+               align === 'right' && 'justify-end',
+               isActive && 'font-semibold text-foreground')}
             onClick={() => onSortChange({
                column,
-               direction: isActive && sort.direction === initialDirection ? opposite : initialDirection
+               direction: isActive && sort.direction === 'desc' ? 'asc' : 'desc'
             })}>
             {children}
-            <ArrowUpDownIcon className={cn('size-3', isActive ? 'opacity-100' : 'opacity-40')} />
+            <SortIcon isActive={isActive} direction={sort.direction} />
          </button>
       </TableHead>
    )
@@ -90,7 +99,6 @@ export default function XStockTable({
                      sort={sort}
                      onSortChange={onSortChange}
                      align="right"
-                     initialDirection="desc"
                      className="w-[8.5rem] text-right">
                      24h volume
                   </SortableHead>
