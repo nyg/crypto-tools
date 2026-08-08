@@ -12,7 +12,7 @@ import KrakenOrderBatch from './pages/kraken/order-batch'
 import KrakenRewards from './pages/kraken/rewards'
 import KrakenXStocks from './pages/kraken/xstocks'
 
-const isMockMode = import.meta.env.VITE_MOCK_DATA === 'true'
+export const isMockMode = import.meta.env.VITE_MOCK_DATA === 'true'
 // Under views:// (Electrobun) the page's origin is opaque and the History API is unusable,
 // so react-router Links trigger real navigations that macOS tries to open externally.
 // Hash-based routing keeps navigation inside the page regardless of scheme.
@@ -20,10 +20,6 @@ const Router = window.location.protocol === 'views:' ? HashRouter : BrowserRoute
 // In Electrobun production, the page loads from views:// so relative /api paths won't reach
 // the Hono server. VITE_API_BASE is injected at build time by scripts/prebuild.ts.
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
-
-if (isMockMode) {
-   import('./mocks').then(({ initMockCredentials }) => initMockCredentials())
-}
 
 async function fetcher(key, params) {
 
