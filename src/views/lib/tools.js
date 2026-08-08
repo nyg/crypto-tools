@@ -48,7 +48,7 @@ export const toolGroups = [
          {
             href: '/kraken/xstocks',
             title: 'xStocks',
-            description: 'Browse tokenized stocks and ETFs, with AI-written summaries.',
+            description: 'See which tokenized listings are stocks and which are ETFs, with optional AI-written descriptions.',
             icon: SparklesIcon
          }
       ]

@@ -4,6 +4,7 @@ import * as resource from './resource'
 import { normalizeAsset } from './assets'
 import { buildPairIndex, resolvePair } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
+import { fetchTickerSnapshots } from './ticker-stream'
 
 // Amounts are kept as the exact strings Kraken wrote. Reading them through Big and
 // back would rewrite small values in exponential notation (1e-8), which is awkward
@@ -200,6 +201,43 @@ export default function KrakenAPI(credentials) {
    this.fetchAssets = async function (type) {
       const response = await resource.fetchAssetInfo(type)
       return response.result
+   }
+
+   this.fetchTokenizedVolumes = async function () {
+
+      const pairs = await resource.fetchAssetPairs('tokenized_asset')
+      const symbols = [...new Set(Object.values(pairs.result ?? {})
+         .map(pair => pair.wsname)
+         .filter(Boolean))]
+
+      const snapshots = await fetchTickerSnapshots(symbols)
+
+      const volumes = new Map()
+      for (const [symbol, entry] of snapshots) {
+         const altname = symbol.split('/')[0]
+         const volume = Number(entry.volume)
+         const vwap = Number(entry.vwap)
+         if (!Number.isFinite(volume)) continue
+
+         volumes.set(altname, {
+            last: Number.isFinite(Number(entry.last)) ? Number(entry.last) : null,
+            volume24h: volume,
+            volumeUsd24h: Number.isFinite(vwap) ? volume * vwap : null
+         })
+      }
+
+      return volumes
+   }
+
+   this.fetchTokenizedListings = async function () {
+      const assets = await this.fetchAssets('tokenized_asset')
+      return [...new Map(Object.values(assets)
+         .filter(asset => asset.status === 'enabled' && asset.altname)
+         .map(asset => [asset.altname, {
+            altname: asset.altname,
+            ticker: asset.altname.replace(/x$/, '')
+         }])).values()]
+         .sort((a, b) => a.ticker.localeCompare(b.ticker))
    }
 
    /* Export reports — 'ledgers' and 'trades' share this machinery */

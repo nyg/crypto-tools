@@ -78,16 +78,95 @@ const assetRates = (params) => {
    }
 }
 
-const xstocks = {
-   output: [
-      { name: 'XTSLA', type: 'stock', description: 'Tesla, Inc. is an American multinational automotive and clean energy company. It designs, manufactures, and sells electric vehicles, battery energy storage, and solar panels.' },
-      { name: 'XAMZN', type: 'stock', description: 'Amazon.com, Inc. is an American multinational technology company focusing on e-commerce, cloud computing, online advertising, digital streaming, and artificial intelligence.' },
-      { name: 'XMSFT', type: 'stock', description: 'Microsoft Corporation is an American multinational technology corporation that develops, manufactures, licenses, supports, and sells computer software and consumer electronics.' },
-      { name: 'XSPY', type: 'etf', description: 'SPDR S&P 500 ETF Trust is an exchange-traded fund that tracks the S&P 500 index. It provides diversified exposure to 500 of the largest U.S. companies across all sectors, weighted by market capitalization.' },
-      { name: 'XGLD', type: 'etf', description: 'SPDR Gold Shares is an exchange-traded fund that holds physical gold bullion. It offers investors a cost-effective and convenient way to invest in the gold market without directly purchasing gold bars.' },
-      { name: 'XQQQM', type: 'etf', description: 'Invesco NASDAQ 100 ETF tracks the Nasdaq-100 Index, providing exposure to 100 of the largest non-financial companies listed on the Nasdaq stock exchange, with a focus on technology and growth companies.' },
-   ],
-   usage: { input_tokens: 1250, output_tokens: 820 },
+const xstockSeed = [
+   { ticker: 'AAPL', name: 'Apple Inc.', type: 'stock', subtype: '', origin: 'seed' },
+   { ticker: 'BRK.B', name: 'Berkshire Hathaway Inc.', type: 'stock', subtype: '', origin: 'seed' },
+   { ticker: 'LNG', name: 'Cheniere Energy, Inc.', type: 'stock', subtype: '', origin: 'seed' },
+   { ticker: 'NVDA', name: 'NVIDIA Corporation', type: 'stock', subtype: '', origin: 'seed' },
+   { ticker: 'STRC', name: 'Strategy Inc. Variable Rate Series A Perpetual Stretch Preferred Stock', type: 'stock', subtype: 'preferred', origin: 'seed' },
+   { ticker: 'TSLA', name: 'Tesla, Inc.', type: 'stock', subtype: '', origin: 'seed' },
+   { ticker: 'GLD', name: 'SPDR Gold Shares', type: 'etf', subtype: 'commodity-trust', origin: 'seed' },
+   { ticker: 'SGOV', name: 'iShares 0-3 Month Treasury Bond ETF', type: 'etf', subtype: 'bond', origin: 'seed' },
+   { ticker: 'SPY', name: 'State Street SPDR S&P 500 ETF', type: 'etf', subtype: '', origin: 'seed' },
+   { ticker: 'TQQQ', name: 'ProShares UltraPro QQQ', type: 'etf', subtype: 'leveraged', origin: 'seed' },
+   { ticker: 'VOO', name: 'Vanguard S&P 500 ETF', type: 'etf', subtype: '', origin: 'seed' },
+   { ticker: 'KRAQ', name: '', type: 'unclassified', subtype: '', origin: '' },
+   { ticker: 'JMKE', name: '', type: 'unclassified', subtype: '', origin: '' },
+]
+
+const mockDescriptions = new Map()
+const mockClassifications = new Map()
+
+const describedKey = (ticker, wordCount) => `${ticker}:${wordCount}`
+
+const mockVolumes = {
+   AAPL: [311.96, 83.88], GLD: [399.13, 443.43], NVDA: [182.4, 210.5],
+   TSLA: [330.51, 395.83], SPY: [772.35, 120.79], VOO: [604.2, 31.4],
+   TQQQ: [92.7, 512.6], SGOV: [100.4, 88.2], 'BRK.B': [512.8, 9.6],
+   LNG: [242.1, 12.4], STRC: [98.3, 640.1], KRAQ: [10.4, 1204.6]
 }
 
-export { tradingPairs, orderBatch, balances, assetRates, xstocks }
+const xstockListings = (params) => {
+   const wordCount = params?.wordCount ?? 60
+   return {
+      wordCount,
+      listings: xstockSeed.map(listing => {
+         const classified = mockClassifications.get(listing.ticker)
+         const market = mockVolumes[listing.ticker]
+         return {
+            ...listing,
+            ...classified,
+            altname: `${listing.ticker}x`,
+            exchange: '',
+            confidence: listing.origin === 'seed' ? 'high' : classified?.confidence ?? '',
+            sources: [],
+            last: market?.[0] ?? null,
+            volume24h: market?.[1] ?? null,
+            volumeUsd24h: market ? market[0] * market[1] : null,
+            description: mockDescriptions.get(describedKey(listing.ticker, wordCount)) ?? ''
+         }
+      })
+   }
+}
+
+const xstockClassify = (params) => {
+   const classified = (params?.tickers ?? []).map(ticker => ({
+      ticker,
+      altname: `${ticker}x`,
+      name: ticker === 'KRAQ' ? 'KRAKacquisition Corp.' : 'Jersey Mike\'s Subs Inc.',
+      exchange: 'NASDAQ',
+      type: 'stock',
+      subtype: '',
+      confidence: 'high',
+      sources: ['https://example.com/mock-source'],
+      origin: 'ai'
+   }))
+
+   for (const listing of classified) {
+      mockClassifications.set(listing.ticker, listing)
+   }
+
+   return { classified }
+}
+
+const xstockDescribe = (params) => {
+   const wordCount = params?.wordCount ?? 60
+   const described = (params?.tickers ?? []).map(ticker => ({
+      ticker,
+      description: `Mocked ${wordCount}-word description for ${ticker}. Generated without contacting `
+         + 'Anthropic, so it is filler rather than anything you should read as fact. Click to expand '
+         + 'and collapse this text the way a real description behaves.',
+      sources: ['https://example.com/mock-source']
+   }))
+
+   for (const item of described) {
+      mockDescriptions.set(describedKey(item.ticker, wordCount), item.description)
+   }
+
+   return { described, wordCount }
+}
+
+export {
+   tradingPairs, orderBatch, balances, assetRates,
+   xstockListings, xstockClassify, xstockDescribe
+}
