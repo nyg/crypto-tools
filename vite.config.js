@@ -7,7 +7,9 @@ export default defineConfig({
    // Relative base so assets resolve correctly under views:// (Electrobun's
    // custom scheme). Absolute /assets/... paths fail when loaded from
    // views://main/index.html because they resolve to the scheme root, not
-   // views://main/assets/. Has no effect in web/dev mode.
+   // views://main/assets/. Dev is unaffected, but a deep link in the web build
+   // resolves them against the route instead of the root, which the production
+   // server in src/server/index.js compensates for.
    base: './',
    plugins: [react(), tailwindcss()],
    resolve: {
