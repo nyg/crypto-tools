@@ -40,15 +40,21 @@ app.route('/api/kraken', krakenRoutes)
 if (IS_PROD) {
    const DIST = path.resolve('./dist')
 
-   app.get('*', (c) => {
-      const url = new URL(c.req.url)
-      const filePath = path.join(DIST, url.pathname)
+   const distFile = (pathname) => {
+      const segments = pathname.split('/').filter(Boolean)
 
-      if (existsSync(filePath) && statSync(filePath).isFile()) {
-         return new Response(Bun.file(filePath))
+      for (let start = 0; start < segments.length; start++) {
+         const candidate = path.join(DIST, ...segments.slice(start))
+         if (!candidate.startsWith(DIST + path.sep)) continue
+         if (existsSync(candidate) && statSync(candidate).isFile()) return candidate
       }
 
-      return new Response(Bun.file(path.join(DIST, 'index.html')))
+      return null
+   }
+
+   app.get('*', (c) => {
+      const file = distFile(new URL(c.req.url).pathname)
+      return new Response(Bun.file(file ?? path.join(DIST, 'index.html')))
    })
 }
 
