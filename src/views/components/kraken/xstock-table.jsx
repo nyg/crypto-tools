@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asNumber } from '../../../utils/format'
+import { asNumber, asDollarAmount, asRounded } from '../../../utils/format'
 
 const typeLabels = {
    stock: 'Stock',
@@ -25,16 +25,17 @@ const originLabels = {
    ai: 'Classified by Claude'
 }
 
-function SortableHead({ column, sort, onSortChange, className, children }) {
+function SortableHead({ column, sort, onSortChange, className, align, initialDirection = 'asc', children }) {
    const isActive = sort.column === column
+   const opposite = initialDirection === 'asc' ? 'desc' : 'asc'
    return (
       <TableHead className={className}>
          <button
             type="button"
-            className="inline-flex items-center gap-1 hover:text-foreground"
+            className={cn('inline-flex items-center gap-1 hover:text-foreground', align === 'right' && 'justify-end')}
             onClick={() => onSortChange({
                column,
-               direction: isActive && sort.direction === 'asc' ? 'desc' : 'asc'
+               direction: isActive && sort.direction === initialDirection ? opposite : initialDirection
             })}>
             {children}
             <ArrowUpDownIcon className={cn('size-3', isActive ? 'opacity-100' : 'opacity-40')} />
@@ -68,25 +69,42 @@ export default function XStockTable({
 
    return (
       <div className="space-y-3">
-         <Table>
+         <Table className="table-fixed [&_td]:align-top">
             <TableHeader>
                <TableRow>
-                  <SortableHead column="altname" sort={sort} onSortChange={onSortChange}>Kraken</SortableHead>
-                  <SortableHead column="ticker" sort={sort} onSortChange={onSortChange}>Ticker</SortableHead>
-                  <SortableHead column="name" sort={sort} onSortChange={onSortChange}>Name</SortableHead>
-                  <SortableHead column="type" sort={sort} onSortChange={onSortChange}>Type</SortableHead>
-                  <TableHead>Detail</TableHead>
-                  <TableHead className="w-1/2">Description</TableHead>
+                  <SortableHead column="altname" sort={sort} onSortChange={onSortChange} className="w-[7.5rem]">
+                     Kraken
+                  </SortableHead>
+                  <SortableHead column="ticker" sort={sort} onSortChange={onSortChange} className="w-[5.5rem]">
+                     Ticker
+                  </SortableHead>
+                  <SortableHead column="name" sort={sort} onSortChange={onSortChange} className="w-[17rem]">
+                     Name
+                  </SortableHead>
+                  <SortableHead column="type" sort={sort} onSortChange={onSortChange} className="w-[6.5rem]">
+                     Type
+                  </SortableHead>
+                  <TableHead className="w-[8rem]">Detail</TableHead>
+                  <SortableHead
+                     column="volumeUsd24h"
+                     sort={sort}
+                     onSortChange={onSortChange}
+                     align="right"
+                     initialDirection="desc"
+                     className="w-[8.5rem] text-right">
+                     24h volume
+                  </SortableHead>
+                  <TableHead>Description</TableHead>
                </TableRow>
             </TableHeader>
             <TableBody>
                {listings.map(listing =>
                   <TableRow key={listing.ticker}>
-                     <TableCell className="font-mono text-xs whitespace-nowrap text-muted-foreground">
+                     <TableCell className="truncate font-mono text-xs text-muted-foreground" title={listing.altname}>
                         {listing.altname}
                      </TableCell>
-                     <TableCell className="font-medium whitespace-nowrap">{listing.ticker}</TableCell>
-                     <TableCell>
+                     <TableCell className="truncate font-medium" title={listing.ticker}>{listing.ticker}</TableCell>
+                     <TableCell className="truncate" title={listing.name || undefined}>
                         {listing.name || <span className="text-muted-foreground">—</span>}
                      </TableCell>
                      <TableCell>
@@ -101,18 +119,28 @@ export default function XStockTable({
                            ? <Badge variant="outline">{listing.subtype.replace(/-/g, ' ')}</Badge>
                            : <span className="text-muted-foreground">—</span>}
                      </TableCell>
-                     <TableCell className="text-sm text-muted-foreground">
+                     <TableCell className="text-right tabular-nums">
+                        {listing.volumeUsd24h === null
+                           ? <span className="text-muted-foreground" title="Kraken lists no USD pair for this asset">—</span>
+                           : <span title={`${asRounded(listing.volume24h)} units traded${listing.last ? ` · last ${asDollarAmount(listing.last)}` : ''}`}>
+                              {asDollarAmount(listing.volumeUsd24h)}
+                           </span>}
+                     </TableCell>
+                     <TableCell className="text-sm whitespace-normal text-muted-foreground">
                         {listing.description
                            ? <button
                               type="button"
-                              className={cn('text-left leading-relaxed hover:text-foreground',
+                              className={cn('w-full text-left leading-relaxed break-words hover:text-foreground',
                                  !expanded.has(listing.ticker) && 'line-clamp-2')}
                               title={expanded.has(listing.ticker) ? 'Collapse' : 'Expand'}
                               onClick={() => toggle(listing.ticker)}>
                               {listing.description}
                            </button>
                            : describing.has(listing.ticker)
-                              ? <Loader2Icon className="size-4 animate-spin" />
+                              ? <Button variant="ghost" size="sm" type="button" disabled>
+                                 <Loader2Icon className="size-3.5 animate-spin" />
+                                 Describing…
+                              </Button>
                               : <Button
                                  variant="ghost"
                                  size="sm"

@@ -99,12 +99,20 @@ const mockClassifications = new Map()
 
 const describedKey = (ticker, wordCount) => `${ticker}:${wordCount}`
 
+const mockVolumes = {
+   AAPL: [311.96, 83.88], GLD: [399.13, 443.43], NVDA: [182.4, 210.5],
+   TSLA: [330.51, 395.83], SPY: [772.35, 120.79], VOO: [604.2, 31.4],
+   TQQQ: [92.7, 512.6], SGOV: [100.4, 88.2], 'BRK.B': [512.8, 9.6],
+   LNG: [242.1, 12.4], STRC: [98.3, 640.1], KRAQ: [10.4, 1204.6]
+}
+
 const xstockListings = (params) => {
    const wordCount = params?.wordCount ?? 60
    return {
       wordCount,
       listings: xstockSeed.map(listing => {
          const classified = mockClassifications.get(listing.ticker)
+         const market = mockVolumes[listing.ticker]
          return {
             ...listing,
             ...classified,
@@ -112,6 +120,9 @@ const xstockListings = (params) => {
             exchange: '',
             confidence: listing.origin === 'seed' ? 'high' : classified?.confidence ?? '',
             sources: [],
+            last: market?.[0] ?? null,
+            volume24h: market?.[1] ?? null,
+            volumeUsd24h: market ? market[0] * market[1] : null,
             description: mockDescriptions.get(describedKey(listing.ticker, wordCount)) ?? ''
          }
       })

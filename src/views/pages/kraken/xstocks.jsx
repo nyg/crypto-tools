@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge'
 
 const PAGE_SIZE = 50
 const BATCH_SIZE = 20
+const SETTINGS_KEY = 'kraken.xstocks.settings'
 
 const typeOptions = [
    { value: ANY, label: 'All types' },
@@ -35,7 +36,15 @@ const scopeOptions = [
    { value: 'all', label: 'Every listing' }
 ]
 
+const numericColumns = new Set(['volumeUsd24h'])
+
 const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
+
+const readSettings = () => {
+   if (typeof window === 'undefined') return {}
+   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) ?? {} }
+   catch { return {} }
+}
 
 export default function KrakenXStocks() {
 
@@ -43,18 +52,25 @@ export default function KrakenXStocks() {
       apiKey: (typeof window !== 'undefined' && localStorage.getItem('anthropic.api.key')) || ''
    }))
 
-   const [wordCountInput, setWordCountInput] = useState('60')
-   const [wordCount, setWordCount] = useState(60)
+   const [settings] = useState(readSettings)
+
+   const [wordCountInput, setWordCountInput] = useState(() => String(settings.wordCount ?? 60))
+   const [wordCount, setWordCount] = useState(() => settings.wordCount ?? 60)
    const [searchInput, setSearchInput] = useState('')
    const [search, setSearch] = useState('')
-   const [type, setType] = useState(ANY)
-   const [scope, setScope] = useState('etf')
-   const [sort, setSort] = useState({ column: 'ticker', direction: 'asc' })
+   const [type, setType] = useState(() => settings.type ?? ANY)
+   const [scope, setScope] = useState(() => settings.scope ?? 'etf')
+   const [sort, setSort] = useState(() => settings.sort ?? { column: 'ticker', direction: 'asc' })
    const [page, setPage] = useState(0)
    const [describing, setDescribing] = useState(() => new Set())
    const [progress, setProgress] = useState(null)
 
    const stopRequested = useRef(false)
+
+   useEffect(() => {
+      if (typeof window === 'undefined') return
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ wordCount, type, scope, sort }))
+   }, [wordCount, type, scope, sort])
 
    useEffect(() => {
       const timer = setTimeout(() => {
@@ -66,8 +82,7 @@ export default function KrakenXStocks() {
 
    useEffect(() => {
       const timer = setTimeout(() => {
-         const parsed = Math.min(300, Math.max(10, parseInt(wordCountInput) || 60))
-         setWordCount(parsed)
+         setWordCount(Math.min(300, Math.max(10, parseInt(wordCountInput) || 60)))
       }, 500)
       return () => clearTimeout(timer)
    }, [wordCountInput])
@@ -93,7 +108,7 @@ export default function KrakenXStocks() {
       total: listings.length,
       stocks: listings.filter(listing => listing.type === 'stock').length,
       etfs: listings.filter(listing => listing.type === 'etf').length,
-      unclassified: listings.filter(listing => listing.type === 'unclassified' || listing.type === 'unknown').length,
+      unclassified: listings.filter(listing => listing.type === 'unclassified').length,
       described: listings.filter(listing => listing.description).length
    }), [listings])
 
@@ -107,9 +122,19 @@ export default function KrakenXStocks() {
       })
 
       const direction = sort.direction === 'asc' ? 1 : -1
-      return matches.sort((a, b) =>
-         collator.compare(a[sort.column] ?? '', b[sort.column] ?? '') * direction
-         || collator.compare(a.ticker, b.ticker))
+
+      return matches.sort((a, b) => {
+         if (numericColumns.has(sort.column)) {
+            const left = a[sort.column]
+            const right = b[sort.column]
+            if (left === null && right === null) return collator.compare(a.ticker, b.ticker)
+            if (left === null) return 1
+            if (right === null) return -1
+            return (left - right) * direction || collator.compare(a.ticker, b.ticker)
+         }
+         return collator.compare(a[sort.column] ?? '', b[sort.column] ?? '') * direction
+            || collator.compare(a.ticker, b.ticker)
+      })
    }, [listings, search, type, sort])
 
    const isFiltered = search !== '' || type !== ANY
@@ -125,6 +150,9 @@ export default function KrakenXStocks() {
       stopRequested.current = false
       setProgress({ done: 0, total: tickers.length })
 
+      let completed = 0
+      let failed = false
+
       for (let index = 0; index < tickers.length; index += BATCH_SIZE) {
          if (stopRequested.current) break
 
@@ -133,18 +161,25 @@ export default function KrakenXStocks() {
 
          try {
             await worker(batch)
+            completed += batch.length
          }
          catch (reason) {
+            failed = true
             toast.error(typeof reason === 'string' ? reason : `Could not ${label} those listings.`)
             break
          }
 
-         setProgress({ done: Math.min(index + BATCH_SIZE, tickers.length), total: tickers.length })
+         setProgress({ done: completed, total: tickers.length })
          await mutate()
       }
 
       setDescribing(new Set())
       setProgress(null)
+
+      if (!failed && completed > 0) {
+         const stopped = stopRequested.current && completed < tickers.length
+         toast.success(`${label === 'describe' ? 'Described' : 'Classified'} ${asCount(completed, 'listing')}${stopped ? ' before stopping' : ''}.`)
+      }
    }
 
    const generateDescriptions = (tickers) =>
@@ -158,14 +193,18 @@ export default function KrakenXStocks() {
 
    const describeScope = () => {
       const pool = scope === 'filtered' ? filtered : listings
-      const wanted = scope === 'etf'
-         ? pool.filter(listing => listing.type === 'etf')
-         : pool
+      const wanted = scope === 'etf' ? pool.filter(listing => listing.type === 'etf') : pool
       return generateDescriptions(wanted.filter(listing => !listing.description).map(listing => listing.ticker))
    }
 
    const isBusy = progress !== null
    const canDescribe = Boolean(credentials.apiKey) && !isBusy
+
+   const pendingInScope = useMemo(() => {
+      const pool = scope === 'filtered' ? filtered : listings
+      const wanted = scope === 'etf' ? pool.filter(listing => listing.type === 'etf') : pool
+      return wanted.filter(listing => !listing.description).length
+   }, [scope, filtered, listings])
 
    let tableContent
    if (error) {
@@ -204,8 +243,7 @@ export default function KrakenXStocks() {
                Kraken&apos;s tokenized stocks and ETFs. Which listings are stocks and which are ETFs
                comes from a reference list shipped with the app, so it loads instantly and costs
                nothing. Descriptions are written by Claude only when you ask for them, billed to your
-               Anthropic account, and cached afterwards. They are descriptive and are not investment
-               advice.
+               Anthropic account, and cached afterwards.
             </InfoBanner>
 
             {counts.unclassified > 0 && !isLoading &&
@@ -226,73 +264,81 @@ export default function KrakenXStocks() {
                   </AlertDescription>
                </Alert>}
 
-            <Card size="sm">
-               <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <Field label="Listings">{counts.total}</Field>
-                  <Field label="Stocks">{counts.stocks}</Field>
-                  <Field label="ETFs">{counts.etfs}</Field>
-                  <Field label="Described" title={`At ${wordCount} words`}>
-                     {counts.described} / {counts.total}
-                  </Field>
-               </CardContent>
-            </Card>
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
 
-            <Card size="sm">
-               <CardHeader>
-                  <CardTitle>Descriptions</CardTitle>
-               </CardHeader>
-               <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 items-end gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
-                     <SelectField
-                        name="scope"
-                        label="Generate for"
-                        value={scope}
-                        onValueChange={setScope}
-                        options={scopeOptions} />
-                     <NumericInput
-                        name="wordCount"
-                        label="Words per description"
-                        value={wordCountInput}
-                        onChange={(event) => setWordCountInput(event.target.value)} />
-                  </div>
-
-                  {!credentials.apiKey &&
-                     <Alert>
-                        <AlertDescription>
-                           Add an Anthropic API key in{' '}
-                           <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
-                              Settings
-                           </Link>{' '}
-                           to generate descriptions. Everything else on this page works without one.
-                        </AlertDescription>
-                     </Alert>}
-
-                  <div className="flex flex-wrap items-center gap-3">
-                     <Button
-                        type="button"
-                        size="sm"
-                        disabled={!canDescribe}
-                        onClick={describeScope}>
-                        <SparklesIcon className="size-3.5" />
-                        Generate
-                     </Button>
-                     {isBusy &&
-                        <>
+               <Card size="sm">
+                  <CardHeader>
+                     <CardTitle>Descriptions</CardTitle>
+                     <CardAction>
+                        {isBusy &&
                            <span className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Loader2Icon className="size-4 animate-spin" />
-                              {progress.done} of {progress.total} done…
-                           </span>
-                           <Button
-                              variant="ghost"
-                              size="sm"
-                              type="button"
-                              onClick={() => { stopRequested.current = true }}>
+                              {progress.done} of {progress.total}
+                           </span>}
+                     </CardAction>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                     <div className="grid grid-cols-2 items-end gap-x-4 gap-y-3">
+                        <SelectField
+                           name="scope"
+                           label="Generate for"
+                           value={scope}
+                           onValueChange={setScope}
+                           options={scopeOptions} />
+                        <NumericInput
+                           name="wordCount"
+                           label="Words per description"
+                           value={wordCountInput}
+                           onChange={(event) => setWordCountInput(event.target.value)} />
+                     </div>
+
+                     {!credentials.apiKey &&
+                        <Alert>
+                           <AlertDescription>
+                              Add an Anthropic API key in{' '}
+                              <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
+                                 Settings
+                              </Link>{' '}
+                              to generate descriptions. Everything else on this page works without one.
+                           </AlertDescription>
+                        </Alert>}
+
+                     <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                           type="button"
+                           size="sm"
+                           disabled={!canDescribe || pendingInScope === 0}
+                           onClick={describeScope}>
+                           {isBusy
+                              ? <Loader2Icon className="size-3.5 animate-spin" />
+                              : <SparklesIcon className="size-3.5" />}
+                           {isBusy ? 'Generating…' : 'Generate'}
+                        </Button>
+                        {isBusy
+                           ? <Button variant="ghost" size="sm" type="button" onClick={() => { stopRequested.current = true }}>
                               Stop
                            </Button>
-                        </>}
-                  </div>
-               </CardContent>
-            </Card>
+                           : <span className="text-sm text-muted-foreground">
+                              {pendingInScope === 0
+                                 ? 'Everything in scope already has a description.'
+                                 : `${asCount(pendingInScope, 'listing')} still to describe at ${wordCount} words.`}
+                           </span>}
+                     </div>
+                  </CardContent>
+               </Card>
+
+               <Card size="sm" className="lg:w-72">
+                  <CardContent className="grid grid-cols-2 gap-4">
+                     <Field label="Listings">{counts.total}</Field>
+                     <Field label="Stocks">{counts.stocks}</Field>
+                     <Field label="ETFs">{counts.etfs}</Field>
+                     <Field label="Described" title={`At ${wordCount} words`}>
+                        {counts.described} / {counts.total}
+                     </Field>
+                  </CardContent>
+               </Card>
+
+            </div>
 
             <Card>
                <CardHeader>

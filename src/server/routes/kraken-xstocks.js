@@ -10,6 +10,23 @@ const app = new Hono()
 const MAX_BATCH = 20
 const MIN_WORD_COUNT = 10
 const MAX_WORD_COUNT = 300
+const VOLUME_TTL_MS = 60 * 1000
+
+let volumeCache = { at: 0, volumes: new Map() }
+
+async function tokenizedVolumes(krakenAPI) {
+   if (Date.now() - volumeCache.at < VOLUME_TTL_MS) return volumeCache.volumes
+
+   try {
+      const volumes = await krakenAPI.fetchTokenizedVolumes()
+      if (volumes.size > 0) volumeCache = { at: Date.now(), volumes }
+      return volumes
+   }
+   catch (error) {
+      console.log('Could not read tokenized 24h volumes:', error.message)
+      return volumeCache.volumes
+   }
+}
 
 const asWordCount = (value) =>
    Math.min(MAX_WORD_COUNT, Math.max(MIN_WORD_COUNT, Math.round(Number(value)) || 60))
@@ -69,9 +86,11 @@ app.post('/listings', async (c) => {
       const repository = new XStockRepository()
       const stored = repository.findListings(tickers)
       const descriptions = repository.findDescriptions(tickers, wordCount)
+      const volumes = await tokenizedVolumes(krakenAPI)
 
       const rows = listings.map(({ altname, ticker }) => {
          const base = seededListing(ticker) ?? stored.get(ticker)
+         const market = volumes.get(altname)
          return {
             altname,
             ticker,
@@ -82,6 +101,9 @@ app.post('/listings', async (c) => {
             confidence: base?.confidence ?? '',
             origin: base?.origin ?? '',
             sources: base?.sources ?? [],
+            last: market?.last ?? null,
+            volume24h: market?.volume24h ?? null,
+            volumeUsd24h: market?.volumeUsd24h ?? null,
             description: descriptions.get(ticker)?.description ?? ''
          }
       })
