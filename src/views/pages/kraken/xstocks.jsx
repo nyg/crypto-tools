@@ -319,12 +319,6 @@ export default function KrakenXStocks() {
                            </AlertDescription>
                         </Alert>}
 
-                     {!isBusy &&
-                        <p className="text-sm text-muted-foreground">
-                           {pendingInScope === 0
-                              ? 'Everything in scope already has a description.'
-                              : `${asCount(pendingInScope, 'listing')} still to describe at ${wordCount} words.`}
-                        </p>}
                   </CardContent>
                </Card>
 
