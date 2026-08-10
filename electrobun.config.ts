@@ -34,6 +34,7 @@ export default {
   },
   scripts: {
     preBuild: "scripts/prebuild.ts",
+    postBuild: "scripts/postbuild.ts",
     postWrap: "scripts/postwrap.ts",
   },
 } satisfies ElectrobunConfig;
