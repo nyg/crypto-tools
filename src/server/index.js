@@ -23,9 +23,16 @@ if (IS_PROD) {
       return null
    }
 
+   const isAssetRequest = (pathname) => pathname.split('/').includes('assets')
+
    app.get('*', (c) => {
-      const file = distFile(new URL(c.req.url).pathname)
-      return new Response(Bun.file(file ?? path.join(DIST, 'index.html')))
+      const pathname = new URL(c.req.url).pathname
+      const file = distFile(pathname)
+
+      if (file) return new Response(Bun.file(file))
+      if (isAssetRequest(pathname)) return c.notFound()
+
+      return new Response(Bun.file(path.join(DIST, 'index.html')))
    })
 }
 
