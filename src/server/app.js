@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import binanceRoutes from './routes/binance.js'
 import krakenRoutes from './routes/kraken.js'
+import settingsRoutes from './routes/settings.js'
 
 export function createApp() {
    const app = new Hono()
@@ -28,6 +29,7 @@ export function createApp() {
 
    app.route('/api/binance', binanceRoutes)
    app.route('/api/kraken', krakenRoutes)
+   app.route('/api/settings', settingsRoutes)
 
    return app
 }

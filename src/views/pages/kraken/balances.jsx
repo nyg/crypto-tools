@@ -12,42 +12,39 @@ import BalanceTable from '../../components/kraken/balance-table'
 import { defaultFilters } from '../../components/kraken/balance-filters'
 import { asCount } from '../../components/lib/filter-options'
 import { isJobRunning } from '../../components/kraken/sync-status'
+import { useProvider } from '../../lib/use-settings'
+import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+
+const BALANCES_KEY = '/api/kraken/ledger/balances'
 
 
 export default function KrakenBalances() {
 
-   const [credentials] = useState(() => ({
-      apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || '',
-      apiSecret: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.secret')) || ''
-   }))
+   const { configured, isLoading: isLoadingSettings } = useProvider('kraken')
 
-   const [filters, setFilters] = useState(defaultFilters)
+   const [filters, setFilters] = usePersistentState('kraken.balances.filters', defaultFilters)
 
    const wasRunningRef = useRef(false)
    const { mutate } = useSWRConfig()
 
-   // The balances themselves come from the ledger the Ledger tab downloaded, so the
-   // secret is not sent with them, and the rates on top are public data.
-   const account = credentials.apiKey ? { apiKey: credentials.apiKey } : null
-
    // A sync is started on the Ledger page but rewrites the balances read here, so the
    // run is followed and the summary revalidated when it lands.
    const { data: status } = useSWR(
-      account ? ['/api/kraken/ledger/sync/status', { credentials: account }] : null,
+      configured ? '/api/kraken/ledger/sync/status' : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
          onSuccess: (latest) => {
             const running = isJobRunning(latest?.job)
             if (!running && wasRunningRef.current) {
-               mutate(key => Array.isArray(key) && key[0] === '/api/kraken/ledger/balances')
+               mutate(BALANCES_KEY)
             }
             wasRunningRef.current = running
          }
       })
 
    const { data: balances, error, isLoading } = useSWR(
-      account ? ['/api/kraken/ledger/balances', { credentials: account }] : null,
+      configured ? BALANCES_KEY : null,
       { keepPreviousData: true })
 
    // Asked for separately, and only once the assets are known, so the table renders
@@ -59,14 +56,14 @@ export default function KrakenBalances() {
       { keepPreviousData: true })
 
    // What Kraken says right now: the totals to check the stored ledger against, and the
-   // open orders holding part of it. This is the one call that needs the secret, so it
-   // stays a mutation — a useSWR key would put the secret in the cache key, which is why
-   // every other read on these pages sends the api key alone. Triggered on mount rather
-   // than left to a button, so the page is complete without being asked twice.
+   // open orders holding part of it. It stays a mutation because it is the one call here
+   // that reaches the exchange, and reaching it should be an action rather than something
+   // a revalidation can repeat. Triggered on mount rather than left to a button, so the
+   // page is complete without being asked twice.
    const { data: live, error: liveError, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
 
-   const canCheckLive = Boolean(credentials.apiKey && credentials.apiSecret)
-   const checkLive = () => trigger({ credentials }).catch(() => {})
+   const canCheckLive = configured
+   const checkLive = () => trigger().catch(() => {})
 
    // Guarded because StrictMode runs this twice in development, and each run costs two
    // private calls against Kraken's rate limit. The button below is unaffected: it
@@ -79,7 +76,7 @@ export default function KrakenBalances() {
       checkLive()
    }, [canCheckLive])
 
-   if (!credentials.apiKey) {
+   if (!isLoadingSettings && !configured) {
       return (
          <KrakenLayout name="Balances">
             <Alert>

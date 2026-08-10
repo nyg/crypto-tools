@@ -7,6 +7,8 @@ import FeeSummaryCard from '../../components/kraken/fee-summary-card'
 import FeeChartCard from '../../components/kraken/fee-chart-card'
 import FeeBreakdownCard from '../../components/kraken/fee-breakdown-card'
 import { defaultFilters } from '../../components/kraken/ledger-filters'
+import { useProvider } from '../../lib/use-settings'
+import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const isUnfiltered = filters => Object.keys(defaultFilters)
@@ -15,27 +17,21 @@ const isUnfiltered = filters => Object.keys(defaultFilters)
 
 export default function KrakenFees() {
 
-   const [credentials] = useState(() => ({
-      apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || ''
-   }))
+   const { configured, accountId, isLoading: isLoadingSettings } = useProvider('kraken')
 
-   const [filters, setFilters] = useState(defaultFilters)
+   const [filters, setFilters] = usePersistentState('kraken.fees.filters', defaultFilters)
    const [filtersKey, setFiltersKey] = useState(0)
    const [asset, setAsset] = useState(null)
-   const [granularity, setGranularity] = useState('month')
-
-   // This page never contacts Kraken — it only reads the ledger the Ledger tab
-   // already downloaded — so the secret is neither needed nor sent.
-   const account = credentials.apiKey ? { apiKey: credentials.apiKey } : null
+   const [granularity, setGranularity] = usePersistentState('kraken.fees.granularity', 'month')
 
    const { data: fees, error, isLoading } = useSWR(
-      account ? ['/api/kraken/ledger/fees', { credentials: account, filters }] : null,
+      configured ? ['/api/kraken/ledger/fees', { accountId, filters }] : null,
       { keepPreviousData: true })
 
    const { data: filterOptions } = useSWR(
-      account ? ['/api/kraken/ledger/filters', { credentials: account }] : null)
+      configured ? '/api/kraken/ledger/filters' : null)
 
-   if (!credentials.apiKey) {
+   if (!isLoadingSettings && !configured) {
       return (
          <KrakenLayout name="Fees">
             <Alert>

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { Link } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
 import KrakenLayout from '../../components/kraken/kraken-layout'
@@ -9,40 +9,37 @@ import RewardChartCard from '../../components/kraken/reward-chart-card'
 import RewardHistoryCard from '../../components/kraken/reward-history-card'
 import RewardTable from '../../components/kraken/reward-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
+import { useProvider } from '../../lib/use-settings'
 import { asCount } from '../../components/lib/filter-options'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+
+const REWARDS_KEY = '/api/kraken/ledger/rewards'
 
 
 export default function KrakenRewards() {
 
-   const [credentials] = useState(() => ({
-      apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || ''
-   }))
+   const { configured, isLoading: isLoadingSettings } = useProvider('kraken')
 
    const wasRunningRef = useRef(false)
    const { mutate } = useSWRConfig()
 
-   // This page reads the ledger the Ledger tab already downloaded, so the secret is
-   // neither needed nor sent. The rates it fetches on top are public data.
-   const account = credentials.apiKey ? { apiKey: credentials.apiKey } : null
-
    // A sync is started on the Ledger page but writes the rewards read here, so the run
    // is followed and the summary revalidated when it lands.
    const { data: status } = useSWR(
-      account ? ['/api/kraken/ledger/sync/status', { credentials: account }] : null,
+      configured ? '/api/kraken/ledger/sync/status' : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
          onSuccess: (latest) => {
             const running = isJobRunning(latest?.job)
             if (!running && wasRunningRef.current) {
-               mutate(key => Array.isArray(key) && key[0] === '/api/kraken/ledger/rewards')
+               mutate(REWARDS_KEY)
             }
             wasRunningRef.current = running
          }
       })
 
    const { data: rewards, error, isLoading } = useSWR(
-      account ? ['/api/kraken/ledger/rewards', { credentials: account }] : null,
+      configured ? REWARDS_KEY : null,
       { keepPreviousData: true })
 
    // Asked for separately, and only once the assets are known, so the table renders
@@ -53,7 +50,7 @@ export default function KrakenRewards() {
       assets.length > 0 ? ['/api/kraken/asset-rates', { assets }] : null,
       { keepPreviousData: true })
 
-   if (!credentials.apiKey) {
+   if (!isLoadingSettings && !configured) {
       return (
          <KrakenLayout name="Rewards">
             <Alert>
