@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import useSWR from 'swr'
 import useSWRMutation from 'swr/mutation'
 import Big from 'big.js'
@@ -8,6 +8,9 @@ import InfoBanner from '../../components/lib/info-banner'
 import ExternalLink from '../../components/lib/external-link'
 import OrderBatchForm from '../../components/kraken/order-batch-params'
 import OrderBatchTable from '../../components/kraken/order-batch-table'
+import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
+import usePersistentState from '../../lib/use-persistent-state'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -66,17 +69,6 @@ const defaultFormValues = {
    volumeFn: 'linear-quote'
 }
 
-const loadFormValues = () => {
-   if (typeof window === 'undefined') return defaultFormValues
-   try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      return saved ? { ...defaultFormValues, ...JSON.parse(saved) } : defaultFormValues
-   }
-   catch {
-      return defaultFormValues
-   }
-}
-
 const postLimitOrders = <ExternalLink href="https://support.kraken.com/hc/en-us/articles/203053246-Other-order-options" className="underline">
    post limit orders
 </ExternalLink>
@@ -91,18 +83,12 @@ export default function KrakenOrderBatch() {
    const { data: tradingPairs, isLoading } = useSWR('/api/kraken/trading-pairs')
    const { data: createdOrders, isMutating, error, trigger: createOrders, reset } = useSWRMutation('/api/kraken/order-batch')
 
+   const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
+
    const [ordersParams, setOrdersParams] = useState({})
    const [submittedMode, setSubmittedMode] = useState(null)
-   const [credentials] = useState(() => ({
-      apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || '',
-      apiSecret: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.secret')) || ''
-   }))
-   const [formValues, setFormValues] = useState(loadFormValues)
-
    // Remember the last entered parameters across navigations and app restarts.
-   useEffect(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formValues))
-   }, [formValues])
+   const [formValues, setFormValues] = usePersistentState(STORAGE_KEY, defaultFormValues)
 
    const showPreview = () => {
       setOrdersParams(buildOrdersParams(formValues))
@@ -116,17 +102,15 @@ export default function KrakenOrderBatch() {
       setSubmittedMode(mode)
       // Don't reset() here: useSWRMutation keeps the previous result while the new
       // request runs, so the table stays put instead of flashing back to "—".
-      createOrders({ credentials, ordersParams: params }).catch(() => {})
+      createOrders({ ordersParams: params }).catch(() => {})
    }
 
-   if (!credentials.apiKey) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Order Batch">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Kraken and add them in Settings to create orders.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Kraken and add them in Settings to create orders.
+            </CredentialsAlert>
          </KrakenLayout>
       )
    }

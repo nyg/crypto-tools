@@ -11,6 +11,8 @@ import Field from '../../components/lib/field'
 import NumericInput from '../../components/lib/numeric-input'
 import SelectField from '../../components/lib/select-field'
 import { asCount, ANY } from '../../components/lib/filter-options'
+import { useProvider } from '../../lib/use-settings'
+import usePersistentState from '../../lib/use-persistent-state'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,37 +46,35 @@ const numericColumns = new Set(['volumeUsd24h'])
 
 const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
 
-const readSettings = () => {
-   if (typeof window === 'undefined') return {}
-   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) ?? {} }
-   catch { return {} }
+const defaultSettings = {
+   wordCount: 60,
+   type: ANY,
+   scope: 'etf',
+   sort: { column: 'volumeUsd24h', direction: 'desc' }
 }
+
+const reviveSettings = (stored, defaults) => ({
+   ...stored,
+   scope: scopeValues.has(stored.scope) ? stored.scope : defaults.scope
+})
 
 export default function KrakenXStocks() {
 
-   const [credentials] = useState(() => ({
-      apiKey: (typeof window !== 'undefined' && localStorage.getItem('anthropic.api.key')) || ''
-   }))
+   const { configured: hasAnthropicKey } = useProvider('anthropic')
 
-   const [settings] = useState(readSettings)
+   const [settings, setSettings] = usePersistentState(SETTINGS_KEY, defaultSettings, reviveSettings)
+   const { wordCount, type, scope, sort } = settings
 
-   const [wordCountInput, setWordCountInput] = useState(() => String(settings.wordCount ?? 60))
-   const [wordCount, setWordCount] = useState(() => settings.wordCount ?? 60)
+   const updateSettings = patch => setSettings(previous => ({ ...previous, ...patch }))
+
+   const [wordCountInput, setWordCountInput] = useState(() => String(wordCount))
    const [searchInput, setSearchInput] = useState('')
    const [search, setSearch] = useState('')
-   const [type, setType] = useState(() => settings.type ?? ANY)
-   const [scope, setScope] = useState(() => scopeValues.has(settings.scope) ? settings.scope : 'etf')
-   const [sort, setSort] = useState(() => settings.sort ?? { column: 'volumeUsd24h', direction: 'desc' })
    const [page, setPage] = useState(0)
    const [describing, setDescribing] = useState(() => new Set())
    const [progress, setProgress] = useState(null)
 
    const stopRequested = useRef(false)
-
-   useEffect(() => {
-      if (typeof window === 'undefined') return
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ wordCount, type, scope, sort }))
-   }, [wordCount, type, scope, sort])
 
    useEffect(() => {
       const timer = setTimeout(() => {
@@ -86,18 +86,18 @@ export default function KrakenXStocks() {
 
    useEffect(() => {
       const timer = setTimeout(() => {
-         setWordCount(Math.min(300, Math.max(10, parseInt(wordCountInput) || 60)))
+         updateSettings({ wordCount: Math.min(300, Math.max(10, parseInt(wordCountInput) || 60)) })
       }, 500)
       return () => clearTimeout(timer)
    }, [wordCountInput])
 
    const changeType = (value) => {
-      setType(value)
+      updateSettings({ type: value })
       setPage(0)
    }
 
    const changeSort = (value) => {
-      setSort(value)
+      updateSettings({ sort: value })
       setPage(0)
    }
 
@@ -187,13 +187,13 @@ export default function KrakenXStocks() {
    }
 
    const generateDescriptions = (tickers) =>
-      runInBatches(tickers, 'describe', batch => describe({ credentials, tickers: batch, wordCount }))
+      runInBatches(tickers, 'describe', batch => describe({ tickers: batch, wordCount }))
 
    const classifyUnknown = () =>
       runInBatches(
          listings.filter(listing => listing.type === 'unclassified').map(listing => listing.ticker),
          'classify',
-         batch => classify({ credentials, tickers: batch }))
+         batch => classify({ tickers: batch }))
 
    const describeScope = () =>
       generateDescriptions(listings
@@ -201,7 +201,7 @@ export default function KrakenXStocks() {
          .map(listing => listing.ticker))
 
    const isBusy = progress !== null
-   const canDescribe = Boolean(credentials.apiKey) && !isBusy
+   const canDescribe = hasAnthropicKey && !isBusy
 
    const pendingInScope = useMemo(
       () => listings.filter(listing => inScope(listing, scope) && !listing.description).length,
@@ -254,7 +254,7 @@ export default function KrakenXStocks() {
                         {asCount(counts.unclassified, 'listing')} not in the reference list — Kraken has
                         added them since it was last refreshed.
                      </span>
-                     {credentials.apiKey
+                     {hasAnthropicKey
                         ? <Button variant="outline" size="sm" type="button" disabled={isBusy} onClick={classifyUnknown}>
                            <SparklesIcon className="size-3.5" />
                            Classify with Claude
@@ -285,7 +285,7 @@ export default function KrakenXStocks() {
                            label="Generate for"
                            className="min-w-44 flex-1"
                            value={scope}
-                           onValueChange={setScope}
+                           onValueChange={value => updateSettings({ scope: value })}
                            options={scopeOptions} />
                         <NumericInput
                            name="wordCount"
@@ -308,7 +308,7 @@ export default function KrakenXStocks() {
                            </Button>}
                      </div>
 
-                     {!credentials.apiKey &&
+                     {!hasAnthropicKey &&
                         <Alert>
                            <AlertDescription>
                               Add an Anthropic API key in{' '}

@@ -1,16 +1,15 @@
-import { useState } from 'react'
 import { Link } from 'react-router'
 import { KeyRoundIcon } from 'lucide-react'
 import Layout from '../components/layout'
+import useSettings from '../lib/use-settings'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toolGroups } from '@/lib/tools'
 
 export default function Home() {
 
-   const [hasApiKeys] = useState(() => Boolean(
-      typeof window !== 'undefined'
-         && (localStorage.getItem('kraken.api.key') || localStorage.getItem('binance.api.key'))))
+   const { settings, isLoading } = useSettings()
+   const hasApiKeys = Boolean(settings?.kraken.keyConfigured || settings?.binance.keyConfigured)
 
    return (
       <Layout name="Home">
@@ -24,7 +23,7 @@ export default function Home() {
                </p>
             </section>
 
-            {!hasApiKeys &&
+            {!isLoading && !hasApiKeys &&
                <Alert>
                   <KeyRoundIcon />
                   <AlertDescription>

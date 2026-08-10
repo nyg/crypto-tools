@@ -19,7 +19,7 @@ export const isMockMode = import.meta.env.VITE_MOCK_DATA === 'true'
 const Router = window.location.protocol === 'views:' ? HashRouter : BrowserRouter
 // In Electrobun production, the page loads from views:// so relative /api paths won't reach
 // the Hono server. VITE_API_BASE is injected at build time by scripts/prebuild.ts.
-const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
 async function fetcher(key, params) {
 
@@ -29,16 +29,20 @@ async function fetcher(key, params) {
    const url = Array.isArray(key) ? key[0] : key
    const body = Array.isArray(key) ? key[1] : params?.arg
 
+   // A mutation is a POST even when it carries no body — triggering one with no
+   // argument still means "do this", not "read this".
+   const isMutation = params !== undefined && 'arg' in params
+
    if (isMockMode) {
       const { mockFetcher } = await import('./mocks')
-      return mockFetcher(url, body ? { arg: body } : undefined)
+      return mockFetcher(url, isMutation || body ? { arg: body } : undefined)
    }
 
    let response
-   if (body) {
+   if (isMutation || body) {
       response = await fetch(API_BASE + url, {
          method: 'POST',
-         body: JSON.stringify(body),
+         body: JSON.stringify(body ?? {}),
          headers: { 'Content-Type': 'application/json' }
       })
    }

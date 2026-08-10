@@ -3,13 +3,11 @@ import Big from 'big.js'
 import BinanceAPI from '../adapters/binance-api/adapter.js'
 import BinanceGatewayAPI from '../adapters/binance-gateway-api/adapter.js'
 import RateFinder from '../services/rate-finder.js'
+import { withCredentials } from './with-account.js'
 
 const app = new Hono()
 
-app.post('/aggregate-balance', async (c) => {
-
-   const { credentials } = await c.req.json()
-   if (!credentials) return c.json({ error: 'No API credentials provided.' }, 401)
+app.post('/aggregate-balance', async (c) => withCredentials(c, 'binance', async ({ credentials }) => {
 
    let spotBalance, stakingPositions, stakingProducts, tradingPairs, rates, assets
    try {
@@ -87,12 +85,9 @@ app.post('/aggregate-balance', async (c) => {
    })
 
    return c.json({ balance: aggregateBalance })
-})
+}))
 
-app.post('/balances', async (c) => {
-
-   const { credentials } = await c.req.json()
-   if (!credentials) return c.json({ error: 'No API credentials provided.' }, 401)
+app.post('/balances', async (c) => withCredentials(c, 'binance', async ({ credentials }) => {
 
    const binanceAPI = new BinanceAPI(credentials)
 
@@ -114,12 +109,9 @@ app.post('/balances', async (c) => {
       }, {})
 
    return c.json(balances)
-})
+}))
 
-app.post('/deposits', async (c) => {
-
-   const { credentials, fromDate } = await c.req.json()
-   if (!credentials) return c.json({ error: 'No API credentials provided.' }, 401)
+app.post('/deposits', async (c) => withCredentials(c, 'binance', async ({ body, credentials }) => {
 
    const binanceAPI = new BinanceAPI(credentials)
 
@@ -127,7 +119,7 @@ app.post('/deposits', async (c) => {
    const delay = ms => new Promise(r => setTimeout(r, ms))
 
    let hasNext = true
-   let currentFromDate = fromDate
+   let currentFromDate = body.fromDate
    let toDate = computeToDate(currentFromDate)
    const allDeposits = []
 
@@ -143,7 +135,7 @@ app.post('/deposits', async (c) => {
    }
 
    return c.json({ deposits: allDeposits })
-})
+}))
 
 app.get('/eoy-rates', async (c) => {
 
