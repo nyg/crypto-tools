@@ -60,7 +60,7 @@ irm get.scoop.sh | iex
 2. **macOS**: open the DMG, drag **Crypto Tools.app** to your **Applications** folder, then see [macOS Gatekeeper](#macos-gatekeeper) below before first launch
 3. **Windows**: extract the ZIP and run **Crypto Tools-Setup.exe** inside (installs per-user to `%LOCALAPPDATA%` — no admin rights). See [Windows SmartScreen](#windows-smartscreen) below before first launch.
 
-API keys can be configured in the app on the **Settings** page (stored in `localStorage`).
+API keys can be configured in the app on the **Settings** page (stored in `settings.json`, beside the ledger database in the app's data directory).
 
 ### macOS Gatekeeper
 
@@ -147,19 +147,29 @@ Run the frontend only with mock data (no API keys or server required):
 bun run mocked
 ```
 
-This sets `VITE_MOCK_DATA=true`, which intercepts all API calls with a mock fetcher and auto-initializes `localStorage` with fake credentials. Useful for development and demos.
+This sets `VITE_MOCK_DATA=true`, which intercepts all API calls with a mock fetcher, including the settings endpoint, so every page behaves as if credentials were configured. Nothing is written to disk. Useful for development and demos.
 
 ## Usage
 
 The home page links to every tool; the top menu bar switches between exchanges and each exchange section has sub-navigation for its specific features.
 
-API keys for Kraken, Binance, and Anthropic can be configured on the **Settings** page (stored in `localStorage`) or via environment variables (`VITE_*`).
+API keys for Kraken, Binance, and Anthropic can be configured on the **Settings** page or, in development, via environment variables (`KRAKEN_API_KEY`, `KRAKEN_API_SECRET`, and the `BINANCE_`/`ANTHROPIC_` equivalents; the older `VITE_`-prefixed names are still read). They are held by the local server rather than by the page, so they never enter browser storage and are never sent to anything but the exchange they belong to. An environment variable takes precedence over a saved key, and the Settings page says so when one is in effect.
 
 Prefer a dedicated Kraken API key for this app. Kraken requires nonces to increase on every private call for a given key, so sharing one key between two applications making concurrent requests can make either of them fail with `EAPI:Invalid nonce`.
 
-### Ledger storage
+### Stored data
 
-The Ledger page stores its data in a SQLite database in the per-user application data directory — `~/Library/Application Support/Crypto Tools` on macOS, `%APPDATA%\Crypto Tools` on Windows, `$XDG_DATA_HOME/crypto-tools` on Linux. A directory left behind by a version older than v0.1.2 (named `CryptoTools`) is moved across on first launch. Set `CRYPTO_TOOLS_DATA_DIR` to override it. `bun run dev` writes to `ledger-dev.db` so it never touches the installed app's data. Nothing is uploaded anywhere; deleting the file (or using **Clear data**) simply means the next sync downloads everything again.
+Everything the app keeps lives in the per-user application data directory — `~/Library/Application Support/Crypto Tools` on macOS, `%APPDATA%\Crypto Tools` on Windows, `$XDG_DATA_HOME/crypto-tools` on Linux. A directory left behind by a version older than v0.1.2 (named `CryptoTools`) is moved across on first launch. Set `CRYPTO_TOOLS_DATA_DIR` to override it.
+
+- `ledger.db` — the SQLite database behind the Ledger, Balances, Rewards, Fees and Closed Orders pages. Deleting it (or using **Clear data**) simply means the next sync downloads everything again.
+- `settings.json` — the API keys, written with owner-only permissions.
+- `window-state.json` — the window's last position and size.
+
+`bun run dev` writes to `ledger-dev.db` and `settings-dev.json` so it never touches the installed app's data. Nothing is uploaded anywhere.
+
+The Kraken rows are partitioned by an account id derived once, from the first key you save, and then kept: rotating your Kraken API key leaves the synced ledger where it is. Rows left behind by a key rotation from before this was the case are listed at the bottom of the sync card.
+
+The browser's `localStorage` is used only for view preferences — filters, sorting and the order-batch form. Nothing there is needed to reach an exchange, and clearing it loses nothing but those choices.
 
 ## Project Structure
 

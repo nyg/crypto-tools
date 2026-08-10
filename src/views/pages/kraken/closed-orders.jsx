@@ -8,9 +8,11 @@ import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import OrderFilters, { defaultFilters } from '../../components/kraken/order-filters'
 import OrderTable from '../../components/kraken/order-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
+import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
+import usePersistentState from '../../lib/use-persistent-state'
 import { asCount } from '../../components/lib/filter-options'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 
 const PAGE_SIZE = 20
@@ -18,61 +20,61 @@ const PAGE_SIZE = 20
 
 export default function KrakenClosedOrders() {
 
-   const [credentials] = useState(() => ({
-      apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || ''
-   }))
+   const { configured, accountId, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
    // ?order=… arrives from the Ledger page's Trades tab, where a fill links to the
    // order it belongs to. Read once as the initial filter: after that the filter bar
-   // owns the value, and rewriting it from the URL would fight with it.
+   // owns the value, and rewriting it from the URL would fight with it. It replaces
+   // the remembered filters rather than layering over them — a remembered pair,
+   // direction or date range can exclude the very order being linked to, and the link
+   // has to resolve. usePersistentState does not write on mount, so following one link
+   // does not leave the order id sitting in the search box on every later visit.
    const [searchParams] = useSearchParams()
-   const [filters, setFilters] = useState(() => {
-      const order = searchParams.get('order')
-      return order ? { ...defaultFilters, search: order } : defaultFilters
-   })
+   const order = searchParams.get('order')
+
+   const [filters, setFilters] = usePersistentState(
+      'kraken.closedOrders.filters',
+      defaultFilters,
+      stored => order ? { ...defaultFilters, search: order } : stored)
 
    const [filtersKey, setFiltersKey] = useState(0)
-   const [sort, setSort] = useState({ column: 'time', direction: 'desc' })
+   const [sort, setSort] = usePersistentState(
+      'kraken.closedOrders.sort',
+      { column: 'time', direction: 'desc' })
    const [page, setPage] = useState(0)
 
    const wasRunningRef = useRef(false)
    const { mutate } = useSWRConfig()
 
-   // Only the key is sent: these endpoints never contact Kraken, and it keeps the
-   // secret out of the SWR cache keys.
-   const account = credentials.apiKey ? { apiKey: credentials.apiKey } : null
-
    // A sync is started on the Ledger page, but it writes the trades this page reads,
    // so the run is followed here too and the orders are revalidated when it lands.
    const { data: status } = useSWR(
-      account ? ['/api/kraken/ledger/sync/status', { credentials: account }] : null,
+      configured ? '/api/kraken/ledger/sync/status' : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
          onSuccess: (latest) => {
             const running = isJobRunning(latest?.job)
             if (!running && wasRunningRef.current) {
-               mutate(key => Array.isArray(key)
-                  && String(key[0]).startsWith('/api/kraken/ledger/trades/'))
+               mutate(key => String(Array.isArray(key) ? key[0] : key)
+                  .startsWith('/api/kraken/ledger/trades/'))
             }
             wasRunningRef.current = running
          }
       })
 
    const { data: filterOptions } = useSWR(
-      account ? ['/api/kraken/ledger/trades/filters', { credentials: account }] : null)
+      configured ? '/api/kraken/ledger/trades/filters' : null)
 
    const { data: orders, isLoading } = useSWR(
-      account ? ['/api/kraken/ledger/trades/orders', { credentials: account, filters, sort, page, pageSize: PAGE_SIZE }] : null,
+      configured ? ['/api/kraken/ledger/trades/orders', { accountId, filters, sort, page, pageSize: PAGE_SIZE }] : null,
       { keepPreviousData: true })
 
-   if (!credentials.apiKey) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Closed Orders">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Kraken and add them in Settings to see your orders.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Kraken and add them in Settings to see your orders.
+            </CredentialsAlert>
          </KrakenLayout>
       )
    }

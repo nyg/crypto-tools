@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import LedgerRepository from '../db/ledger-repository.js'
 import TradeRepository from '../db/trade-repository.js'
 import tradeRoutes from './kraken-trades.js'
-import { handleError, withAccount } from './with-account.js'
+import { withAccount, withCredentials } from './with-account.js'
 import { dbSizeBytes } from '../db/paths.js'
 import { jobFor, isRunning, requestCancel, startSync } from '../services/kraken-ledger-sync.js'
 
@@ -12,22 +12,10 @@ const app = new Hono()
 // clear — and the page's post-sync revalidation matches on this prefix.
 app.route('/trades', tradeRoutes)
 
-app.post('/sync', async (c) => {
+app.post('/sync', async (c) => withCredentials(c, 'kraken', ({ body, credentials, accountId }) =>
+   c.json(startSync(accountId, credentials, body.mode === 'full' ? 'full' : 'incremental'))))
 
-   const { credentials, mode } = await c.req.json()
-   if (!credentials?.apiKey || !credentials?.apiSecret) {
-      return c.json({ error: 'No API credentials provided.' }, 401)
-   }
-
-   try {
-      return c.json(startSync(credentials, mode === 'full' ? 'full' : 'incremental'))
-   }
-   catch (error) {
-      return handleError(c, error)
-   }
-})
-
-app.post('/sync/status', async (c) => withAccount(c, ({ accountId }) => {
+app.get('/sync/status', async (c) => withAccount(c, ({ accountId }) => {
 
    const repository = new LedgerRepository(accountId)
    const tradeRepository = new TradeRepository(accountId)
@@ -58,16 +46,16 @@ app.post('/entries', async (c) => withAccount(c, ({ body, accountId }) =>
       pageSize: Math.min(500, Math.max(1, Number(body.pageSize) || 50))
    }))))
 
-app.post('/filters', async (c) => withAccount(c, ({ accountId }) =>
+app.get('/filters', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new LedgerRepository(accountId).distinctFilters())))
 
 app.post('/fees', async (c) => withAccount(c, ({ body, accountId }) =>
    c.json(new LedgerRepository(accountId).feeSummary(body.filters))))
 
-app.post('/rewards', async (c) => withAccount(c, ({ accountId }) =>
+app.get('/rewards', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new LedgerRepository(accountId).rewardSummary())))
 
-app.post('/balances', async (c) => withAccount(c, ({ accountId }) =>
+app.get('/balances', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new LedgerRepository(accountId).balanceSummary())))
 
 app.post('/clear', async (c) => withAccount(c, ({ accountId }) => {

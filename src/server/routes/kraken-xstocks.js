@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import KrakenAPI from '../adapters/kraken-api/adapter.js'
 import AnthropicAPI, { MODEL } from '../adapters/anthropic/adapter.js'
 import XStockRepository from '../db/xstock-repository.js'
-import { handleError } from './with-account.js'
+import { handleError, withCredentials } from './with-account.js'
 import seed from '../data/xstocks.json'
 
 const app = new Hono()
@@ -115,70 +115,57 @@ app.post('/listings', async (c) => {
    }
 })
 
-app.post('/classify', async (c) => {
+app.post('/classify', async (c) => withCredentials(c, 'anthropic', async ({ body, credentials }) => {
 
-   const { credentials, tickers = [] } = await c.req.json()
-   if (!credentials?.apiKey) return c.json({ error: 'No API credentials provided.' }, 401)
+   const { tickers = [] } = body
 
-   try {
-      const krakenAPI = new KrakenAPI()
-      const listings = await krakenAPI.fetchTokenizedListings()
-      const byTicker = new Map(listings.map(listing => [listing.ticker, listing]))
+   const krakenAPI = new KrakenAPI()
+   const listings = await krakenAPI.fetchTokenizedListings()
+   const byTicker = new Map(listings.map(listing => [listing.ticker, listing]))
 
-      const requested = resolveTickers(tickers, byTicker).filter(ticker => !seed.listings[ticker])
-      if (requested.length === 0) return c.json({ classified: [] })
+   const requested = resolveTickers(tickers, byTicker).filter(ticker => !seed.listings[ticker])
+   if (requested.length === 0) return c.json({ classified: [] })
 
-      const anthropicAPI = new AnthropicAPI(credentials.apiKey)
-      const returned = await anthropicAPI.classifyListings(requested)
-      const classified = reconcile(requested, returned, byTicker)
+   const anthropicAPI = new AnthropicAPI(credentials.apiKey)
+   const returned = await anthropicAPI.classifyListings(requested)
+   const classified = reconcile(requested, returned, byTicker)
 
-      new XStockRepository().upsertListings(classified, Date.now())
-      return c.json({ classified })
-   }
-   catch (error) {
-      return handleError(c, error)
-   }
-})
+   new XStockRepository().upsertListings(classified, Date.now())
+   return c.json({ classified })
+}, { secret: false }))
 
-app.post('/describe', async (c) => {
+app.post('/describe', async (c) => withCredentials(c, 'anthropic', async ({ body, credentials }) => {
 
-   const { credentials, tickers = [], wordCount: requestedWordCount } = await c.req.json()
-   if (!credentials?.apiKey) return c.json({ error: 'No API credentials provided.' }, 401)
+   const { tickers = [] } = body
+   const wordCount = asWordCount(body.wordCount)
 
-   const wordCount = asWordCount(requestedWordCount)
+   const krakenAPI = new KrakenAPI()
+   const listings = await krakenAPI.fetchTokenizedListings()
+   const byTicker = new Map(listings.map(listing => [listing.ticker, listing]))
 
-   try {
-      const krakenAPI = new KrakenAPI()
-      const listings = await krakenAPI.fetchTokenizedListings()
-      const byTicker = new Map(listings.map(listing => [listing.ticker, listing]))
+   const requested = resolveTickers(tickers, byTicker)
+   if (requested.length === 0) return c.json({ described: [], wordCount })
 
-      const requested = resolveTickers(tickers, byTicker)
-      if (requested.length === 0) return c.json({ described: [], wordCount })
+   const repository = new XStockRepository()
+   const stored = repository.findListings(requested)
 
-      const repository = new XStockRepository()
-      const stored = repository.findListings(requested)
+   const targets = requested.map(ticker => {
+      const base = seededListing(ticker) ?? stored.get(ticker)
+      return {
+         ticker,
+         name: base?.name ?? '',
+         exchange: base?.exchange ?? '',
+         type: base?.type ?? 'unknown',
+         subtype: base?.subtype ?? ''
+      }
+   })
 
-      const targets = requested.map(ticker => {
-         const base = seededListing(ticker) ?? stored.get(ticker)
-         return {
-            ticker,
-            name: base?.name ?? '',
-            exchange: base?.exchange ?? '',
-            type: base?.type ?? 'unknown',
-            subtype: base?.subtype ?? ''
-         }
-      })
+   const anthropicAPI = new AnthropicAPI(credentials.apiKey)
+   const described = (await anthropicAPI.describeListings(targets, wordCount))
+      .filter(item => item.description.trim())
 
-      const anthropicAPI = new AnthropicAPI(credentials.apiKey)
-      const described = (await anthropicAPI.describeListings(targets, wordCount))
-         .filter(item => item.description.trim())
-
-      repository.upsertDescriptions(described, wordCount, MODEL, Date.now())
-      return c.json({ described, wordCount })
-   }
-   catch (error) {
-      return handleError(c, error)
-   }
-})
+   repository.upsertDescriptions(described, wordCount, MODEL, Date.now())
+   return c.json({ described, wordCount })
+}, { secret: false }))
 
 export default app

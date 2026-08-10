@@ -24,7 +24,7 @@ app.post('/fills', async (c) => withAccount(c, ({ body, accountId }) =>
       pageSize: Math.min(500, Math.max(1, Number(body.pageSize) || 50))
    }))))
 
-app.post('/filters', async (c) => withAccount(c, ({ accountId }) =>
+app.get('/filters', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new TradeRepository(accountId).distinctOrderFilters())))
 
 export default app

@@ -10,6 +10,9 @@ import LedgerTable from '../../components/kraken/ledger-table'
 import OrderFilters, { defaultFilters as defaultTradeFilters } from '../../components/kraken/order-filters'
 import TradeTable from '../../components/kraken/trade-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
+import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
+import usePersistentState from '../../lib/use-persistent-state'
 import { asCount } from '../../components/lib/filter-options'
 import { Card, CardHeader, CardAction, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -17,28 +20,29 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 
 const PAGE_SIZE = 20
+const SYNC_STATUS_KEY = '/api/kraken/ledger/sync/status'
+const defaultSort = { column: 'time', direction: 'desc' }
 
 
 export default function KrakenLedger() {
 
-   const [credentials] = useState(() => ({
-      apiKey: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.key')) || '',
-      apiSecret: (typeof window !== 'undefined' && localStorage.getItem('kraken.api.secret')) || ''
-   }))
+   const { configured, accountId, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
    // One tab per table the sync writes, so the page shows exactly what it stores.
-   const [tab, setTab] = useState('entries')
+   const [tab, setTab] = usePersistentState('kraken.ledger.tab', 'entries')
 
-   const [filters, setFilters] = useState(defaultFilters)
+   // Filters, sorting and the open tab are remembered; the page number is not, because
+   // a stored page against a table that has since changed is a worse start than the top.
+   const [filters, setFilters] = usePersistentState('kraken.ledger.filters', defaultFilters)
    const [filtersKey, setFiltersKey] = useState(0)
-   const [sort, setSort] = useState({ column: 'time', direction: 'desc' })
+   const [sort, setSort] = usePersistentState('kraken.ledger.sort', defaultSort)
    const [page, setPage] = useState(0)
 
    // The trades tab filters on different columns and sorts on its own, so it keeps its
    // own state rather than sharing the ledger's and resetting it on every switch.
-   const [tradeFilters, setTradeFilters] = useState(defaultTradeFilters)
+   const [tradeFilters, setTradeFilters] = usePersistentState('kraken.ledger.tradeFilters', defaultTradeFilters)
    const [tradeFiltersKey, setTradeFiltersKey] = useState(0)
-   const [tradeSort, setTradeSort] = useState({ column: 'time', direction: 'desc' })
+   const [tradeSort, setTradeSort] = usePersistentState('kraken.ledger.tradeSort', defaultSort)
    const [tradePage, setTradePage] = useState(0)
 
    const [wasInterrupted, setWasInterrupted] = useState(false)
@@ -46,23 +50,19 @@ export default function KrakenLedger() {
    const startedRef = useRef(false)
    const { mutate } = useSWRConfig()
 
-   // Only the key is sent to the read endpoints: they never contact Kraken, and it
-   // keeps the secret out of the SWR cache keys.
-   const account = credentials.apiKey ? { apiKey: credentials.apiKey } : null
-
    // Everything the sync writes to, but not the sync endpoints themselves, which
    // would otherwise revalidate in a loop from the callback below.
-   const refreshStoredData = () => mutate(key =>
-      Array.isArray(key)
-      && String(key[0]).startsWith('/api/kraken/ledger/')
-      && !String(key[0]).startsWith('/api/kraken/ledger/sync'))
+   const refreshStoredData = () => mutate(key => {
+      const url = String(Array.isArray(key) ? key[0] : key)
+      return url.startsWith('/api/kraken/ledger/') && !url.startsWith('/api/kraken/ledger/sync')
+   })
 
    // The interval is a function of the latest response, so polling stops by itself
    // as soon as the job reaches a terminal phase. Reacting to the run finishing
    // belongs here rather than in an effect: it is a response to an external event,
    // not state being synchronised.
    const { data: status } = useSWR(
-      account ? ['/api/kraken/ledger/sync/status', { credentials: account }] : null,
+      configured ? SYNC_STATUS_KEY : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
          onSuccess: (latest) => {
@@ -82,10 +82,10 @@ export default function KrakenLedger() {
       })
 
    const { data: filterOptions } = useSWR(
-      account ? ['/api/kraken/ledger/filters', { credentials: account }] : null)
+      configured ? '/api/kraken/ledger/filters' : null)
 
    const { data: entries, isLoading } = useSWR(
-      account ? ['/api/kraken/ledger/entries', { credentials: account, filters, sort, page, pageSize: PAGE_SIZE }] : null,
+      configured ? ['/api/kraken/ledger/entries', { accountId, filters, sort, page, pageSize: PAGE_SIZE }] : null,
       { keepPreviousData: true })
 
    // Fetched only once the tab is open — most visits here are to sync, not to read
@@ -93,12 +93,12 @@ export default function KrakenLedger() {
    const showTrades = tab === 'trades'
 
    const { data: tradeFilterOptions } = useSWR(
-      account && showTrades ? ['/api/kraken/ledger/trades/filters', { credentials: account }] : null)
+      configured && showTrades ? '/api/kraken/ledger/trades/filters' : null)
 
    const { data: trades, isLoading: isLoadingTrades } = useSWR(
-      account && showTrades
+      configured && showTrades
          ? ['/api/kraken/ledger/trades/fills',
-            { credentials: account, filters: tradeFilters, sort: tradeSort, page: tradePage, pageSize: PAGE_SIZE }]
+            { accountId, filters: tradeFilters, sort: tradeSort, page: tradePage, pageSize: PAGE_SIZE }]
          : null,
       { keepPreviousData: true })
 
@@ -109,14 +109,12 @@ export default function KrakenLedger() {
    const job = status?.job
    const running = isJobRunning(job)
 
-   if (!credentials.apiKey) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Ledger">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+            </CredentialsAlert>
          </KrakenLayout>
       )
    }
@@ -124,18 +122,18 @@ export default function KrakenLedger() {
    const sync = (mode) => {
       startedRef.current = true
       setWasInterrupted(false)
-      startSync({ credentials, mode })
-         .then(() => mutate(['/api/kraken/ledger/sync/status', { credentials: account }]))
+      startSync({ mode })
+         .then(() => mutate(SYNC_STATUS_KEY))
          .catch(() => {})
    }
 
    // The status key is refreshed explicitly rather than through refreshStoredData,
    // which skips the sync endpoints to avoid revalidating in a loop from its own
    // callback. Without it the card keeps showing the counts of what was just deleted.
-   const clear = () => clearLedger({ credentials: account })
+   const clear = () => clearLedger()
       .then(() => Promise.all([
          refreshStoredData(),
-         mutate(['/api/kraken/ledger/sync/status', { credentials: account }])
+         mutate(SYNC_STATUS_KEY)
       ]))
       .catch(() => {})
 
@@ -197,7 +195,7 @@ export default function KrakenLedger() {
                isStarting={isMutating}
                onSync={() => sync('incremental')}
                onFullResync={() => sync('full')}
-               onCancel={() => cancelSync({ credentials: account }).catch(() => {})}
+               onCancel={() => cancelSync().catch(() => {})}
                onClear={clear} />
 
             <Tabs value={tab} onValueChange={setTab}>

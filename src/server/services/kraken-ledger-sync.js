@@ -1,7 +1,6 @@
 import KrakenAPI from '../adapters/kraken-api/adapter.js'
 import LedgerRepository from '../db/ledger-repository.js'
 import TradeRepository from '../db/trade-repository.js'
-import { accountIdFor } from '../db/entry-key.js'
 
 // Kraken can post a staking or earn entry dated a day or two in the past, so an
 // incremental sync re-reads a window behind the last entry it holds. Re-reading is
@@ -50,9 +49,8 @@ export function requestCancel(accountId) {
    return job ?? null
 }
 
-export function startSync(credentials, mode = 'incremental') {
+export function startSync(accountId, credentials, mode = 'incremental') {
 
-   const accountId = accountIdFor(credentials.apiKey)
    const existing = jobs.get(accountId)
 
    // A second request while a sync is running must not trigger another export:

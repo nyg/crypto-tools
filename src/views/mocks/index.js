@@ -31,7 +31,26 @@ const mockRoutes = {
    '/api/kraken/ledger/trades/fills': (params) => tradeFills(params?.arg),
    '/api/kraken/ledger/trades/filters': () => tradeFilters(),
    '/api/binance/aggregate-balance': () => aggregateBalance,
+   '/api/settings': () => mockSettings(false),
+   '/api/settings?reveal=true': () => mockSettings(true),
 }
+
+const mockSettings = (reveal) => ({
+   version: 1,
+   binance: {
+      apiKey: reveal ? 'mock-binance-key' : '*****', apiSecret: '*****', source: 'file',
+      hasSecret: true, configured: true, keyConfigured: true
+   },
+   kraken: {
+      apiKey: reveal ? 'mock-kraken-key' : '*****', apiSecret: '*****', source: 'file',
+      hasSecret: true, configured: true, keyConfigured: true,
+      accountId: 'mock-account-id'
+   },
+   anthropic: {
+      apiKey: reveal ? 'mock-anthropic-key' : '*****', apiSecret: '', source: 'file',
+      hasSecret: false, configured: true, keyConfigured: true
+   }
+})
 
 export async function mockFetcher(url, params) {
    await new Promise(resolve => setTimeout(resolve, 300))
@@ -41,22 +60,4 @@ export async function mockFetcher(url, params) {
 
    console.warn(`[mock] No mock data for ${url}`)
    return {}
-}
-
-export function initMockCredentials() {
-   if (typeof window === 'undefined') return
-
-   const keys = {
-      'binance.api.key': 'mock-binance-key',
-      'binance.api.secret': 'mock-binance-secret',
-      'kraken.api.key': 'mock-kraken-key',
-      'kraken.api.secret': 'mock-kraken-secret',
-      'anthropic.api.key': 'mock-anthropic-key',
-   }
-
-   for (const [key, value] of Object.entries(keys)) {
-      if (!localStorage.getItem(key)) {
-         localStorage.setItem(key, value)
-      }
-   }
 }
