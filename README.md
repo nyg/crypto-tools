@@ -56,11 +56,13 @@ irm get.scoop.sh | iex
 
 1. Download the installer from the [releases page](https://github.com/nyg/crypto-tools/releases):
    - macOS (Apple Silicon): `crypto-tools-<version>-macos-arm64.dmg`
-   - Windows (x64): `crypto-tools-<version>-windows-x64-setup.zip`
+   - Windows (x64): `crypto-tools-<version>-windows-x64-setup.exe`
 2. **macOS**: open the DMG, drag **Crypto Tools.app** to your **Applications** folder, then see [macOS Gatekeeper](#macos-gatekeeper) below before first launch
-3. **Windows**: extract the ZIP and run **Crypto Tools-Setup.exe** inside (installs per-user to `%LOCALAPPDATA%` — no admin rights). See [Windows SmartScreen](#windows-smartscreen) below before first launch.
+3. **Windows**: run the downloaded `.exe` (installs per-user to `%LOCALAPPDATA%` — no admin rights). It installs without showing a window and finishes by adding a **Crypto Tools** shortcut to your Desktop and Start menu, which is how you know it is done. See [Windows SmartScreen](#windows-smartscreen) below before first launch.
 
 API keys can be configured in the app on the **Settings** page (stored in `settings.json`, beside the ledger database in the app's data directory).
+
+The app checks the releases page on launch and says so when a newer version exists — on the **About** page, reachable from the version number in the header. It never replaces itself, so Scoop and Homebrew installs stay under their package manager's control; update those with `scoop update crypto-tools` or `brew upgrade --cask crypto-tools`.
 
 ### macOS Gatekeeper
 
@@ -95,7 +97,7 @@ The app is **not code-signed** (it is not signed with a paid Authenticode / EV c
 
 **Easiest fix — install via Scoop** (see [Desktop App](#desktop-app) for the `scoop bucket add` + `scoop install` commands), which downloads and extracts the app itself. Files extracted by Scoop don't carry the "mark of the web", so SmartScreen never fires — this works for standard (non-admin) users too.
 
-**If you downloaded the ZIP manually**, after extracting it, click **More info → Run anyway** on the SmartScreen dialog.
+**If you downloaded the installer manually**, click **More info → Run anyway** on the SmartScreen dialog.
 
 > **Note:** the *More info → Run anyway* option is only offered to **administrator** accounts. Standard (non-admin) users get a hard block with no bypass when running the manually-downloaded installer — for those users, **Scoop is the only no-admin install path** (short of paid Windows code signing, which is intentionally not used here).
 

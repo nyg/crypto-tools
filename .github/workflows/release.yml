@@ -194,6 +194,60 @@ jobs:
           ( cd "${appdirs[0]}" && zip -r "$GITHUB_WORKSPACE/artifacts/crypto-tools-${VERSION}-windows-x64-scoop.zip" . )
           rm -rf _scoop_build
 
+      - name: Create single-file installer EXE
+        env:
+          VERSION: ${{ needs.prepare.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          rm -rf _exe_build && mkdir -p _exe_build
+          unzip -q "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip" -d _exe_build
+
+          setup_exe=$(find _exe_build -maxdepth 1 -type f -name '*-Setup.exe' -print -quit)
+          metadata=$(find _exe_build/.installer -maxdepth 1 -type f -name '*.metadata.json' -print -quit)
+          payload=$(find _exe_build/.installer -maxdepth 1 -type f -name '*.tar.zst' -print -quit)
+
+          for required in "$setup_exe" "$metadata" "$payload"; do
+            if [ -z "$required" ]; then
+              echo "::error::Windows installer ZIP is missing the exe, metadata or payload — Electrobun layout may have changed"
+              exit 1
+            fi
+          done
+
+          output="artifacts/crypto-tools-${VERSION}-windows-x64-setup.exe"
+          {
+            cat "$setup_exe"
+            printf '%s' 'ELECTROBUN_METADATA_V1'
+            cat "$metadata"
+            printf '%s' 'ELECTROBUN_ARCHIVE_V1'
+            cat "$payload"
+          } > "$output"
+
+          markers=$(grep -ao 'ELECTROBUN_METADATA_V1' "$output" | wc -l)
+          if [ "$markers" -lt 2 ]; then
+            echo "::error::Appended metadata marker not found in ${output}"
+            exit 1
+          fi
+
+          lfanew=$(od -An -tu4 -j 60 -N 4 "$output" | tr -d ' ')
+          subsystem_offset=$((lfanew + 92))
+          subsystem=$(od -An -tu1 -j "$subsystem_offset" -N 1 "$output" | tr -d ' ')
+          case "$subsystem" in
+            3)
+              printf '\002' | dd of="$output" bs=1 seek="$subsystem_offset" conv=notrunc status=none
+              echo "Installer PE subsystem switched from console to GUI"
+              ;;
+            2)
+              echo "Installer PE subsystem is already GUI"
+              ;;
+            *)
+              echo "::error::Unexpected PE subsystem ${subsystem} at offset ${subsystem_offset} — not a console or GUI executable"
+              exit 1
+              ;;
+          esac
+
+          ls -l "$output"
+          rm -rf _exe_build
+
       - name: Generate release notes
         uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
         with:
@@ -228,7 +282,9 @@ jobs:
           scoop install crypto-tools
           ```
 
-          **Manual ZIP** — download the `…-windows-x64-setup.zip` asset, extract it, and run `Crypto Tools-Setup.exe` inside. The app installs per-user to `%LOCALAPPDATA%` (no admin rights needed). Because the app is not code-signed, SmartScreen shows *"Windows protected your PC"* — click **More info → Run anyway** (offered to administrators only). Installing via Scoop avoids this prompt entirely.
+          **Manual installer** — download the `…-windows-x64-setup.exe` asset and run it. The app installs per-user to `%LOCALAPPDATA%` (no admin rights needed) and finishes by putting a **Crypto Tools** shortcut on your Desktop and in the Start menu; there is no completion dialog, so that shortcut is how you know it worked. Because the app is not code-signed, SmartScreen shows *"Windows protected your PC"* — click **More info → Run anyway** (offered to administrators only). Installing via Scoop avoids this prompt entirely.
+
+          The `…-windows-x64-setup.zip` asset is the same installer in Electrobun's original layout, kept for one release as a fallback.
           EOF
 
       - name: Create GitHub release
@@ -239,6 +295,7 @@ jobs:
           set -uo pipefail
           assets=(
             "artifacts/crypto-tools-${VERSION}-macos-arm64.dmg"
+            "artifacts/crypto-tools-${VERSION}-windows-x64-setup.exe"
             "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip"
             "artifacts/crypto-tools-${VERSION}-windows-x64-scoop.zip"
           )
