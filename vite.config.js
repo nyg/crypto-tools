@@ -1,7 +1,10 @@
+import { readFileSync } from 'fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+
+process.env.VITE_APP_VERSION = JSON.parse(readFileSync('./package.json', 'utf-8')).version
 
 export default defineConfig({
    // Relative base so assets resolve correctly under views:// (Electrobun's

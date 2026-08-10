@@ -1,12 +1,16 @@
 import { useEffect } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { toast } from 'sonner'
 import MenuLink from './lib/menu-link'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
+import useLatestRelease, { APP_VERSION } from '@/lib/use-latest-release'
 import { groupHref } from '@/lib/tools'
 
 
 const isSection = (path, href) => path.split('/')[1] === href.split('/')[1]
+
+let updateToastShown = false
 
 // Lucide has no brand icons, so the GitHub mark is inlined. The explicit width/height
 // matter: without them WKWebView (the Electrobun desktop app) collapses the svg to 0×0.
@@ -16,7 +20,24 @@ const GithubLogo = props => (
    </svg>
 )
 
+function useUpdateToast() {
+
+   const navigate = useNavigate()
+   const { version, updateAvailable } = useLatestRelease()
+
+   useEffect(() => {
+      if (!updateAvailable || updateToastShown) return
+
+      updateToastShown = true
+      toast(`Version ${version} is available.`, {
+         action: { label: 'Details', onClick: () => navigate('/about') }
+      })
+   }, [updateAvailable, version])
+}
+
 export default function Layout({ children, name }) {
+
+   useUpdateToast()
 
    useEffect(() => {
       document.title = `Crypto Tools — ${name}`
@@ -35,7 +56,11 @@ export default function Layout({ children, name }) {
                   <MenuLink href={groupHref('Binance')} isActive={isSection}>Binance</MenuLink>
                   <MenuLink href="/settings" isActive={isSection}>Settings</MenuLink>
                </nav>
-               <Button asChild variant="ghost" size="icon-sm" className="ml-auto text-muted-foreground hover:text-foreground">
+               <Link to="/about"
+                  className="ml-auto text-xs text-muted-foreground tabular-nums hover:text-foreground">
+                  {APP_VERSION ? `v${APP_VERSION}` : 'About'}
+               </Link>
+               <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                   <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
                      <GithubLogo />
                      <span className="sr-only">GitHub</span>
