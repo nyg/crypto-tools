@@ -9,6 +9,7 @@ import ExternalLink from '../../components/lib/external-link'
 import OrderBatchForm from '../../components/kraken/order-batch-params'
 import OrderBatchTable from '../../components/kraken/order-batch-table'
 import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -82,7 +83,7 @@ export default function KrakenOrderBatch() {
    const { data: tradingPairs, isLoading } = useSWR('/api/kraken/trading-pairs')
    const { data: createdOrders, isMutating, error, trigger: createOrders, reset } = useSWRMutation('/api/kraken/order-batch')
 
-   const { configured, isLoading: isLoadingSettings } = useProvider('kraken')
+   const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
    const [ordersParams, setOrdersParams] = useState({})
    const [submittedMode, setSubmittedMode] = useState(null)
@@ -104,14 +105,12 @@ export default function KrakenOrderBatch() {
       createOrders({ ordersParams: params }).catch(() => {})
    }
 
-   if (!isLoadingSettings && !configured) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Order Batch">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Kraken and add them in Settings to create orders.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Kraken and add them in Settings to create orders.
+            </CredentialsAlert>
          </KrakenLayout>
       )
    }

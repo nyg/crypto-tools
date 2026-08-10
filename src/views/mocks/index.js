@@ -31,25 +31,26 @@ const mockRoutes = {
    '/api/kraken/ledger/trades/fills': (params) => tradeFills(params?.arg),
    '/api/kraken/ledger/trades/filters': () => tradeFilters(),
    '/api/binance/aggregate-balance': () => aggregateBalance,
-   '/api/settings': () => mockSettings,
+   '/api/settings': () => mockSettings(false),
+   '/api/settings?reveal=true': () => mockSettings(true),
 }
 
-const mockSettings = {
+const mockSettings = (reveal) => ({
    version: 1,
    binance: {
-      apiKey: 'mock-binance-key', apiSecret: '*****', source: 'file',
+      apiKey: reveal ? 'mock-binance-key' : '*****', apiSecret: '*****', source: 'file',
       hasSecret: true, configured: true, keyConfigured: true
    },
    kraken: {
-      apiKey: 'mock-kraken-key', apiSecret: '*****', source: 'file',
+      apiKey: reveal ? 'mock-kraken-key' : '*****', apiSecret: '*****', source: 'file',
       hasSecret: true, configured: true, keyConfigured: true,
-      accountId: 'mock-account-id', keyPrefix: 'mock-kra'
+      accountId: 'mock-account-id'
    },
    anthropic: {
-      apiKey: 'mock-anthropic-key', apiSecret: '', source: 'file',
+      apiKey: reveal ? 'mock-anthropic-key' : '*****', apiSecret: '', source: 'file',
       hasSecret: false, configured: true, keyConfigured: true
    }
-}
+})
 
 export async function mockFetcher(url, params) {
    await new Promise(resolve => setTimeout(resolve, 300))

@@ -5,16 +5,19 @@ const app = new Hono()
 
 const MASK = '*****'
 
-function maskSettings(settings) {
+// Only the Settings form has any use for the key itself; every other page reads the
+// booleans below. Withholding it by default keeps the plaintext out of the SWR cache
+// of all nine of them.
+function maskSettings(settings, { reveal = false } = {}) {
    const masked = { version: settings.version }
 
    for (const [id, { hasSecret }] of Object.entries(providers)) {
       const { apiKey, apiSecret, source } = settings[id]
 
       masked[id] = {
-         apiKey,
          source,
          hasSecret,
+         apiKey: reveal ? apiKey : (apiKey ? MASK : ''),
          apiSecret: hasSecret && apiSecret ? MASK : '',
          configured: Boolean(apiKey) && (!hasSecret || Boolean(apiSecret)),
          keyConfigured: Boolean(apiKey)
@@ -22,12 +25,12 @@ function maskSettings(settings) {
    }
 
    masked.kraken.accountId = settings.kraken.accountId
-   masked.kraken.keyPrefix = settings.kraken.apiKey.slice(0, 8)
 
    return masked
 }
 
-app.get('/', (c) => c.json(maskSettings(readSettings())))
+app.get('/', (c) =>
+   c.json(maskSettings(readSettings(), { reveal: c.req.query('reveal') === 'true' })))
 
 app.post('/', async (c) => {
    try {
@@ -38,7 +41,10 @@ app.post('/', async (c) => {
          const update = body?.[id]
          if (!update) continue
 
+         // A field still holding the mask was never edited, so saving must leave the
+         // stored value alone rather than overwrite it with the placeholder.
          updates[id] = { ...update }
+         if (updates[id].apiKey === MASK) delete updates[id].apiKey
          if (updates[id].apiSecret === MASK) delete updates[id].apiSecret
       }
 

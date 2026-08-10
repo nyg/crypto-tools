@@ -11,6 +11,7 @@ import OrderFilters, { defaultFilters as defaultTradeFilters } from '../../compo
 import TradeTable from '../../components/kraken/trade-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
 import usePersistentState from '../../lib/use-persistent-state'
 import { asCount } from '../../components/lib/filter-options'
 import { Card, CardHeader, CardAction, CardContent } from '@/components/ui/card'
@@ -25,7 +26,7 @@ const defaultSort = { column: 'time', direction: 'desc' }
 
 export default function KrakenLedger() {
 
-   const { configured, accountId, isLoading: isLoadingSettings } = useProvider('kraken')
+   const { configured, accountId, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
    // One tab per table the sync writes, so the page shows exactly what it stores.
    const [tab, setTab] = usePersistentState('kraken.ledger.tab', 'entries')
@@ -108,14 +109,12 @@ export default function KrakenLedger() {
    const job = status?.job
    const running = isJobRunning(job)
 
-   if (!isLoadingSettings && !configured) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Ledger">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+            </CredentialsAlert>
          </KrakenLayout>
       )
    }

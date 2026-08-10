@@ -2,9 +2,13 @@ import useSWR from 'swr'
 
 export const SETTINGS_KEY = '/api/settings'
 
-export default function useSettings() {
+// The keys themselves are withheld unless asked for, so only the Settings form uses
+// this variant; everything else reads the booleans from the key above.
+export const SETTINGS_REVEAL_KEY = '/api/settings?reveal=true'
 
-   const { data, error, isLoading, mutate } = useSWR(SETTINGS_KEY, { revalidateOnFocus: false })
+export default function useSettings(key = SETTINGS_KEY) {
+
+   const { data, error, isLoading, mutate } = useSWR(key, { revalidateOnFocus: false })
 
    return {
       settings: data,
@@ -17,7 +21,7 @@ export default function useSettings() {
 
 export function useProvider(provider) {
 
-   const { settings, isLoading, mutate } = useSettings()
+   const { settings, error, isLoading, mutate } = useSettings()
    const entry = settings?.[provider]
 
    return {
@@ -25,6 +29,8 @@ export function useProvider(provider) {
       keyConfigured: Boolean(entry?.keyConfigured),
       accountId: settings?.kraken?.accountId ?? null,
       source: entry?.source ?? 'file',
+      unreachable: Boolean(error),
+      error,
       isLoading,
       mutate
    }

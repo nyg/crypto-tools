@@ -22,7 +22,7 @@ export async function withAccount(c, handler) {
    if (!accountId) return noCredentials(c)
 
    try {
-      return handler({ body: await readBody(c), accountId })
+      return await handler({ body: await readBody(c), accountId })
    }
    catch (error) {
       return handleError(c, error)

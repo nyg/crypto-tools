@@ -7,6 +7,7 @@ import CurrentPositions from '../../components/binance/current-positions'
 import NextRedemptions from '../../components/binance/next-redemptions'
 import StakingProducts from '../../components/binance/staking-products'
 import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -16,22 +17,20 @@ export default function BinanceStaking() {
 
    const { data, error, isMutating, trigger } = useSWRMutation('/api/binance/aggregate-balance')
 
-   const { configured, isLoading: isLoadingSettings } = useProvider('binance')
+   const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('binance')
 
    const fetchData = () => trigger().catch(() => {})
 
-   if (!isLoadingSettings && !configured) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <BinanceLayout name="Staking">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Binance and add them in{' '}
-                  <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
-                     Settings
-                  </Link>{' '}
-                  to fetch your staking positions.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Binance and add them in{' '}
+               <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
+                  Settings
+               </Link>{' '}
+               to fetch your staking positions.
+            </CredentialsAlert>
          </BinanceLayout>
       )
    }

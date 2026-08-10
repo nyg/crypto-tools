@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import path from 'path'
 import { resolveDataDir } from './db/paths.js'
 import { accountIdFor } from './db/entry-key.js'
@@ -47,20 +47,31 @@ export function readSettings() {
 
    for (const [id, { hasSecret }] of Object.entries(providers)) {
       const saved = stored[id] ?? {}
-      const fromEnvironment = environmentWins ? envValue(id, 'apiKey') : ''
 
-      settings[id].apiKey = fromEnvironment || saved.apiKey || ''
+      const environmentKey = environmentWins ? envValue(id, 'apiKey') : ''
+      const environmentSecret = environmentWins && hasSecret ? envValue(id, 'apiSecret') : ''
+
+      // Half a credential is not a credential. Exporting only the key would otherwise
+      // blank a secret sitting in the file and 401 every private call, while the
+      // Settings page went on showing a populated key.
+      const fromEnvironment = Boolean(environmentKey) && (!hasSecret || Boolean(environmentSecret))
+
+      settings[id].apiKey = fromEnvironment ? environmentKey : (saved.apiKey || '')
       settings[id].source = fromEnvironment ? 'env' : 'file'
 
       if (hasSecret) {
-         settings[id].apiSecret = fromEnvironment
-            ? envValue(id, 'apiSecret')
-            : (saved.apiSecret || '')
+         settings[id].apiSecret = fromEnvironment ? environmentSecret : (saved.apiSecret || '')
       }
    }
 
-   settings.kraken.accountId = stored.kraken?.accountId
-      || (settings.kraken.apiKey ? accountIdFor(settings.kraken.apiKey) : '')
+   // The stored id belongs to the stored key. A key from the environment is a
+   // different account, so it gets its own partition rather than syncing into
+   // whichever one the file happens to name.
+   settings.kraken.accountId = settings.kraken.apiKey === ''
+      ? ''
+      : settings.kraken.source === 'env'
+         ? accountIdFor(settings.kraken.apiKey)
+         : (stored.kraken?.accountId || accountIdFor(settings.kraken.apiKey))
 
    return settings
 }
@@ -81,9 +92,18 @@ export function writeSettings(updates) {
       merged.kraken.accountId = accountIdFor(merged.kraken.apiKey)
    }
 
+   // Written to a sibling and renamed over the target: a crash or a full disk part way
+   // through would otherwise truncate the file and take every provider's keys with it.
+   // The rename also carries the temp file's 0600 across, which a plain write would not
+   // — mode applies only when open(2) creates the file, so a target whose permissions
+   // had been widened elsewhere would keep them for every save after.
    const file = settingsPath()
+   const temporary = `${file}.tmp`
+
    mkdirSync(path.dirname(file), { recursive: true })
-   writeFileSync(file, JSON.stringify(merged, null, 3), { encoding: 'utf-8', mode: 0o600 })
+   writeFileSync(temporary, JSON.stringify(merged, null, 3), { encoding: 'utf-8', mode: 0o600 })
+   chmodSync(temporary, 0o600)
+   renameSync(temporary, file)
 
    return readSettings()
 }
@@ -91,11 +111,6 @@ export function writeSettings(updates) {
 export function credentialsFor(provider) {
    const { apiKey, apiSecret } = readSettings()[provider]
    return { apiKey, apiSecret: apiSecret ?? '' }
-}
-
-export function hasCredentials(provider, { secret = false } = {}) {
-   const { apiKey, apiSecret } = credentialsFor(provider)
-   return Boolean(apiKey) && (!secret || Boolean(apiSecret))
 }
 
 export function krakenAccountId() {

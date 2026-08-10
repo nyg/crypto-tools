@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const isPlainObject = value =>
    value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -33,9 +33,19 @@ function readStored(key, defaultValue) {
 export default function usePersistentState(key, defaultValue, revive) {
 
    const [value, setValue] = useState(() => read(key, defaultValue, revive))
+   const settled = useRef(false)
 
+   // Nothing is written on mount. The initial value is either what storage already
+   // holds or a default nobody has chosen, and writing it back would persist whatever
+   // revive layered on top — turning a one-off deep link into state the user has to
+   // clear by hand. Only a later change is the user's, and only that is saved.
    useEffect(() => {
+      if (!settled.current) {
+         settled.current = true
+         return
+      }
       if (typeof window === 'undefined') return
+
       try {
          localStorage.setItem(key, JSON.stringify(value))
       }

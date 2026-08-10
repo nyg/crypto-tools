@@ -4,18 +4,49 @@ import binanceRoutes from './routes/binance.js'
 import krakenRoutes from './routes/kraken.js'
 import settingsRoutes from './routes/settings.js'
 
+const allowedOrigins = ['http://localhost:3000', 'views://']
+
+// Vite's port is configurable and the browser sends Origin on same-origin writes too,
+// so pinning development to 3000 would 403 every write for anyone running it elsewhere.
+// The packaged app only ever loads from views://, so this stays out of production.
+const localhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/
+
+const isAllowedOrigin = origin =>
+   allowedOrigins.some(allowed =>
+      allowed.endsWith('://') ? origin.startsWith(allowed) : origin === allowed)
+   || (process.env.NODE_ENV !== 'production' && localhostOrigin.test(origin))
+
+const readOnlyMethods = ['GET', 'HEAD', 'OPTIONS']
+
 export function createApp() {
    const app = new Hono()
 
    app.use('/api/*', cors({
-      origin: (origin) => {
-         const allowed = ['http://localhost:3000', 'views://']
-         if (allowed.some(o => o.endsWith('://') ? origin.startsWith(o) : origin === o)) {
-            return origin
-         }
-         return null
-      }
+      origin: (origin) => isAllowedOrigin(origin) ? origin : null
    }))
+
+   // CORS decides what a page may *read*; it does not stop the request being made.
+   // A cross-origin POST with a simple content type is sent without a preflight, and
+   // now that the server supplies the credentials, the body no longer proves who is
+   // asking — so a foreign page could start a sync, clear the database or place
+   // orders without ever seeing a response. The allowlist is therefore enforced here
+   // as well, and writes must be application/json, which cannot be sent
+   // cross-origin without a preflight the allowlist above already refuses.
+   // A request with no Origin at all is the curl or native case, not a browser.
+   app.use('/api/*', async (c, next) => {
+
+      const origin = c.req.header('origin')
+      if (origin && !isAllowedOrigin(origin)) {
+         return c.json({ error: 'Origin not allowed.' }, 403)
+      }
+
+      if (!readOnlyMethods.includes(c.req.method)
+         && !(c.req.header('content-type') ?? '').startsWith('application/json')) {
+         return c.json({ error: 'Expected a JSON request body.' }, 415)
+      }
+
+      await next()
+   })
 
    app.use('*', async (c, next) => {
       const start = Date.now()

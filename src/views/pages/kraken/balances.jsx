@@ -13,6 +13,7 @@ import { defaultFilters } from '../../components/kraken/balance-filters'
 import { asCount } from '../../components/lib/filter-options'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -21,7 +22,7 @@ const BALANCES_KEY = '/api/kraken/ledger/balances'
 
 export default function KrakenBalances() {
 
-   const { configured, isLoading: isLoadingSettings } = useProvider('kraken')
+   const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
    const [filters, setFilters] = usePersistentState('kraken.balances.filters', defaultFilters)
 
@@ -76,14 +77,12 @@ export default function KrakenBalances() {
       checkLive()
    }, [canCheckLive])
 
-   if (!isLoadingSettings && !configured) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Balances">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+            </CredentialsAlert>
          </KrakenLayout>
       )
    }

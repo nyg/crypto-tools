@@ -9,10 +9,10 @@ import OrderFilters, { defaultFilters } from '../../components/kraken/order-filt
 import OrderTable from '../../components/kraken/order-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
 import usePersistentState from '../../lib/use-persistent-state'
 import { asCount } from '../../components/lib/filter-options'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 
 const PAGE_SIZE = 20
@@ -20,19 +20,22 @@ const PAGE_SIZE = 20
 
 export default function KrakenClosedOrders() {
 
-   const { configured, accountId, isLoading: isLoadingSettings } = useProvider('kraken')
+   const { configured, accountId, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
    // ?order=… arrives from the Ledger page's Trades tab, where a fill links to the
-   // order it belongs to. Read once as the initial filter, taking precedence over what
-   // was remembered: after that the filter bar owns the value, and rewriting it from
-   // the URL would fight with it.
+   // order it belongs to. Read once as the initial filter: after that the filter bar
+   // owns the value, and rewriting it from the URL would fight with it. It replaces
+   // the remembered filters rather than layering over them — a remembered pair,
+   // direction or date range can exclude the very order being linked to, and the link
+   // has to resolve. usePersistentState does not write on mount, so following one link
+   // does not leave the order id sitting in the search box on every later visit.
    const [searchParams] = useSearchParams()
    const order = searchParams.get('order')
 
    const [filters, setFilters] = usePersistentState(
       'kraken.closedOrders.filters',
       defaultFilters,
-      stored => order ? { ...stored, search: order } : stored)
+      stored => order ? { ...defaultFilters, search: order } : stored)
 
    const [filtersKey, setFiltersKey] = useState(0)
    const [sort, setSort] = usePersistentState(
@@ -66,14 +69,12 @@ export default function KrakenClosedOrders() {
       configured ? ['/api/kraken/ledger/trades/orders', { accountId, filters, sort, page, pageSize: PAGE_SIZE }] : null,
       { keepPreviousData: true })
 
-   if (!isLoadingSettings && !configured) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Closed Orders">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Kraken and add them in Settings to see your orders.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Kraken and add them in Settings to see your orders.
+            </CredentialsAlert>
          </KrakenLayout>
       )
    }

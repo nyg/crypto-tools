@@ -8,6 +8,7 @@ import FeeChartCard from '../../components/kraken/fee-chart-card'
 import FeeBreakdownCard from '../../components/kraken/fee-breakdown-card'
 import { defaultFilters } from '../../components/kraken/ledger-filters'
 import { useProvider } from '../../lib/use-settings'
+import CredentialsAlert from '../../components/lib/credentials-alert'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -17,7 +18,7 @@ const isUnfiltered = filters => Object.keys(defaultFilters)
 
 export default function KrakenFees() {
 
-   const { configured, accountId, isLoading: isLoadingSettings } = useProvider('kraken')
+   const { configured, accountId, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
    const [filters, setFilters] = usePersistentState('kraken.fees.filters', defaultFilters)
    const [filtersKey, setFiltersKey] = useState(0)
@@ -31,14 +32,12 @@ export default function KrakenFees() {
    const { data: filterOptions } = useSWR(
       configured ? '/api/kraken/ledger/filters' : null)
 
-   if (!isLoadingSettings && !configured) {
+   if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Fees">
-            <Alert>
-               <AlertDescription>
-                  Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
-               </AlertDescription>
-            </Alert>
+            <CredentialsAlert unreachable={unreachable}>
+               Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+            </CredentialsAlert>
          </KrakenLayout>
       )
    }

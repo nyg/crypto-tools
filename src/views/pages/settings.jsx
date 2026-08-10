@@ -1,9 +1,10 @@
+import { useSWRConfig } from 'swr'
 import useSWRMutation from 'swr/mutation'
 import { toast } from 'sonner'
 import Input from '../components/lib/input'
 import InfoBanner from '../components/lib/info-banner'
 import Layout from '../components/layout'
-import useSettings, { SETTINGS_KEY } from '../lib/use-settings'
+import useSettings, { SETTINGS_KEY, SETTINGS_REVEAL_KEY } from '../lib/use-settings'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 
@@ -31,8 +32,10 @@ const providers = [
 
 export default function Settings() {
 
-   const { settings, isLoading, mutate } = useSettings()
+   // The only place that asks for the keys themselves, to prefill the form.
+   const { settings, isLoading, mutate } = useSettings(SETTINGS_REVEAL_KEY)
    const { trigger: saveSettings, isMutating } = useSWRMutation(SETTINGS_KEY)
+   const { mutate: globalMutate } = useSWRConfig()
 
    const save = async (event, provider) => {
       event.preventDefault()
@@ -46,7 +49,8 @@ export default function Settings() {
 
       try {
          await saveSettings({ [provider.id]: update })
-         await mutate()
+         // Both keys: this page's revealed copy, and the booleans every other page reads.
+         await Promise.all([mutate(), globalMutate(SETTINGS_KEY)])
          toast.success(`${provider.name} API key saved`)
       }
       catch (error) {

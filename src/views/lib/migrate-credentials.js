@@ -31,8 +31,14 @@ export default async function migrateLegacyCredentials(apiBase = '') {
    const legacy = readLegacy()
    if (Object.keys(legacy).length === 0) return
 
+   // Bounded because main.jsx awaits this before mounting React: a server that accepts
+   // the connection but never answers would otherwise leave a blank window with nothing
+   // on screen to explain it. The legacy entries are only removed on success, so a
+   // timed-out migration simply runs again next launch.
+   const signal = AbortSignal.timeout(5000)
+
    try {
-      const response = await fetch(`${apiBase}/api/settings`)
+      const response = await fetch(`${apiBase}/api/settings`, { signal })
       if (!response.ok) return
 
       const settings = await response.json()
@@ -43,7 +49,8 @@ export default async function migrateLegacyCredentials(apiBase = '') {
          const saved = await fetch(`${apiBase}/api/settings`, {
             method: 'POST',
             body: JSON.stringify(updates),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            signal
          })
          if (!saved.ok) return
 
