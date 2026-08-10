@@ -1,6 +1,18 @@
 # Changelog
 
 
+## [0.3.0](https://github.com/nyg/crypto-tools/compare/v0.2.0..v0.3.0) - 2026-08-10
+
+### ⛰️  Features
+
+- [`b6593a6`](https://github.com/nyg/crypto-tools/commit/b6593a6d3b2a59803d588ebfc86f58a9fdc601f8) *(xstocks)* Answer stock vs ETF from shipped data, not recall ([#236](https://github.com/nyg/crypto-tools/issues/236))
+
+### 🐛 Bug Fixes
+
+- [`1b66cc5`](https://github.com/nyg/crypto-tools/commit/1b66cc5d859983e88bf2c4ee3cbc14be8e96f10c) *(server)* 404 unresolvable asset requests instead of index.html ([#239](https://github.com/nyg/crypto-tools/issues/239))
+- [`592e1c2`](https://github.com/nyg/crypto-tools/commit/592e1c2a21990143ecd2aac17d20f43d025a406d) *(server)* Serve built assets on deep links ([#237](https://github.com/nyg/crypto-tools/issues/237))
+- [`714fc62`](https://github.com/nyg/crypto-tools/commit/714fc625fc0d52e812bf8c0f5dd953a1e74f0250) *(settings)* Hold the API keys on the server, not in the browser ([#238](https://github.com/nyg/crypto-tools/issues/238))
+
 ## [0.2.0](https://github.com/nyg/crypto-tools/compare/v0.1.4..v0.2.0) - 2026-08-07
 
 ### ⛰️  Features
