@@ -105,8 +105,22 @@ The app installs per-user to `%LOCALAPPDATA%` and never requires admin rights.
 
 ### Building the desktop app
 
+Electrobun's build commands are run by [Hutch](https://hutch.blackboard.sh), which is installed separately from the npm package. Install it once (no admin rights, everything lands in `~/.dash`):
+
 ```sh
-bun run build:stable   # produces artifacts/ with .dmg (macOS) or .zip (Windows)
+curl --proto '=https' --tlsv1.2 -sSf https://hutch.blackboard.sh/hutch/install.sh | sh
+```
+
+On Windows:
+
+```powershell
+irm https://hutch.blackboard.sh/hutch/install.ps1 | iex
+```
+
+Then:
+
+```sh
+bun run build:desktop   # produces artifacts/ with .dmg (macOS) or .zip (Windows)
 ```
 
 To run the desktop app locally without building a distributable:

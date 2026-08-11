@@ -1,7 +1,9 @@
 import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
 import type { ElectrobunConfig } from "electrobun/bun";
 
-const { version } = JSON.parse(readFileSync("./package.json", "utf-8")) as { version: string };
+const packageJson = fileURLToPath(new URL("./package.json", import.meta.url));
+const { version } = JSON.parse(readFileSync(packageJson, "utf-8")) as { version: string };
 
 export default {
   app: {
@@ -17,6 +19,7 @@ export default {
     win: {
       icon: "assets/icon.ico",
     },
+    mainProcess: "bun",
     bun: {
       entrypoint: "src/electrobun/index.ts",
     },
@@ -34,7 +37,6 @@ export default {
   },
   scripts: {
     preBuild: "scripts/prebuild.ts",
-    postBuild: "scripts/postbuild.ts",
     postWrap: "scripts/postwrap.ts",
   },
 } satisfies ElectrobunConfig;
