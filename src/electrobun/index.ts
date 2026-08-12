@@ -1,6 +1,8 @@
 /// <reference types="bun-types" />
 import { ApplicationMenu, BrowserWindow, Utils, app } from 'electrobun/bun'
 import { createApp } from '../server/app.js'
+import { initSecretStore } from '../server/secret-store/index.js'
+import { migrateSettings } from '../server/settings.js'
 import { systemLocales } from './locale'
 import { resolveInitialWindowState, trackWindowState } from './window-state'
 
@@ -22,6 +24,9 @@ async function resolveUrl(): Promise<string> {
 
 async function main() {
    const url = await resolveUrl()
+
+   await initSecretStore()
+   migrateSettings()
 
    const honoApp = createApp()
 

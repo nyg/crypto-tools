@@ -30,12 +30,21 @@ const providers = [
 ]
 
 
+const storeNames = {
+   keychain: 'the macOS Keychain',
+   'credential-manager': 'the Windows Credential Manager'
+}
+
 export default function Settings() {
 
    // The only place that asks for the keys themselves, to prefill the form.
    const { settings, isLoading, mutate } = useSettings(SETTINGS_REVEAL_KEY)
    const { trigger: saveSettings, isMutating } = useSWRMutation(SETTINGS_KEY)
    const { mutate: globalMutate } = useSWRConfig()
+
+   const storeName = providers
+      .map(provider => storeNames[settings?.[provider.id]?.source])
+      .find(Boolean)
 
    const save = async (event, provider) => {
       event.preventDefault()
@@ -64,9 +73,9 @@ export default function Settings() {
 
             <InfoBanner>
                The keys the other pages use to reach each exchange. They are stored on this machine
-               in the app&apos;s own data folder, beside the ledger database, never uploaded
-               anywhere, and used only to sign the calls a page makes on your behalf. Removing a key
-               here is enough to cut a page off from its exchange.
+               {storeName ? ` in ${storeName}` : ' in the app’s own data folder, beside the ledger database'},
+               never uploaded anywhere, and used only to sign the calls a page makes on your behalf.
+               Removing a key here is enough to cut a page off from its exchange.
             </InfoBanner>
 
             {providers.map(provider => {
