@@ -1,5 +1,5 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent } from '@/components/ui/card'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Table, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import SelectField from '../lib/select-field'
 import usePersistentState from '../../lib/use-persistent-state'
 import { RewardCell, valueOf } from './reward-table'
@@ -61,12 +61,6 @@ export default function RewardPeriodCard({ rewards, rates }) {
                : <div className="space-y-3">
                   <div className="max-h-[232px] overflow-y-auto">
                      <Table className="tabular-nums">
-                        <TableHeader>
-                           <TableRow>
-                              <TableHead>Asset</TableHead>
-                              <TableHead className="text-right">Earned</TableHead>
-                           </TableRow>
-                        </TableHeader>
                         <TableBody>
                            {rows.map(row =>
                               <TableRow key={row.asset}>
@@ -77,7 +71,7 @@ export default function RewardPeriodCard({ rewards, rates }) {
                      </Table>
                   </div>
                   <div
-                     className="flex items-center justify-between border-t border-border pt-3 text-sm tabular-nums"
+                     className="flex items-center justify-between border-t border-border px-2 pt-3 text-sm tabular-nums"
                      title={valued.length < rows.length
                         ? `${rows.length - valued.length} asset(s) have no USD pair and are not counted`
                         : undefined}>

@@ -12,7 +12,7 @@ export default function RewardSummaryCard({ rewards, rates, isLoading, isLoading
    const totalValue = valued.reduce((sum, asset) => sum + asset.total * rates[asset.asset], 0)
 
    return (
-      <Card className="xl:self-start">
+      <Card>
          <CardHeader>
             <CardTitle>Rewards earned</CardTitle>
             {isLoading &&
