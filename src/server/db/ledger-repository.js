@@ -23,6 +23,22 @@ const nonZeroFee = 'CAST(fee AS REAL) <> 0'
 const isReward = `type IN ('staking', 'earn')
    AND subtype NOT IN ('allocation', 'deallocation', 'autoallocation', 'migration')`
 
+const DAY = 86400000
+
+function lastCompletePeriods(now = Date.now()) {
+
+   const today = new Date(now)
+   const [year, month, day] = [today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()]
+
+   const thisWeek = Date.UTC(year, month, day) - ((today.getUTCDay() + 6) % 7) * DAY
+   const thisMonth = Date.UTC(year, month, 1)
+
+   return {
+      week: { from: thisWeek - 7 * DAY, to: thisWeek - 1 },
+      month: { from: Date.UTC(year, month - 1, 1), to: thisMonth - 1 }
+   }
+}
+
 const upsertStatement = `
    INSERT INTO ledger_entry (
       account_id, entry_key, txid, refid, time, type, subtype, aclass,
@@ -202,8 +218,22 @@ export default function LedgerRepository(accountId) {
 
       const years = [...new Set(rows.map(row => row.year))].toSorted((a, b) => a - b)
 
+      const periodQuery = db.query(`
+         SELECT base_asset AS asset,
+                SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total,
+                COUNT(*) AS entries
+         FROM ledger_entry
+         WHERE account_id = ? AND ${isReward} AND time >= ? AND time <= ?
+         GROUP BY asset
+         ORDER BY asset`)
+
+      const periods = Object.fromEntries(Object.entries(lastCompletePeriods())
+         .map(([name, { from, to }]) =>
+            [name, { from, to, assets: periodQuery.all(accountId, from, to) }]))
+
       return {
          years,
+         periods,
          assets: [...assets.values()],
          entries: rows.reduce((count, row) => count + row.entries, 0),
          first: rows.length > 0 ? Math.min(...rows.map(row => row.first)) : null,

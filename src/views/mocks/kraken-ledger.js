@@ -13,6 +13,22 @@ function randomizer(seed) {
    }
 }
 
+const DAY = 86400000
+
+function lastCompletePeriods(now = Date.now()) {
+
+   const today = new Date(now)
+   const [year, month, day] = [today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()]
+
+   const thisWeek = Date.UTC(year, month, day) - ((today.getUTCDay() + 6) % 7) * DAY
+   const thisMonth = Date.UTC(year, month, 1)
+
+   return {
+      week: { from: thisWeek - 7 * DAY, to: thisWeek - 1 },
+      month: { from: Date.UTC(year, month - 1, 1), to: thisMonth - 1 }
+   }
+}
+
 const assets = [
    { asset: 'XXBT', baseAsset: 'BTC' },
    { asset: 'XETH', baseAsset: 'ETH' },
@@ -109,6 +125,20 @@ function buildEntries() {
       asset: 'ADA', baseAsset: 'ADA', wallet: 'earn / locked', amount: '9000.00000000', balance: '9000.00000000' })
    push({ txid: 'LADA2', refid: 'RWADA', time: recently(6), type: 'earn', subtype: 'reward',
       asset: 'ADA', baseAsset: 'ADA', wallet: 'earn / locked', amount: '12.40000000', balance: '9012.40000000' })
+
+   const { week, month } = lastCompletePeriods()
+   const midWeek = week.from + 3 * DAY
+   const midMonth = month.from + Math.floor((month.to - month.from) / 2)
+
+   push({ txid: 'LBTC3', refid: 'RWBTCW', time: midWeek, type: 'earn', subtype: 'reward',
+      asset: 'XXBT', baseAsset: 'BTC', wallet: 'earn / flexible', amount: '0.00038000', balance: '0.35080000' })
+   push({ txid: 'LSOL3', refid: 'RWSOLW', time: midWeek + DAY, type: 'earn', subtype: 'reward',
+      asset: 'SOL', baseAsset: 'SOL', wallet: 'earn / bonded', amount: '0.16500000', balance: '38.35500000' })
+
+   push({ txid: 'LADA4', refid: 'RWADAM', time: midMonth, type: 'earn', subtype: 'reward',
+      asset: 'ADA', baseAsset: 'ADA', wallet: 'earn / locked', amount: '11.80000000', balance: '9024.20000000' })
+   push({ txid: 'LETH3', refid: 'RWETHM', time: midMonth + DAY, type: 'earn', subtype: 'reward',
+      asset: 'ETH2.S', baseAsset: 'ETH', wallet: 'earn / liquid', amount: '0.00980000', balance: '4.52100000' })
 
    // Staked under the name Kraken has since retired, and never opted back in, so it
    // reads as an idle spot holding with two raw names behind it.
@@ -412,8 +442,26 @@ export function ledgerRewards() {
    const years = [...new Set([...assets.values()].flatMap(asset => Object.keys(asset.byYear).map(Number)))]
       .toSorted((a, b) => a - b)
 
+   const periodAssets = (from, to) => {
+
+      const totals = new Map()
+
+      for (const entry of rewards.filter(entry => entry.time >= from && entry.time <= to)) {
+         const total = totals.get(entry.baseAsset) ?? { asset: entry.baseAsset, total: 0, entries: 0 }
+         total.total += Number(entry.amount) - Number(entry.fee)
+         total.entries += 1
+         totals.set(entry.baseAsset, total)
+      }
+
+      return [...totals.values()].toSorted((a, b) => a.asset.localeCompare(b.asset))
+   }
+
+   const periods = Object.fromEntries(Object.entries(lastCompletePeriods())
+      .map(([name, { from, to }]) => [name, { from, to, assets: periodAssets(from, to) }]))
+
    return {
       years,
+      periods,
       assets: [...assets.values()].toSorted((a, b) => a.asset.localeCompare(b.asset)),
       entries: rewards.length,
       first: rewards.length > 0 ? Math.min(...rewards.map(entry => entry.time)) : null,
