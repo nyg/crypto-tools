@@ -39,6 +39,7 @@ if (IS_PROD) {
 Bun.serve({
    port: PORT,
    fetch: app.fetch,
+   idleTimeout: 0,
 })
 
 console.log(`✓ Server listening on http://localhost:${PORT}`)

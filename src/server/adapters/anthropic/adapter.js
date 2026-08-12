@@ -1,4 +1,4 @@
-import { generateText, Output } from 'ai'
+import { streamText, Output } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { z } from 'zod'
 
@@ -9,9 +9,9 @@ export const SUBTYPES = [
    'money-market', 'preferred', 'adr', 'closed-end-fund'
 ]
 
-const CLASSIFY_CHUNK_SIZE = 10
-const CLASSIFY_CONCURRENCY = 3
-const DESCRIBE_CONCURRENCY = 4
+export const CLASSIFY_CHUNK_SIZE = 10
+export const CLASSIFY_CONCURRENCY = 3
+export const DESCRIBE_CONCURRENCY = 4
 
 const listingSchema = z.object({
    ticker: z.string().describe('The requested ticker, echoed back exactly'),
@@ -52,9 +52,9 @@ Rules:
 * Return exactly one entry per requested ticker, echoing the ticker string verbatim. No additions,
   no omissions.`
 
-const asSources = (result) => {
+const asSources = (content) => {
    const urls = new Set()
-   for (const part of result.content ?? []) {
+   for (const part of content ?? []) {
       if (part.type !== 'tool-result') continue
       for (const item of Array.isArray(part.output) ? part.output : []) {
          if (item?.url) urls.add(item.url)
@@ -63,12 +63,12 @@ const asSources = (result) => {
    return [...urls]
 }
 
-const inBatches = async (items, size, worker) => {
-   const results = []
+export const chunked = (items, size) => {
+   const chunks = []
    for (let index = 0; index < items.length; index += size) {
-      results.push(...await Promise.all(items.slice(index, index + size).map(worker)))
+      chunks.push(items.slice(index, index + size))
    }
-   return results
+   return chunks
 }
 
 export default function AnthropicAPI(apiKey) {
@@ -79,46 +79,53 @@ export default function AnthropicAPI(apiKey) {
       web_search: anthropic.tools.webSearch_20260209({ maxUses })
    })
 
-   this.classifyListings = async function (tickers) {
+   const run = async function ({ prompt, schema, maxSearches, onActivity, abortSignal }) {
 
-      const chunks = []
-      for (let index = 0; index < tickers.length; index += CLASSIFY_CHUNK_SIZE) {
-         chunks.push(tickers.slice(index, index + CLASSIFY_CHUNK_SIZE))
+      const result = streamText({
+         model: anthropic(MODEL),
+         tools: webSearch(maxSearches),
+         output: Output.object({ schema }),
+         prompt,
+         abortSignal
+      })
+
+      const report = onActivity ?? (() => {})
+
+      for await (const part of result.stream) {
+         if (part.toolName === 'web_search') {
+            if (part.type === 'tool-call') report({ type: 'searching', query: part.input?.query ?? '' })
+            else if (part.type === 'tool-result') report({ type: 'reading' })
+         }
+         else if (part.type === 'text-delta') report({ type: 'writing' })
       }
 
-      const chunkResults = await inBatches(chunks, CLASSIFY_CONCURRENCY, async (chunk) => {
-
-         const result = await generateText({
-            model: anthropic(MODEL),
-            tools: webSearch(chunk.length + 4),
-            output: Output.object({ schema: z.object({ listings: z.array(listingSchema) }) }),
-            prompt: `Classify these ${chunk.length} tickers: ${chunk.join(', ')}.\n${classificationRules}`
-         })
-
-         const sources = asSources(result)
-         return (result.output?.listings ?? []).map(listing => ({ ...listing, sources }))
-      })
-
-      return chunkResults.flat()
+      return { output: await result.output, sources: asSources(await result.content) }
    }
 
-   this.describeListings = async function (listings, wordCount) {
+   this.classifyTickers = async function (tickers, { onActivity, abortSignal } = {}) {
 
-      return await inBatches(listings, DESCRIBE_CONCURRENCY, async (listing) => {
-
-         const result = await generateText({
-            model: anthropic(MODEL),
-            tools: webSearch(4),
-            output: Output.object({ schema: z.object({ description: z.string() }) }),
-            prompt: describePrompt(listing, wordCount)
-         })
-
-         return {
-            ticker: listing.ticker,
-            description: result.output?.description ?? '',
-            sources: asSources(result)
-         }
+      const { output, sources } = await run({
+         prompt: `Classify these ${tickers.length} tickers: ${tickers.join(', ')}.\n${classificationRules}`,
+         schema: z.object({ listings: z.array(listingSchema) }),
+         maxSearches: tickers.length + 4,
+         onActivity,
+         abortSignal
       })
+
+      return (output?.listings ?? []).map(listing => ({ ...listing, sources }))
+   }
+
+   this.describeListing = async function (listing, wordCount, { onActivity, abortSignal } = {}) {
+
+      const { output, sources } = await run({
+         prompt: describePrompt(listing, wordCount),
+         schema: z.object({ description: z.string() }),
+         maxSearches: 4,
+         onActivity,
+         abortSignal
+      })
+
+      return { ticker: listing.ticker, description: output?.description ?? '', sources }
    }
 
    const describePrompt = (listing, wordCount) => {

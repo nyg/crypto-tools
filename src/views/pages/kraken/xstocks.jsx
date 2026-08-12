@@ -7,6 +7,7 @@ import { Loader2Icon, SparklesIcon, SearchIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import InfoBanner from '../../components/lib/info-banner'
 import XStockTable from '../../components/kraken/xstock-table'
+import XStockJobProgress, { describingTickers, isJobRunning, jobCounts, jobVerbs } from '../../components/kraken/xstock-job'
 import Field from '../../components/lib/field'
 import NumericInput from '../../components/lib/numeric-input'
 import SelectField from '../../components/lib/select-field'
@@ -21,8 +22,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 
 const PAGE_SIZE = 50
-const BATCH_SIZE = 20
 const SETTINGS_KEY = 'kraken.xstocks.settings'
+const JOB_KEY = '/api/kraken/xstocks/job'
 
 const typeOptions = [
    { value: ANY, label: 'All types' },
@@ -58,6 +59,29 @@ const reviveSettings = (stored, defaults) => ({
    scope: scopeValues.has(stored.scope) ? stored.scope : defaults.scope
 })
 
+function announce(job) {
+
+   const verbs = jobVerbs[job.kind] ?? jobVerbs.describe
+   const { done, failed } = jobCounts(job)
+
+   if (job.phase === 'error') {
+      return toast.error(job.error ?? `Could not ${verbs.action} those listings.`)
+   }
+
+   if (done === 0) {
+      return toast.info(job.phase === 'cancelled'
+         ? 'Stopped before anything was generated.'
+         : `Nothing was ${verbs.past.toLowerCase()}.`)
+   }
+
+   const summary = `${verbs.past} ${asCount(done, 'listing')}`
+
+   if (job.phase === 'cancelled') return toast.info(`${summary} before stopping.`)
+   if (failed > 0) return toast.warning(`${summary}, ${failed} failed.`)
+
+   toast.success(`${summary}.`)
+}
+
 export default function KrakenXStocks() {
 
    const { configured: hasAnthropicKey } = useProvider('anthropic')
@@ -71,10 +95,9 @@ export default function KrakenXStocks() {
    const [searchInput, setSearchInput] = useState('')
    const [search, setSearch] = useState('')
    const [page, setPage] = useState(0)
-   const [describing, setDescribing] = useState(() => new Set())
-   const [progress, setProgress] = useState(null)
 
-   const stopRequested = useRef(false)
+   const startedRef = useRef(false)
+   const settledRef = useRef(0)
 
    useEffect(() => {
       const timer = setTimeout(() => {
@@ -105,6 +128,34 @@ export default function KrakenXStocks() {
 
    const { trigger: describe } = useSWRMutation('/api/kraken/xstocks/describe')
    const { trigger: classify } = useSWRMutation('/api/kraken/xstocks/classify')
+   const { trigger: cancel } = useSWRMutation('/api/kraken/xstocks/job/cancel')
+
+   const { data: jobData, mutate: mutateJob } = useSWR(JOB_KEY, {
+      refreshInterval: latest => isJobRunning(latest?.job) ? 1000 : 0,
+      onSuccess: (latest) => {
+         const latestJob = latest?.job ?? null
+
+         if (isJobRunning(latestJob)) {
+            startedRef.current = true
+
+            const settled = jobCounts(latestJob).settled
+            if (settled !== settledRef.current) {
+               settledRef.current = settled
+               mutate()
+            }
+            return
+         }
+
+         if (!startedRef.current) return
+
+         startedRef.current = false
+         settledRef.current = 0
+         mutate()
+         if (latestJob) announce(latestJob)
+      }
+   })
+
+   const job = jobData?.job ?? null
 
    const listings = useMemo(() => data?.listings ?? [], [data])
 
@@ -144,64 +195,37 @@ export default function KrakenXStocks() {
    const isFiltered = search !== '' || type !== ANY
    const visible = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
-   const runInBatches = async (tickers, label, worker) => {
+   const startJob = (tickers, kind, trigger) => {
 
-      if (tickers.length === 0) {
-         toast.info(`Nothing to ${label}.`)
-         return
-      }
+      if (tickers.length === 0) return toast.info(`Nothing to ${jobVerbs[kind].action}.`)
 
-      stopRequested.current = false
-      setProgress({ done: 0, total: tickers.length })
+      settledRef.current = 0
 
-      let completed = 0
-      let failed = false
-
-      for (let index = 0; index < tickers.length; index += BATCH_SIZE) {
-         if (stopRequested.current) break
-
-         const batch = tickers.slice(index, index + BATCH_SIZE)
-         setDescribing(new Set(batch))
-
-         try {
-            await worker(batch)
-            completed += batch.length
-         }
-         catch (reason) {
-            failed = true
-            toast.error(typeof reason === 'string' ? reason : `Could not ${label} those listings.`)
-            break
-         }
-
-         setProgress({ done: completed, total: tickers.length })
-         await mutate()
-      }
-
-      setDescribing(new Set())
-      setProgress(null)
-
-      if (!failed && completed > 0) {
-         const stopped = stopRequested.current && completed < tickers.length
-         toast.success(`${label === 'describe' ? 'Described' : 'Classified'} ${asCount(completed, 'listing')}${stopped ? ' before stopping' : ''}.`)
-      }
+      trigger({ tickers, wordCount })
+         .then(() => mutateJob())
+         .catch(reason => toast.error(typeof reason === 'string'
+            ? reason
+            : `Could not start ${jobVerbs[kind].gerund}.`))
    }
 
-   const generateDescriptions = (tickers) =>
-      runInBatches(tickers, 'describe', batch => describe({ tickers: batch, wordCount }))
+   const generateDescriptions = (tickers) => startJob(tickers, 'describe', describe)
 
-   const classifyUnknown = () =>
-      runInBatches(
-         listings.filter(listing => listing.type === 'unclassified').map(listing => listing.ticker),
-         'classify',
-         batch => classify({ tickers: batch }))
+   const classifyUnknown = () => startJob(
+      listings.filter(listing => listing.type === 'unclassified').map(listing => listing.ticker),
+      'classify',
+      classify)
 
    const describeScope = () =>
       generateDescriptions(listings
          .filter(listing => inScope(listing, scope) && !listing.description)
          .map(listing => listing.ticker))
 
-   const isBusy = progress !== null
+   const stop = () => cancel().then(() => mutateJob()).catch(() => {})
+
+   const isBusy = isJobRunning(job)
+   const isGenerating = isBusy && job.kind === 'describe'
    const canDescribe = hasAnthropicKey && !isBusy
+   const describing = describingTickers(job)
 
    const pendingInScope = useMemo(
       () => listings.filter(listing => inScope(listing, scope) && !listing.description).length,
@@ -274,7 +298,7 @@ export default function KrakenXStocks() {
                         {isBusy &&
                            <span className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Loader2Icon className="size-4 animate-spin" />
-                              {progress.done} of {progress.total}
+                              {jobVerbs[job.kind]?.present ?? 'Working'}
                            </span>}
                      </CardAction>
                   </CardHeader>
@@ -297,16 +321,18 @@ export default function KrakenXStocks() {
                            type="button"
                            disabled={!canDescribe || pendingInScope === 0}
                            onClick={describeScope}>
-                           {isBusy
+                           {isGenerating
                               ? <Loader2Icon className="size-3.5 animate-spin" />
                               : <SparklesIcon className="size-3.5" />}
-                           {isBusy ? 'Generating…' : 'Generate'}
+                           {isGenerating ? 'Generating…' : 'Generate'}
                         </Button>
                         {isBusy &&
-                           <Button variant="ghost" type="button" onClick={() => { stopRequested.current = true }}>
+                           <Button variant="ghost" type="button" onClick={stop}>
                               Stop
                            </Button>}
                      </div>
+
+                     <XStockJobProgress job={job} />
 
                      {!hasAnthropicKey &&
                         <Alert>
