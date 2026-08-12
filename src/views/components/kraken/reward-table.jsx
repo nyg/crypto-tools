@@ -8,7 +8,7 @@ import { asAssetAmount, asDollarAmount } from '../../../utils/format'
 // An asset Kraken has no USD pair for has no rate at all, which is not the same as
 // being worth nothing: it is left out of the totals, shown as a dash, and sorted last
 // whichever column is sorted on.
-const valueOf = (amount, rate) => rate == null ? null : (amount ?? 0) * rate
+export const valueOf = (amount, rate) => rate == null ? null : (amount ?? 0) * rate
 
 // The sorted column shows the single arrow it is sorted by, drawn heavier; the rest
 // keep the two-headed arrow that says they can be sorted at all.
@@ -42,7 +42,7 @@ function SortableHead({ column, sort, onSortChange, children }) {
 
 // The value is what the column is read for, so it leads; the amount actually paid out
 // sits underneath it.
-const RewardCell = ({ amount, rate }) => {
+export const RewardCell = ({ amount, rate }) => {
 
    if (amount === undefined) {
       return <TableCell className="text-right text-muted-foreground">—</TableCell>

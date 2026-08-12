@@ -2,6 +2,7 @@ import { locales } from './locale'
 
 const shortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' })
 const longDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric' })
+const utcLongDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
 const monthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long' })
 const shortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -50,6 +51,10 @@ export function asShortDate(timestamp) {
 
 export function asLongDate(timestamp) {
    return dateFormat(longDateFormatter, timestamp)
+}
+
+export function asUtcLongDate(timestamp) {
+   return dateFormat(utcLongDateFormatter, timestamp)
 }
 
 export function asMonthYearDate(timestamp) {

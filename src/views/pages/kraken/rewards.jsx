@@ -7,6 +7,7 @@ import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import RewardSummaryCard from '../../components/kraken/reward-summary-card'
 import RewardChartCard from '../../components/kraken/reward-chart-card'
 import RewardHistoryCard from '../../components/kraken/reward-history-card'
+import RewardPeriodCard from '../../components/kraken/reward-period-card'
 import RewardTable from '../../components/kraken/reward-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
@@ -95,7 +96,7 @@ export default function KrakenRewards() {
                counts={asCount(status?.state?.entryCount, 'ledger entry', 'ledger entries')}
                emptyLabel="No ledger stored yet" />
 
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(14rem,max-content)_repeat(3,minmax(0,1fr))]">
                <RewardSummaryCard
                   rewards={rewards}
                   rates={rateData?.rates}
@@ -103,6 +104,7 @@ export default function KrakenRewards() {
                   isLoadingRates={isLoadingRates} />
                <RewardChartCard rewards={rewards} rates={rateData?.rates} />
                <RewardHistoryCard rewards={rewards} rates={rateData?.rates} />
+               <RewardPeriodCard rewards={rewards} rates={rateData?.rates} />
             </div>
 
             <RewardTable rewards={rewards} rates={rateData?.rates} />
