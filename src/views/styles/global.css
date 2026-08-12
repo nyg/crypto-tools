@@ -160,3 +160,20 @@
 [data-slot='chart'] .recharts-sector[stroke='#fff'] {
     stroke: transparent;
 }
+
+.scroll-shadows {
+    --scroll-shadow: oklch(0 0 0 / 0.14);
+
+    background:
+        linear-gradient(var(--card) 30%, transparent) center top,
+        linear-gradient(transparent, var(--card) 70%) center bottom,
+        radial-gradient(farthest-side at 50% 0, var(--scroll-shadow), transparent) center top,
+        radial-gradient(farthest-side at 50% 100%, var(--scroll-shadow), transparent) center bottom;
+    background-repeat: no-repeat;
+    background-size: 100% 28px, 100% 28px, 100% 9px, 100% 9px;
+    background-attachment: local, local, scroll, scroll;
+}
+
+.dark .scroll-shadows {
+    --scroll-shadow: oklch(0 0 0 / 0.55);
+}

@@ -59,7 +59,7 @@ export default function RewardPeriodCard({ rewards, rates }) {
                      : 'No rewards to show. Sync your ledger on the Ledger tab first.'}
                </p>
                : <div className="space-y-3">
-                  <div className="max-h-[232px] overflow-y-auto">
+                  <div className="scroll-shadows max-h-[232px] overflow-y-auto pr-3">
                      <Table className="tabular-nums">
                         <TableBody>
                            {rows.map(row =>
@@ -71,7 +71,7 @@ export default function RewardPeriodCard({ rewards, rates }) {
                      </Table>
                   </div>
                   <div
-                     className="flex items-center justify-between border-t border-border px-2 pt-3 text-sm tabular-nums"
+                     className="flex items-center justify-between border-t border-border pt-3 pl-2 pr-5 text-sm tabular-nums"
                      title={valued.length < rows.length
                         ? `${rows.length - valued.length} asset(s) have no USD pair and are not counted`
                         : undefined}>
