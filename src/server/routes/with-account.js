@@ -31,7 +31,15 @@ export async function withAccount(c, handler) {
 
 export async function withCredentials(c, provider, handler, { secret = true } = {}) {
 
-   const credentials = credentialsFor(provider)
+   let credentials
+   try {
+      credentials = credentialsFor(provider)
+   }
+   catch (error) {
+      console.warn(error.message)
+      return c.json({ error: error.message }, 503)
+   }
+
    if (!credentials.apiKey || (secret && !credentials.apiSecret)) return noCredentials(c)
 
    try {
