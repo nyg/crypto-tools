@@ -60,7 +60,7 @@ function envValue(provider, field) {
 
 const storedInKeychain = saved => saved.storage === 'keychain'
 
-const sourceOf = saved => saved.storage === 'file' ? 'file' : (secretStore()?.id ?? 'file')
+const sourceOf = saved => storedInKeychain(saved) ? (secretStore()?.id ?? 'file') : 'file'
 
 function savedValue(provider, field, saved) {
    if (!storedInKeychain(saved)) return saved[field] || ''
@@ -103,38 +103,48 @@ export function readSettings() {
       // Settings page went on showing a populated key.
       const fromEnvironment = Boolean(environmentKey) && (!hasSecret || Boolean(environmentSecret))
 
-      settings[id].apiKey = fromEnvironment ? environmentKey : savedValue(id, 'apiKey', saved)
-
       settings[id].source = fromEnvironment ? 'env' : sourceOf(saved)
 
-      if (hasSecret) {
-         settings[id].apiSecret = fromEnvironment ? environmentSecret : savedValue(id, 'apiSecret', saved)
+      try {
+         settings[id].apiKey = fromEnvironment ? environmentKey : savedValue(id, 'apiKey', saved)
+
+         if (hasSecret) {
+            settings[id].apiSecret = fromEnvironment ? environmentSecret : savedValue(id, 'apiSecret', saved)
+         }
+      }
+      catch (error) {
+         console.warn(`Could not read ${id}'s credentials from the credential store:`, error.message)
+         settings[id].unreadable = true
       }
    }
 
    // The stored id belongs to the stored key. A key from the environment is a
    // different account, so it gets its own partition rather than syncing into
    // whichever one the file happens to name.
-   settings.kraken.accountId = settings.kraken.apiKey === ''
-      ? ''
-      : settings.kraken.source === 'env'
-         ? accountIdFor(settings.kraken.apiKey)
-         : (stored.kraken?.accountId || accountIdFor(settings.kraken.apiKey))
+   settings.kraken.accountId = settings.kraken.unreadable
+      ? (stored.kraken?.accountId || '')
+      : settings.kraken.apiKey === ''
+         ? ''
+         : settings.kraken.source === 'env'
+            ? accountIdFor(settings.kraken.apiKey)
+            : (stored.kraken?.accountId || accountIdFor(settings.kraken.apiKey))
 
    return settings
 }
 
 export function writeSettings(updates) {
    const stored = readStored()
-   const merged = { version: SETTINGS_VERSION }
+   const merged = { ...stored, version: SETTINGS_VERSION }
    const resolved = {}
 
    for (const [id, provider] of Object.entries(providers)) {
-      const saved = stored[id] ?? {}
       const update = updates?.[id]
+      if (!update) continue
+
+      const saved = stored[id] ?? {}
 
       const values = Object.fromEntries(fieldsOf(provider)
-         .map(field => [field, typeof update?.[field] === 'string'
+         .map(field => [field, typeof update[field] === 'string'
             ? update[field].trim()
             : savedValue(id, field, saved)]))
 
@@ -142,10 +152,12 @@ export function writeSettings(updates) {
       merged[id] = persistProvider(id, values)
    }
 
-   const accountId = stored.kraken?.accountId || ''
-   merged.kraken.accountId = resolved.kraken.apiKey
-      ? (accountId || accountIdFor(resolved.kraken.apiKey))
-      : accountId
+   if (resolved.kraken) {
+      const accountId = stored.kraken?.accountId || ''
+      merged.kraken.accountId = resolved.kraken.apiKey
+         ? (accountId || accountIdFor(resolved.kraken.apiKey))
+         : accountId
+   }
 
    writeStored(merged)
 
@@ -155,25 +167,25 @@ export function writeSettings(updates) {
 export function migrateSettings() {
    const stored = readStored()
 
-   if (stored.version === SETTINGS_VERSION || Object.keys(stored).length === 0 || !secretStore()) {
-      return
-   }
+   if (Object.keys(stored).length === 0 || !secretStore()) return
 
-   const migrated = { version: SETTINGS_VERSION }
+   const inFile = Object.entries(providers)
+      .filter(([id, provider]) => fieldsOf(provider).some(field => stored[id]?.[field]))
+
+   if (stored.version === SETTINGS_VERSION && inFile.length === 0) return
+
+   const migrated = { ...stored, version: SETTINGS_VERSION }
    const moved = []
 
-   for (const [id, provider] of Object.entries(providers)) {
-      const saved = stored[id] ?? {}
+   for (const [id, provider] of inFile) {
+      const saved = stored[id]
       const values = Object.fromEntries(fieldsOf(provider).map(field => [field, saved[field] || '']))
+      const entry = persistProvider(id, values)
 
-      migrated[id] = persistProvider(id, values)
+      migrated[id] = saved.accountId ? { ...entry, accountId: saved.accountId } : entry
 
-      if (migrated[id].storage === 'keychain' && Object.values(values).some(Boolean)) {
-         moved.push(id)
-      }
+      if (entry.storage === 'keychain') moved.push(id)
    }
-
-   migrated.kraken.accountId = stored.kraken?.accountId || ''
 
    writeStored(migrated)
 
@@ -183,7 +195,12 @@ export function migrateSettings() {
 }
 
 export function credentialsFor(provider) {
-   const { apiKey, apiSecret } = readSettings()[provider]
+   const { apiKey, apiSecret, unreadable } = readSettings()[provider]
+
+   if (unreadable) {
+      throw new Error(`Could not read ${provider}'s credentials from the ${secretStore()?.id ?? 'credential store'}.`)
+   }
+
    return { apiKey, apiSecret: apiSecret ?? '' }
 }
 

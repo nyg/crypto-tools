@@ -2,6 +2,7 @@ import { FFIType, dlopen, ptr, read as readMemory, toArrayBuffer } from 'bun:ffi
 
 const CRED_TYPE_GENERIC = 1
 const CRED_PERSIST_LOCAL_MACHINE = 2
+const ERROR_NOT_FOUND = 1168
 
 const CREDENTIAL_SIZE = 80
 const OFFSET_TYPE = 4
@@ -16,6 +17,10 @@ const advapi32 = dlopen('advapi32.dll', {
    CredReadW: { args: [FFIType.ptr, FFIType.u32, FFIType.u32, FFIType.ptr], returns: FFIType.bool },
    CredDeleteW: { args: [FFIType.ptr, FFIType.u32, FFIType.u32], returns: FFIType.bool },
    CredFree: { args: [FFIType.ptr], returns: FFIType.void }
+})
+
+const kernel32 = dlopen('kernel32.dll', {
+   GetLastError: { args: [], returns: FFIType.u32 }
 })
 
 const wide = text => {
@@ -47,7 +52,9 @@ export default function windowsStore(service) {
       const target = targetFor(name)
       const out = new BigUint64Array(1)
       if (!advapi32.symbols.CredReadW(ptr(target), CRED_TYPE_GENERIC, 0, ptr(out))) {
-         return null
+         const failure = kernel32.symbols.GetLastError()
+         if (failure === ERROR_NOT_FOUND) return null
+         throw new Error(`CredReadW failed with ${failure} for ${name}`)
       }
 
       const credential = Number(out[0])

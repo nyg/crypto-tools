@@ -32,8 +32,11 @@ const providers = [
 
 const storeNames = {
    keychain: 'the macOS Keychain',
-   'credential-manager': 'the Windows Credential Manager'
+   'credential-manager': 'the Windows Credential Manager',
+   file: 'the app’s own data folder, beside the ledger database'
 }
+
+const storeOrder = ['keychain', 'credential-manager', 'file']
 
 export default function Settings() {
 
@@ -42,9 +45,14 @@ export default function Settings() {
    const { trigger: saveSettings, isMutating } = useSWRMutation(SETTINGS_KEY)
    const { mutate: globalMutate } = useSWRConfig()
 
-   const storeName = providers
-      .map(provider => storeNames[settings?.[provider.id]?.source])
-      .find(Boolean)
+   const locations = storeOrder
+      .filter(store => providers.some(provider => {
+         const stored = settings?.[provider.id]
+         return stored?.keyConfigured && stored.source === store
+      }))
+      .map(store => storeNames[store])
+
+   const storedIn = locations.length > 0 ? locations.join(' and ') : storeNames.file
 
    const save = async (event, provider) => {
       event.preventDefault()
@@ -72,8 +80,7 @@ export default function Settings() {
          <div className="space-y-6">
 
             <InfoBanner>
-               The keys the other pages use to reach each exchange. They are stored on this machine
-               {storeName ? ` in ${storeName}` : ' in the app’s own data folder, beside the ledger database'},
+               The keys the other pages use to reach each exchange. They are stored on this machine in {storedIn},
                never uploaded anywhere, and used only to sign the calls a page makes on your behalf.
                Removing a key here is enough to cut a page off from its exchange.
             </InfoBanner>
@@ -89,6 +96,7 @@ export default function Settings() {
                         <CardDescription>
                            {provider.description}
                            {fromEnvironment && ' Currently provided by an environment variable, which takes precedence over anything saved here.'}
+                           {stored?.unreadable && ` Its key could not be read from ${storeNames[stored.source] ?? 'the credential store'} just now, so the fields below are blank — the entry itself is still there, and saving replaces it.`}
                         </CardDescription>
                      </CardHeader>
                      <CardContent>

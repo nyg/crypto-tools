@@ -12,11 +12,12 @@ function maskSettings(settings, { reveal = false } = {}) {
    const masked = { version: settings.version }
 
    for (const [id, { hasSecret }] of Object.entries(providers)) {
-      const { apiKey, apiSecret, source } = settings[id]
+      const { apiKey, apiSecret, source, unreadable } = settings[id]
 
       masked[id] = {
          source,
          hasSecret,
+         unreadable: Boolean(unreadable),
          apiKey: reveal ? apiKey : (apiKey ? MASK : ''),
          apiSecret: hasSecret && apiSecret ? MASK : '',
          configured: Boolean(apiKey) && (!hasSecret || Boolean(apiSecret)),

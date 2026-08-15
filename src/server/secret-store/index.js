@@ -41,13 +41,7 @@ export function readSecret(name) {
    if (!store) return null
    if (cache.has(name)) return cache.get(name)
 
-   let value = null
-   try {
-      value = store.read(name)
-   }
-   catch (error) {
-      console.warn(`Could not read ${name} from the credential store:`, error.message)
-   }
+   const value = store.read(name)
 
    cache.set(name, value)
    return value

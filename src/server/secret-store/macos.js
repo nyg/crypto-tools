@@ -22,7 +22,11 @@ export default function macosStore(service) {
 
    const read = name => {
       const { code, output } = run(['find-generic-password', '-s', service, '-a', name, '-w'])
-      return code === 0 ? output.replace(/\n$/, '') : null
+
+      if (code === ITEM_NOT_FOUND) return null
+      if (code !== 0) throw new Error(`security find-generic-password exited with ${code} for ${name}`)
+
+      return output.replace(/\n$/, '')
    }
 
    return {
