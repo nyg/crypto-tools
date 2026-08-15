@@ -60,11 +60,21 @@ function envValue(provider, field) {
 
 const storedInKeychain = saved => saved.storage === 'keychain'
 
-const sourceOf = saved => storedInKeychain(saved) ? (secretStore()?.id ?? 'file') : 'file'
+const sourceOf = saved => storedInKeychain(saved) ? (secretStore()?.id ?? 'keychain') : 'file'
+
+const storeMissing = saved => storedInKeychain(saved) && !secretStore()
 
 function savedValue(provider, field, saved) {
    if (!storedInKeychain(saved)) return saved[field] || ''
    return readSecret(`${provider}.${field}`) ?? saved[field] ?? ''
+}
+
+function assertClearable(provider, saved, values) {
+   if (!storedInKeychain(saved)) return
+
+   Object.entries(values)
+      .filter(([, value]) => value === '')
+      .forEach(([field]) => readSecret(`${provider}.${field}`))
 }
 
 function persistProvider(provider, values) {
@@ -105,6 +115,11 @@ export function readSettings() {
 
       settings[id].source = fromEnvironment ? 'env' : sourceOf(saved)
 
+      if (!fromEnvironment && storeMissing(saved)) {
+         settings[id].unreadable = 'store-unavailable'
+         continue
+      }
+
       try {
          settings[id].apiKey = fromEnvironment ? environmentKey : savedValue(id, 'apiKey', saved)
 
@@ -114,9 +129,13 @@ export function readSettings() {
       }
       catch (error) {
          console.warn(`Could not read ${id}'s credentials from the credential store:`, error.message)
-         settings[id].unreadable = true
+         settings[id].apiKey = ''
+         if (hasSecret) settings[id].apiSecret = ''
+         settings[id].unreadable = 'read-failed'
       }
    }
+
+   settings.secretStore = secretStore()?.id ?? null
 
    // The stored id belongs to the stored key. A key from the environment is a
    // different account, so it gets its own partition rather than syncing into
@@ -135,7 +154,7 @@ export function readSettings() {
 export function writeSettings(updates) {
    const stored = readStored()
    const merged = { ...stored, version: SETTINGS_VERSION }
-   const resolved = {}
+   const resolved = new Map()
 
    for (const [id, provider] of Object.entries(providers)) {
       const update = updates?.[id]
@@ -148,14 +167,19 @@ export function writeSettings(updates) {
             ? update[field].trim()
             : savedValue(id, field, saved)]))
 
-      resolved[id] = values
+      assertClearable(id, saved, values)
+      resolved.set(id, values)
+   }
+
+   for (const [id, values] of resolved) {
       merged[id] = persistProvider(id, values)
    }
 
-   if (resolved.kraken) {
+   const krakenValues = resolved.get('kraken')
+   if (krakenValues) {
       const accountId = stored.kraken?.accountId || ''
-      merged.kraken.accountId = resolved.kraken.apiKey
-         ? (accountId || accountIdFor(resolved.kraken.apiKey))
+      merged.kraken.accountId = krakenValues.apiKey
+         ? (accountId || accountIdFor(krakenValues.apiKey))
          : accountId
    }
 
@@ -179,7 +203,9 @@ export function migrateSettings() {
 
    for (const [id, provider] of inFile) {
       const saved = stored[id]
-      const values = Object.fromEntries(fieldsOf(provider).map(field => [field, saved[field] || '']))
+      const values = Object.fromEntries(fieldsOf(provider)
+         .filter(field => saved[field])
+         .map(field => [field, saved[field]]))
       const entry = persistProvider(id, values)
 
       migrated[id] = saved.accountId ? { ...entry, accountId: saved.accountId } : entry
@@ -196,6 +222,10 @@ export function migrateSettings() {
 
 export function credentialsFor(provider) {
    const { apiKey, apiSecret, unreadable } = readSettings()[provider]
+
+   if (unreadable === 'store-unavailable') {
+      throw new Error(`${provider}'s credentials are in the OS credential store, which this session cannot reach.`)
+   }
 
    if (unreadable) {
       throw new Error(`Could not read ${provider}'s credentials from the ${secretStore()?.id ?? 'credential store'}.`)

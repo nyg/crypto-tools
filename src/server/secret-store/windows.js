@@ -20,8 +20,20 @@ const advapi32 = dlopen('advapi32.dll', {
 })
 
 const kernel32 = dlopen('kernel32.dll', {
-   GetLastError: { args: [], returns: FFIType.u32 }
+   GetLastError: { args: [], returns: FFIType.u32 },
+   SetLastError: { args: [FFIType.u32], returns: FFIType.void }
 })
+
+const PROBE_NAME = 'availability-probe'
+
+const attempt = action => {
+   try {
+      return action()
+   }
+   catch {
+      return false
+   }
+}
 
 const wide = text => {
    const units = new Uint16Array(text.length + 1)
@@ -51,6 +63,8 @@ export default function windowsStore(service) {
    const readCredential = name => {
       const target = targetFor(name)
       const out = new BigUint64Array(1)
+
+      kernel32.symbols.SetLastError(0)
       if (!advapi32.symbols.CredReadW(ptr(target), CRED_TYPE_GENERIC, 0, ptr(out))) {
          const failure = kernel32.symbols.GetLastError()
          if (failure === ERROR_NOT_FOUND) return null
@@ -69,43 +83,41 @@ export default function windowsStore(service) {
       }
    }
 
+   const writeCredential = (name, value) => {
+      const target = targetFor(name)
+      const user = wide(name)
+      const blob = utf16Bytes(value)
+
+      const credential = new Uint8Array(CREDENTIAL_SIZE)
+      const view = new DataView(credential.buffer)
+
+      view.setUint32(OFFSET_TYPE, CRED_TYPE_GENERIC, true)
+      view.setBigUint64(OFFSET_TARGET_NAME, BigInt(ptr(target)), true)
+      view.setUint32(OFFSET_BLOB_SIZE, blob.byteLength, true)
+      view.setBigUint64(OFFSET_BLOB, BigInt(blob.byteLength ? ptr(blob) : 0), true)
+      view.setUint32(OFFSET_PERSIST, CRED_PERSIST_LOCAL_MACHINE, true)
+      view.setBigUint64(OFFSET_USER_NAME, BigInt(ptr(user)), true)
+
+      return advapi32.symbols.CredWriteW(ptr(credential), 0) && readCredential(name) === value
+   }
+
+   const removeCredential = name => {
+      const target = targetFor(name)
+      advapi32.symbols.CredDeleteW(ptr(target), CRED_TYPE_GENERIC, 0)
+      return readCredential(name) === null
+   }
+
    return {
       id: 'credential-manager',
 
       available() {
-         try {
-            readCredential('availability-probe')
-            return true
-         }
-         catch {
-            return false
-         }
+         const usable = attempt(() => writeCredential(PROBE_NAME, PROBE_NAME))
+         attempt(() => removeCredential(PROBE_NAME))
+         return usable === true
       },
 
       read: readCredential,
-
-      write(name, value) {
-         const target = targetFor(name)
-         const user = wide(name)
-         const blob = utf16Bytes(value)
-
-         const credential = new Uint8Array(CREDENTIAL_SIZE)
-         const view = new DataView(credential.buffer)
-
-         view.setUint32(OFFSET_TYPE, CRED_TYPE_GENERIC, true)
-         view.setBigUint64(OFFSET_TARGET_NAME, BigInt(ptr(target)), true)
-         view.setUint32(OFFSET_BLOB_SIZE, blob.byteLength, true)
-         view.setBigUint64(OFFSET_BLOB, BigInt(blob.byteLength ? ptr(blob) : 0), true)
-         view.setUint32(OFFSET_PERSIST, CRED_PERSIST_LOCAL_MACHINE, true)
-         view.setBigUint64(OFFSET_USER_NAME, BigInt(ptr(user)), true)
-
-         return advapi32.symbols.CredWriteW(ptr(credential), 0) && readCredential(name) === value
-      },
-
-      remove(name) {
-         const target = targetFor(name)
-         advapi32.symbols.CredDeleteW(ptr(target), CRED_TYPE_GENERIC, 0)
-         return readCredential(name) === null
-      }
+      write: writeCredential,
+      remove: removeCredential
    }
 }

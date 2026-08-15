@@ -9,10 +9,13 @@ const backends = {
    win32: () => import('./windows.js')
 }
 
+const FAILURE_TTL_MS = 30_000
+
 let store = null
 let resolved = false
 
 const cache = new Map()
+const failures = new Map()
 
 export async function initSecretStore() {
    if (resolved) return store
@@ -41,8 +44,19 @@ export function readSecret(name) {
    if (!store) return null
    if (cache.has(name)) return cache.get(name)
 
-   const value = store.read(name)
+   const failure = failures.get(name)
+   if (failure && Date.now() - failure.at < FAILURE_TTL_MS) throw failure.error
 
+   let value
+   try {
+      value = store.read(name)
+   }
+   catch (error) {
+      failures.set(name, { error, at: Date.now() })
+      throw error
+   }
+
+   failures.delete(name)
    cache.set(name, value)
    return value
 }
@@ -50,6 +64,7 @@ export function readSecret(name) {
 export function writeSecret(name, value) {
    if (!store) return false
    cache.delete(name)
+   failures.delete(name)
 
    try {
       return store.write(name, value)
@@ -63,6 +78,7 @@ export function writeSecret(name, value) {
 export function removeSecret(name) {
    if (!store) return false
    cache.delete(name)
+   failures.delete(name)
 
    try {
       return store.remove(name)
