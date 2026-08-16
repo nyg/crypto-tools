@@ -1,7 +1,7 @@
 import { Input as ShadcnInput } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export default function Input({ name, type = 'text', defaultValue, value, onChange, label, required = false, className = '' }) {
+export default function Input({ name, type = 'text', defaultValue, value, onChange, label, required = false, disabled = false, className = '' }) {
 
    const autoComplete = type === 'password' ? 'current-password' : 'none'
 
@@ -16,6 +16,7 @@ export default function Input({ name, type = 'text', defaultValue, value, onChan
             defaultValue={defaultValue}
             onChange={onChange}
             required={required}
+            disabled={disabled}
             autoComplete={autoComplete}
          />
       </div>
