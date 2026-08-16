@@ -98,7 +98,7 @@ export default function Settings() {
             {providers.map(provider => {
                const stored = settings?.[provider.id]
                const fromEnvironment = stored?.source === 'env'
-               const mustRetype = stored?.unreadable === 'read-failed'
+               const mustRetype = Boolean(stored?.unreadable)
 
                return (
                   <Card key={provider.id} size="sm">

@@ -72,9 +72,14 @@ function savedValue(provider, field, saved) {
 function assertClearable(provider, saved, values) {
    if (!storedInKeychain(saved)) return
 
-   Object.entries(values)
-      .filter(([, value]) => value === '')
-      .forEach(([field]) => readSecret(`${provider}.${field}`))
+   const cleared = Object.keys(values).filter(field => values[field] === '')
+   if (cleared.length === 0) return
+
+   if (storeMissing(saved)) {
+      throw new Error(`${provider}'s credentials are in the OS credential store, which this session cannot reach, so a blank field cannot clear them.`)
+   }
+
+   cleared.forEach(field => readSecret(`${provider}.${field}`))
 }
 
 function persistProvider(provider, values) {

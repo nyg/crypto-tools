@@ -60,27 +60,31 @@ export default function windowsStore(service) {
 
    const targetFor = name => wide(`${service}/${name}`)
 
-   const readCredential = name => {
+   const attemptRead = name => {
       const target = targetFor(name)
       const out = new BigUint64Array(1)
 
       kernel32.symbols.SetLastError(0)
       if (!advapi32.symbols.CredReadW(ptr(target), CRED_TYPE_GENERIC, 0, ptr(out))) {
-         const failure = kernel32.symbols.GetLastError()
-         if (failure === ERROR_NOT_FOUND) return null
-         throw new Error(`CredReadW failed with ${failure} for ${name}`)
+         return { found: false, code: kernel32.symbols.GetLastError() }
       }
 
       const credential = Number(out[0])
       try {
          const size = readMemory.u32(credential, OFFSET_BLOB_SIZE)
          const blob = readMemory.ptr(credential, OFFSET_BLOB)
-         if (!blob || size === 0) return ''
-         return fromUtf16(toArrayBuffer(blob, 0, size), size)
+         return { found: true, value: !blob || size === 0 ? '' : fromUtf16(toArrayBuffer(blob, 0, size), size) }
       }
       finally {
          advapi32.symbols.CredFree(credential)
       }
+   }
+
+   const readCredential = name => {
+      const { found, value, code } = attemptRead(name)
+      if (found) return value
+      if (code === ERROR_NOT_FOUND || code === 0) return null
+      throw new Error(`CredReadW failed with ${code} for ${name}`)
    }
 
    const writeCredential = (name, value) => {
@@ -98,13 +102,16 @@ export default function windowsStore(service) {
       view.setUint32(OFFSET_PERSIST, CRED_PERSIST_LOCAL_MACHINE, true)
       view.setBigUint64(OFFSET_USER_NAME, BigInt(ptr(user)), true)
 
-      return advapi32.symbols.CredWriteW(ptr(credential), 0) && readCredential(name) === value
+      if (!advapi32.symbols.CredWriteW(ptr(credential), 0)) return false
+
+      const written = attemptRead(name)
+      return written.found && written.value === value
    }
 
    const removeCredential = name => {
       const target = targetFor(name)
-      advapi32.symbols.CredDeleteW(ptr(target), CRED_TYPE_GENERIC, 0)
-      return readCredential(name) === null
+      if (advapi32.symbols.CredDeleteW(ptr(target), CRED_TYPE_GENERIC, 0)) return true
+      return !attemptRead(name).found
    }
 
    return {
