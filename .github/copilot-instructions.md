@@ -6,7 +6,7 @@
 - **Dev server**: `bun run dev` (starts Vite dev server on port 3000 + Hono API server on port 3001 via `concurrently`)
 - **Mocked mode**: `bun run mocked` (sets `VITE_MOCK_DATA=true`, Vite-only — no API keys or server required)
 - **Build (frontend)**: `bun run build`
-- **Build (desktop app)**: `bun run build:stable`
+- **Build (desktop app)**: `bun run build:desktop` (requires Hutch, see README)
 - **Lint**: `bun run lint` (ESLint)
 
 No test framework is configured.

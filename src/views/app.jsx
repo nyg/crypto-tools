@@ -1,6 +1,7 @@
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router'
 import { SWRConfig } from 'swr'
 import './styles/global.css'
+import About from './pages/about'
 import Home from './pages/home'
 import Settings from './pages/settings'
 import BinanceStaking from './pages/binance/staking'
@@ -65,6 +66,7 @@ export default function App() {
          <Router>
             <Routes>
                <Route path="/" element={<Home />} />
+               <Route path="/about" element={<About />} />
                <Route path="/settings" element={<Settings />} />
                <Route path="/binance/staking" element={<BinanceStaking />} />
                <Route path="/kraken/balances" element={<KrakenBalances />} />

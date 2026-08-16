@@ -7,6 +7,8 @@ import { resolveInitialWindowState, trackWindowState } from './window-state'
 const PORT = 3001
 const DEV_SERVER_URL = 'http://localhost:3000'
 const VIEWS_URL = 'views://main/index.html'
+const ABOUT_ACTION = 'show-about'
+const hasApplicationMenu = process.platform !== 'win32'
 
 async function resolveUrl(): Promise<string> {
    if (app.channel !== 'dev') {
@@ -18,6 +20,13 @@ async function resolveUrl(): Promise<string> {
    } catch {
       return VIEWS_URL
    }
+}
+
+function showAbout(win: BrowserWindow): void {
+   win.webview.executeJavascript(
+      `window.location.protocol === 'views:'
+         ? window.location.hash = '#/about'
+         : window.location.assign('/about')`)
 }
 
 async function main() {
@@ -70,11 +79,21 @@ async function main() {
 
    win.show()
 
+   if (!hasApplicationMenu) {
+      return
+   }
+
+   ApplicationMenu.on('application-menu-clicked', (event: any) => {
+      if (event?.data?.action === ABOUT_ACTION) {
+         showAbout(win)
+      }
+   })
+
    ApplicationMenu.setApplicationMenu([
       {
          label: 'Crypto Tools',
          submenu: [
-            { role: 'about' },
+            { label: 'About Crypto Tools', action: ABOUT_ACTION },
             { type: 'separator' },
             { role: 'hide' },
             { role: 'hideOthers' },

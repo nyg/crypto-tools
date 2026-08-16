@@ -1,5 +1,4 @@
-/// <reference types="bun-types" />
-import { $ } from "bun";
+import { execFileSync } from "child_process";
 import { existsSync } from "fs";
 
 // This hook runs after ElectroBun assembles the self-extracting .app bundle,
@@ -22,5 +21,5 @@ if (!bundlePath || !existsSync(bundlePath)) {
 }
 
 console.log(`postwrap: ad-hoc signing ${bundlePath}`);
-await $`codesign --sign - --deep --force ${bundlePath}`;
+execFileSync("codesign", ["--sign", "-", "--deep", "--force", bundlePath], { stdio: "inherit" });
 console.log("postwrap: signing complete");

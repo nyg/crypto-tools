@@ -36,3 +36,4 @@ yarn-error.log*
 # build output
 /dist
 /artifacts
+/.cottontail-tmp
