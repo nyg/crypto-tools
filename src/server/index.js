@@ -1,9 +1,14 @@
 import { existsSync, statSync } from 'fs'
 import path from 'path'
 import { createApp } from './app.js'
+import { initSecretStore } from './secret-store/index.js'
+import { migrateSettings } from './settings.js'
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
 const IS_PROD = process.env.NODE_ENV === 'production'
+
+await initSecretStore()
+migrateSettings()
 
 const app = createApp()
 

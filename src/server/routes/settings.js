@@ -9,14 +9,15 @@ const MASK = '*****'
 // booleans below. Withholding it by default keeps the plaintext out of the SWR cache
 // of all nine of them.
 function maskSettings(settings, { reveal = false } = {}) {
-   const masked = { version: settings.version }
+   const masked = { version: settings.version, secretStore: settings.secretStore }
 
    for (const [id, { hasSecret }] of Object.entries(providers)) {
-      const { apiKey, apiSecret, source } = settings[id]
+      const { apiKey, apiSecret, source, unreadable } = settings[id]
 
       masked[id] = {
          source,
          hasSecret,
+         unreadable: unreadable ?? null,
          apiKey: reveal ? apiKey : (apiKey ? MASK : ''),
          apiSecret: hasSecret && apiSecret ? MASK : '',
          configured: Boolean(apiKey) && (!hasSecret || Boolean(apiSecret)),

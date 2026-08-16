@@ -30,12 +30,39 @@ const providers = [
 ]
 
 
+const storeNames = {
+   keychain: 'the macOS Keychain',
+   'credential-manager': 'the Windows Credential Manager',
+   file: 'the app’s own data folder, beside the ledger database'
+}
+
+const storeOrder = ['keychain', 'credential-manager', 'file']
+
 export default function Settings() {
 
    // The only place that asks for the keys themselves, to prefill the form.
    const { settings, isLoading, mutate } = useSettings(SETTINGS_REVEAL_KEY)
    const { trigger: saveSettings, isMutating } = useSWRMutation(SETTINGS_KEY)
    const { mutate: globalMutate } = useSWRConfig()
+
+   const locations = storeOrder
+      .filter(store => providers.some(provider => {
+         const stored = settings?.[provider.id]
+         return stored?.keyConfigured && stored.source === store
+      }))
+      .map(store => storeNames[store])
+
+   const destination = storeNames[settings?.secretStore] ?? storeNames.file
+
+   const whereTheyLive = locations.length > 0
+      ? `They are stored on this machine in ${locations.join(' and ')}`
+      : `A key saved here is stored on this machine in ${destination}`
+
+   const noteFor = stored => stored?.unreadable === 'store-unavailable'
+      ? ` Its key is in the OS credential store, which this session cannot reach — saving here writes the new value to ${storeNames.file} instead.`
+      : stored?.unreadable
+         ? ` Its key could not be read from ${storeNames[stored.source] ?? 'the credential store'} just now, so the fields below are blank. The entry itself is untouched — retry once access is granted, or type both values to replace it.`
+         : ''
 
    const save = async (event, provider) => {
       event.preventDefault()
@@ -63,15 +90,15 @@ export default function Settings() {
          <div className="space-y-6">
 
             <InfoBanner>
-               The keys the other pages use to reach each exchange. They are stored on this machine
-               in the app&apos;s own data folder, beside the ledger database, never uploaded
-               anywhere, and used only to sign the calls a page makes on your behalf. Removing a key
-               here is enough to cut a page off from its exchange.
+               The keys the other pages use to reach each exchange. {whereTheyLive},
+               never uploaded anywhere, and used only to sign the calls a page makes on your behalf.
+               Removing a key here is enough to cut a page off from its exchange.
             </InfoBanner>
 
             {providers.map(provider => {
                const stored = settings?.[provider.id]
                const fromEnvironment = stored?.source === 'env'
+               const mustRetype = Boolean(stored?.unreadable)
 
                return (
                   <Card key={provider.id} size="sm">
@@ -80,6 +107,7 @@ export default function Settings() {
                         <CardDescription>
                            {provider.description}
                            {fromEnvironment && ' Currently provided by an environment variable, which takes precedence over anything saved here.'}
+                           {noteFor(stored)}
                         </CardDescription>
                      </CardHeader>
                      <CardContent>
@@ -90,6 +118,7 @@ export default function Settings() {
                                  name={`${provider.id}-api-key`}
                                  label="API Key"
                                  disabled={isLoading}
+                                 required={mustRetype}
                                  defaultValue={stored?.apiKey ?? ''} />
                               {provider.hasSecret &&
                                  <Input
@@ -98,6 +127,7 @@ export default function Settings() {
                                     label="API Secret"
                                     type="password"
                                     disabled={isLoading}
+                                    required={mustRetype}
                                     defaultValue={stored?.apiSecret ?? ''} />}
                            </div>
                            <Button type="submit" size="sm" disabled={isLoading || isMutating}>Save</Button>
