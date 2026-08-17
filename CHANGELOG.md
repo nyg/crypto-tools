@@ -1,6 +1,19 @@
 # Changelog
 
 
+## [0.4.0](https://github.com/nyg/crypto-tools/compare/v0.3.0..v0.4.0) - 2026-08-17
+
+### ⛰️  Features
+
+- [`b24e1a4`](https://github.com/nyg/crypto-tools/commit/b24e1a4a46bc5ea370397972216b72b1059c17bb) *(kraken)* Add an open orders page ([#249](https://github.com/nyg/crypto-tools/issues/249))
+- [`0f6836b`](https://github.com/nyg/crypto-tools/commit/0f6836b89f6cea3941d9c3c3ef076deea767c13c) *(xstocks)* Follow generation as a job with live AI steps ([#246](https://github.com/nyg/crypto-tools/issues/246))
+- [`b56b445`](https://github.com/nyg/crypto-tools/commit/b56b4458a30b3fcaf107441007f4f9a5b23c2857) *(rewards)* Show what the last complete week or month paid ([#245](https://github.com/nyg/crypto-tools/issues/245))
+
+### 🐛 Bug Fixes
+
+- [`b3a8b05`](https://github.com/nyg/crypto-tools/commit/b3a8b054a5d63507006238458790fb8478b3d36d) *(xstocks)* Job progress count, refreshed reference list, per-instance ports ([#250](https://github.com/nyg/crypto-tools/issues/250))
+- [`8c5da0f`](https://github.com/nyg/crypto-tools/commit/8c5da0fe28662cf303c8f1d259d3f297b92d18e1) *(settings)* Disable the API key fields while settings load ([#248](https://github.com/nyg/crypto-tools/issues/248))
+
 ## [0.3.0](https://github.com/nyg/crypto-tools/compare/v0.2.0..v0.3.0) - 2026-08-10
 
 ### ⛰️  Features
