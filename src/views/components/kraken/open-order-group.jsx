@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,11 @@ const sideOptions = (orders) => [
    { value: 'buy', label: 'Buy', count: orders.filter(order => order.type === 'buy').length },
    { value: 'sell', label: 'Sell', count: orders.filter(order => order.type === 'sell').length }
 ]
+
+const sideColours = {
+   buy: 'bg-emerald-600/10 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300',
+   sell: 'bg-rose-600/10 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300'
+}
 
 const distanceFrom = (order, lastPrice) =>
    lastPrice == null || lastPrice === 0 ? null : (Number(order.price) - lastPrice) / lastPrice
@@ -66,7 +71,7 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
    const lastRow = Math.min(shown.length, (currentPage + 1) * pageSize)
 
    return (
-      <Card>
+      <Card size="sm">
          <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2">
                {pairKey || 'Unknown pair'}
@@ -74,7 +79,7 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
                <span className="text-sm font-normal text-muted-foreground">
                   {lastPrice == null
                      ? 'no ticker for this pair'
-                     : `last traded ${amountOf(lastPrice, quoteAsset)}`}
+                     : `last price: ${amountOf(lastPrice, quoteAsset)}`}
                </span>
             </CardTitle>
             <CardAction className="flex items-center gap-2">
@@ -93,7 +98,7 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
                   </>}
             </CardAction>
          </CardHeader>
-         <CardContent className="space-y-4">
+         <CardContent className="space-y-2">
 
             {hasBothSides &&
                <div className="flex items-center gap-1">
@@ -110,7 +115,7 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
                      </Button>)}
                </div>}
 
-            <Table className="tabular-nums">
+            <Table className="text-xs tabular-nums [&_td]:px-2 [&_td]:py-1 [&_th]:h-7 [&_th]:px-2">
                <TableHeader>
                   <TableRow>
                      <TableHead className="w-8">
@@ -119,8 +124,7 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
                            aria-label={`Select every ${pairKey} order shown`}
                            onCheckedChange={toggleAll} />
                      </TableHead>
-                     <TableHead>Side</TableHead>
-                     <TableHead>Type</TableHead>
+                     <TableHead />
                      <TableHead>Reference</TableHead>
                      <TableHead className="text-right">Volume</TableHead>
                      <TableHead className="text-right">Price</TableHead>
@@ -146,11 +150,11 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
                                  onCheckedChange={() => toggleOne(order.txid)} />
                            </TableCell>
                            <TableCell>
-                              <Badge variant={order.type === 'sell' ? 'outline' : 'secondary'}>
+                              <Badge className={cn('gap-1.5', sideColours[order.type])}>
                                  {order.type || '—'}
+                                 <span className="font-normal opacity-70">{order.ordertype || '—'}</span>
                               </Badge>
                            </TableCell>
-                           <TableCell className="text-muted-foreground">{order.ordertype || '—'}</TableCell>
                            <TableCell className="font-mono text-xs">
                               {order.reference == null || order.reference === 0
                                  ? <span className="text-muted-foreground">—</span>
@@ -192,7 +196,7 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
                                  aria-label={`Cancel order ${order.txid}`}
                                  title="Cancel this order"
                                  onClick={() => onCancel([order])}>
-                                 <XIcon />
+                                 <Trash2Icon className="size-3.5" />
                               </Button>
                            </TableCell>
                         </TableRow>
@@ -201,13 +205,11 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
                </TableBody>
                <TableFooter>
                   <TableRow>
-                     <TableCell colSpan={4}>Total</TableCell>
+                     <TableCell colSpan={3}>Total</TableCell>
                      <TableCell className="text-right" title={`${totals.volume.toFixed()} ${baseAsset}`}>
                         {amountOf(totals.volume, baseAsset)}
                      </TableCell>
-                     <TableCell className="text-right text-muted-foreground" title="The prices added up, which no single order pays">
-                        {amountOf(totals.price, quoteAsset)}
-                     </TableCell>
+                     <TableCell />
                      <TableCell className="text-right" title={`${totals.value.toFixed()} ${quoteAsset}`}>
                         {amountOf(totals.value, quoteAsset)}
                      </TableCell>
@@ -216,7 +218,7 @@ export default function OpenOrderGroup({ group, lastPrice, selected, onSelection
                      </TableCell>
                   </TableRow>
                   <TableRow className="font-normal text-muted-foreground">
-                     <TableCell colSpan={4}>Average per order</TableCell>
+                     <TableCell colSpan={3}>Average per order</TableCell>
                      <TableCell className="text-right">{amountOf(totals.averageVolume, baseAsset)}</TableCell>
                      <TableCell
                         className="text-right"

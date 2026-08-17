@@ -95,13 +95,9 @@ export default function KrakenOpenOrders() {
          <div className="space-y-6">
 
             <InfoBanner>
-               Every order still sitting on Kraken&apos;s book, read live from the exchange rather
-               than from the local ledger — which only ever learns about an order once it has
-               filled. Orders are grouped by trading pair, each table footing with the total and
-               the per-order average of what it holds, and can be cancelled one at a time or
-               several at once.{' '}
-               <Link to="/kraken/order-batch" className="underline underline-offset-4">Order Batch</Link>{' '}
-               is where new ones are created.
+               Orders still on Kraken&apos;s book, read live and grouped by trading pair. Cancel one
+               or several at once; new ones are created on{' '}
+               <Link to="/kraken/order-batch" className="underline underline-offset-4">Order Batch</Link>.
             </InfoBanner>
 
             {error &&
@@ -109,17 +105,17 @@ export default function KrakenOpenOrders() {
                   <AlertDescription>{String(error)}</AlertDescription>
                </Alert>}
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-end gap-3">
+               {data?.fetchedAt &&
+                  <p className="text-sm text-muted-foreground" title={`${asUtcTimestamp(data.fetchedAt)} UTC`}>
+                     Read from Kraken at {asLocalTimestamp(data.fetchedAt)}
+                  </p>}
                <Button variant="outline" size="sm" type="button" disabled={isMutating} onClick={refresh}>
                   {isMutating
                      ? <Loader2Icon className="size-4 animate-spin" />
                      : <RefreshCwIcon className="size-4" />}
                   Refresh
                </Button>
-               {data?.fetchedAt &&
-                  <p className="text-sm text-muted-foreground" title={`${asUtcTimestamp(data.fetchedAt)} UTC`}>
-                     Read from Kraken at {asLocalTimestamp(data.fetchedAt)}
-                  </p>}
             </div>
 
             {!isMutating && data && groups.length === 0 &&
