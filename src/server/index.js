@@ -36,10 +36,17 @@ if (IS_PROD) {
    })
 }
 
-Bun.serve({
-   port: PORT,
-   fetch: app.fetch,
-   idleTimeout: 0,
-})
-
-console.log(`✓ Server listening on http://localhost:${PORT}`)
+try {
+   Bun.serve({
+      port: PORT,
+      fetch: app.fetch,
+      idleTimeout: 0,
+   })
+   console.log(`✓ Server listening on http://localhost:${PORT}`)
+}
+catch (error) {
+   if (error.code !== 'EADDRINUSE') throw error
+   console.error(`✗ Port ${PORT} is already in use — another instance is running.`)
+   console.error('  Start this one on its own ports: PORT=3011 VITE_PORT=3010 bun run dev')
+   process.exit(1)
+}

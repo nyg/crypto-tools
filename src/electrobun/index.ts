@@ -4,8 +4,8 @@ import { createApp } from '../server/app.js'
 import { systemLocales } from './locale'
 import { resolveInitialWindowState, trackWindowState } from './window-state'
 
-const PORT = 3001
-const DEV_SERVER_URL = 'http://localhost:3000'
+const PORT = Number(process.env.PORT ?? 3001)
+const DEV_SERVER_URL = `http://localhost:${process.env.VITE_PORT ?? 3000}`
 const VIEWS_URL = 'views://main/index.html'
 
 async function resolveUrl(): Promise<string> {
@@ -25,14 +25,21 @@ async function main() {
 
    const honoApp = createApp()
 
-   Bun.serve({
-      port: PORT,
-      hostname: '127.0.0.1',
-      fetch: honoApp.fetch,
-      idleTimeout: 0,
-   })
-
-   console.log(`✓ API server listening on http://127.0.0.1:${PORT}`)
+   try {
+      Bun.serve({
+         port: PORT,
+         hostname: '127.0.0.1',
+         fetch: honoApp.fetch,
+         idleTimeout: 0,
+      })
+      console.log(`✓ API server listening on http://127.0.0.1:${PORT}`)
+   }
+   catch (error: any) {
+      if (error?.code !== 'EADDRINUSE') throw error
+      console.error(`✗ Port ${PORT} is already in use — another instance is running.`)
+      console.error('  Start this one on its own ports: PORT=3011 VITE_PORT=3010 bun run desktop:dev')
+      process.exit(1)
+   }
 
    const locales = systemLocales()
    const preload = locales.length ? `window.__LOCALES__ = ${JSON.stringify(locales)};` : null
