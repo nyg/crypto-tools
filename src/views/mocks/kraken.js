@@ -195,8 +195,88 @@ const xstockListings = (params) => {
    }
 }
 
-const xstockClassify = (params) => {
-   const classified = (params?.tickers ?? []).map(ticker => ({
+const mockActivities = [
+   'Asking Claude…',
+   'Searching the web for “latest holdings and expense ratio”',
+   'Reading what the search found…',
+   'Writing the answer…'
+]
+
+let mockJob = null
+
+const mockStep = (ticker, group) => ({
+   ticker, group, phase: 'pending', activity: '', searches: [],
+   startedAt: null, finishedAt: null, error: null
+})
+
+const startMockJob = (kind, tickers, wordCount, groupSize) => {
+
+   const groups = []
+   for (let index = 0; index < tickers.length; index += groupSize) {
+      groups.push(tickers.slice(index, index + groupSize))
+   }
+
+   mockJob = {
+      kind,
+      wordCount,
+      phase: 'running',
+      startedAt: Date.now(),
+      updatedAt: Date.now(),
+      finishedAt: null,
+      steps: groups.flatMap((group, index) => group.map(ticker => mockStep(ticker, index))),
+      error: null,
+      cancelRequested: false,
+      ticks: 0
+   }
+
+   return { job: structuredClone(mockJob), alreadyRunning: false }
+}
+
+const snapshot = () => ({ job: mockJob ? structuredClone(mockJob) : null })
+
+const advanceMockJob = () => {
+
+   if (!mockJob || mockJob.phase !== 'running') return snapshot()
+
+   mockJob.ticks++
+   mockJob.updatedAt = Date.now()
+
+   const running = mockJob.steps.filter(step => step.phase === 'running')
+
+   for (const step of running) {
+      step.activity = mockActivities[Math.min(mockJob.ticks % 5, mockActivities.length - 1)]
+   }
+
+   if (mockJob.ticks % 4 === 0) {
+      for (const step of running) {
+         step.phase = 'done'
+         step.activity = ''
+         step.finishedAt = Date.now()
+         if (mockJob.kind === 'describe') storeMockDescription(step.ticker, mockJob.wordCount)
+         else storeMockClassification(step.ticker)
+      }
+   }
+
+   if (!mockJob.steps.some(step => step.phase === 'running')) {
+      const next = mockJob.steps.find(step => step.phase === 'pending')
+      if (next) {
+         for (const step of mockJob.steps.filter(s => s.group === next.group)) {
+            step.phase = 'running'
+            step.startedAt = Date.now()
+            step.activity = mockActivities[0]
+         }
+      }
+      else {
+         mockJob.phase = 'done'
+         mockJob.finishedAt = Date.now()
+      }
+   }
+
+   return snapshot()
+}
+
+const storeMockClassification = (ticker) => {
+   mockClassifications.set(ticker, {
       ticker,
       altname: `${ticker}x`,
       name: ticker === 'KRAQ' ? 'KRAKacquisition Corp.' : 'Jersey Mike\'s Subs Inc.',
@@ -206,33 +286,37 @@ const xstockClassify = (params) => {
       confidence: 'high',
       sources: ['https://example.com/mock-source'],
       origin: 'ai'
-   }))
-
-   for (const listing of classified) {
-      mockClassifications.set(listing.ticker, listing)
-   }
-
-   return { classified }
+   })
 }
 
-const xstockDescribe = (params) => {
-   const wordCount = params?.wordCount ?? 60
-   const described = (params?.tickers ?? []).map(ticker => ({
-      ticker,
-      description: `Mocked ${wordCount}-word description for ${ticker}. Generated without contacting `
-         + 'Anthropic, so it is filler rather than anything you should read as fact. Click to expand '
-         + 'and collapse this text the way a real description behaves.',
-      sources: ['https://example.com/mock-source']
-   }))
+const storeMockDescription = (ticker, wordCount) => {
+   mockDescriptions.set(describedKey(ticker, wordCount),
+      `Mocked ${wordCount}-word description for ${ticker}. Generated without contacting `
+      + 'Anthropic, so it is filler rather than anything you should read as fact. Click to expand '
+      + 'and collapse this text the way a real description behaves.')
+}
 
-   for (const item of described) {
-      mockDescriptions.set(describedKey(item.ticker, wordCount), item.description)
+const xstockClassify = (params) =>
+   startMockJob('classify', params?.tickers ?? [], null, 10)
+
+const xstockDescribe = (params) =>
+   startMockJob('describe', params?.tickers ?? [], params?.wordCount ?? 60, 1)
+
+const xstockJob = () => advanceMockJob()
+
+const xstockJobCancel = () => {
+   if (mockJob?.phase === 'running') {
+      mockJob.cancelRequested = true
+      mockJob.phase = 'cancelled'
+      mockJob.finishedAt = Date.now()
+      for (const step of mockJob.steps) {
+         if (step.phase === 'running' || step.phase === 'pending') step.phase = 'cancelled'
+      }
    }
-
-   return { described, wordCount }
+   return snapshot()
 }
 
 export {
    tradingPairs, orderBatch, balances, assetRates, openOrders, cancelOrders,
-   xstockListings, xstockClassify, xstockDescribe
+   xstockListings, xstockClassify, xstockDescribe, xstockJob, xstockJobCancel
 }
