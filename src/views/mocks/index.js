@@ -1,6 +1,6 @@
 import {
    tradingPairs, orderBatch, balances, assetRates,
-   xstockListings, xstockClassify, xstockDescribe
+   xstockListings, xstockClassify, xstockDescribe, xstockJob, xstockJobCancel
 } from './kraken'
 import {
    ledgerSync, ledgerSyncStatus, ledgerSyncCancel, ledgerClear,
@@ -18,6 +18,8 @@ const mockRoutes = {
    '/api/kraken/xstocks/listings': (params) => xstockListings(params?.arg),
    '/api/kraken/xstocks/classify': (params) => xstockClassify(params?.arg),
    '/api/kraken/xstocks/describe': (params) => xstockDescribe(params?.arg),
+   '/api/kraken/xstocks/job': () => xstockJob(),
+   '/api/kraken/xstocks/job/cancel': () => xstockJobCancel(),
    '/api/kraken/ledger/sync': (params) => ledgerSync(params?.arg),
    '/api/kraken/ledger/sync/status': () => ledgerSyncStatus(),
    '/api/kraken/ledger/sync/cancel': () => ledgerSyncCancel(),
