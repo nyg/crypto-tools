@@ -294,13 +294,6 @@ export default function KrakenXStocks() {
                <Card>
                   <CardHeader>
                      <CardTitle>Descriptions</CardTitle>
-                     <CardAction>
-                        {isBusy &&
-                           <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Loader2Icon className="size-4 animate-spin" />
-                              {jobVerbs[job.kind]?.present ?? 'Working'}
-                           </span>}
-                     </CardAction>
                   </CardHeader>
                   <CardContent className="space-y-4">
                      <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
