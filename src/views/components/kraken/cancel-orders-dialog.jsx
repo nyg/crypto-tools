@@ -9,7 +9,7 @@ import {
    AlertDialogHeader,
    AlertDialogTitle
 } from '@/components/ui/alert-dialog'
-import { summarize } from './open-order-stats'
+import { summarize } from './open-order-totals'
 import { asCount } from '../lib/filter-options'
 import { asAssetAmount } from '../../../utils/format'
 

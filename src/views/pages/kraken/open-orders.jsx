@@ -13,7 +13,7 @@ import { useProvider } from '../../lib/use-settings'
 import { asCount } from '../../components/lib/filter-options'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { asUtcTimestamp } from '../../../utils/format'
+import { asLocalTimestamp, asUtcTimestamp } from '../../../utils/format'
 
 const groupByPair = (orders) => {
 
@@ -97,8 +97,9 @@ export default function KrakenOpenOrders() {
             <InfoBanner>
                Every order still sitting on Kraken&apos;s book, read live from the exchange rather
                than from the local ledger — which only ever learns about an order once it has
-               filled. Orders are grouped by trading pair, with the totals and the average price
-               of each group, and can be cancelled one at a time or several at once.{' '}
+               filled. Orders are grouped by trading pair, each table footing with the total and
+               the per-order average of what it holds, and can be cancelled one at a time or
+               several at once.{' '}
                <Link to="/kraken/order-batch" className="underline underline-offset-4">Order Batch</Link>{' '}
                is where new ones are created.
             </InfoBanner>
@@ -116,8 +117,8 @@ export default function KrakenOpenOrders() {
                   Refresh
                </Button>
                {data?.fetchedAt &&
-                  <p className="text-sm text-muted-foreground">
-                     Read from Kraken at {asUtcTimestamp(data.fetchedAt)} UTC
+                  <p className="text-sm text-muted-foreground" title={`${asUtcTimestamp(data.fetchedAt)} UTC`}>
+                     Read from Kraken at {asLocalTimestamp(data.fetchedAt)}
                   </p>}
             </div>
 
