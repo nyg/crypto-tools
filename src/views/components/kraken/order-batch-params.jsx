@@ -92,9 +92,9 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
                label="Reference"
                hint={
                   <FieldHint label="About the reference">
-                     Optional. Kraken&apos;s <span className="font-mono">userref</span>: a whole number
-                     stamped on every order in the batch and shown as a column on the Open Orders page,
-                     so a ladder can be told apart from the rest of the book. Left empty, none is sent.
+                     Optional whole number sent as Kraken&apos;s <span className="font-mono">userref</span> on
+                     every order in the batch. It shows as a column on the Open Orders page, so you can
+                     tell this series apart from your other orders.
                   </FieldHint>
                }
                value={formValues.userref ?? ''}

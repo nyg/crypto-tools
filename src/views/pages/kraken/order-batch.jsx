@@ -149,7 +149,7 @@ export default function KrakenOrderBatch() {
       <KrakenLayout name="Order Batch">
          <div className="space-y-6">
             <InfoBanner>
-               Create a ladder of limit orders on one pair in a single go. Orders are {postLimitOrders},
+               Create a series of limit orders on one pair in a single go. Orders are {postLimitOrders},
                fees are taken in the quote currency, and orders are sent 15 at a time (Kraken API limit).
                Kraken allows between {maxOpenOrders} across all pairs, depending on your verification level.
             </InfoBanner>
