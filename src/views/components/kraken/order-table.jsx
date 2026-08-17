@@ -4,11 +4,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asNumber } from '../../../utils/format'
-
-// Kraken records trade times in UTC; rendering them in the browser's zone would
-// silently shift every order.
-const asUtcTimestamp = (time) => new Date(time).toISOString().replace('T', ' ').slice(0, 19)
+import { asNumber, asUtcTimestamp } from '../../../utils/format'
 
 function SortableHead({ column, sort, onSortChange, className, children }) {
    const isActive = sort.column === column

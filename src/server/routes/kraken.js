@@ -26,6 +26,24 @@ app.post('/balances', async (c) => withCredentials(c, 'kraken', async ({ credent
    return c.json({ fetchedAt: Date.now(), assets, openOrders })
 }))
 
+app.post('/open-orders', async (c) => withCredentials(c, 'kraken', async ({ credentials }) => {
+
+   const krakenAPI = new KrakenAPI(credentials)
+
+   const orders = await krakenAPI.fetchOpenOrders()
+   const prices = await krakenAPI.fetchPairPrices(orders.map(order => order.rawPair))
+
+   return c.json({ fetchedAt: Date.now(), orders, prices })
+}))
+
+app.post('/cancel-orders', async (c) => withCredentials(c, 'kraken', async ({ body, credentials }) => {
+
+   const txids = (body.txids ?? []).filter(Boolean)
+   if (txids.length === 0) return c.json({ error: 'No order was given to cancel.' }, 400)
+
+   return c.json(await new KrakenAPI(credentials).cancelOrders(txids))
+}))
+
 app.post('/order-batch', async (c) => withCredentials(c, 'kraken', async ({ body, credentials }) =>
    c.json(await new KrakenAPI(credentials).createOrders(body.ordersParams))))
 

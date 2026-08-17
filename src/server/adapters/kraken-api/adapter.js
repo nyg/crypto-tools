@@ -49,15 +49,20 @@ export default function KrakenAPI(credentials) {
          }, {})
    }
 
+   const chunked = (items, size) => {
+      const chunks = []
+      for (let i = 0; i < items.length; i += size) {
+         chunks.push(items.slice(i, i + size))
+      }
+      return chunks
+   }
+
    this.createOrders = async function ({ orders, ...args }) {
 
       // maximum number of orders that can be created per API call
       const maxOrderCount = 15
 
-      const orderChunks = []
-      for (let i = 0; i < orders.length; i += maxOrderCount) {
-         orderChunks.push(orders.slice(i, i + maxOrderCount))
-      }
+      const orderChunks = chunked(orders, maxOrderCount)
 
       const responses = []
       for (const orderChunk of orderChunks) {
@@ -76,6 +81,13 @@ export default function KrakenAPI(credentials) {
    this.fetchPairIndex = async function () {
       const assetPairs = (await resource.fetchAllAssetPairs()).result
       return buildPairIndex(assetPairs)
+   }
+
+   let sharedPairIndex = null
+
+   const pairIndexOnce = () => {
+      sharedPairIndex ??= this.fetchPairIndex()
+      return sharedPairIndex
    }
 
    // The total Kraken holds per asset, and how much of it is reserved by open orders.
@@ -136,20 +148,78 @@ export default function KrakenAPI(credentials) {
 
       // Resolved through the same index the trade sync uses, so an open order reads
       // with the names the rest of the app shows (XXBTZUSD becomes BTC/USD).
-      const pairIndex = await this.fetchPairIndex()
+      const pairIndex = await pairIndexOnce()
 
       return orders
-         .map(([txid, order]) => ({
-            txid,
-            ...resolvePair(order.descr?.pair, pairIndex),
-            type: order.descr?.type ?? '',
-            ordertype: order.descr?.ordertype ?? '',
-            price: order.descr?.price ?? '0',
-            volume: order.vol ?? '0',
-            executed: order.vol_exec ?? '0',
-            opened: Math.round((order.opentm ?? 0) * 1000)
-         }))
+         .map(([txid, order]) => {
+
+            const price = order.descr?.price ?? '0'
+            const volume = order.vol ?? '0'
+            const executed = order.vol_exec ?? '0'
+            const remaining = Big(volume).minus(executed)
+
+            return {
+               txid,
+               ...resolvePair(order.descr?.pair, pairIndex),
+               rawPair: order.descr?.pair ?? '',
+               type: order.descr?.type ?? '',
+               ordertype: order.descr?.ordertype ?? '',
+               description: order.descr?.order ?? '',
+               status: order.status ?? '',
+               oflags: order.oflags ?? '',
+               reference: order.userref ?? order.cl_ord_id ?? null,
+               price,
+               volume,
+               executed,
+               remaining: remaining.toFixed(),
+               value: remaining.times(price).toFixed(),
+               opened: Math.round((order.opentm ?? 0) * 1000)
+            }
+         })
          .toSorted((a, b) => b.opened - a.opened)
+   }
+
+   this.fetchPairPrices = async function (rawPairs) {
+
+      const wanted = [...new Set(rawPairs.filter(Boolean))]
+      if (wanted.length === 0) return {}
+
+      const index = await pairIndexOnce()
+      const ticker = (await resource.fetchTicker(wanted)).result ?? {}
+
+      const prices = {}
+      for (const [name, entry] of Object.entries(ticker)) {
+         const { pairKey } = resolvePair(name, index)
+         const price = Number(entry?.c?.[0])
+         if (pairKey && Number.isFinite(price)) {
+            prices[pairKey] = price
+         }
+      }
+
+      return prices
+   }
+
+   this.cancelOrders = async function (txids) {
+
+      if (txids.length === 1) {
+         const response = await resource.cancelOrder(credentials, { txid: txids[0] })
+         return { count: response.result?.count ?? 0 }
+      }
+
+      const maxCancelCount = 50
+      const chunks = chunked(txids, maxCancelCount)
+
+      let count = 0
+      for (const chunk of chunks) {
+         const response = await resource.cancelOrderBatch(credentials, { txids: chunk })
+         count += response.result?.count ?? 0
+
+         if (chunk !== chunks[chunks.length - 1]) {
+            await new Promise(resolve => setTimeout(resolve, 2000))
+         }
+      }
+
+      return { count }
    }
 
    // What one unit of each asset is worth in USD right now, for the assets asked for.

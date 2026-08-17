@@ -67,6 +67,72 @@ const balances = () => {
    }
 }
 
+const ladder = ({ pairKey, baseAsset, quoteAsset, type, from, to, count, volume, reference, agedHours }) =>
+   Array.from({ length: count }, (unused, index) => {
+      const price = from + (to - from) * (index / Math.max(1, count - 1))
+      return {
+         txid: fakeTxid(),
+         pairKey,
+         baseAsset,
+         quoteAsset,
+         rawPair: `${baseAsset}${quoteAsset}`,
+         type,
+         ordertype: 'limit',
+         status: 'open',
+         oflags: 'post,fciq',
+         reference: reference ?? null,
+         price: price.toFixed(2),
+         volume: volume.toFixed(8),
+         executed: '0.00000000',
+         remaining: volume.toFixed(8),
+         value: (price * volume).toFixed(8),
+         opened: Date.now() - (agedHours + index) * 3600000
+      }
+   })
+
+const buildOpenOrders = () => [
+   ...ladder({
+      pairKey: 'BTC/USD', baseAsset: 'BTC', quoteAsset: 'USD', type: 'buy',
+      from: 52000, to: 60000, count: 14, volume: 0.0125, reference: 20260817, agedHours: 6
+   }),
+   ...ladder({
+      pairKey: 'BTC/USD', baseAsset: 'BTC', quoteAsset: 'USD', type: 'sell',
+      from: 71000, to: 74000, count: 3, volume: 0.05, reference: null, agedHours: 72
+   }),
+   ...ladder({
+      pairKey: 'ADA/USD', baseAsset: 'ADA', quoteAsset: 'USD', type: 'sell',
+      from: 0.92, to: 1.15, count: 4, volume: 400, reference: 991, agedHours: 11
+   }),
+   ...ladder({
+      pairKey: 'ETH/EUR', baseAsset: 'ETH', quoteAsset: 'EUR', type: 'buy',
+      from: 2400, to: 2650, count: 2, volume: 0.4, reference: null, agedHours: 30
+   })
+]
+
+let mockOpenOrders = buildOpenOrders()
+
+if (mockOpenOrders[0]) {
+   mockOpenOrders[0] = {
+      ...mockOpenOrders[0],
+      executed: '0.00500000',
+      remaining: '0.00750000',
+      value: (Number(mockOpenOrders[0].price) * 0.0075).toFixed(8)
+   }
+}
+
+const openOrders = () => ({
+   fetchedAt: Date.now(),
+   orders: mockOpenOrders.toSorted((a, b) => b.opened - a.opened),
+   prices: { 'BTC/USD': 62500, 'ADA/USD': 0.46, 'ETH/EUR': 2820 }
+})
+
+const cancelOrders = (params) => {
+   const txids = new Set(params?.txids ?? [])
+   const before = mockOpenOrders.length
+   mockOpenOrders = mockOpenOrders.filter(order => !txids.has(order.txid))
+   return { count: before - mockOpenOrders.length }
+}
+
 // Roughly the market as of the fixture's writing. SOL has no mocked rate on purpose,
 // so the "no USD pair" path stays visible in mocked mode.
 const assetRates = (params) => {
@@ -251,6 +317,6 @@ const xstockJobCancel = () => {
 }
 
 export {
-   tradingPairs, orderBatch, balances, assetRates,
+   tradingPairs, orderBatch, balances, assetRates, openOrders, cancelOrders,
    xstockListings, xstockClassify, xstockDescribe, xstockJob, xstockJobCancel
 }

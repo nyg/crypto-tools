@@ -12,6 +12,8 @@ const tickerEndpoint = '/0/public/Ticker'
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
 const openOrdersEndpoint = '/0/private/OpenOrders'
+const cancelOrderEndpoint = '/0/private/CancelOrder'
+const cancelOrderBatchEndpoint = '/0/private/CancelOrderBatch'
 
 const addExportEndpoint = '/0/private/AddExport'
 const exportStatusEndpoint = '/0/private/ExportStatus'
@@ -116,7 +118,7 @@ export async function removeExport(apiCredentials, { reportId, type = 'delete' }
       { bodyParams: { id: reportId, type } })
 }
 
-export async function createOrderBatch(apiCredentials, { pair, direction, dryRun, orders }) {
+export async function createOrderBatch(apiCredentials, { pair, direction, dryRun, userref, orders }) {
    return await privateRequest(
       urlFor(addOrderBatchEndpoint),
       apiCredentials,
@@ -129,9 +131,19 @@ export async function createOrderBatch(apiCredentials, { pair, direction, dryRun
                type: direction,
                volume: Big(volume).toFixed(5),
                price: Big(price).toFixed(1),
-               oflags: 'post,fciq'
+               oflags: 'post,fciq',
+               ...(userref === undefined || userref === null ? {} : { userref })
             }))
          }
       }
    )
+}
+
+export async function cancelOrder(apiCredentials, { txid }) {
+   return await privateRequest(urlFor(cancelOrderEndpoint), apiCredentials, { bodyParams: { txid } })
+}
+
+export async function cancelOrderBatch(apiCredentials, { txids }) {
+   return await privateRequest(
+      urlFor(cancelOrderBatchEndpoint), apiCredentials, { bodyParams: { orders: txids } })
 }

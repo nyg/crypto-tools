@@ -8,6 +8,7 @@ import KrakenBalances from './pages/kraken/balances'
 import KrakenClosedOrders from './pages/kraken/closed-orders'
 import KrakenFees from './pages/kraken/fees'
 import KrakenLedger from './pages/kraken/ledger'
+import KrakenOpenOrders from './pages/kraken/open-orders'
 import KrakenOrderBatch from './pages/kraken/order-batch'
 import KrakenRewards from './pages/kraken/rewards'
 import KrakenXStocks from './pages/kraken/xstocks'
@@ -71,6 +72,7 @@ export default function App() {
                <Route path="/kraken/closed-orders" element={<KrakenClosedOrders />} />
                <Route path="/kraken/fees" element={<KrakenFees />} />
                <Route path="/kraken/ledger" element={<KrakenLedger />} />
+               <Route path="/kraken/open-orders" element={<KrakenOpenOrders />} />
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
                <Route path="/kraken/rewards" element={<KrakenRewards />} />
                <Route path="/kraken/xstocks" element={<KrakenXStocks />} />

@@ -1,6 +1,7 @@
 import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
 import ComboboxField from '../lib/combobox-field'
+import Input from '../lib/input'
 import { Button } from '@/components/ui/button'
 
 const directionOptions = [
@@ -84,7 +85,20 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
                onValueChange={(value) => handleChange('volumeFn', value)}
                options={volumeFnOptions}
             />
+            <Input
+               name="userref"
+               type="number"
+               label="Reference (optional)"
+               value={formValues.userref ?? ''}
+               onChange={(e) => handleChange('userref', e.target.value)}
+            />
          </div>
+
+         <p className="text-xs text-muted-foreground">
+            The reference is Kraken&apos;s <span className="font-mono">userref</span>: a whole number
+            of your own stamped on every order in the batch, shown as a column on the Open Orders page
+            so a ladder can be told apart from the rest of the book. Left empty, no reference is sent.
+         </p>
 
          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" type="button" onClick={onShowPreview}>Show preview</Button>
