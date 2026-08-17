@@ -8,11 +8,12 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 
 ### Kraken
 
-- **Order Batch** — Create multiple buy or sell post-limit orders for a trading pair with configurable price and volume distribution functions. Supports dry-run mode for safe testing.
+- **Order Batch** — Create multiple buy or sell post-limit orders for a trading pair with configurable price and volume distribution functions. Supports dry-run mode for safe testing, and an optional reference (Kraken's `userref`) stamped on every order in the batch so a ladder can be recognised later.
+- **Open Orders** — Everything still on Kraken's book, read live from the exchange and grouped by trading pair. Each group shows how many orders it holds, their total volume and cost, the volume-weighted average price, the price range and what the pair last traded at, over a paginated table showing ten orders at a time. Orders carry the reference they were created with, and how far the market has to move for each to fill. Cancel a single order, or select several and cancel them in one call.
 - **Closed Orders** — Browse every order that filled, read from the local database rather than the API. Orders are rebuilt from your stored trade history, so an order filled in several trades appears once with its total volume and the average price it achieved. Sortable and paginated, filterable by pair, side, order type, date range and order id.
 - **Ledger** — Download your complete ledger (trades, deposits, withdrawals, staking and earn rewards) and your trade history through Kraken's export report endpoints and keep both in a local SQLite database, so other tools can use them without querying the API again. Syncs incrementally, and shows the stored date range, last sync time, entry and trade counts alongside a filterable table of entries.
 - **Fees** — Dashboard of everything Kraken has charged since the account was opened — trade fees, withdrawal fees and anything else the ledger records — read from the local database. Totals per asset, a breakdown by ledger entry type, and a stacked chart over time by month, quarter or year. Fees are kept in the asset they were charged in and never converted between currencies.
-- **Balances** — View spot and staking account balances.
+- **Balances** — View spot and staking account balances, checked against Kraken live so an open order's reservation shows up next to what the ledger recorded.
 - **xStocks** — which of Kraken's tokenized assets are stocks and which are ETFs, from a reference list shipped with the app, so it loads instantly and needs no API key. Anthropic Claude fills in listings Kraken has added since that list was refreshed, and writes descriptions on demand at a configurable word count; both are cached locally so they are billed once. Searchable and filterable by asset type.
 
 ![Kraken Order Batch](public/screenshot-kraken-order-batch.png)

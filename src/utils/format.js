@@ -65,6 +65,12 @@ export function asShortMonthYearDate(timestamp) {
    return dateFormat(shortMonthDateFormatter, timestamp)
 }
 
+// Kraken records trade times in UTC; rendering them in the browser's zone would
+// silently shift every order.
+export function asUtcTimestamp(timestamp) {
+   return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 19)
+}
+
 export function asPercentage(number) {
    return percentageFormatter.format(number)
 }

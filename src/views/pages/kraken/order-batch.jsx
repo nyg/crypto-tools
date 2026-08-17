@@ -30,6 +30,13 @@ const volumeFunctions = {
    }
 }
 
+const INT32_LIMIT = 2147483647
+
+const asUserref = (value) => {
+   const parsed = Number.parseInt(value, 10)
+   return Number.isInteger(parsed) && Math.abs(parsed) <= INT32_LIMIT ? parsed : undefined
+}
+
 const buildOrdersParams = (formValues, dryRun) => {
    const orderCount = Number.parseInt(formValues.orderCount)
    const priceFrom = Big(formValues.priceFrom)
@@ -48,10 +55,13 @@ const buildOrdersParams = (formValues, dryRun) => {
       volume: volumeFunction(volume, orderCount, price, prices)
    }))
 
+   const userref = asUserref(formValues.userref)
+
    return {
       pair: formValues.pair,
       direction: formValues.direction,
       dryRun,
+      ...(userref === undefined ? {} : { userref }),
       orders
    }
 }
@@ -66,7 +76,8 @@ const defaultFormValues = {
    volume: '0.1',
    orderCount: '3',
    priceFn: 'linear',
-   volumeFn: 'linear-quote'
+   volumeFn: 'linear-quote',
+   userref: ''
 }
 
 const postLimitOrders = <ExternalLink href="https://support.kraken.com/hc/en-us/articles/203053246-Other-order-options" className="underline">

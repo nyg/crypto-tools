@@ -1,5 +1,5 @@
 import {
-   tradingPairs, orderBatch, balances, assetRates,
+   tradingPairs, orderBatch, balances, assetRates, openOrders, cancelOrders,
    xstockListings, xstockClassify, xstockDescribe
 } from './kraken'
 import {
@@ -14,6 +14,8 @@ const mockRoutes = {
    '/api/kraken/trading-pairs': () => tradingPairs,
    '/api/kraken/order-batch': (params) => orderBatch(params?.arg),
    '/api/kraken/balances': () => balances(),
+   '/api/kraken/open-orders': () => openOrders(),
+   '/api/kraken/cancel-orders': (params) => cancelOrders(params?.arg),
    '/api/kraken/asset-rates': (params) => assetRates(params?.arg),
    '/api/kraken/xstocks/listings': (params) => xstockListings(params?.arg),
    '/api/kraken/xstocks/classify': (params) => xstockClassify(params?.arg),
