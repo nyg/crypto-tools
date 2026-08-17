@@ -18,10 +18,11 @@ export default defineConfig({
       },
    },
    server: {
-      port: 3000,
+      port: Number(process.env.VITE_PORT ?? 3000),
+      strictPort: true,
       proxy: {
          '/api': {
-            target: 'http://localhost:3001',
+            target: `http://localhost:${process.env.PORT ?? 3001}`,
             changeOrigin: true,
          },
       },

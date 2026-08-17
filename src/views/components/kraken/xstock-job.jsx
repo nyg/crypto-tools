@@ -42,6 +42,7 @@ export default function XStockJobProgress({ job }) {
 
    const verbs = jobVerbs[job.kind] ?? jobVerbs.describe
    const percent = counts.total === 0 ? 0 : Math.round((counts.settled / counts.total) * 100)
+   const current = Math.min(counts.settled + counts.running.length, counts.total)
 
    return (
       <div className="space-y-3 rounded-md border border-border bg-muted/40 p-3">
@@ -49,7 +50,7 @@ export default function XStockJobProgress({ job }) {
          <div className="flex items-baseline justify-between gap-4 text-sm">
             <span className="font-medium">
                {running
-                  ? `${verbs.present} ${counts.settled} of ${counts.total}`
+                  ? `${verbs.present} ${current} of ${counts.total}`
                   : `${verbs.past} ${counts.done} of ${counts.total}`}
             </span>
             <span className="shrink-0 tabular-nums text-muted-foreground">{elapsedSeconds(job)}s</span>

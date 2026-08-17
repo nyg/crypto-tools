@@ -1,7 +1,13 @@
 {
-   "generatedAt": "2026-08-08",
+   "generatedAt": "2026-08-17",
    "source": "stockanalysis.com",
    "listings": {
+      "AAOI": {
+         "name": "Applied Optoelectronics, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "AAPL": {
          "name": "Apple Inc.",
          "exchange": "",
@@ -74,6 +80,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "ARM": {
+         "name": "Arm Holdings plc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "ASML": {
          "name": "ASML Holding N.V.",
          "exchange": "",
@@ -104,11 +116,23 @@
          "type": "stock",
          "subtype": ""
       },
+      "BE": {
+         "name": "Bloom Energy Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "BITX": {
          "name": "Volatility Shares 2x Bitcoin ETF",
          "exchange": "",
          "type": "etf",
          "subtype": "leveraged"
+      },
+      "BKR": {
+         "name": "Baker Hughes Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
       },
       "BMNR": {
          "name": "Bitmine Immersion Technologies, Inc.",
@@ -142,6 +166,12 @@
       },
       "BTGO": {
          "name": "Bitgo Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CBRS": {
+         "name": "Cerebras Systems Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -196,6 +226,12 @@
       },
       "CRWD": {
          "name": "CrowdStrike Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "CRWV": {
+         "name": "CoreWeave, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -277,6 +313,12 @@
          "exchange": "",
          "type": "etf",
          "subtype": "bond"
+      },
+      "FDXF": {
+         "name": "FedEx Freight Holding Company, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
       },
       "FEZ": {
          "name": "State Street SPDR EURO STOXX 50 ETF",
@@ -572,6 +614,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "NBIS": {
+         "name": "Nebius Group N.V.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "NET": {
          "name": "Cloudflare, Inc.",
          "exchange": "",
@@ -698,6 +746,12 @@
          "type": "etf",
          "subtype": ""
       },
+      "QURE": {
+         "name": "uniQure N.V.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "RBLX": {
          "name": "Roblox Corporation",
          "exchange": "",
@@ -739,6 +793,12 @@
          "exchange": "",
          "type": "etf",
          "subtype": "bond"
+      },
+      "SHAZ": {
+         "name": "SharonAI Holdings Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
       },
       "SKHY": {
          "name": "SK hynix Inc.",
@@ -818,6 +878,12 @@
          "type": "etf",
          "subtype": "bond"
       },
+      "TE": {
+         "name": "T1 Energy Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TER": {
          "name": "Teradyne, Inc.",
          "exchange": "",
@@ -856,6 +922,12 @@
       },
       "TSM": {
          "name": "Taiwan Semiconductor Manufacturing Company Limited",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TWST": {
+         "name": "Twist Bioscience Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
