@@ -42,13 +42,13 @@ export const toolGroups = [
          {
             href: '/kraken/open-orders',
             title: 'Open Orders',
-            description: 'See what is still on the book, grouped by pair, and cancel one order or a whole ladder.',
+            description: 'See what is still on the book, grouped by pair, and cancel one order or a whole series.',
             icon: ListChecksIcon
          },
          {
             href: '/kraken/order-batch',
             title: 'Order Batch',
-            description: 'Create a ladder of limit orders for a trading pair in one go.',
+            description: 'Create a series of limit orders for a trading pair in one go.',
             icon: LayersIcon
          },
          {

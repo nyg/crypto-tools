@@ -2,6 +2,7 @@ import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
 import ComboboxField from '../lib/combobox-field'
 import Input from '../lib/input'
+import FieldHint from '../lib/field-hint'
 import { Button } from '@/components/ui/button'
 
 const directionOptions = [
@@ -28,7 +29,7 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
 
    return (
       <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-         <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
+         <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-5">
             <ComboboxField
                name="pair"
                label="Pair"
@@ -88,17 +89,18 @@ export default function OrderBatchParameters({ formValues, setFormValues, tradin
             <Input
                name="userref"
                type="number"
-               label="Reference (optional)"
+               label="Reference"
+               hint={
+                  <FieldHint label="About the reference">
+                     Optional whole number sent as Kraken&apos;s <span className="font-mono">userref</span> on
+                     every order in the batch. It shows as a column on the Open Orders page, so you can
+                     tell this series apart from your other orders.
+                  </FieldHint>
+               }
                value={formValues.userref ?? ''}
                onChange={(e) => handleChange('userref', e.target.value)}
             />
          </div>
-
-         <p className="text-xs text-muted-foreground">
-            The reference is Kraken&apos;s <span className="font-mono">userref</span>: a whole number
-            of your own stamped on every order in the batch, shown as a column on the Open Orders page
-            so a ladder can be told apart from the rest of the book. Left empty, no reference is sent.
-         </p>
 
          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" type="button" onClick={onShowPreview}>Show preview</Button>
