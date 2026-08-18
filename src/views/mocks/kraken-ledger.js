@@ -41,7 +41,7 @@ function buildEntries() {
 
    const random = randomizer(20240801)
    const entries = []
-   let time = Date.UTC(2023, 0, 12, 9, 30, 0)
+   let time = Date.now() - 1250 * DAY
 
    // Wallets are spelled the way Kraken spells them in the export, because the Balances
    // page reads the placement of a holding out of exactly this string.
@@ -49,7 +49,7 @@ function buildEntries() {
 
    for (let i = 0; entries.length < 250; i++) {
 
-      time += (4 + random(60)) * 3600000
+      time += (24 + random(300)) * 3600000
       const roll = random(10)
       const { asset, baseAsset } = assets[random(assets.length)]
       const balance = (random(100000) / 100).toFixed(8)
@@ -142,7 +142,7 @@ function buildEntries() {
 
    // Staked under the name Kraken has since retired, and never opted back in, so it
    // reads as an idle spot holding with two raw names behind it.
-   push({ txid: 'LADA3', refid: 'STADA', time: Date.UTC(2023, 5, 2), type: 'staking',
+   push({ txid: 'LADA3', refid: 'STADA', time: recently(1100), type: 'staking',
       asset: 'ADA.S', baseAsset: 'ADA', amount: '640.00000000', balance: '640.00000000' })
 
    push({ txid: 'LLINK1', refid: 'DPLINK', time: recently(500), type: 'deposit',
