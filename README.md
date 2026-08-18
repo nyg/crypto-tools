@@ -58,26 +58,27 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 
 ## Install
 
-Desktop apps for macOS (Apple Silicon) and Windows (x64). Neither install needs Bun, Git or admin rights.
+Desktop apps for macOS (Apple Silicon) and Windows (x64). No admin rights needed.
 
-**macOS — Homebrew:**
+**macOS — [Homebrew](https://brew.sh):**
 
 ```sh
 brew install --cask nyg/tap/crypto-tools
 ```
 
-**Windows — Scoop:**
+**Windows — [Scoop](https://scoop.sh):**
 
 ```powershell
+# run in PowerShell
 scoop bucket add nyg https://github.com/nyg/scoop-bucket
-scoop install crypto-tools
+scoop install git crypto-tools
 ```
 
-If you don't have Scoop: `irm get.scoop.sh | iex`.
+If you don't have Scoop: `irm get.scoop.sh | iex`. It installs software in `C:\Users\<YOUR USERNAME>\scoop`.
 
-Both handle the first-launch warning for you. To install by hand instead, take the `.dmg` (macOS) or `.zip` (Windows) from the [releases page](https://github.com/nyg/crypto-tools/releases): drag **Crypto Tools.app** to **Applications**, or extract the ZIP and run **Crypto Tools-Setup.exe**.
+### Without package managers
 
-API keys are configured in the app, on the **Settings** page.
+To install by hand instead, take the `.dmg` (macOS) or `.zip` (Windows) from the [latest release](https://github.com/nyg/crypto-tools/releases): drag **Crypto Tools.app** to **Applications**, or extract the ZIP and run **Crypto Tools-Setup.exe**.
 
 ### First launch
 
@@ -86,11 +87,9 @@ The app is ad-hoc signed on macOS and unsigned on Windows, so a manual install i
 - **macOS**: `xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"`, then open it. (**System Settings → Privacy & Security → Open Anyway** works for the *could not verify* dialog only.)
 - **Windows**: **More info → Run anyway**, which SmartScreen offers to administrators only. Standard users need the Scoop install.
 
-Notarization (macOS) and Authenticode signing (Windows) are the only way to remove the prompt entirely; both need paid certificates and are intentionally not used here.
-
 ## Run locally
 
-Requires [Bun](https://bun.sh/).
+Requires [Bun](https://bun.sh).
 
 ```sh
 git clone https://github.com/nyg/crypto-tools.git
@@ -101,23 +100,19 @@ bun run dev
 
 The app is then on http://localhost:3000: `bun run dev` starts the Vite dev server (port 3000) and the Hono API server (port 3001), with `/api` proxied to the latter. API keys are set on the **Settings** page, the same as in the installed app.
 
-To browse every page with generated data instead — no API keys, no server, nothing written to disk:
+### Other run commands
 
 ```sh
+# run app with mocked data, no API key needed
 bun run mocked
-```
 
-To run the desktop app, or build a distributable into `artifacts/`:
-
-```sh
+# launch the desktop app
 bun run desktop:dev
+
+# build a distributable into `artifacts/`
 bun run build:stable
 ```
 
 ## Disclaimer
 
 Use at your own risk.
-
-## License
-
-[MIT](LICENSE)
