@@ -5,7 +5,7 @@ function randomizer(seed) {
    let state = seed
    return (max) => {
       state = (state * 1103515245 + 12345) % 2147483648
-      return state % max
+      return Math.floor(state / 65536) % max
    }
 }
 
@@ -19,17 +19,25 @@ const markets = [
 
 const orderTypes = ['limit', 'limit', 'limit', 'market', 'stop-loss']
 
+const ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+
+const idSegment = (random, length) =>
+   Array.from({ length }, () => ID_ALPHABET[random(ID_ALPHABET.length)]).join('')
+
+const krakenId = (prefix, random) =>
+   `${prefix}${idSegment(random, 5)}-${idSegment(random, 5)}-${idSegment(random, 6)}`
+
 // One row per fill, as Kraken's trades export writes them — several rows can share
 // an ordertxid, which is exactly what the page has to fold back into one order.
 function buildTrades() {
 
    const random = randomizer(20260801)
    const trades = []
-   let time = Date.UTC(2023, 1, 3, 10, 15, 0)
+   let time = Date.now() - 1250 * 86400000
 
    for (let order = 0; trades.length < 400; order++) {
 
-      time += (5 + random(50)) * 3600000
+      time += (12 + random(160)) * 3600000
 
       const market = markets[random(markets.length)]
       const direction = random(10) < 6 ? 'buy' : 'sell'
@@ -40,11 +48,11 @@ function buildTrades() {
       const fillCount = random(10) < 7 ? 1 : 1 + random(3)
       // A missing order id is rare but real, and each such fill has to stand alone
       // rather than merging with every other one.
-      const ordertxid = random(40) === 0 ? '' : `O${String(order).padStart(5, '0')}-MOCKD-${direction.toUpperCase()}`
+      const ordertxid = random(40) === 0 ? '' : krakenId('O', random)
 
       for (let fill = 0; fill < fillCount; fill++) {
 
-         const txid = `TR${String(trades.length).padStart(5, '0')}-MOCKD-TRADE`
+         const txid = krakenId('T', random)
          const price = Big(market.price).plus(random(market.price / 10)).minus(market.price / 20)
          const vol = Big(1 + random(400000)).div(1000000 * (market.price > 1000 ? 1 : 0.01))
          const cost = price.times(vol)

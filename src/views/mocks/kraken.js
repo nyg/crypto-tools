@@ -289,11 +289,24 @@ const storeMockClassification = (ticker) => {
    })
 }
 
+const mockDescriptionText = {
+   AAPL: 'Designs and sells the iPhone, Mac, iPad and Apple Watch, and runs the services built around them — the App Store, iCloud, Apple Music and Apple Pay. Hardware is still the larger half of revenue, services the faster-growing one.',
+   'BRK.B': 'Warren Buffett\'s holding company, built on insurance underwriting at GEICO and Berkshire Hathaway Reinsurance and on wholly owned operating businesses such as BNSF Railway and Berkshire Hathaway Energy, alongside a large listed equity portfolio.',
+   LNG: 'Cheniere Energy runs the Sabine Pass and Corpus Christi terminals, the first to export liquefied natural gas from the United States mainland. Most capacity is contracted years ahead under long-term take-or-pay agreements.',
+   NVDA: 'Designs the GPUs and networking behind most AI training and inference, sold as data-centre systems as much as chips, with the CUDA software stack as the moat around them. Also supplies gaming, robotics and automotive silicon.',
+   STRC: 'A perpetual preferred share issued by Strategy Inc. It pays a variable dividend set by the board rather than a fixed coupon, ranks ahead of the common stock, and has no maturity date.',
+   TSLA: 'Builds the Model 3, Y, S and X, the Cybertruck and Semi, plus grid-scale Megapack and home Powerwall storage. Revenue also comes from supercharging, insurance and the driver-assistance software sold per vehicle.',
+   GLD: 'A trust that holds physical gold bullion in London vaults, one share tracking a fixed and slowly declining fraction of an ounce. It is a grantor trust rather than a fund, so it holds metal and nothing else.',
+   SGOV: 'Holds US Treasury bills maturing within three months, rolled continuously. Duration is close to zero, so the price barely moves and almost all of the return arrives as monthly income tracking short-term rates.',
+   SPY: 'The oldest US-listed ETF, tracking the S&P 500 as a unit investment trust. That structure means dividends are held in cash until they are paid out rather than reinvested, a small drag against newer S&P 500 funds.',
+   TQQQ: 'Seeks three times the daily return of the Nasdaq-100 using swaps and futures. The leverage resets every day, so returns over longer periods compound away from 3x — volatility erodes them even when the index ends flat.',
+   VOO: 'Vanguard\'s S&P 500 tracker, holding the index constituents at their market weights with one of the lowest expense ratios available. Structured as an open-ended fund, so dividends are reinvested rather than held in cash.'
+}
+
 const storeMockDescription = (ticker, wordCount) => {
-   mockDescriptions.set(describedKey(ticker, wordCount),
-      `Mocked ${wordCount}-word description for ${ticker}. Generated without contacting `
-      + 'Anthropic, so it is filler rather than anything you should read as fact. Click to expand '
-      + 'and collapse this text the way a real description behaves.')
+   mockDescriptions.set(describedKey(ticker, wordCount), mockDescriptionText[ticker]
+      ?? `A mocked ${wordCount}-word description for ${ticker}, written without contacting Anthropic, `
+      + 'so it is filler rather than anything to read as fact.')
 }
 
 const xstockClassify = (params) =>
