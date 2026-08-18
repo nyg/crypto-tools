@@ -43,8 +43,6 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 
 ![Kraken xStocks](public/screenshot-kraken-xstocks.png)
 
-![Kraken xStocks descriptions being generated](public/screenshot-kraken-xstocks-job.png)
-
 </details>
 
 <details>
@@ -101,7 +99,7 @@ bun install
 bun run dev
 ```
 
-The app is then on http://localhost:3000: `bun run dev` starts the Vite dev server (port 3000) and the Hono API server (port 3001), with `/api` proxied to the latter. API keys can be set on the **Settings** page, or copied into `.env.development.local` from `.env.development.local.example`.
+The app is then on http://localhost:3000: `bun run dev` starts the Vite dev server (port 3000) and the Hono API server (port 3001), with `/api` proxied to the latter. API keys are set on the **Settings** page, the same as in the installed app.
 
 To browse every page with generated data instead — no API keys, no server, nothing written to disk:
 
