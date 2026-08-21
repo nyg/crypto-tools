@@ -4,14 +4,13 @@ import { withAccount } from './with-account.js'
 
 const app = new Hono()
 
-// Orders rather than trades: Kraken's export records one row per fill, and an order
-// filled in three goes is still one order. They are grouped on the way out.
-app.post('/orders', async (c) => withAccount(c, ({ body, accountId }) =>
-   c.json(new TradeRepository(accountId).queryOrders({
+// Runs of buying and selling for one base asset, each fold of consecutive same-side
+// orders returned as a single row with the orders behind it attached.
+app.post('/aggregations', async (c) => withAccount(c, ({ body, accountId }) =>
+   c.json(new TradeRepository(accountId).queryAggregations({
       filters: body.filters,
-      sort: body.sort,
       page: Math.max(0, Number(body.page) || 0),
-      pageSize: Math.min(500, Math.max(1, Number(body.pageSize) || 50))
+      pageSize: Math.min(500, Math.max(1, Number(body.pageSize) || 20))
    }))))
 
 // The stored fills, ungrouped — what the Ledger page's Trades tab browses, next to

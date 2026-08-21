@@ -27,9 +27,9 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 
 ![Kraken Fees](public/screenshot-kraken-fees.png)
 
-**Closed Orders**
+**Aggregated Trades**
 
-![Kraken Closed Orders](public/screenshot-kraken-closed-orders.png)
+![Kraken Aggregated Trades](public/screenshot-kraken-aggregated-trades.png)
 
 **Open Orders**
 

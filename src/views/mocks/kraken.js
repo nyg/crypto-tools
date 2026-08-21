@@ -133,10 +133,13 @@ const cancelOrders = (params) => {
    return { count: before - mockOpenOrders.length }
 }
 
-// Roughly the market as of the fixture's writing. SOL has no mocked rate on purpose,
-// so the "no USD pair" path stays visible in mocked mode.
+// Roughly the market as of the fixture's writing. SOL and CHF have no mocked rate on
+// purpose, so the "no USD pair" path stays visible in mocked mode.
 const assetRates = (params) => {
-   const known = { BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, LINK: 12.5, USD: 1 }
+   const known = {
+      BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, LINK: 12.5,
+      USD: 1, EUR: 1.08, USDT: 1, USDC: 1
+   }
    return {
       rates: (params?.assets ?? [])
          .filter(asset => known[asset] !== undefined)

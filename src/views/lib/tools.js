@@ -1,4 +1,4 @@
-import { CoinsIcon, GiftIcon, HistoryIcon, LayersIcon, ListChecksIcon, ReceiptIcon, ScrollTextIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import { CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 
 
 // The single source of truth for navigation: the home dashboard, the per-exchange
@@ -34,10 +34,10 @@ export const toolGroups = [
             icon: ReceiptIcon
          },
          {
-            href: '/kraken/closed-orders',
-            title: 'Closed Orders',
-            description: 'Browse the orders that filled, rebuilt from your stored trade history.',
-            icon: HistoryIcon
+            href: '/kraken/aggregated-trades',
+            title: 'Aggregated Trades',
+            description: 'Fold your trades into runs of buying and selling for one asset, across every quote currency.',
+            icon: SigmaIcon
          },
          {
             href: '/kraken/open-orders',

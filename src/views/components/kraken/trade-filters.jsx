@@ -7,10 +7,10 @@ import { ANY, withAnyOption, asDateInput, fromDateValue, toDateValue } from '../
 
 export const defaultFilters = { pair: '', direction: '', ordertype: '', from: null, to: null, search: '' }
 
-// Changing the filters from outside (Reset, or clicking an order in the table)
+// Changing the filters from outside (Reset, or clicking an id in the table)
 // remounts this component through its key, so the search box needs no separate
 // effect to stay in step with the filters it was given.
-export default function OrderFilters({ filters, options, onChange, onReset }) {
+export default function TradeFilters({ filters, options, onChange, onReset }) {
 
    const [search, setSearch] = useState(filters.search)
 
@@ -31,7 +31,7 @@ export default function OrderFilters({ filters, options, onChange, onReset }) {
          <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-6">
 
             <ComboboxField
-               name="order-pair"
+               name="trade-pair"
                label="Pair"
                value={filters.pair}
                onValueChange={(value) => update({ pair: value })}
@@ -42,35 +42,35 @@ export default function OrderFilters({ filters, options, onChange, onReset }) {
                emptyText="No pair found." />
 
             <SelectField
-               name="order-direction"
+               name="trade-direction"
                label="Side"
                value={filters.direction || ANY}
                onValueChange={(value) => update({ direction: value === ANY ? '' : value })}
                options={withAnyOption(options?.directions ?? [], 'Buy and sell')} />
 
             <SelectField
-               name="order-type"
+               name="trade-type"
                label="Type"
                value={filters.ordertype || ANY}
                onValueChange={(value) => update({ ordertype: value === ANY ? '' : value })}
                options={withAnyOption(options?.ordertypes ?? [], 'All types')} />
 
             <Input
-               name="order-from"
+               name="trade-from"
                type="date"
                label="From"
                value={asDateInput(filters.from)}
                onChange={(e) => update({ from: fromDateValue(e.target.value) })} />
 
             <Input
-               name="order-to"
+               name="trade-to"
                type="date"
                label="To"
                value={asDateInput(filters.to)}
                onChange={(e) => update({ to: toDateValue(e.target.value) })} />
 
             <Input
-               name="order-search"
+               name="trade-search"
                label="Search id"
                value={search}
                onChange={(e) => setSearch(e.target.value)} />

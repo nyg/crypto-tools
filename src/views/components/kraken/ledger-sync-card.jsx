@@ -108,8 +108,8 @@ export default function LedgerSyncCard({ state, job, isRunning, error, isStartin
                ledger, then your trade history. Each export is deleted from Kraken as soon as its
                rows are stored. <b>Full resync</b> re-reads your whole history and refreshes rows
                Kraken has amended since — it never deletes anything. <b>Clear data</b> empties the
-               entries and the trades behind the Closed Orders page, leaving the database itself in
-               place.
+               entries and the trades behind the Aggregated Trades page, leaving the database
+               itself in place.
             </p>
 
             {/* A failure the steps already carry is not repeated here; this is for the
