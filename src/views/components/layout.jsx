@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router'
 import MenuLink from './lib/menu-link'
+import PageHelpButton from './lib/page-help-button'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { groupHref } from '@/lib/tools'
@@ -35,12 +36,15 @@ export default function Layout({ children, name }) {
                   <MenuLink href={groupHref('Binance')} isActive={isSection}>Binance</MenuLink>
                   <MenuLink href="/settings" isActive={isSection}>Settings</MenuLink>
                </nav>
-               <Button asChild variant="ghost" size="icon-sm" className="ml-auto text-muted-foreground hover:text-foreground">
-                  <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
-                     <GithubLogo />
-                     <span className="sr-only">GitHub</span>
-                  </a>
-               </Button>
+               <div className="ml-auto flex items-center gap-1">
+                  <PageHelpButton />
+                  <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                     <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
+                        <GithubLogo />
+                        <span className="sr-only">GitHub</span>
+                     </a>
+                  </Button>
+               </div>
             </div>
          </header>
 

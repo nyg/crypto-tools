@@ -3,7 +3,6 @@ import useSWR, { useSWRConfig } from 'swr'
 import useSWRMutation from 'swr/mutation'
 import { Loader2Icon, TriangleAlertIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import InfoBanner from '../../components/lib/info-banner'
 import LedgerSyncCard from '../../components/kraken/ledger-sync-card'
 import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
 import LedgerTable from '../../components/kraken/ledger-table'
@@ -169,13 +168,6 @@ export default function KrakenLedger() {
    return (
       <KrakenLayout name="Ledger">
          <div className="space-y-6">
-
-            <InfoBanner>
-               Downloads two exports from Kraken — your complete ledger and your trade history —
-               and keeps both in a database on this machine, so the other tools can use them
-               without querying the API again. Kraken prepares each export in the background, so
-               a first sync can take several minutes. Nothing is uploaded anywhere.
-            </InfoBanner>
 
             {wasInterrupted &&
                <Alert>

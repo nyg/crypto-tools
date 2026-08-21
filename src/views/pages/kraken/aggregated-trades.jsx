@@ -2,8 +2,6 @@ import { useRef, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import InfoBanner from '../../components/lib/info-banner'
-import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import AggregateFilters, { defaultFilters } from '../../components/kraken/aggregate-filters'
 import AggregateTable from '../../components/kraken/aggregate-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
@@ -93,15 +91,6 @@ export default function KrakenAggregatedTrades() {
    return (
       <KrakenLayout name="Aggregated Trades">
          <div className="space-y-6">
-
-            <InfoBanner>
-               Your trades for one asset, grouped into runs of buys and sells.
-            </InfoBanner>
-
-            <SyncStatusStrip
-               state={status?.state}
-               job={status?.job}
-               isRunning={isJobRunning(status?.job)} />
 
             <Card>
                <CardHeader>

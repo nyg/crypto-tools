@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router'
 import useSWRMutation from 'swr/mutation'
 import { toast } from 'sonner'
+import { formatDistanceToNow } from 'date-fns'
 import Big from 'big.js'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import InfoBanner from '../../components/lib/info-banner'
 import OpenOrderGroup from '../../components/kraken/open-order-group'
 import CancelOrdersDialog from '../../components/kraken/cancel-orders-dialog'
 import CredentialsAlert from '../../components/lib/credentials-alert'
@@ -90,33 +89,39 @@ export default function KrakenOpenOrders() {
       }
    }
 
-   return (
-      <KrakenLayout name="Open Orders">
-         <div className="space-y-6">
+   // This page never touches the ledger, so the sub-nav's watermark would say nothing
+   // about what is on screen. It shows when Kraken was last asked instead.
+   const liveStatus = (
+      // -mr-1 cancels the icon button's own inset so the row ends where the tabs and
+      // the page below it do, rather than floating short of the edge.
+      <div className="-mr-1 flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
+         {data?.fetchedAt &&
+            <span title={`${asLocalTimestamp(data.fetchedAt)} · ${asUtcTimestamp(data.fetchedAt)} UTC`}>
+               Last fetched from Kraken: {formatDistanceToNow(data.fetchedAt)} ago
+            </span>}
+         <Button
+            variant="ghost"
+            size="icon-xs"
+            type="button"
+            disabled={isMutating}
+            className="text-muted-foreground hover:text-foreground"
+            onClick={refresh}>
+            {isMutating
+               ? <Loader2Icon className="size-3.5 animate-spin" />
+               : <RefreshCwIcon className="size-3.5" />}
+            <span className="sr-only">Refresh</span>
+         </Button>
+      </div>
+   )
 
-            <InfoBanner>
-               Orders still on Kraken&apos;s book, read live and grouped by trading pair. Cancel one
-               or several at once; new ones are created on{' '}
-               <Link to="/kraken/order-batch" className="underline underline-offset-4">Order Batch</Link>.
-            </InfoBanner>
+   return (
+      <KrakenLayout name="Open Orders" trailing={liveStatus}>
+         <div className="space-y-6">
 
             {error &&
                <Alert variant="destructive">
                   <AlertDescription>{String(error)}</AlertDescription>
                </Alert>}
-
-            <div className="flex items-center justify-end gap-3">
-               {data?.fetchedAt &&
-                  <p className="text-sm text-muted-foreground" title={`${asUtcTimestamp(data.fetchedAt)} UTC`}>
-                     Read from Kraken at {asLocalTimestamp(data.fetchedAt)}
-                  </p>}
-               <Button variant="outline" size="sm" type="button" disabled={isMutating} onClick={refresh}>
-                  {isMutating
-                     ? <Loader2Icon className="size-4 animate-spin" />
-                     : <RefreshCwIcon className="size-4" />}
-                  Refresh
-               </Button>
-            </div>
 
             {!isMutating && data && groups.length === 0 &&
                <Alert>

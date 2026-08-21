@@ -100,7 +100,7 @@ export default function Donut({ slices, colorFor, emptyText }) {
                data={slices}
                dataKey="value"
                nameKey="key"
-               innerRadius={60}
+               innerRadius="46%"
                strokeWidth={2}
                stroke="var(--card)"
                isAnimationActive={false}>
@@ -113,7 +113,7 @@ export default function Donut({ slices, colorFor, emptyText }) {
                layout="vertical"
                align="right"
                verticalAlign="middle"
-               width={140}
+               width={190}
                itemSorter={null}
                content={<ChartLegendContent
                   nameKey="key"

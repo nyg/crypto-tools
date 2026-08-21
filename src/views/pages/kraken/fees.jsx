@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import useSWR from 'swr'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import InfoBanner from '../../components/lib/info-banner'
 import FeeSummaryCard from '../../components/kraken/fee-summary-card'
 import FeeChartCard from '../../components/kraken/fee-chart-card'
 import FeeBreakdownCard from '../../components/kraken/fee-breakdown-card'
@@ -66,13 +65,6 @@ export default function KrakenFees() {
    return (
       <KrakenLayout name="Fees">
          <div className="space-y-6">
-
-            <InfoBanner>
-               Everything Kraken has charged you since the account was opened — mostly trade
-               fees, but also withdrawal fees and anything else the ledger records — read from
-               the local database the Ledger tab fills. Fees are kept in the asset they were
-               charged in and never converted, so each asset is totalled on its own.
-            </InfoBanner>
 
             {error &&
                <Alert variant="destructive">

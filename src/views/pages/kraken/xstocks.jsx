@@ -5,7 +5,6 @@ import useSWRMutation from 'swr/mutation'
 import { toast } from 'sonner'
 import { Loader2Icon, SparklesIcon, SearchIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import InfoBanner from '../../components/lib/info-banner'
 import XStockTable from '../../components/kraken/xstock-table'
 import XStockJobProgress, { describingTickers, isJobRunning, jobCounts, jobVerbs } from '../../components/kraken/xstock-job'
 import Field from '../../components/lib/field'
@@ -263,13 +262,6 @@ export default function KrakenXStocks() {
    return (
       <KrakenLayout name="xStocks">
          <div className="space-y-6">
-
-            <InfoBanner>
-               Kraken&apos;s tokenized stocks and ETFs. Which listings are stocks and which are ETFs
-               comes from a reference list shipped with the app, so it loads instantly and costs
-               nothing. Descriptions are written by Claude only when you ask for them, billed to your
-               Anthropic account, and cached afterwards.
-            </InfoBanner>
 
             {counts.unclassified > 0 && !isLoading &&
                <Alert>

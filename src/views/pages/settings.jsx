@@ -2,7 +2,6 @@ import { useSWRConfig } from 'swr'
 import useSWRMutation from 'swr/mutation'
 import { toast } from 'sonner'
 import Input from '../components/lib/input'
-import InfoBanner from '../components/lib/info-banner'
 import Layout from '../components/layout'
 import useSettings, { SETTINGS_KEY, SETTINGS_REVEAL_KEY } from '../lib/use-settings'
 import { Button } from '@/components/ui/button'
@@ -61,13 +60,6 @@ export default function Settings() {
    return (
       <Layout name="Settings">
          <div className="space-y-6">
-
-            <InfoBanner>
-               The keys the other pages use to reach each exchange. They are stored on this machine
-               in the app&apos;s own data folder, beside the ledger database, never uploaded
-               anywhere, and used only to sign the calls a page makes on your behalf. Removing a key
-               here is enough to cut a page off from its exchange.
-            </InfoBanner>
 
             {providers.map(provider => {
                const stored = settings?.[provider.id]
