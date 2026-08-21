@@ -11,6 +11,16 @@
 
 No test framework is configured.
 
+## README screenshots
+
+Every screenshot in `public/` is a 2247px-wide PNG: the page on a transparent background with a 44px margin, rounded corners and a drop shadow. Retake one so it matches the others:
+
+1. **Serve the fixture, never real data.** Port 3000 is usually a real `bun run dev`, whose Vite proxies `/api` to the Hono server and your actual Kraken database. Start a separate mocked instance instead — `VITE_MOCK_DATA=true ./node_modules/.bin/vite --port 3100` — and confirm it is the mocked one: in mocked mode the app makes no `/api` network requests at all, because the SWR fetcher answers from `src/views/mocks/`.
+2. **Capture with headless Chrome over CDP.** Launch `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --headless=new --remote-debugging-port=9333 --user-data-dir=<tmp> --allow-file-access-from-files`, connect to the page target's `webSocketDebuggerUrl`, then: `Emulation.setDeviceMetricsOverride` with `deviceScaleFactor: 1` and a viewport wide enough that no table scrolls horizontally (1440 works for the widest page); `Page.navigate`; `Runtime.evaluate` to seed whatever `localStorage` the page needs to show something worth looking at; `Page.getLayoutMetrics` for `cssContentSize`; and `Page.captureScreenshot` with `captureBeyondViewport: true` and `clip.scale: 2` for the full page at 2x.
+3. **Composite the frame on a canvas**, in the same headless Chrome. Scale the capture to 2159px wide, place it at (44, 44) on a 2247px-wide canvas whose height is the scaled height plus 88, and clip it to a `roundRect` of radius 14. Cast the shadow by filling that same path first with `shadowColor = 'rgba(15, 23, 42, 0.28)'`, `shadowBlur = 40`, `shadowOffsetY = 14`. Export with `toDataURL('image/png')`.
+
+The shadow numbers are not arbitrary — they were measured off the existing screenshots' alpha channel, and reproduce their falloff to within a couple of levels of 255. Check a new capture against `public/screenshot-kraken-open-orders.png` before committing it.
+
 ## Architecture
 
 This is a **Vite + React Router + Hono** app providing cryptocurrency tools for Binance and Kraken exchanges, plus AI-powered asset classification via Anthropic. The desktop app is built with **[Electrobun](https://electrobun.dev/)**.
