@@ -1,24 +1,11 @@
 import Big from 'big.js'
 import { getDatabase } from './database.js'
 
-// Columns the order table may be sorted by, mapped to the aggregate that produces
+// Columns the ungrouped trades may be sorted by, mapped to the column that produces
 // them. Anything not in here is rejected rather than interpolated into the query.
 // The numeric ones read the REAL mirrors: exact decimals live in TEXT columns that
 // SQLite would sort lexically ('9' after '10'), so ordering has to use the doubles
-// even though the values shown to the user are recomputed exactly further down.
-const sortableOrderColumns = {
-   time: 'MIN(time)',
-   pair: 'MIN(pair_key)',
-   direction: 'MIN(type)',
-   ordertype: 'MIN(ordertype)',
-   volume: 'SUM(vol_num)',
-   cost: 'SUM(cost_num)',
-   fee: 'SUM(fee_num)',
-   price: 'CASE WHEN SUM(vol_num) > 0 THEN SUM(cost_num) / SUM(vol_num) ELSE 0 END'
-}
-
-// The same idea for the ungrouped fills, where each column stands on its own. The
-// numeric ones read the REAL mirrors too, for the reason given above.
+// even though the values shown to the user are the exact strings.
 const sortableTradeColumns = {
    time: 'time',
    pair: 'pair_key',
@@ -29,6 +16,8 @@ const sortableTradeColumns = {
    cost: 'cost_num',
    fee: 'fee_num'
 }
+
+const TRADE_LIMIT = 50000
 
 const upsertStatement = `
    INSERT INTO trade (
@@ -107,46 +96,53 @@ export default function TradeRepository(accountId) {
       return { first: range.first ?? null, last: range.last ?? null }
    }
 
-   // An order is a group of fills sharing an order id, so it is assembled in two
-   // steps. SQL decides which orders land on the page, using the REAL mirrors; the
-   // amounts shown are then recomputed from the exact decimal strings of just those
-   // orders' fills, because summing doubles would surface artefacts like
-   // 0.30000000000000004 in a column of money.
-   this.queryOrders = function ({ filters = {}, sort = {}, page = 0, pageSize = 50 }) {
+   this.queryAggregations = function ({ filters = {}, page = 0, pageSize = 20 }) {
 
-      const { where, params } = buildTradeWhere(accountId, filters)
+      const empty = {
+         rows: [], total: 0, page, pageSize,
+         baseAsset: filters.base ?? '', quoteAsset: filters.quote ?? '',
+         quoteAssets: [], truncated: false
+      }
 
-      const column = sortableOrderColumns[sort.column] ?? sortableOrderColumns.time
-      const direction = sort.direction === 'asc' ? 'ASC' : 'DESC'
+      if (!filters.base) return empty
 
-      // Counting distinct groups needs no derived table only because every filter
-      // above applies to a fill rather than to an aggregate of one. A filter on, say,
-      // total volume would have to move to HAVING and this would have to wrap.
-      const total = db.query(`SELECT COUNT(DISTINCT order_key) AS count FROM trade WHERE ${where}`)
-         .get(...params).count
+      const { where, params } = buildAggregationWhere(accountId, filters)
 
-      // This query only picks which orders are on the page and in what order; every
-      // value shown comes from the second step. A filter matches a fill, so letting
-      // it decide the totals too would show an order's time and count as of the
-      // fills that matched while its amounts covered all of them.
-      //
-      // order_key breaks ties for the same reason entry_key does in the ledger: many
-      // orders share a timestamp, and without it rows shuffle between pages.
-      const orderKeys = db.query(`
-         SELECT order_key AS orderKey
+      const trades = db.query(`
+         SELECT order_key AS orderKey, txid, ordertxid, time, type, ordertype,
+                pair, pair_key AS pairKey, base_asset AS baseAsset, quote_asset AS quoteAsset,
+                price, cost, fee, vol, margin, misc
          FROM trade
          WHERE ${where}
-         GROUP BY order_key
-         ORDER BY ${column} ${direction}, order_key ${direction}
-         LIMIT ? OFFSET ?`).all(...params, pageSize, page * pageSize)
-         .map(row => row.orderKey)
+         ORDER BY time DESC, txid DESC
+         LIMIT ?`).all(...params, TRADE_LIMIT + 1)
 
-      return { rows: withExactAmounts(db, accountId, orderKeys), total, page, pageSize }
+      const truncated = trades.length > TRADE_LIMIT
+      if (truncated) trades.length = TRADE_LIMIT
+      trades.reverse()
+
+      const kept = truncated
+         ? trades.filter(trade => trade.orderKey !== trades[0].orderKey)
+         : trades
+
+      const groups = asAggregations(foldOrders(kept))
+      const ordered = filters.order === 'asc' ? groups : groups.toReversed()
+
+      return {
+         rows: ordered.slice(page * pageSize, (page + 1) * pageSize),
+         total: ordered.length,
+         page,
+         pageSize,
+         baseAsset: filters.base,
+         quoteAsset: filters.quote ?? '',
+         quoteAssets: [...new Set(groups.flatMap(group => group.quotes.map(quote => quote.quoteAsset)))],
+         truncated
+      }
    }
 
-   // The fills themselves, ungrouped: one row per trade, the way Kraken's export
-   // wrote it and the way the sync stored it. Nothing is recomputed here — an order's
-   // totals are the derived view above, a fill is just a row.
+   // The trades themselves, ungrouped: one row per trade, the way Kraken's export
+   // wrote it and the way the sync stored it. Nothing is recomputed here — orders and
+   // runs are the derived views above, a trade is just a row.
    this.queryTrades = function ({ filters = {}, sort = {}, page = 0, pageSize = 50 }) {
 
       const { where, params } = buildTradeWhere(accountId, filters)
@@ -157,8 +153,8 @@ export default function TradeRepository(accountId) {
       const total = db.query(`SELECT COUNT(*) AS count FROM trade WHERE ${where}`)
          .get(...params).count
 
-      // txid breaks the tie for the same reason order_key does above: the fills of one
-      // order share a timestamp, and without it rows shuffle between pages.
+      // txid breaks the tie because the trades of one order share a timestamp, and
+      // without it rows shuffle between pages.
       const rows = db.query(`
          SELECT txid, ordertxid AS orderId, order_key AS orderKey, time,
                 pair_key AS pair, pair AS rawPair, base_asset AS baseAsset,
@@ -178,7 +174,18 @@ export default function TradeRepository(accountId) {
                  WHERE account_id = ? AND ${name} <> '' ORDER BY value`)
          .all(accountId).map(row => row.value)
 
-      return { pairs: column('pair_key'), directions: column('type'), ordertypes: column('ordertype') }
+      const markets = db.query(`
+         SELECT DISTINCT pair_key AS pairKey, base_asset AS baseAsset, quote_asset AS quoteAsset
+         FROM trade
+         WHERE account_id = ? AND pair_key <> ''
+         ORDER BY pair_key`).all(accountId)
+
+      return {
+         pairs: column('pair_key'),
+         directions: column('type'),
+         ordertypes: column('ordertype'),
+         markets
+      }
    }
 
    this.clearTrades = function () {
@@ -188,44 +195,88 @@ export default function TradeRepository(accountId) {
    }
 }
 
-// Reads back every fill of the orders on this page and folds them with Big, so the
-// totals are exact to the last digit Kraken wrote.
-function withExactAmounts(db, accountId, orderKeys) {
-
-   if (orderKeys.length === 0) return []
-
-   const placeholders = orderKeys.map(() => '?').join(', ')
-
-   const fills = db.query(`
-      SELECT order_key AS orderKey, txid, ordertxid, time, type, ordertype,
-             pair, pair_key AS pairKey, base_asset AS baseAsset, quote_asset AS quoteAsset,
-             price, cost, fee, vol, margin, misc
-      FROM trade
-      WHERE account_id = ? AND order_key IN (${placeholders})
-      ORDER BY time ASC, txid ASC`).all(accountId, ...orderKeys)
+function foldOrders(trades) {
 
    const byOrder = new Map()
-   for (const fill of fills) {
-      const group = byOrder.get(fill.orderKey) ?? []
-      group.push(fill)
-      byOrder.set(fill.orderKey, group)
+
+   for (const trade of trades) {
+      const group = byOrder.get(trade.orderKey) ?? []
+      group.push(trade)
+      byOrder.set(trade.orderKey, group)
    }
 
-   return orderKeys.map(orderKey => asOrder(orderKey, byOrder.get(orderKey) ?? []))
+   return [...byOrder.entries()]
+      .map(([orderKey, orderTrades]) => asOrder(orderKey, orderTrades))
+      .toSorted((a, b) => a.time - b.time || (a.orderKey < b.orderKey ? -1 : 1))
 }
 
-function asOrder(orderKey, fills) {
+function asAggregations(orders) {
 
-   const first = fills[0] ?? {}
-   const sum = key => fills.reduce((total, fill) => total.plus(fill[key]), Big(0))
+   const runs = []
+
+   for (const order of orders) {
+      const current = runs[runs.length - 1]
+      if (current && current.direction === order.direction) current.orders.push(order)
+      else runs.push({ direction: order.direction, orders: [order] })
+   }
+
+   return runs.map(asAggregation)
+}
+
+function asAggregation(run, index) {
+
+   const orders = run.orders
+   const first = orders[0]
+   const last = orders[orders.length - 1]
+
+   const byQuote = new Map()
+
+   for (const order of orders) {
+      const totals = byQuote.get(order.quoteAsset)
+         ?? { volume: Big(0), cost: Big(0), fee: Big(0), netCost: Big(0), decimals: 2 }
+      totals.volume = totals.volume.plus(order.volume)
+      totals.cost = totals.cost.plus(order.cost)
+      totals.fee = totals.fee.plus(order.fee)
+      totals.netCost = totals.netCost.plus(order.netCost)
+      totals.decimals = Math.max(totals.decimals, decimalCount(order.price))
+      byQuote.set(order.quoteAsset, totals)
+   }
+
+   return {
+      groupKey: `${index}-${first.orderKey}`,
+      direction: run.direction,
+      startTime: first.time,
+      endTime: last.time,
+      baseAsset: first.baseAsset,
+      volume: orders.reduce((total, order) => total.plus(order.volume), Big(0)).toString(),
+      orderCount: orders.length,
+      tradeCount: orders.reduce((total, order) => total + order.tradeCount, 0),
+      pairs: [...new Set(orders.map(order => order.pair))],
+      margin: orders.some(order => order.margin),
+      quotes: [...byQuote.entries()].map(([quoteAsset, totals]) => ({
+         quoteAsset,
+         volume: totals.volume.toString(),
+         cost: totals.cost.toString(),
+         fee: totals.fee.toString(),
+         netCost: totals.netCost.toString(),
+         price: totals.volume.eq(0) ? '0' : totals.cost.div(totals.volume).toFixed(totals.decimals)
+      })),
+      orders
+   }
+}
+
+function asOrder(orderKey, trades) {
+
+   const first = trades[0] ?? {}
+   const sum = key => trades.reduce((total, trade) => total.plus(trade[key]), Big(0))
 
    const volume = sum('vol')
    const cost = sum('cost')
    const fee = sum('fee')
 
-   // Kraken quotes each fill to the precision of the pair, so the weighted average
+   // Kraken quotes each trade to the precision of the pair, so the weighted average
    // is shown to the finest precision any of them used rather than to a guess.
-   const priceDecimals = Math.max(2, ...fills.map(fill => decimalCount(fill.price)))
+   const priceDecimals = Math.max(2, ...trades.map(trade => decimalCount(trade.price)))
    const price = volume.eq(0) ? Big(0) : cost.div(volume)
 
    // A buy pays the fee on top of what it cost; a sell has it taken out of the
@@ -235,10 +286,10 @@ function asOrder(orderKey, fills) {
    return {
       orderId: first.ordertxid || '',
       orderKey,
-      // Fills come back oldest first, so the first one is when the order started
+      // Trades come back oldest first, so the first one is when the order started
       // filling — the closest thing this export has to Kraken's opentm.
       time: first.time ?? 0,
-      fillCount: fills.length,
+      tradeCount: trades.length,
       pair: first.pairKey || first.pair || '',
       rawPair: first.pair ?? '',
       baseAsset: first.baseAsset ?? '',
@@ -250,12 +301,33 @@ function asOrder(orderKey, fills) {
       fee: fee.toString(),
       netCost: netCost.toString(),
       price: price.toFixed(priceDecimals),
-      margin: fills.some(fill => Number(fill.margin) !== 0),
+      margin: trades.some(trade => Number(trade.margin) !== 0),
       misc: first.misc ?? ''
    }
 }
 
 const decimalCount = value => (String(value).split('.')[1] ?? '').length
+
+function buildAggregationWhere(accountId, filters) {
+
+   const conditions = ['account_id = ?', 'base_asset = ?']
+   const params = [accountId, filters.base]
+
+   if (filters.quote && !filters.includeAllQuotes) {
+      conditions.push('quote_asset = ?')
+      params.push(filters.quote)
+   }
+   if (filters.from) {
+      conditions.push('time >= ?')
+      params.push(filters.from)
+   }
+   if (filters.to) {
+      conditions.push('time <= ?')
+      params.push(filters.to)
+   }
+
+   return { where: conditions.join(' AND '), params }
+}
 
 function buildTradeWhere(accountId, filters) {
 

@@ -7,7 +7,7 @@ import InfoBanner from '../../components/lib/info-banner'
 import LedgerSyncCard from '../../components/kraken/ledger-sync-card'
 import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
 import LedgerTable from '../../components/kraken/ledger-table'
-import OrderFilters, { defaultFilters as defaultTradeFilters } from '../../components/kraken/order-filters'
+import TradeFilters, { defaultFilters as defaultTradeFilters } from '../../components/kraken/trade-filters'
 import TradeTable from '../../components/kraken/trade-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
@@ -89,7 +89,7 @@ export default function KrakenLedger() {
       { keepPreviousData: true })
 
    // Fetched only once the tab is open — most visits here are to sync, not to read
-   // the fills — and kept in the cache afterwards, so switching back is instant.
+   // the trades — and kept in the cache afterwards, so switching back is instant.
    const showTrades = tab === 'trades'
 
    const { data: tradeFilterOptions } = useSWR(
@@ -97,7 +97,7 @@ export default function KrakenLedger() {
 
    const { data: trades, isLoading: isLoadingTrades } = useSWR(
       configured && showTrades
-         ? ['/api/kraken/ledger/trades/fills',
+         ? ['/api/kraken/ledger/trades',
             { accountId, filters: tradeFilters, sort: tradeSort, page: tradePage, pageSize: PAGE_SIZE }]
          : null,
       { keepPreviousData: true })
@@ -228,10 +228,11 @@ export default function KrakenLedger() {
                            onSearchRef={(refid) => replaceFilters({ ...defaultFilters, search: refid })} />
                      </TabsContent>
 
-                     {/* The fills as Kraken exported them. Grouped into orders they are the
-                         Closed Orders page; here they are what the sync actually stored. */}
+                     {/* The trades as Kraken exported them. Folded into runs of buying and
+                         selling they are the Aggregated Trades page; here they are what the
+                         sync actually stored. */}
                      <TabsContent value="trades" className="space-y-4">
-                        <OrderFilters
+                        <TradeFilters
                            key={tradeFiltersKey}
                            filters={tradeFilters}
                            options={tradeFilterOptions}

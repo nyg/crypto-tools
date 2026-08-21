@@ -21,7 +21,7 @@ const ORPHAN_AGE_MS = 15 * 60 * 1000
 const CHUNK_SIZE = 5000
 
 // One run covers both reports. The ledger has the full picture of what moved; the
-// trades report is the only place Kraken puts the order id, so the Closed Orders
+// trades report is the only place Kraken puts the order id, so the Aggregated Trades
 // page cannot be built without it.
 const reports = ['ledgers', 'trades']
 

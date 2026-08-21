@@ -1,4 +1,3 @@
-import { Link } from 'react-router'
 import { ArrowUpDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -7,7 +6,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { asNumber } from '../../../utils/format'
 
 // Kraken records trade times in UTC; rendering them in the browser's zone would
-// silently shift every fill.
+// silently shift every trade.
 const asUtcTimestamp = (time) => new Date(time).toISOString().replace('T', ' ').slice(0, 19)
 
 function SortableHead({ column, sort, onSortChange, className, children }) {
@@ -28,9 +27,9 @@ function SortableHead({ column, sort, onSortChange, className, children }) {
    )
 }
 
-// One row per fill, exactly as the trades export wrote it. Orders — several fills
-// folded into one — are what the Closed Orders page shows; this is the stored data
-// behind it, next to the ledger entries the same sync downloaded.
+// One row per trade, exactly as the trades export wrote it. Folded into orders and
+// then into runs of buying and selling, they are the Aggregated Trades page; this is
+// the stored data behind it, next to the ledger entries the same sync downloaded.
 export default function TradeTable({ trades, isFiltered, sort, onSortChange, onPageChange, onSearchId }) {
 
    const rows = trades?.rows ?? []
@@ -109,15 +108,14 @@ export default function TradeTable({ trades, isFiltered, sort, onSortChange, onP
                         </button>
                      </TableCell>
                      <TableCell>
-                        {/* The order id is the one thing this table has that the ledger
-                            export does not, so it links to where it is put to use. */}
                         {trade.orderId
-                           ? <Link
-                              to={`/kraken/closed-orders?order=${encodeURIComponent(trade.orderId)}`}
-                              title={`Show order ${trade.orderId} in Closed Orders`}
-                              className="font-mono text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                           ? <button
+                              type="button"
+                              title={`Show every trade of order ${trade.orderId}`}
+                              className="font-mono text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                              onClick={() => onSearchId(trade.orderId)}>
                               {trade.orderId}
-                           </Link>
+                           </button>
                            : <span className="text-muted-foreground">—</span>}
                      </TableCell>
                   </TableRow>)}

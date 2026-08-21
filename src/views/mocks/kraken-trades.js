@@ -14,7 +14,8 @@ const markets = [
    { pair: 'XETHZUSD', pairKey: 'ETH/USD', baseAsset: 'ETH', quoteAsset: 'USD', price: 3100, volDecimals: 8, priceDecimals: 2 },
    { pair: 'SOLUSD', pairKey: 'SOL/USD', baseAsset: 'SOL', quoteAsset: 'USD', price: 148, volDecimals: 8, priceDecimals: 2 },
    { pair: 'DOTEUR', pairKey: 'DOT/EUR', baseAsset: 'DOT', quoteAsset: 'EUR', price: 6, volDecimals: 8, priceDecimals: 4 },
-   { pair: 'XXBTZEUR', pairKey: 'BTC/EUR', baseAsset: 'BTC', quoteAsset: 'EUR', price: 59000, volDecimals: 8, priceDecimals: 1 }
+   { pair: 'XXBTZEUR', pairKey: 'BTC/EUR', baseAsset: 'BTC', quoteAsset: 'EUR', price: 59000, volDecimals: 8, priceDecimals: 1 },
+   { pair: 'XBTCHF', pairKey: 'BTC/CHF', baseAsset: 'BTC', quoteAsset: 'CHF', price: 55000, volDecimals: 8, priceDecimals: 1 }
 ]
 
 const orderTypes = ['limit', 'limit', 'limit', 'market', 'stop-loss']
@@ -27,7 +28,7 @@ const idSegment = (random, length) =>
 const krakenId = (prefix, random) =>
    `${prefix}${idSegment(random, 5)}-${idSegment(random, 5)}-${idSegment(random, 6)}`
 
-// One row per fill, as Kraken's trades export writes them — several rows can share
+// One row per trade, as Kraken's trades export writes them — several rows can share
 // an ordertxid, which is exactly what the page has to fold back into one order.
 function buildTrades() {
 
@@ -45,12 +46,12 @@ function buildTrades() {
       const isMargin = random(20) === 0
 
       // Most orders fill in one go; the rest are what makes the grouping visible.
-      const fillCount = random(10) < 7 ? 1 : 1 + random(3)
-      // A missing order id is rare but real, and each such fill has to stand alone
+      const tradeCount = random(10) < 7 ? 1 : 1 + random(3)
+      // A missing order id is rare but real, and each such trade has to stand alone
       // rather than merging with every other one.
       const ordertxid = random(40) === 0 ? '' : krakenId('O', random)
 
-      for (let fill = 0; fill < fillCount; fill++) {
+      for (let index = 0; index < tradeCount; index++) {
 
          const txid = krakenId('T', random)
          const price = Big(market.price).plus(random(market.price / 10)).minus(market.price / 20)
@@ -65,7 +66,7 @@ function buildTrades() {
             pairKey: market.pairKey,
             baseAsset: market.baseAsset,
             quoteAsset: market.quoteAsset,
-            time: time + fill * 1200,
+            time: time + index * 1200,
             type: direction,
             ordertype,
             price: price.toFixed(market.priceDecimals),
@@ -120,25 +121,25 @@ function matches(trade, filters = {}) {
 
 const decimalCount = value => (String(value).split('.')[1] ?? '').length
 
-// Mirrors the server: a filter selects fills, but the order it belongs to is then
+// Mirrors the server: a filter selects trades, but the order it belongs to is then
 // shown whole. Otherwise searching a single trade id would show that order with only
 // part of its volume.
-function asOrder(orderKey, fills) {
+function asOrder(orderKey, trades) {
 
-   const first = fills[0]
-   const sum = key => fills.reduce((total, fill) => total.plus(fill[key]), Big(0))
+   const first = trades[0]
+   const sum = key => trades.reduce((total, trade) => total.plus(trade[key]), Big(0))
 
    const volume = sum('vol')
    const cost = sum('cost')
    const fee = sum('fee')
    const price = volume.eq(0) ? Big(0) : cost.div(volume)
-   const priceDecimals = Math.max(2, ...fills.map(fill => decimalCount(fill.price)))
+   const priceDecimals = Math.max(2, ...trades.map(trade => decimalCount(trade.price)))
 
    return {
       orderId: first.ordertxid || '',
       orderKey,
       time: first.time,
-      fillCount: fills.length,
+      tradeCount: trades.length,
       pair: first.pairKey,
       rawPair: first.pair,
       baseAsset: first.baseAsset,
@@ -150,52 +151,109 @@ function asOrder(orderKey, fills) {
       fee: fee.toString(),
       netCost: (first.type === 'sell' ? cost.minus(fee) : cost.plus(fee)).toString(),
       price: price.toFixed(priceDecimals),
-      margin: fills.some(fill => Number(fill.margin) !== 0),
+      margin: trades.some(trade => Number(trade.margin) !== 0),
       misc: first.misc
    }
 }
 
-// Grouping, filtering, sorting and paging are applied for real, so that mocked mode
-// exercises the same code paths the server does.
-export function tradeOrders(body = {}) {
+// Grouping, filtering and paging are applied for real, so that mocked mode exercises
+// the same code paths the server does.
+export function tradeAggregations(body = {}) {
 
-   const keys = new Set()
-   for (const trade of trades) {
-      if (matches(trade, body.filters)) keys.add(trade.orderKey)
+   const filters = body.filters ?? {}
+   const page = Math.max(0, body.page ?? 0)
+   const pageSize = body.pageSize ?? 20
+
+   const empty = {
+      rows: [], total: 0, page, pageSize,
+      baseAsset: filters.base ?? '', quoteAsset: filters.quote ?? '',
+      quoteAssets: [], truncated: false
    }
 
+   if (!filters.base) return empty
+
+   const matched = trades.filter(trade =>
+      trade.baseAsset === filters.base
+      && (filters.includeAllQuotes || !filters.quote || trade.quoteAsset === filters.quote)
+      && (!filters.from || trade.time >= filters.from)
+      && (!filters.to || trade.time <= filters.to))
+
    const byOrder = new Map()
-   for (const trade of trades) {
-      if (!keys.has(trade.orderKey)) continue
+   for (const trade of matched) {
       byOrder.set(trade.orderKey, [...(byOrder.get(trade.orderKey) ?? []), trade])
    }
 
    const orders = [...byOrder.entries()]
-      .map(([orderKey, fills]) => asOrder(orderKey, fills.toSorted((a, b) => a.time - b.time)))
+      .map(([orderKey, orderTrades]) => asOrder(orderKey, orderTrades.toSorted((a, b) => a.time - b.time)))
+      .toSorted((a, b) => a.time - b.time || (a.orderKey < b.orderKey ? -1 : 1))
 
-   const columns = ['time', 'pair', 'direction', 'ordertype', 'volume', 'price', 'cost', 'fee']
-   const column = columns.includes(body.sort?.column) ? body.sort.column : 'time'
-   const factor = body.sort?.direction === 'asc' ? 1 : -1
+   const runs = []
+   for (const order of orders) {
+      const current = runs[runs.length - 1]
+      if (current && current.direction === order.direction) current.orders.push(order)
+      else runs.push({ direction: order.direction, orders: [order] })
+   }
 
-   const numeric = ['volume', 'price', 'cost', 'fee'].includes(column)
-   const value = order => numeric ? Number(order[column]) : order[column]
+   const groups = runs.map(asAggregation)
+   const ordered = filters.order === 'asc' ? groups : groups.toReversed()
 
-   const sorted = orders.toSorted((a, b) => {
-      const [left, right] = [value(a), value(b)]
-      if (left < right) return -factor
-      if (left > right) return factor
-      return a.orderKey < b.orderKey ? -factor : factor
-   })
-
-   const page = Math.max(0, body.page ?? 0)
-   const pageSize = body.pageSize ?? 50
-
-   return { rows: sorted.slice(page * pageSize, (page + 1) * pageSize), total: orders.length, page, pageSize }
+   return {
+      rows: ordered.slice(page * pageSize, (page + 1) * pageSize),
+      total: ordered.length,
+      page,
+      pageSize,
+      baseAsset: filters.base,
+      quoteAsset: filters.quote ?? '',
+      quoteAssets: [...new Set(groups.flatMap(group => group.quotes.map(quote => quote.quoteAsset)))],
+      truncated: false
+   }
 }
 
-// The fills themselves, ungrouped, as the Ledger page's Trades tab reads them. A
+function asAggregation(run, index) {
+
+   const orders = run.orders
+   const first = orders[0]
+   const last = orders[orders.length - 1]
+
+   const byQuote = new Map()
+
+   for (const order of orders) {
+      const totals = byQuote.get(order.quoteAsset)
+         ?? { volume: Big(0), cost: Big(0), fee: Big(0), netCost: Big(0), decimals: 2 }
+      totals.volume = totals.volume.plus(order.volume)
+      totals.cost = totals.cost.plus(order.cost)
+      totals.fee = totals.fee.plus(order.fee)
+      totals.netCost = totals.netCost.plus(order.netCost)
+      totals.decimals = Math.max(totals.decimals, decimalCount(order.price))
+      byQuote.set(order.quoteAsset, totals)
+   }
+
+   return {
+      groupKey: `${index}-${first.orderKey}`,
+      direction: run.direction,
+      startTime: first.time,
+      endTime: last.time,
+      baseAsset: first.baseAsset,
+      volume: orders.reduce((total, order) => total.plus(order.volume), Big(0)).toString(),
+      orderCount: orders.length,
+      tradeCount: orders.reduce((total, order) => total + order.tradeCount, 0),
+      pairs: [...new Set(orders.map(order => order.pair))],
+      margin: orders.some(order => order.margin),
+      quotes: [...byQuote.entries()].map(([quoteAsset, totals]) => ({
+         quoteAsset,
+         volume: totals.volume.toString(),
+         cost: totals.cost.toString(),
+         fee: totals.fee.toString(),
+         netCost: totals.netCost.toString(),
+         price: totals.volume.eq(0) ? '0' : totals.cost.div(totals.volume).toFixed(totals.decimals)
+      })),
+      orders
+   }
+}
+
+// The trades themselves, ungrouped, as the Ledger page's Trades tab reads them. A
 // filter selects a row here rather than the order behind it — nothing is folded.
-export function tradeFills(body = {}) {
+export function tradeRows(body = {}) {
 
    const filtered = trades.filter(trade => matches(trade, body.filters))
 
@@ -247,10 +305,18 @@ export function tradeFills(body = {}) {
 }
 
 export function tradeFilters() {
+
    const distinct = pick => [...new Set(trades.map(pick))].filter(Boolean).toSorted()
+
+   const markets = [...new Map(trades.map(trade =>
+      [trade.pairKey, { pairKey: trade.pairKey, baseAsset: trade.baseAsset, quoteAsset: trade.quoteAsset }]))
+      .values()]
+      .toSorted((a, b) => a.pairKey.localeCompare(b.pairKey))
+
    return {
       pairs: distinct(trade => trade.pairKey),
       directions: distinct(trade => trade.type),
-      ordertypes: distinct(trade => trade.ordertype)
+      ordertypes: distinct(trade => trade.ordertype),
+      markets
    }
 }

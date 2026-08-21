@@ -5,7 +5,7 @@ import Home from './pages/home'
 import Settings from './pages/settings'
 import BinanceStaking from './pages/binance/staking'
 import KrakenBalances from './pages/kraken/balances'
-import KrakenClosedOrders from './pages/kraken/closed-orders'
+import KrakenAggregatedTrades from './pages/kraken/aggregated-trades'
 import KrakenFees from './pages/kraken/fees'
 import KrakenLedger from './pages/kraken/ledger'
 import KrakenOpenOrders from './pages/kraken/open-orders'
@@ -69,7 +69,7 @@ export default function App() {
                <Route path="/settings" element={<Settings />} />
                <Route path="/binance/staking" element={<BinanceStaking />} />
                <Route path="/kraken/balances" element={<KrakenBalances />} />
-               <Route path="/kraken/closed-orders" element={<KrakenClosedOrders />} />
+               <Route path="/kraken/aggregated-trades" element={<KrakenAggregatedTrades />} />
                <Route path="/kraken/fees" element={<KrakenFees />} />
                <Route path="/kraken/ledger" element={<KrakenLedger />} />
                <Route path="/kraken/open-orders" element={<KrakenOpenOrders />} />
