@@ -95,3 +95,7 @@ export const ledgerBackedPaths = new Set(
    toolGroups.flatMap(group => group.tools)
       .filter(tool => tool.readsLedger)
       .map(tool => tool.href))
+
+// Every route that gets a sub-nav, so that whatever the sub-nav already shows is not
+// shown a second time by the header above it.
+export const toolPaths = new Set(toolGroups.flatMap(group => group.tools).map(tool => tool.href))

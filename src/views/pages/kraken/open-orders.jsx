@@ -92,9 +92,7 @@ export default function KrakenOpenOrders() {
    // This page never touches the ledger, so the sub-nav's watermark would say nothing
    // about what is on screen. It shows when Kraken was last asked instead.
    const liveStatus = (
-      // -mr-1 cancels the icon button's own inset so the row ends where the tabs and
-      // the page below it do, rather than floating short of the edge.
-      <div className="-mr-1 flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
+      <div className="flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
          {data?.fetchedAt &&
             <span title={`${asLocalTimestamp(data.fetchedAt)} · ${asUtcTimestamp(data.fetchedAt)} UTC`}>
                Last fetched from Kraken: {formatDistanceToNow(data.fetchedAt)} ago

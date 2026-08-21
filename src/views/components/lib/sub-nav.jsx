@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router'
+import PageHelpButton from './page-help-button'
 import { cn } from '@/lib/utils'
 
 
@@ -25,11 +26,16 @@ export default function SubNav({ items, trailing }) {
             ))}
          </nav>
 
-         {/* Opposite the tabs and on the same baseline: it belongs to the whole section
-             rather than to the page being looked at, and costs no row of its own. Hidden
-             where the tabs alone already fill the width, rather than pushing half of them
-             out of sight for a line that is not what the window was narrowed to read. */}
-         {trailing && <div className="ml-auto hidden shrink-0 pb-2 lg:block">{trailing}</div>}
+         {/* Opposite the tabs and sitting on the same rule: what the section is, and how
+             fresh what it shows is, both belong beside the tabs rather than to any one
+             page, and cost no row of their own. The freshness line is dropped where the
+             tabs alone already fill the width, rather than pushing half of them out of
+             sight for something the window was not narrowed to read; the help stays,
+             because it is the one thing a cramped window makes more use of. */}
+         <div className="-mr-1 ml-auto flex shrink-0 items-center gap-2">
+            {trailing && <span className="hidden lg:block">{trailing}</span>}
+            <PageHelpButton />
+         </div>
       </div>
    )
 }

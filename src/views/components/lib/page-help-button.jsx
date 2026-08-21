@@ -17,7 +17,7 @@ export default function PageHelpButton() {
    return (
       <Popover>
          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+            <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-foreground">
                <HelpCircleIcon className="size-4" />
                <span className="sr-only">About this page</span>
             </Button>
