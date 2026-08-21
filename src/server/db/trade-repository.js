@@ -1,7 +1,7 @@
 import Big from 'big.js'
 import { getDatabase } from './database.js'
 
-// Columns the ungrouped fills may be sorted by, mapped to the column that produces
+// Columns the ungrouped trades may be sorted by, mapped to the column that produces
 // them. Anything not in here is rejected rather than interpolated into the query.
 // The numeric ones read the REAL mirrors: exact decimals live in TEXT columns that
 // SQLite would sort lexically ('9' after '10'), so ordering has to use the doubles
@@ -17,7 +17,7 @@ const sortableTradeColumns = {
    fee: 'fee_num'
 }
 
-const FILL_LIMIT = 50000
+const TRADE_LIMIT = 50000
 
 const upsertStatement = `
    INSERT INTO trade (
@@ -108,22 +108,22 @@ export default function TradeRepository(accountId) {
 
       const { where, params } = buildAggregationWhere(accountId, filters)
 
-      const fills = db.query(`
+      const trades = db.query(`
          SELECT order_key AS orderKey, txid, ordertxid, time, type, ordertype,
                 pair, pair_key AS pairKey, base_asset AS baseAsset, quote_asset AS quoteAsset,
                 price, cost, fee, vol, margin, misc
          FROM trade
          WHERE ${where}
          ORDER BY time DESC, txid DESC
-         LIMIT ?`).all(...params, FILL_LIMIT + 1)
+         LIMIT ?`).all(...params, TRADE_LIMIT + 1)
 
-      const truncated = fills.length > FILL_LIMIT
-      if (truncated) fills.length = FILL_LIMIT
-      fills.reverse()
+      const truncated = trades.length > TRADE_LIMIT
+      if (truncated) trades.length = TRADE_LIMIT
+      trades.reverse()
 
       const kept = truncated
-         ? fills.filter(fill => fill.orderKey !== fills[0].orderKey)
-         : fills
+         ? trades.filter(trade => trade.orderKey !== trades[0].orderKey)
+         : trades
 
       const groups = asAggregations(foldOrders(kept))
       const ordered = filters.order === 'asc' ? groups : groups.toReversed()
@@ -140,9 +140,9 @@ export default function TradeRepository(accountId) {
       }
    }
 
-   // The fills themselves, ungrouped: one row per trade, the way Kraken's export
+   // The trades themselves, ungrouped: one row per trade, the way Kraken's export
    // wrote it and the way the sync stored it. Nothing is recomputed here — orders and
-   // runs are the derived views above, a fill is just a row.
+   // runs are the derived views above, a trade is just a row.
    this.queryTrades = function ({ filters = {}, sort = {}, page = 0, pageSize = 50 }) {
 
       const { where, params } = buildTradeWhere(accountId, filters)
@@ -153,7 +153,7 @@ export default function TradeRepository(accountId) {
       const total = db.query(`SELECT COUNT(*) AS count FROM trade WHERE ${where}`)
          .get(...params).count
 
-      // txid breaks the tie because the fills of one order share a timestamp, and
+      // txid breaks the tie because the trades of one order share a timestamp, and
       // without it rows shuffle between pages.
       const rows = db.query(`
          SELECT txid, ordertxid AS orderId, order_key AS orderKey, time,
@@ -195,18 +195,18 @@ export default function TradeRepository(accountId) {
    }
 }
 
-function foldOrders(fills) {
+function foldOrders(trades) {
 
    const byOrder = new Map()
 
-   for (const fill of fills) {
-      const group = byOrder.get(fill.orderKey) ?? []
-      group.push(fill)
-      byOrder.set(fill.orderKey, group)
+   for (const trade of trades) {
+      const group = byOrder.get(trade.orderKey) ?? []
+      group.push(trade)
+      byOrder.set(trade.orderKey, group)
    }
 
    return [...byOrder.entries()]
-      .map(([orderKey, orderFills]) => asOrder(orderKey, orderFills))
+      .map(([orderKey, orderTrades]) => asOrder(orderKey, orderTrades))
       .toSorted((a, b) => a.time - b.time || (a.orderKey < b.orderKey ? -1 : 1))
 }
 
@@ -250,7 +250,7 @@ function asAggregation(run, index) {
       baseAsset: first.baseAsset,
       volume: orders.reduce((total, order) => total.plus(order.volume), Big(0)).toString(),
       orderCount: orders.length,
-      fillCount: orders.reduce((total, order) => total + order.fillCount, 0),
+      tradeCount: orders.reduce((total, order) => total + order.tradeCount, 0),
       pairs: [...new Set(orders.map(order => order.pair))],
       margin: orders.some(order => order.margin),
       quotes: [...byQuote.entries()].map(([quoteAsset, totals]) => ({
@@ -265,18 +265,18 @@ function asAggregation(run, index) {
    }
 }
 
-function asOrder(orderKey, fills) {
+function asOrder(orderKey, trades) {
 
-   const first = fills[0] ?? {}
-   const sum = key => fills.reduce((total, fill) => total.plus(fill[key]), Big(0))
+   const first = trades[0] ?? {}
+   const sum = key => trades.reduce((total, trade) => total.plus(trade[key]), Big(0))
 
    const volume = sum('vol')
    const cost = sum('cost')
    const fee = sum('fee')
 
-   // Kraken quotes each fill to the precision of the pair, so the weighted average
+   // Kraken quotes each trade to the precision of the pair, so the weighted average
    // is shown to the finest precision any of them used rather than to a guess.
-   const priceDecimals = Math.max(2, ...fills.map(fill => decimalCount(fill.price)))
+   const priceDecimals = Math.max(2, ...trades.map(trade => decimalCount(trade.price)))
    const price = volume.eq(0) ? Big(0) : cost.div(volume)
 
    // A buy pays the fee on top of what it cost; a sell has it taken out of the
@@ -286,10 +286,10 @@ function asOrder(orderKey, fills) {
    return {
       orderId: first.ordertxid || '',
       orderKey,
-      // Fills come back oldest first, so the first one is when the order started
+      // Trades come back oldest first, so the first one is when the order started
       // filling — the closest thing this export has to Kraken's opentm.
       time: first.time ?? 0,
-      fillCount: fills.length,
+      tradeCount: trades.length,
       pair: first.pairKey || first.pair || '',
       rawPair: first.pair ?? '',
       baseAsset: first.baseAsset ?? '',
@@ -301,7 +301,7 @@ function asOrder(orderKey, fills) {
       fee: fee.toString(),
       netCost: netCost.toString(),
       price: price.toFixed(priceDecimals),
-      margin: fills.some(fill => Number(fill.margin) !== 0),
+      margin: trades.some(trade => Number(trade.margin) !== 0),
       misc: first.misc ?? ''
    }
 }

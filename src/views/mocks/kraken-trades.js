@@ -28,7 +28,7 @@ const idSegment = (random, length) =>
 const krakenId = (prefix, random) =>
    `${prefix}${idSegment(random, 5)}-${idSegment(random, 5)}-${idSegment(random, 6)}`
 
-// One row per fill, as Kraken's trades export writes them — several rows can share
+// One row per trade, as Kraken's trades export writes them — several rows can share
 // an ordertxid, which is exactly what the page has to fold back into one order.
 function buildTrades() {
 
@@ -46,12 +46,12 @@ function buildTrades() {
       const isMargin = random(20) === 0
 
       // Most orders fill in one go; the rest are what makes the grouping visible.
-      const fillCount = random(10) < 7 ? 1 : 1 + random(3)
-      // A missing order id is rare but real, and each such fill has to stand alone
+      const tradeCount = random(10) < 7 ? 1 : 1 + random(3)
+      // A missing order id is rare but real, and each such trade has to stand alone
       // rather than merging with every other one.
       const ordertxid = random(40) === 0 ? '' : krakenId('O', random)
 
-      for (let fill = 0; fill < fillCount; fill++) {
+      for (let index = 0; index < tradeCount; index++) {
 
          const txid = krakenId('T', random)
          const price = Big(market.price).plus(random(market.price / 10)).minus(market.price / 20)
@@ -66,7 +66,7 @@ function buildTrades() {
             pairKey: market.pairKey,
             baseAsset: market.baseAsset,
             quoteAsset: market.quoteAsset,
-            time: time + fill * 1200,
+            time: time + index * 1200,
             type: direction,
             ordertype,
             price: price.toFixed(market.priceDecimals),
@@ -121,25 +121,25 @@ function matches(trade, filters = {}) {
 
 const decimalCount = value => (String(value).split('.')[1] ?? '').length
 
-// Mirrors the server: a filter selects fills, but the order it belongs to is then
+// Mirrors the server: a filter selects trades, but the order it belongs to is then
 // shown whole. Otherwise searching a single trade id would show that order with only
 // part of its volume.
-function asOrder(orderKey, fills) {
+function asOrder(orderKey, trades) {
 
-   const first = fills[0]
-   const sum = key => fills.reduce((total, fill) => total.plus(fill[key]), Big(0))
+   const first = trades[0]
+   const sum = key => trades.reduce((total, trade) => total.plus(trade[key]), Big(0))
 
    const volume = sum('vol')
    const cost = sum('cost')
    const fee = sum('fee')
    const price = volume.eq(0) ? Big(0) : cost.div(volume)
-   const priceDecimals = Math.max(2, ...fills.map(fill => decimalCount(fill.price)))
+   const priceDecimals = Math.max(2, ...trades.map(trade => decimalCount(trade.price)))
 
    return {
       orderId: first.ordertxid || '',
       orderKey,
       time: first.time,
-      fillCount: fills.length,
+      tradeCount: trades.length,
       pair: first.pairKey,
       rawPair: first.pair,
       baseAsset: first.baseAsset,
@@ -151,7 +151,7 @@ function asOrder(orderKey, fills) {
       fee: fee.toString(),
       netCost: (first.type === 'sell' ? cost.minus(fee) : cost.plus(fee)).toString(),
       price: price.toFixed(priceDecimals),
-      margin: fills.some(fill => Number(fill.margin) !== 0),
+      margin: trades.some(trade => Number(trade.margin) !== 0),
       misc: first.misc
    }
 }
@@ -172,19 +172,19 @@ export function tradeAggregations(body = {}) {
 
    if (!filters.base) return empty
 
-   const fills = trades.filter(trade =>
+   const matched = trades.filter(trade =>
       trade.baseAsset === filters.base
       && (filters.includeAllQuotes || !filters.quote || trade.quoteAsset === filters.quote)
       && (!filters.from || trade.time >= filters.from)
       && (!filters.to || trade.time <= filters.to))
 
    const byOrder = new Map()
-   for (const fill of fills) {
-      byOrder.set(fill.orderKey, [...(byOrder.get(fill.orderKey) ?? []), fill])
+   for (const trade of matched) {
+      byOrder.set(trade.orderKey, [...(byOrder.get(trade.orderKey) ?? []), trade])
    }
 
    const orders = [...byOrder.entries()]
-      .map(([orderKey, orderFills]) => asOrder(orderKey, orderFills.toSorted((a, b) => a.time - b.time)))
+      .map(([orderKey, orderTrades]) => asOrder(orderKey, orderTrades.toSorted((a, b) => a.time - b.time)))
       .toSorted((a, b) => a.time - b.time || (a.orderKey < b.orderKey ? -1 : 1))
 
    const runs = []
@@ -236,7 +236,7 @@ function asAggregation(run, index) {
       baseAsset: first.baseAsset,
       volume: orders.reduce((total, order) => total.plus(order.volume), Big(0)).toString(),
       orderCount: orders.length,
-      fillCount: orders.reduce((total, order) => total + order.fillCount, 0),
+      tradeCount: orders.reduce((total, order) => total + order.tradeCount, 0),
       pairs: [...new Set(orders.map(order => order.pair))],
       margin: orders.some(order => order.margin),
       quotes: [...byQuote.entries()].map(([quoteAsset, totals]) => ({
@@ -251,9 +251,9 @@ function asAggregation(run, index) {
    }
 }
 
-// The fills themselves, ungrouped, as the Ledger page's Trades tab reads them. A
+// The trades themselves, ungrouped, as the Ledger page's Trades tab reads them. A
 // filter selects a row here rather than the order behind it — nothing is folded.
-export function tradeFills(body = {}) {
+export function tradeRows(body = {}) {
 
    const filtered = trades.filter(trade => matches(trade, body.filters))
 

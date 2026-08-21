@@ -116,7 +116,6 @@ export default function KrakenAggregatedTrades() {
                   <AggregateFilters
                      filters={filters}
                      markets={markets}
-                     market={market}
                      onChange={changeFilters}
                      onReset={() => changeFilters(defaultFilters)} />
                   <AggregateTable

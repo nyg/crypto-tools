@@ -61,10 +61,10 @@ export default function AggregateTable({ groups, market, scope, targetQuote, rat
          <Table className="tabular-nums">
             <TableHeader>
                <TableRow>
-                  <TableHead>Period</TableHead>
                   <TableHead />
-                  <TableHead>Pair</TableHead>
-                  <TableHead>Orders</TableHead>
+                  <TableHead />
+                  <TableHead />
+                  <TableHead />
                   <TableHead className="text-right">Volume</TableHead>
                   <TableHead className="text-right">Avg price</TableHead>
                   <TableHead className="text-right">Cost</TableHead>
@@ -110,7 +110,7 @@ export default function AggregateTable({ groups, market, scope, targetQuote, rat
                         <TableCell className="whitespace-nowrap">
                            <button
                               type="button"
-                              className="inline-flex items-center gap-1 hover:text-foreground"
+                              className="flex items-center gap-1 hover:text-foreground"
                               aria-expanded={isExpanded}
                               onClick={() => toggle(group.groupKey)}>
                               {isExpanded
@@ -139,9 +139,9 @@ export default function AggregateTable({ groups, market, scope, targetQuote, rat
                         <TableCell className="whitespace-nowrap text-muted-foreground">
                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                               {asCount(group.orderCount, 'order')}
-                              {group.fillCount > group.orderCount &&
-                                 <Badge variant="outline" title={`Filled in ${group.fillCount} trades`}>
-                                    {group.fillCount} fills
+                              {group.tradeCount > group.orderCount &&
+                                 <Badge variant="outline">
+                                    {group.tradeCount} trades
                                  </Badge>}
                            </div>
                         </TableCell>
@@ -182,9 +182,9 @@ export default function AggregateTable({ groups, market, scope, targetQuote, rat
                            <TableCell>
                               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                  <span className="font-mono text-xs">{order.orderId || '—'}</span>
-                                 {order.fillCount > 1 &&
-                                    <Badge variant="outline" title={`Filled in ${order.fillCount} trades`}>
-                                       {order.fillCount} fills
+                                 {order.tradeCount > 1 &&
+                                    <Badge variant="outline" title={`Filled in ${order.tradeCount} trades`}>
+                                       {order.tradeCount} trades
                                     </Badge>}
                               </div>
                            </TableCell>

@@ -12,15 +12,9 @@ const orderOptions = [
    { value: 'asc', label: 'Oldest first' }
 ]
 
-export default function AggregateFilters({ filters, markets, market, onChange, onReset }) {
+export default function AggregateFilters({ filters, markets, onChange, onReset }) {
 
    const update = (changes) => onChange({ ...filters, ...changes })
-
-   const otherPairs = market
-      ? markets
-         .filter(entry => entry.baseAsset === market.baseAsset && entry.pairKey !== market.pairKey)
-         .map(entry => entry.pairKey)
-      : []
 
    const isFiltered = Object.keys(defaultFilters).some(key => filters[key] !== defaultFilters[key])
 
@@ -67,9 +61,7 @@ export default function AggregateFilters({ filters, markets, market, onChange, o
                name="aggregate-all-quotes"
                checked={filters.includeAllQuotes}
                onChange={(e) => update({ includeAllQuotes: e.target.checked })}
-               label={otherPairs.length > 0
-                  ? `Include other fiat currencies and stablecoins (${otherPairs.join(', ')})`
-                  : 'Include other fiat currencies and stablecoins'} />
+               label="Include other fiat currencies and stablecoins" />
 
             {isFiltered &&
                <Button variant="ghost" size="sm" type="button" onClick={onReset}>

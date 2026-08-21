@@ -6,7 +6,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { asNumber } from '../../../utils/format'
 
 // Kraken records trade times in UTC; rendering them in the browser's zone would
-// silently shift every fill.
+// silently shift every trade.
 const asUtcTimestamp = (time) => new Date(time).toISOString().replace('T', ' ').slice(0, 19)
 
 function SortableHead({ column, sort, onSortChange, className, children }) {
@@ -27,7 +27,7 @@ function SortableHead({ column, sort, onSortChange, className, children }) {
    )
 }
 
-// One row per fill, exactly as the trades export wrote it. Folded into orders and
+// One row per trade, exactly as the trades export wrote it. Folded into orders and
 // then into runs of buying and selling, they are the Aggregated Trades page; this is
 // the stored data behind it, next to the ledger entries the same sync downloaded.
 export default function TradeTable({ trades, isFiltered, sort, onSortChange, onPageChange, onSearchId }) {
@@ -111,7 +111,7 @@ export default function TradeTable({ trades, isFiltered, sort, onSortChange, onP
                         {trade.orderId
                            ? <button
                               type="button"
-                              title={`Show every fill of order ${trade.orderId}`}
+                              title={`Show every trade of order ${trade.orderId}`}
                               className="font-mono text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                               onClick={() => onSearchId(trade.orderId)}>
                               {trade.orderId}

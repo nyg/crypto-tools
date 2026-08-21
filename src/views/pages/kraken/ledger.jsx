@@ -89,7 +89,7 @@ export default function KrakenLedger() {
       { keepPreviousData: true })
 
    // Fetched only once the tab is open — most visits here are to sync, not to read
-   // the fills — and kept in the cache afterwards, so switching back is instant.
+   // the trades — and kept in the cache afterwards, so switching back is instant.
    const showTrades = tab === 'trades'
 
    const { data: tradeFilterOptions } = useSWR(
@@ -97,7 +97,7 @@ export default function KrakenLedger() {
 
    const { data: trades, isLoading: isLoadingTrades } = useSWR(
       configured && showTrades
-         ? ['/api/kraken/ledger/trades/fills',
+         ? ['/api/kraken/ledger/trades',
             { accountId, filters: tradeFilters, sort: tradeSort, page: tradePage, pageSize: PAGE_SIZE }]
          : null,
       { keepPreviousData: true })
@@ -228,7 +228,7 @@ export default function KrakenLedger() {
                            onSearchRef={(refid) => replaceFilters({ ...defaultFilters, search: refid })} />
                      </TabsContent>
 
-                     {/* The fills as Kraken exported them. Folded into runs of buying and
+                     {/* The trades as Kraken exported them. Folded into runs of buying and
                          selling they are the Aggregated Trades page; here they are what the
                          sync actually stored. */}
                      <TabsContent value="trades" className="space-y-4">
