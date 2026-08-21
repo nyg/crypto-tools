@@ -2,8 +2,6 @@ import { useRef } from 'react'
 import { Link } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import InfoBanner from '../../components/lib/info-banner'
-import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import RewardSummaryCard from '../../components/kraken/reward-summary-card'
 import RewardChartCard from '../../components/kraken/reward-chart-card'
 import RewardHistoryCard from '../../components/kraken/reward-history-card'
@@ -12,7 +10,6 @@ import RewardTable from '../../components/kraken/reward-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
-import { asCount } from '../../components/lib/filter-options'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const REWARDS_KEY = '/api/kraken/ledger/rewards'
@@ -27,7 +24,7 @@ export default function KrakenRewards() {
 
    // A sync is started on the Ledger page but writes the rewards read here, so the run
    // is followed and the summary revalidated when it lands.
-   const { data: status } = useSWR(
+   useSWR(
       configured ? '/api/kraken/ledger/sync/status' : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
@@ -66,13 +63,6 @@ export default function KrakenRewards() {
       <KrakenLayout name="Rewards">
          <div className="space-y-6">
 
-            <InfoBanner>
-               Everything Kraken has paid you for staking and earning, per asset and per
-               year, read from the local database the Ledger tab fills. Moving coins in and
-               out of an earn position is not income and is left out. Each amount is valued
-               at today&apos;s market price, so the USD figures move with the market.
-            </InfoBanner>
-
             {error &&
                <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -88,13 +78,6 @@ export default function KrakenRewards() {
                      tab first, then come back.
                   </AlertDescription>
                </Alert>}
-
-            <SyncStatusStrip
-               state={status?.state}
-               job={status?.job}
-               isRunning={isJobRunning(status?.job)}
-               counts={asCount(status?.state?.entryCount, 'ledger entry', 'ledger entries')}
-               emptyLabel="No ledger stored yet" />
 
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(14rem,max-content)_repeat(3,minmax(0,1fr))]">
                <RewardSummaryCard

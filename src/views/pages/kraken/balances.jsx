@@ -3,14 +3,11 @@ import { Link } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
 import useSWRMutation from 'swr/mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import InfoBanner from '../../components/lib/info-banner'
-import SyncStatusStrip from '../../components/kraken/sync-status-strip'
 import BalanceSummaryCard from '../../components/kraken/balance-summary-card'
 import BalancePlacementCard from '../../components/kraken/balance-placement-card'
 import BalanceChartCard from '../../components/kraken/balance-chart-card'
 import BalanceTable from '../../components/kraken/balance-table'
 import { defaultFilters } from '../../components/kraken/balance-filters'
-import { asCount } from '../../components/lib/filter-options'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
@@ -31,7 +28,7 @@ export default function KrakenBalances() {
 
    // A sync is started on the Ledger page but rewrites the balances read here, so the
    // run is followed and the summary revalidated when it lands.
-   const { data: status } = useSWR(
+   useSWR(
       configured ? '/api/kraken/ledger/sync/status' : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
@@ -91,15 +88,6 @@ export default function KrakenBalances() {
       <KrakenLayout name="Balances">
          <div className="space-y-6">
 
-            <InfoBanner>
-               What you hold, rebuilt from the local database the Ledger tab fills, and
-               grouped by <b>where each coin actually sits</b> — your spot wallet, or one
-               of Kraken&apos;s Earn strategies. Coins left in spot that are still being
-               paid are marked <b>Opt-In Rewards</b>, since they keep earning without
-               leaving the wallet they can be traded from. Totals are checked against
-               Kraken live, which also says how much an open order has already reserved.
-            </InfoBanner>
-
             {error &&
                <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -123,13 +111,6 @@ export default function KrakenBalances() {
                      see what your open orders have reserved.
                   </AlertDescription>
                </Alert>}
-
-            <SyncStatusStrip
-               state={status?.state}
-               job={status?.job}
-               isRunning={isJobRunning(status?.job)}
-               counts={asCount(status?.state?.entryCount, 'ledger entry', 'ledger entries')}
-               emptyLabel="No ledger stored yet" />
 
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                <BalanceSummaryCard

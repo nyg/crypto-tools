@@ -2,7 +2,6 @@ import { Link } from 'react-router'
 import useSWRMutation from 'swr/mutation'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import BinanceLayout from '../../components/binance/binance-layout'
-import InfoBanner from '../../components/lib/info-banner'
 import CurrentPositions from '../../components/binance/current-positions'
 import NextRedemptions from '../../components/binance/next-redemptions'
 import StakingProducts from '../../components/binance/staking-products'
@@ -67,13 +66,6 @@ export default function BinanceStaking() {
    return (
       <BinanceLayout name="Staking">
          <div className="space-y-6">
-
-            <InfoBanner>
-               Your spot and staking balances, read live from Binance each time you ask for
-               them — unlike the Kraken pages there is no local database behind this one, so
-               nothing is shown until you fetch. Locked staking positions are listed with the
-               date each one is released and the products they were subscribed to.
-            </InfoBanner>
 
             {error &&
                <Alert variant="destructive">

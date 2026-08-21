@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import MenuLink from './lib/menu-link'
+import PageHelpButton from './lib/page-help-button'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
-import { groupHref } from '@/lib/tools'
+import { groupHref, toolPaths } from '@/lib/tools'
 
 
 const isSection = (path, href) => path.split('/')[1] === href.split('/')[1]
@@ -17,6 +18,8 @@ const GithubLogo = props => (
 )
 
 export default function Layout({ children, name }) {
+
+   const { pathname } = useLocation()
 
    useEffect(() => {
       document.title = `Crypto Tools — ${name}`
@@ -35,12 +38,17 @@ export default function Layout({ children, name }) {
                   <MenuLink href={groupHref('Binance')} isActive={isSection}>Binance</MenuLink>
                   <MenuLink href="/settings" isActive={isSection}>Settings</MenuLink>
                </nav>
-               <Button asChild variant="ghost" size="icon-sm" className="ml-auto text-muted-foreground hover:text-foreground">
-                  <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
-                     <GithubLogo />
-                     <span className="sr-only">GitHub</span>
-                  </a>
-               </Button>
+               <div className="ml-auto flex items-center gap-1">
+                  {/* Only where no sub-nav is carrying it: on a tool page the help sits
+                      beside the tabs, next to the page it describes. */}
+                  {!toolPaths.has(pathname) && <PageHelpButton />}
+                  <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
+                     <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
+                        <GithubLogo />
+                        <span className="sr-only">GitHub</span>
+                     </a>
+                  </Button>
+               </div>
             </div>
          </header>
 

@@ -4,8 +4,6 @@ import useSWRMutation from 'swr/mutation'
 import Big from 'big.js'
 import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import InfoBanner from '../../components/lib/info-banner'
-import ExternalLink from '../../components/lib/external-link'
 import OrderBatchForm from '../../components/kraken/order-batch-params'
 import OrderBatchTable from '../../components/kraken/order-batch-table'
 import { useProvider } from '../../lib/use-settings'
@@ -80,14 +78,6 @@ const defaultFormValues = {
    userref: ''
 }
 
-const postLimitOrders = <ExternalLink href="https://support.kraken.com/hc/en-us/articles/203053246-Other-order-options" className="underline">
-   post limit orders
-</ExternalLink>
-
-const maxOpenOrders = <ExternalLink href="https://support.kraken.com/hc/en-us/articles/209090607-Maximum-number-of-open-orders" className="underline">
-   80 and 225 open orders
-</ExternalLink>
-
 
 export default function KrakenOrderBatch() {
 
@@ -148,12 +138,6 @@ export default function KrakenOrderBatch() {
    return (
       <KrakenLayout name="Order Batch">
          <div className="space-y-6">
-            <InfoBanner>
-               Create a series of limit orders on one pair in a single go. Orders are {postLimitOrders},
-               fees are taken in the quote currency, and orders are sent 15 at a time (Kraken API limit).
-               Kraken allows between {maxOpenOrders} across all pairs, depending on your verification level.
-            </InfoBanner>
-
             <Card size="sm">
                <CardHeader>
                   <CardTitle>Parameters</CardTitle>
