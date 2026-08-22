@@ -26,8 +26,7 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
 
    if (allQuotes.length === 0) return null
 
-   const missing = [...new Set([...bought.missing, ...sold.missing])]
-   const pending = isLoadingRates && missing.length === 0 && (bought.converted || sold.converted)
+   const missing = isLoadingRates ? [] : [...new Set([...bought.missing, ...sold.missing])]
 
    const volume = bought.volume.minus(sold.volume)
    const cost = bought.cost.minus(sold.cost)
@@ -137,9 +136,9 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
             </TableBody>
          </Table>
 
-         {pending &&
+         {missing.length > 0 &&
             <p className="text-xs text-muted-foreground">
-               Converting the other quote currencies…
+               No rate for {missing.join(', ')}, so those orders are left out.
             </p>}
 
          <div className="border-t border-border" />
