@@ -137,7 +137,7 @@ const cancelOrders = (params) => {
 // purpose, so the "no USD pair" path stays visible in mocked mode.
 const assetRates = (params) => {
    const known = {
-      BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, LINK: 12.5,
+      BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, LINK: 12.5, SOL: 148,
       USD: 1, EUR: 1.08, USDT: 1, USDC: 1
    }
    return {

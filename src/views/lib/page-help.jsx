@@ -45,8 +45,8 @@ const pageHelp = {
       <>
          Everything Kraken has charged you since the account was opened — mostly trade
          fees, but also withdrawal fees and anything else the ledger records — read from
-         the local database the Ledger tab fills. Fees are kept in the asset they were
-         charged in and never converted, so each asset is totalled on its own.
+         the local database the Ledger tab fills. Fees are totalled in the asset they were
+         charged in, and converted at today&apos;s rate for the USD column and the share.
       </>,
 
    '/kraken/aggregated-trades':
