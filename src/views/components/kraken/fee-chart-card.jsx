@@ -4,6 +4,7 @@ import {
    ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent
 } from '@/components/ui/chart'
 import SelectField from '../lib/select-field'
+import ComboboxField from '../lib/combobox-field'
 import { asAssetAmount, asCompact, asRounded, asShortMonthYearDate } from '../../../utils/format'
 
 const granularities = [
@@ -105,13 +106,15 @@ export default function FeeChartCard({ fees, colors, assets, asset, granularity,
          <CardContent className="space-y-4">
 
             <div className="flex flex-wrap gap-4">
-               <SelectField
+               <ComboboxField
                   name="fee-chart-asset"
                   label="Asset"
                   className="w-40"
                   value={asset ?? ''}
                   onValueChange={onAssetChange}
                   options={assets.map(value => ({ value, label: value }))}
+                  searchPlaceholder="Search assets…"
+                  emptyText="No asset."
                   disabled={assets.length === 0} />
                <SelectField
                   name="fee-chart-granularity"

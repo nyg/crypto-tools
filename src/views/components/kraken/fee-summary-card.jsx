@@ -3,14 +3,20 @@ import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/componen
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import LedgerFilters from './ledger-filters'
-import Field from '../lib/field'
-import { asAssetAmount, asNumber, asLongDate, asPercentage } from '../../../utils/format'
+import { asAssetAmount, asNumber, asDollarAmount, asPercentage } from '../../../utils/format'
+
+const valueOf = (total, rate) => rate == null ? null : total * rate
 
 
-export default function FeeSummaryCard({ fees, filters, filtersKey, options, isLoading, onFiltersChange, onFiltersReset }) {
+export default function FeeSummaryCard({ fees, rates, filters, filtersKey, options, isLoading, onFiltersChange, onFiltersReset }) {
 
-   const assets = fees?.assets ?? []
    const entries = fees?.entries ?? 0
+
+   const assets = (fees?.assets ?? [])
+      .map(asset => ({ ...asset, value: valueOf(asset.total, rates?.[asset.asset]) }))
+      .toSorted((a, b) => (b.value ?? -1) - (a.value ?? -1))
+
+   const totalValue = assets.reduce((sum, asset) => sum + (asset.value ?? 0), 0)
 
    return (
       <Card>
@@ -32,59 +38,43 @@ export default function FeeSummaryCard({ fees, filters, filtersKey, options, isL
                onReset={onFiltersReset}
                showSearch={false} />
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-border pt-4 md:grid-cols-4">
-               <Field label="Assets charged in">{asNumber(assets.length)}</Field>
-               <Field label="Fees charged">{asNumber(entries)}</Field>
-               <Field label="First fee">{fees?.first ? asLongDate(fees.first) : '—'}</Field>
-               <Field label="Last fee">{fees?.last ? asLongDate(fees.last) : '—'}</Field>
-            </div>
-
             {assets.length === 0
                ? <p className="text-sm text-muted-foreground">
                   No fees in the stored ledger for these filters.
                </p>
-               : <div className="overflow-x-auto">
+               : <div className="overflow-x-auto border-t border-border pt-4">
                   <Table className="tabular-nums">
                      <TableHeader>
                         <TableRow>
                            <TableHead>Asset</TableHead>
-                           <TableHead className="text-right">Total fees</TableHead>
                            <TableHead className="text-right">Fees</TableHead>
+                           <TableHead className="text-right">Total fees</TableHead>
+                           <TableHead className="text-right">Total fees (USD)</TableHead>
                            <TableHead className="text-right">Share</TableHead>
-                           <TableHead className="text-right">First</TableHead>
-                           <TableHead className="text-right">Last</TableHead>
                         </TableRow>
                      </TableHeader>
                      <TableBody>
                         {assets.map(asset =>
                            <TableRow key={asset.asset}>
                               <TableCell className="font-medium">{asset.asset}</TableCell>
-                              <TableCell className="text-right font-medium">
-                                 {asAssetAmount(asset.total)}
-                              </TableCell>
                               <TableCell className="text-right text-muted-foreground">
                                  {asNumber(asset.entries)}
                               </TableCell>
+                              <TableCell className="text-right font-medium">
+                                 {asAssetAmount(asset.total)}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                 {asset.value == null ? '—' : asDollarAmount(asset.value)}
+                              </TableCell>
                               <TableCell className="text-right text-muted-foreground">
-                                 {asPercentage(asset.entries / entries)}
-                              </TableCell>
-                              <TableCell className="text-right whitespace-nowrap text-muted-foreground">
-                                 {asLongDate(asset.first)}
-                              </TableCell>
-                              <TableCell className="text-right whitespace-nowrap text-muted-foreground">
-                                 {asLongDate(asset.last)}
+                                 {asset.value == null || totalValue === 0
+                                    ? '—'
+                                    : asPercentage(asset.value / totalValue)}
                               </TableCell>
                            </TableRow>)}
                      </TableBody>
                   </Table>
                </div>}
-
-            <p className="text-xs text-muted-foreground">
-               Every total is in the asset the fee was charged in — a trade fee lands in the
-               pair&apos;s quote currency, a withdrawal fee in the coin withdrawn. Nothing is
-               converted between assets, so <b>Share</b> compares how many fees each asset was
-               charged in, not how much they were worth.
-            </p>
 
          </CardContent>
       </Card>

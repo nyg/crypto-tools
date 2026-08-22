@@ -138,8 +138,7 @@ export default function LedgerRepository(accountId) {
       const params = built.params
 
       const assets = db.query(`
-         SELECT base_asset AS asset, SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries,
-                MIN(time) AS first, MAX(time) AS last
+         SELECT base_asset AS asset, SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
          FROM ledger_entry
          WHERE ${where}
          GROUP BY base_asset
@@ -165,24 +164,11 @@ export default function LedgerRepository(accountId) {
          GROUP BY month, base_asset, type
          ORDER BY month`).all(...params)
 
-      // Ranked per asset rather than overall: a fee of 5000 DOGE is not "bigger" than
-      // one of 100 EUR, so the page shows the ranking for the asset being looked at.
-      const largest = db.query(`
-         SELECT time, type, subtype, asset, baseAsset, wallet, fee, refid, txid FROM (
-            SELECT time, type, subtype, asset, base_asset AS baseAsset, wallet, fee, refid, txid,
-                   ROW_NUMBER() OVER (PARTITION BY base_asset ORDER BY CAST(fee AS REAL) DESC) AS feeRank
-            FROM ledger_entry
-            WHERE ${where})
-         WHERE feeRank <= 10`).all(...params)
-
       return {
          assets,
          byType,
          byMonth,
-         largest,
-         entries: assets.reduce((count, asset) => count + asset.entries, 0),
-         first: assets.length > 0 ? Math.min(...assets.map(asset => asset.first)) : null,
-         last: assets.length > 0 ? Math.max(...assets.map(asset => asset.last)) : null
+         entries: assets.reduce((count, asset) => count + asset.entries, 0)
       }
    }
 

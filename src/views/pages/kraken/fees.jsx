@@ -4,7 +4,6 @@ import useSWR from 'swr'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import FeeSummaryCard from '../../components/kraken/fee-summary-card'
 import FeeChartCard from '../../components/kraken/fee-chart-card'
-import FeeBreakdownCard from '../../components/kraken/fee-breakdown-card'
 import { defaultFilters } from '../../components/kraken/ledger-filters'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
@@ -31,6 +30,11 @@ export default function KrakenFees() {
    const { data: filterOptions } = useSWR(
       configured ? '/api/kraken/ledger/filters' : null)
 
+   const assetOptions = (fees?.assets ?? []).map(row => row.asset)
+   const { data: rateData } = useSWR(
+      assetOptions.length > 0 ? ['/api/kraken/asset-rates', { assets: assetOptions }] : null,
+      { keepPreviousData: true })
+
    if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Fees">
@@ -52,7 +56,6 @@ export default function KrakenFees() {
 
    // Derived rather than stored: filtering the selected asset out of the results falls
    // back to the one charged most often instead of leaving the charts blank.
-   const assetOptions = (fees?.assets ?? []).map(row => row.asset)
    const selectedAsset = assetOptions.includes(asset) ? asset : (assetOptions[0] ?? null)
 
    const changeFilters = (next) => setFilters(next)
@@ -82,15 +85,6 @@ export default function KrakenFees() {
                   </AlertDescription>
                </Alert>}
 
-            <FeeSummaryCard
-               fees={fees}
-               filters={filters}
-               filtersKey={filtersKey}
-               options={filterOptions}
-               isLoading={isLoading}
-               onFiltersChange={changeFilters}
-               onFiltersReset={resetFilters} />
-
             <FeeChartCard
                fees={fees}
                colors={colors}
@@ -100,7 +94,15 @@ export default function KrakenFees() {
                onAssetChange={setAsset}
                onGranularityChange={setGranularity} />
 
-            <FeeBreakdownCard fees={fees} colors={colors} asset={selectedAsset} />
+            <FeeSummaryCard
+               fees={fees}
+               rates={rateData?.rates}
+               filters={filters}
+               filtersKey={filtersKey}
+               options={filterOptions}
+               isLoading={isLoading}
+               onFiltersChange={changeFilters}
+               onFiltersReset={resetFilters} />
 
          </div>
       </KrakenLayout>
