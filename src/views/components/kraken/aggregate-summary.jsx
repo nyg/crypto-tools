@@ -89,10 +89,6 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
       }
    ]
 
-   const missingNote = missing.length > 0
-      ? `No rate for ${missing.join(', ')}, so those orders are left out.`
-      : null
-
    return (
       <div className="space-y-2 border-t border-border pt-4">
 
@@ -141,9 +137,9 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
             </TableBody>
          </Table>
 
-         {(pending || missingNote) &&
+         {pending &&
             <p className="text-xs text-muted-foreground">
-               {pending ? 'Converting the other quote currencies…' : missingNote}
+               Converting the other quote currencies…
             </p>}
 
          <div className="border-t border-border" />
