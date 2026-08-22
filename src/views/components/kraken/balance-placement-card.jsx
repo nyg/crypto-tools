@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Donut from './donut'
-import { migrationOf, migrationSummary } from './asset-migrations'
+import { migrationOf } from './asset-migrations'
 import { placementColor, placementLabel, placementOf } from './placement'
 
 // Every position, valued in USD and grouped by where it sits. Positions in an asset
@@ -11,19 +11,13 @@ export function placementTotals(assets, rates) {
 
    const totals = new Map()
    const unvaluedAssets = new Set()
-   const migratedAssets = new Set()
    let unvalued = 0
-   let migrated = 0
 
    for (const asset of assets ?? []) {
       const rate = rates?.[asset.asset]
       for (const position of asset.positions) {
          if (rate == null) {
-            if (migrationOf(asset.asset)) {
-               migrated++
-               migratedAssets.add(asset.asset)
-            }
-            else {
+            if (!migrationOf(asset.asset)) {
                unvalued++
                unvaluedAssets.add(asset.asset)
             }
@@ -39,19 +33,13 @@ export function placementTotals(assets, rates) {
 
    const slices = [...totals.values()].toSorted((a, b) => b.value - a.value)
 
-   return {
-      slices,
-      unvalued,
-      unvaluedAssets: [...unvaluedAssets].toSorted(),
-      migrated,
-      migratedAssets: [...migratedAssets].toSorted()
-   }
+   return { slices, unvalued, unvaluedAssets: [...unvaluedAssets].toSorted() }
 }
 
 
 export default function BalancePlacementCard({ balances, rates }) {
 
-   const { slices, unvalued, unvaluedAssets, migrated, migratedAssets } = placementTotals(balances?.assets, rates)
+   const { slices, unvalued, unvaluedAssets } = placementTotals(balances?.assets, rates)
 
    return (
       <Card>
@@ -76,16 +64,6 @@ export default function BalancePlacementCard({ balances, rates }) {
                      {unvalued} position{unvalued === 1 ? '' : 's'}
                   </span>
                   {' '}in assets with no USD pair{unvalued === 1 ? ' is' : ' are'} left out.
-               </p>}
-
-            {migrated > 0 &&
-               <p className="text-xs text-muted-foreground">
-                  <span
-                     className="cursor-help underline decoration-dotted underline-offset-2"
-                     title={migratedAssets.map(migrationSummary).join(' · ')}>
-                     {migrated} position{migrated === 1 ? '' : 's'}
-                  </span>
-                  {' '}left behind by a token migration{migrated === 1 ? ' is' : ' are'} left out.
                </p>}
 
          </CardContent>

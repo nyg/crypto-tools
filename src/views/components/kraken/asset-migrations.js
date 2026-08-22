@@ -4,11 +4,6 @@ export const assetMigrations = {
 
 export const migrationOf = asset => assetMigrations[asset] ?? null
 
-export const migrationSummary = (asset) => {
-   const migration = migrationOf(asset)
-   return migration ? `${asset} → ${migration.to} (${migration.on}, 1:${migration.ratio})` : null
-}
-
 export const migrationNote = (asset) => {
 
    const migration = migrationOf(asset)
