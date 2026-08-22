@@ -11,7 +11,7 @@ const decimalsOf = (quotes, key, minimum) =>
 
 // Below this share of the volume traded, the two sides have cancelled each other out
 // and the net price stops being about the range.
-const NET_FLOOR = 0.01
+const NET_FLOOR = 1 / 3
 
 export default function AggregateSummary({ summary, market, targetQuote, rateAt, isLoadingRates }) {
 
@@ -44,7 +44,15 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
    // the range rather than a number worth reading.
    const traded = bought.volume.plus(sold.volume)
    const cancelled = traded.eq(0) || volume.abs().lt(traded.times(NET_FLOOR))
-   const netPrice = cancelled ? null : cost.div(volume).abs()
+
+   const netRatio = cancelled ? null : cost.div(volume)
+   const netPrice = netRatio === null || netRatio.lte(0) ? null : netRatio
+
+   const netPriceTitle = netPrice !== null || traded.eq(0)
+      ? undefined
+      : cancelled
+         ? 'The range bought and sold about the same volume, so what it cost on balance says nothing about the price it traded at.'
+         : 'The other side of the range more than paid for this one, so what is left has no price of its own.'
 
    const rows = [
       {
@@ -74,9 +82,7 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
          cost: cost.abs(),
          fee,
          price: netPrice,
-         priceTitle: cancelled && !traded.eq(0)
-            ? 'The range bought and sold about the same volume, so what it cost on balance says nothing about the price it traded at.'
-            : undefined,
+         priceTitle: netPriceTitle,
          className: 'font-medium'
       }
    ]
