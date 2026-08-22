@@ -1,9 +1,10 @@
-import { ArrowUpDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asNumber } from '../../../utils/format'
+import SortIcon from '../lib/sort-icon'
 
 // Kraken records trade times in UTC; rendering them in the browser's zone would
 // silently shift every trade.
@@ -15,13 +16,14 @@ function SortableHead({ column, sort, onSortChange, className, children }) {
       <TableHead className={className}>
          <button
             type="button"
-            className="inline-flex items-center gap-1 hover:text-foreground"
+            className={cn('inline-flex items-center gap-1 hover:text-foreground',
+               isActive && 'font-semibold text-foreground')}
             onClick={() => onSortChange({
                column,
                direction: isActive && sort.direction === 'desc' ? 'asc' : 'desc'
             })}>
             {children}
-            <ArrowUpDownIcon className={cn('size-3', isActive ? 'opacity-100' : 'opacity-40')} />
+            <SortIcon isActive={isActive} direction={sort.direction} />
          </button>
       </TableHead>
    )

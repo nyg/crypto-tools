@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asNumber, asDollarAmount, asRounded } from '../../../utils/format'
+import SortIcon from '../lib/sort-icon'
 
 const typeLabels = {
    stock: 'Stock',
@@ -23,14 +24,6 @@ const typeVariants = {
 const originLabels = {
    seed: 'From the checked-in reference list',
    ai: 'Classified by Claude'
-}
-
-function SortIcon({ isActive, direction }) {
-
-   if (!isActive) return <ArrowUpDownIcon className="size-3 opacity-40" />
-
-   const Icon = direction === 'asc' ? ArrowUpIcon : ArrowDownIcon
-   return <Icon className="size-3.5" strokeWidth={3} />
 }
 
 function SortableHead({ column, sort, onSortChange, className, align, children }) {

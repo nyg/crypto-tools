@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import ComboboxField from '../lib/combobox-field'
 import SelectField from '../lib/select-field'
 import Input from '../lib/input'
+import DateField from '../lib/date-field'
 import { ANY, withAnyOption, asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
 
 export const defaultFilters = { asset: '', type: '', wallet: '', from: null, to: null, search: '' }
@@ -57,19 +58,17 @@ export default function LedgerFilters({ filters, options, onChange, onReset, sho
                onValueChange={(value) => update({ wallet: value === ANY ? '' : value })}
                options={withAnyOption(options?.wallets ?? [], 'All wallets')} />
 
-            <Input
+            <DateField
                name="ledger-from"
-               type="date"
                label="From"
                value={asDateInput(filters.from)}
-               onChange={(e) => update({ from: fromDateValue(e.target.value) })} />
+               onValueChange={(value) => update({ from: fromDateValue(value) })} />
 
-            <Input
+            <DateField
                name="ledger-to"
-               type="date"
                label="To"
                value={asDateInput(filters.to)}
-               onChange={(e) => update({ to: toDateValue(e.target.value) })} />
+               onValueChange={(value) => update({ to: toDateValue(value) })} />
 
             {showSearch &&
                <Input

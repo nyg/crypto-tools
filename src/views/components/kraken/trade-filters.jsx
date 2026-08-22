@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import ComboboxField from '../lib/combobox-field'
 import SelectField from '../lib/select-field'
 import Input from '../lib/input'
+import DateField from '../lib/date-field'
 import { ANY, withAnyOption, asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
 
 export const defaultFilters = { pair: '', direction: '', ordertype: '', from: null, to: null, search: '' }
@@ -55,19 +56,17 @@ export default function TradeFilters({ filters, options, onChange, onReset }) {
                onValueChange={(value) => update({ ordertype: value === ANY ? '' : value })}
                options={withAnyOption(options?.ordertypes ?? [], 'All types')} />
 
-            <Input
+            <DateField
                name="trade-from"
-               type="date"
                label="From"
                value={asDateInput(filters.from)}
-               onChange={(e) => update({ from: fromDateValue(e.target.value) })} />
+               onValueChange={(value) => update({ from: fromDateValue(value) })} />
 
-            <Input
+            <DateField
                name="trade-to"
-               type="date"
                label="To"
                value={asDateInput(filters.to)}
-               onChange={(e) => update({ to: toDateValue(e.target.value) })} />
+               onValueChange={(value) => update({ to: toDateValue(value) })} />
 
             <Input
                name="trade-search"

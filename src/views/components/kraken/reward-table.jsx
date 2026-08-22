@@ -1,24 +1,14 @@
 import { useState } from 'react'
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asAssetAmount, asDollarAmount } from '../../../utils/format'
+import SortIcon from '../lib/sort-icon'
 
 // An asset Kraken has no USD pair for has no rate at all, which is not the same as
 // being worth nothing: it is left out of the totals, shown as a dash, and sorted last
 // whichever column is sorted on.
 export const valueOf = (amount, rate) => rate == null ? null : (amount ?? 0) * rate
-
-// The sorted column shows the single arrow it is sorted by, drawn heavier; the rest
-// keep the two-headed arrow that says they can be sorted at all.
-function SortIcon({ isActive, direction }) {
-
-   if (!isActive) return <ArrowUpDownIcon className="size-3 opacity-40" />
-
-   const Icon = direction === 'asc' ? ArrowUpIcon : ArrowDownIcon
-   return <Icon className="size-3.5" strokeWidth={3} />
-}
 
 function SortableHead({ column, sort, onSortChange, children }) {
    const isActive = sort.column === column
