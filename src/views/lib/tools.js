@@ -1,4 +1,4 @@
-import { CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import { CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 
 
 // The single source of truth for navigation: the home dashboard, the per-exchange
@@ -77,6 +77,17 @@ export const toolGroups = [
             title: 'Staking',
             description: 'Overview of your staking positions and upcoming redemptions.',
             icon: CoinsIcon
+         }
+      ]
+   },
+   {
+      name: 'Tools',
+      tools: [
+         {
+            href: '/tools/trade-calculator',
+            title: 'Trade Calculator',
+            description: 'Size a position from the risk you are willing to take, and lay out its take profit levels.',
+            icon: CalculatorIcon
          }
       ]
    }

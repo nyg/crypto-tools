@@ -12,6 +12,7 @@ import KrakenOpenOrders from './pages/kraken/open-orders'
 import KrakenOrderBatch from './pages/kraken/order-batch'
 import KrakenRewards from './pages/kraken/rewards'
 import KrakenXStocks from './pages/kraken/xstocks'
+import TradeCalculator from './pages/tools/trade-calculator'
 
 export const isMockMode = import.meta.env.VITE_MOCK_DATA === 'true'
 // Under views:// (Electrobun) the page's origin is opaque and the History API is unusable,
@@ -76,6 +77,7 @@ export default function App() {
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
                <Route path="/kraken/rewards" element={<KrakenRewards />} />
                <Route path="/kraken/xstocks" element={<KrakenXStocks />} />
+               <Route path="/tools/trade-calculator" element={<TradeCalculator />} />
                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
          </Router>
