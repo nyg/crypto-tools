@@ -1,6 +1,6 @@
 import { Cell, Pie, PieChart } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart'
-import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
+import { asAssetAmount, asDollarAmount, asShortPercentage } from '../../../utils/format'
 
 // A slice thinner than this is a sliver on the ring and a line in the legend that says
 // nothing, so the whole tail is folded into one "Others" slice — the tables below still
@@ -66,7 +66,7 @@ export default function Donut({ slices, colorFor, emptyText }) {
             <span className="flex w-full items-baseline justify-between gap-3">
                <span>{slice.label}</span>
                <span className="tabular-nums text-muted-foreground">
-                  {asPercentage(slice.value / total)}
+                  {asShortPercentage(slice.value / total)}
                </span>
             </span>
       }]))

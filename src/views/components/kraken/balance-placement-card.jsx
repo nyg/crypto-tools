@@ -83,7 +83,7 @@ export default function BalancePlacementCard({ balances, rates }) {
                   <span
                      className="cursor-help underline decoration-dotted underline-offset-2"
                      title={migratedAssets.map(migrationSummary).join(' · ')}>
-                     {migrated} migrated position{migrated === 1 ? '' : 's'}
+                     {migrated} position{migrated === 1 ? '' : 's'}
                   </span>
                   {' '}left behind by a token migration{migrated === 1 ? ' is' : ' are'} left out.
                </p>}
