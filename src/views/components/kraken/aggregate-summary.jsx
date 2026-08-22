@@ -98,7 +98,7 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
                   <TableHead />
                   <TableHead className="text-right">Volume</TableHead>
                   <TableHead className="text-right">
-                     <span className="cursor-help" title={VWAP_HINT}>VWAP</span>
+                     <span className="cursor-help underline decoration-dotted underline-offset-2" title={VWAP_HINT}>VWAP</span>
                   </TableHead>
                   <TableHead className="text-right">Cost</TableHead>
                   <TableHead className="text-right">Fee</TableHead>

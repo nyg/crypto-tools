@@ -5,7 +5,8 @@ import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/componen
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import BalanceFilters, { DUST_USD } from './balance-filters'
+import BalanceFilters, { EARNING, dustLimit } from './balance-filters'
+import { migrationNote } from './asset-migrations'
 import { PLACEMENT_ORDER, isEarning, placementColor, placementDescription, placementLabel, placementOf } from './placement'
 import { asCount } from '../lib/filter-options'
 import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
@@ -57,6 +58,19 @@ function SortableHead({ column, sort, onSortChange, align, children }) {
    )
 }
 
+function AssetName({ asset }) {
+
+   const note = migrationNote(asset)
+
+   return (
+      <span
+         className={note ? 'cursor-help underline decoration-dotted underline-offset-2' : undefined}
+         title={note ?? undefined}>
+         {asset}
+      </span>
+   )
+}
+
 // The badge carries the colour its slice has in the ring above, so a row can be read
 // against the chart without a legend, and its title spells out what the placement
 // actually means — which is the part Kraken never says.
@@ -95,8 +109,6 @@ export default function BalanceTable({ balances, rates, live, filters, onFilters
    const portfolioValue = assets
       .reduce((sum, asset) => sum + (valueOf(asset.totalNum, rateFor(asset.asset)) ?? 0), 0)
 
-   const search = filters.search.trim().toUpperCase()
-
    // Filtering by placement narrows the positions themselves, so that "Earn · Locked"
    // shows what is locked rather than every asset that happens to have some locked.
    const rows = assets
@@ -104,7 +116,7 @@ export default function BalanceTable({ balances, rates, live, filters, onFilters
          // Ordered the way the ring above is, so a row's badges and the legend read in
          // the same sequence rather than each by its own size.
          const positions = asset.positions
-            .filter(position => !filters.placement || placementOf(position) === filters.placement)
+            .filter(position => matchesPlacement(position, filters.placement))
             .toSorted((a, b) => PLACEMENT_ORDER.indexOf(placementOf(a)) - PLACEMENT_ORDER.indexOf(placementOf(b)))
          const amount = positions.reduce((sum, position) => sum + position.amountNum, 0)
          return {
@@ -121,14 +133,15 @@ export default function BalanceTable({ balances, rates, live, filters, onFilters
          }
       })
       .filter(row => row.positions.length > 0)
-      .filter(row => !search || row.asset.includes(search))
+      .filter(row => !filters.asset || row.asset === filters.asset)
 
    // An asset with no USD pair is never dust: it cannot be valued, so there is no
    // ground to hide it on.
-   const isDust = row => row.value != null && Math.abs(row.value) < DUST_USD
+   const limit = dustLimit(filters)
+   const isDust = row => limit > 0 && row.value != null && Math.abs(row.value) < limit
 
    const dust = rows.filter(isDust)
-   const shown = filters.hideDust ? rows.filter(row => !isDust(row)) : rows
+   const shown = rows.filter(row => !isDust(row))
 
    const sortValue = {
       asset: row => row.asset,
@@ -178,7 +191,10 @@ export default function BalanceTable({ balances, rates, live, filters, onFilters
 
             <BalanceFilters
                filters={filters}
-               options={{ placements: placementOptions(assets) }}
+               options={{
+                  assets: assets.map(asset => asset.asset),
+                  placements: placementOptions(assets)
+               }}
                onChange={onFiltersChange}
                onReset={onReset} />
 
@@ -188,8 +204,8 @@ export default function BalanceTable({ balances, rates, live, filters, onFilters
                </p>
                : sorted.length === 0
                   ? <p className="text-sm text-muted-foreground">
-                     No asset matches the filters{dust.length > 0 && filters.hideDust
-                        ? `, though ${asCount(dust.length, 'asset')} worth under $${DUST_USD} ${dust.length === 1 ? 'is' : 'are'} hidden`
+                     No asset matches the filters{dust.length > 0
+                        ? `, though ${asCount(dust.length, 'asset')} worth under $${limit} ${dust.length === 1 ? 'is' : 'are'} hidden`
                         : ''}.
                   </p>
                   : <div className="space-y-3">
@@ -223,9 +239,9 @@ export default function BalanceTable({ balances, rates, live, filters, onFilters
                                              {isExpanded
                                                 ? <ChevronDownIcon className="size-3.5" />
                                                 : <ChevronRightIcon className="size-3.5" />}
-                                             {row.asset}
+                                             <AssetName asset={row.asset} />
                                           </button>
-                                          : <span className="pl-[1.125rem]">{row.asset}</span>}
+                                          : <span className="pl-[1.125rem]"><AssetName asset={row.asset} /></span>}
                                     </TableCell>
                                     <TableCell>
                                        <div className="flex flex-wrap gap-1">
@@ -293,20 +309,19 @@ export default function BalanceTable({ balances, rates, live, filters, onFilters
                            </TableRow>
                         </TableFooter>
                      </Table>
-
-                     <p className="text-xs text-muted-foreground">
-                        Amounts are rebuilt from the stored ledger and priced at today&apos;s market rate,
-                        so the values move with the market. An asset held in more than one place expands
-                        into a line per placement. <b>In orders</b> is what an order still on the book has
-                        reserved, read from Kraken rather than from the ledger.
-                        {filters.hideDust && dust.length > 0 &&
-                           ` ${asCount(dust.length, 'asset')} worth under $${DUST_USD} ${dust.length === 1 ? 'is' : 'are'} hidden.`}
-                     </p>
                   </div>}
 
          </CardContent>
       </Card>
    )
+}
+
+function matchesPlacement(position, placement) {
+
+   if (!placement) return true
+
+   const key = placementOf(position)
+   return placement === EARNING ? isEarning(key) : key === placement
 }
 
 // Only the placements this account actually uses: offering "Earn · Bonded" to someone
@@ -322,5 +337,8 @@ function placementOptions(assets) {
       }
    }
 
-   return [...seen.values()].toSorted((a, b) => a.label.localeCompare(b.label))
+   const named = [...seen.values()].toSorted((a, b) => a.label.localeCompare(b.label))
+   const earns = [...seen.keys()].some(isEarning)
+
+   return earns ? [{ value: EARNING, label: 'Any rewards' }, ...named] : named
 }
