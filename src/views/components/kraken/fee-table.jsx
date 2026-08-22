@@ -1,18 +1,10 @@
 import { useState } from 'react'
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asAssetAmount, asNumber, asDollarAmount, asPercentage } from '../../../utils/format'
+import SortIcon from '../lib/sort-icon'
 
 const valueOf = (total, rate) => rate == null ? null : total * rate
-
-function SortIcon({ isActive, direction }) {
-
-   if (!isActive) return <ArrowUpDownIcon className="size-3 opacity-40" />
-
-   const Icon = direction === 'asc' ? ArrowUpIcon : ArrowDownIcon
-   return <Icon className="size-3.5" strokeWidth={3} />
-}
 
 function SortableHead({ column, sort, onSortChange, align, children }) {
    const isActive = sort.column === column

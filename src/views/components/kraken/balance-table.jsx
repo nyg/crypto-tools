@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon, DownloadIcon, Loader2Icon } from 'lucide-react'
+import { ChevronDownIcon, ChevronRightIcon, DownloadIcon, Loader2Icon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import BalanceFilters, { DUST_USD } from './balance-filters'
 import { PLACEMENT_ORDER, isEarning, placementColor, placementDescription, placementLabel, placementOf } from './placement'
 import { asCount } from '../lib/filter-options'
 import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
+import SortIcon from '../lib/sort-icon'
 
 // An asset Kraken has no USD pair for has no rate at all, which is not the same as
 // being worth nothing: it is shown as a dash, left out of the totals, and sorted last
@@ -34,14 +35,6 @@ function downloadCsv(rows) {
    link.click()
 
    URL.revokeObjectURL(url)
-}
-
-function SortIcon({ isActive, direction }) {
-
-   if (!isActive) return <ArrowUpDownIcon className="size-3 opacity-40" />
-
-   const Icon = direction === 'asc' ? ArrowUpIcon : ArrowDownIcon
-   return <Icon className="size-3.5" strokeWidth={3} />
 }
 
 function SortableHead({ column, sort, onSortChange, align, children }) {

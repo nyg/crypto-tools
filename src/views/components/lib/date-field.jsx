@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, CircleXIcon } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input as ShadcnInput } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -126,7 +126,21 @@ export default function DateField({ name, label, value, onValueChange, disabled 
                onChange={(event) => setText(event.target.value)}
                onBlur={commit}
                onKeyDown={onKeyDown}
-               className="pr-8" />
+               className={text ? 'pr-14' : 'pr-8'} />
+            {text &&
+               <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  disabled={disabled}
+                  aria-label={`Clear the ${label.toLowerCase()} date`}
+                  className="absolute inset-y-0 right-7 my-auto text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  onClick={() => {
+                     setText('')
+                     if (value) onValueChange('')
+                  }}>
+                  <CircleXIcon className="size-4" />
+               </Button>}
             <Popover open={open} onOpenChange={setOpen}>
                <PopoverTrigger asChild>
                   <Button
