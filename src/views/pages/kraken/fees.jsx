@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import useSWR from 'swr'
+import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import FeeSummaryCard from '../../components/kraken/fee-summary-card'
-import FeeChartCard from '../../components/kraken/fee-chart-card'
-import { defaultFilters } from '../../components/kraken/ledger-filters'
+import FeeChart from '../../components/kraken/fee-chart'
+import FeeTable from '../../components/kraken/fee-table'
+import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import { asNumber } from '../../../utils/format'
 
 const isUnfiltered = filters => Object.keys(defaultFilters)
    .every(key => filters[key] === defaultFilters[key])
@@ -85,24 +89,42 @@ export default function KrakenFees() {
                   </AlertDescription>
                </Alert>}
 
-            <FeeChartCard
-               fees={fees}
-               colors={colors}
-               assets={assetOptions}
-               asset={selectedAsset}
-               granularity={granularity}
-               onAssetChange={setAsset}
-               onGranularityChange={setGranularity} />
+            <Card>
+               <CardHeader>
+                  <CardTitle>Fees paid</CardTitle>
+                  <CardAction>
+                     {isLoading
+                        ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+                        : <Badge variant="outline">{asNumber(fees?.entries ?? 0)} charged</Badge>}
+                  </CardAction>
+               </CardHeader>
+               <CardContent className="space-y-6">
 
-            <FeeSummaryCard
-               fees={fees}
-               rates={rateData?.rates}
-               filters={filters}
-               filtersKey={filtersKey}
-               options={filterOptions}
-               isLoading={isLoading}
-               onFiltersChange={changeFilters}
-               onFiltersReset={resetFilters} />
+                  <LedgerFilters
+                     key={filtersKey}
+                     filters={filters}
+                     options={filterOptions}
+                     onChange={changeFilters}
+                     onReset={resetFilters}
+                     showSearch={false} />
+
+                  <div className="border-t border-border pt-6">
+                     <FeeChart
+                        fees={fees}
+                        colors={colors}
+                        assets={assetOptions}
+                        asset={selectedAsset}
+                        granularity={granularity}
+                        onAssetChange={setAsset}
+                        onGranularityChange={setGranularity} />
+                  </div>
+
+                  <div className="border-t border-border pt-6">
+                     <FeeTable fees={fees} rates={rateData?.rates} />
+                  </div>
+
+               </CardContent>
+            </Card>
 
          </div>
       </KrakenLayout>
