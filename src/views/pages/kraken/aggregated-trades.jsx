@@ -4,6 +4,7 @@ import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import AggregateFilters, { defaultFilters } from '../../components/kraken/aggregate-filters'
 import AggregateTable from '../../components/kraken/aggregate-table'
+import AggregateSummary from '../../components/kraken/aggregate-summary'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
@@ -107,6 +108,12 @@ export default function KrakenAggregatedTrades() {
                      markets={markets}
                      onChange={changeFilters}
                      onReset={() => changeFilters(defaultFilters)} />
+                  <AggregateSummary
+                     summary={groups?.summary}
+                     market={market}
+                     targetQuote={targetQuote}
+                     rateAt={ratesAt(rateData?.rates)}
+                     isLoadingRates={needsRates && isLoadingRates} />
                   <AggregateTable
                      groups={groups}
                      market={market}
