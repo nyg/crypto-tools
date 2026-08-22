@@ -369,12 +369,9 @@ export function ledgerFees(body = {}) {
       const groups = new Map()
       for (const entry of charged) {
          const key = keyOf(entry)
-         const group = groups.get(key)
-            ?? { total: 0, entries: 0, first: entry.time, last: entry.time }
+         const group = groups.get(key) ?? { total: 0, entries: 0 }
          group.total += Number(entry.fee)
          group.entries += 1
-         group.first = Math.min(group.first, entry.time)
-         group.last = Math.max(group.last, entry.time)
          groups.set(key, group)
       }
       return groups
@@ -397,21 +394,7 @@ export function ledgerFees(body = {}) {
       })
       .toSorted((a, b) => a.month.localeCompare(b.month))
 
-   // Ranked per asset, like the SQL window function does.
-   const largest = assets.flatMap(({ asset }) => charged
-      .filter(entry => entry.baseAsset === asset)
-      .toSorted((a, b) => Number(b.fee) - Number(a.fee))
-      .slice(0, 10))
-
-   return {
-      assets,
-      byType,
-      byMonth,
-      largest,
-      entries: charged.length,
-      first: charged.length > 0 ? Math.min(...charged.map(entry => entry.time)) : null,
-      last: charged.length > 0 ? Math.max(...charged.map(entry => entry.time)) : null
-   }
+   return { assets, byType, byMonth, entries: charged.length }
 }
 
 // Mirrors LedgerRepository.rewardSummary: the same reward predicate and the same pivot,

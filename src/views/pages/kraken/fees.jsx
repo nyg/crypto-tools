@@ -1,15 +1,18 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import useSWR from 'swr'
+import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import FeeSummaryCard from '../../components/kraken/fee-summary-card'
-import FeeChartCard from '../../components/kraken/fee-chart-card'
-import FeeBreakdownCard from '../../components/kraken/fee-breakdown-card'
-import { defaultFilters } from '../../components/kraken/ledger-filters'
+import FeeChart from '../../components/kraken/fee-chart'
+import FeeTable from '../../components/kraken/fee-table'
+import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import { asNumber } from '../../../utils/format'
 
 const isUnfiltered = filters => Object.keys(defaultFilters)
    .every(key => filters[key] === defaultFilters[key])
@@ -30,6 +33,11 @@ export default function KrakenFees() {
 
    const { data: filterOptions } = useSWR(
       configured ? '/api/kraken/ledger/filters' : null)
+
+   const assetOptions = (fees?.assets ?? []).map(row => row.asset)
+   const { data: rateData } = useSWR(
+      assetOptions.length > 0 ? ['/api/kraken/asset-rates', { assets: assetOptions }] : null,
+      { keepPreviousData: true })
 
    if (!isLoadingSettings && (unreachable || !configured)) {
       return (
@@ -52,7 +60,6 @@ export default function KrakenFees() {
 
    // Derived rather than stored: filtering the selected asset out of the results falls
    // back to the one charged most often instead of leaving the charts blank.
-   const assetOptions = (fees?.assets ?? []).map(row => row.asset)
    const selectedAsset = assetOptions.includes(asset) ? asset : (assetOptions[0] ?? null)
 
    const changeFilters = (next) => setFilters(next)
@@ -82,25 +89,42 @@ export default function KrakenFees() {
                   </AlertDescription>
                </Alert>}
 
-            <FeeSummaryCard
-               fees={fees}
-               filters={filters}
-               filtersKey={filtersKey}
-               options={filterOptions}
-               isLoading={isLoading}
-               onFiltersChange={changeFilters}
-               onFiltersReset={resetFilters} />
+            <Card>
+               <CardHeader>
+                  <CardTitle>Fees paid</CardTitle>
+                  <CardAction>
+                     {isLoading
+                        ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+                        : <Badge variant="outline">{asNumber(fees?.entries ?? 0)} charged</Badge>}
+                  </CardAction>
+               </CardHeader>
+               <CardContent className="space-y-6">
 
-            <FeeChartCard
-               fees={fees}
-               colors={colors}
-               assets={assetOptions}
-               asset={selectedAsset}
-               granularity={granularity}
-               onAssetChange={setAsset}
-               onGranularityChange={setGranularity} />
+                  <LedgerFilters
+                     key={filtersKey}
+                     filters={filters}
+                     options={filterOptions}
+                     onChange={changeFilters}
+                     onReset={resetFilters}
+                     showSearch={false} />
 
-            <FeeBreakdownCard fees={fees} colors={colors} asset={selectedAsset} />
+                  <div className="border-t border-border pt-6">
+                     <FeeChart
+                        fees={fees}
+                        colors={colors}
+                        assets={assetOptions}
+                        asset={selectedAsset}
+                        granularity={granularity}
+                        onAssetChange={setAsset}
+                        onGranularityChange={setGranularity} />
+                  </div>
+
+                  <div className="border-t border-border pt-6">
+                     <FeeTable fees={fees} rates={rateData?.rates} />
+                  </div>
+
+               </CardContent>
+            </Card>
 
          </div>
       </KrakenLayout>
