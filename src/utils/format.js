@@ -6,6 +6,7 @@ const utcLongDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric',
 const monthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long' })
 const shortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const shortPercentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const usDollarFormatter = new Intl.NumberFormat(locales, { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const decimalOneFormatter = new Intl.NumberFormat(locales, { style: 'decimal', minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const localTimestampFormatter = new Intl.DateTimeFormat(locales, {
@@ -81,6 +82,10 @@ export function asLocalTimestamp(timestamp) {
 
 export function asPercentage(number) {
    return percentageFormatter.format(number)
+}
+
+export function asShortPercentage(number) {
+   return shortPercentageFormatter.format(number)
 }
 
 export function asDollarAmount(number) {
