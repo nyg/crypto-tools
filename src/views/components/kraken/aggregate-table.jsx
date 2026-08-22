@@ -66,7 +66,7 @@ export default function AggregateTable({ groups, market, scope, targetQuote, rat
                   <TableHead />
                   <TableHead />
                   <TableHead className="text-right">Volume</TableHead>
-                  <TableHead className="text-right">Avg price</TableHead>
+                  <TableHead className="text-right">Average price</TableHead>
                   <TableHead className="text-right">Cost</TableHead>
                   <TableHead className="text-right">Fee</TableHead>
                </TableRow>

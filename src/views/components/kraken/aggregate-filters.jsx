@@ -2,10 +2,10 @@ import { Button } from '@/components/ui/button'
 import ComboboxField from '../lib/combobox-field'
 import SelectField from '../lib/select-field'
 import Checkbox from '../lib/checkbox'
-import Input from '../lib/input'
+import DateField from '../lib/date-field'
 import { asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
 
-export const defaultFilters = { pairKey: '', includeAllQuotes: false, from: null, to: null, order: 'desc' }
+export const defaultFilters = { pairKey: '', includeAllQuotes: false, from: null, to: null, order: 'asc' }
 
 const orderOptions = [
    { value: 'desc', label: 'Newest first' },
@@ -32,19 +32,17 @@ export default function AggregateFilters({ filters, markets, onChange, onReset }
                searchPlaceholder="Search pairs…"
                emptyText="No pair found." />
 
-            <Input
+            <DateField
                name="aggregate-from"
-               type="date"
                label="From"
                value={asDateInput(filters.from)}
-               onChange={(e) => update({ from: fromDateValue(e.target.value) })} />
+               onValueChange={(value) => update({ from: fromDateValue(value) })} />
 
-            <Input
+            <DateField
                name="aggregate-to"
-               type="date"
                label="To"
                value={asDateInput(filters.to)}
-               onChange={(e) => update({ to: toDateValue(e.target.value) })} />
+               onValueChange={(value) => update({ to: toDateValue(value) })} />
 
             <SelectField
                name="aggregate-order"

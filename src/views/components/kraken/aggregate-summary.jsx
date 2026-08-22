@@ -13,6 +13,8 @@ const decimalsOf = (quotes, key, minimum) =>
 // and the net price stops being about the range.
 const NET_FLOOR = 1 / 3
 
+const VWAP_HINT = 'Volume-weighted average price: the average price paid or received per unit, with the bigger orders counting more than the smaller ones.'
+
 export default function AggregateSummary({ summary, market, targetQuote, rateAt, isLoadingRates }) {
 
    if (!market || !summary) return null
@@ -87,6 +89,15 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
       }
    ]
 
+   const notes = [
+      bought.converted || sold.converted
+         ? `Other quote currencies are converted to ${targetQuote} at today's rate.`
+         : null,
+      missing.length > 0
+         ? `No rate for ${missing.join(', ')}, so those orders are left out.`
+         : null
+   ].filter(Boolean)
+
    return (
       <div className="space-y-2 border-t border-border pt-4">
 
@@ -96,7 +107,9 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
                   <TableHead>Range</TableHead>
                   <TableHead />
                   <TableHead className="text-right">Volume</TableHead>
-                  <TableHead className="text-right">VWAP</TableHead>
+                  <TableHead className="text-right">
+                     <span className="cursor-help" title={VWAP_HINT}>VWAP</span>
+                  </TableHead>
                   <TableHead className="text-right">Cost</TableHead>
                   <TableHead className="text-right">Fee</TableHead>
                </TableRow>
@@ -133,20 +146,10 @@ export default function AggregateSummary({ summary, market, targetQuote, rateAt,
             </TableBody>
          </Table>
 
-         <p className="text-xs text-muted-foreground">
-            {pending
-               ? 'Converting the other quote currencies…'
-               : <>
-                  Every order in the range counts, not only the ones on this page. <b>Bought</b> and{' '}
-                  <b>Sold</b> weight each side&apos;s price by its own volume; <b>{rows[2].label}</b>{' '}
-                  is the two sides against each other, so the counter-trend orders inside a range pay
-                  for themselves instead of being averaged in.
-                  {(bought.converted || sold.converted) &&
-                     ` Other quote currencies are converted to ${targetQuote} at today's rate.`}
-                  {missing.length > 0 &&
-                     ` No rate for ${missing.join(', ')}, so those orders are left out.`}
-               </>}
-         </p>
+         {(pending || notes.length > 0) &&
+            <p className="text-xs text-muted-foreground">
+               {pending ? 'Converting the other quote currencies…' : notes.join(' ')}
+            </p>}
 
       </div>
    )
