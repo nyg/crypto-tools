@@ -1,6 +1,27 @@
 # Changelog
 
 
+## [0.5.0](https://github.com/nyg/crypto-tools/compare/v0.4.0..v0.5.0) - 2026-08-22
+
+### ⛰️  Features
+
+- [`f125b59`](https://github.com/nyg/crypto-tools/commit/f125b594e3e5e5c939824a129678029208f39dfe) *(kraken)* Sharpen the balances filters and flag migrated assets ([#263](https://github.com/nyg/crypto-tools/issues/263))
+- [`1227c7b`](https://github.com/nyg/crypto-tools/commit/1227c7b48b7da0da2addc19799abd81be63a7c1f) *(tools)* Add a risk-based trade calculator ([#262](https://github.com/nyg/crypto-tools/issues/262))
+- [`9589191`](https://github.com/nyg/crypto-tools/commit/958919154e2e304c25464e52fa94f1c173cf210e) *(ui)* Replace the native date fields and quiet the table chrome ([#261](https://github.com/nyg/crypto-tools/issues/261))
+- [`5cd3a59`](https://github.com/nyg/crypto-tools/commit/5cd3a59d94406c7d24d81e9b4810cf2a5487589e) *(kraken)* Value the fee totals in USD and trim the page ([#259](https://github.com/nyg/crypto-tools/issues/259))
+- [`31e347f`](https://github.com/nyg/crypto-tools/commit/31e347fd1d08ea415bc341a04179e7b5da4fca69) *(kraken)* Total both sides of an aggregated trades range ([#257](https://github.com/nyg/crypto-tools/issues/257))
+- [`75dbd69`](https://github.com/nyg/crypto-tools/commit/75dbd69ee862641e99854936422ea5c9fb8d681e) *(ui)* Move page help and sync freshness out of the page body ([#255](https://github.com/nyg/crypto-tools/issues/255))
+- [`e6dfb5c`](https://github.com/nyg/crypto-tools/commit/e6dfb5c2cb556f4d0e1489090837a1c2d024bed2) *(kraken)* Replace closed orders with aggregated trades ([#254](https://github.com/nyg/crypto-tools/issues/254))
+- [`5a6878e`](https://github.com/nyg/crypto-tools/commit/5a6878e988dc02dbb6347db8b6af303636f47f87) *(kraken)* Tighten order batch parameters layout ([#251](https://github.com/nyg/crypto-tools/issues/251))
+
+### 🐛 Bug Fixes
+
+- [`9c1db91`](https://github.com/nyg/crypto-tools/commit/9c1db9111128e4ffc18ca950817e5ac52a462726) *(kraken)* Rate the inverted fiat pairs and guard the net VWAP ([#258](https://github.com/nyg/crypto-tools/issues/258))
+
+### 📚 Documentation
+
+- [`2f095be`](https://github.com/nyg/crypto-tools/commit/2f095be39d2564af89bd9995d8931700b28f5ddb) Rewrite the readme around screenshots ([#252](https://github.com/nyg/crypto-tools/issues/252))
+
 ## [0.4.0](https://github.com/nyg/crypto-tools/compare/v0.3.0..v0.4.0) - 2026-08-17
 
 ### ⛰️  Features
