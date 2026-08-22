@@ -235,20 +235,33 @@ export default function KrakenAPI(credentials) {
       const assetPairs = (await resource.fetchAllAssetPairs()).result
       const pairIndex = buildPairIndex(assetPairs)
 
-      const altnames = new Map()
-      for (const pair of Object.values(assetPairs ?? {})) {
+      const tradeable = Object.values(assetPairs ?? {}).filter(pair => {
          // Darkpool pairs (XBT/USD.d) quote the same asset but trade separately, and
          // an offline pair has no meaningful last trade.
-         if (!pair.altname || pair.altname.includes('.')) continue
-         if (pair.status && pair.status !== 'online') continue
-         // Matched exactly rather than through normalizeAsset, which strips the digit
-         // off Kraken's USD1 stablecoin and would let the thin ETHUSD1 book stand in
-         // for ETHUSD.
-         if (!['USD', 'ZUSD'].includes(pair.quote)) continue
+         if (!pair.altname || pair.altname.includes('.')) return false
+         return !pair.status || pair.status === 'online'
+      })
 
+      // Matched exactly rather than through normalizeAsset, which strips the digit
+      // off Kraken's USD1 stablecoin and would let the thin ETHUSD1 book stand in
+      // for ETHUSD.
+      const isUsd = asset => ['USD', 'ZUSD'].includes(asset)
+
+      const altnames = new Map()
+
+      for (const pair of tradeable) {
+         if (!isUsd(pair.quote)) continue
          const baseAsset = normalizeAsset(pair.base)
          if (wanted.has(baseAsset) && !altnames.has(baseAsset)) {
             altnames.set(baseAsset, pair.altname)
+         }
+      }
+
+      for (const pair of tradeable) {
+         if (!isUsd(pair.base)) continue
+         const quoteAsset = normalizeAsset(pair.quote)
+         if (wanted.has(quoteAsset) && !altnames.has(quoteAsset)) {
+            altnames.set(quoteAsset, pair.altname)
          }
       }
 
@@ -258,11 +271,12 @@ export default function KrakenAPI(credentials) {
       // the page can tell "not traded here" apart from "worth nothing".
       const ticker = (await resource.fetchTicker([...altnames.values()])).result ?? {}
       for (const [name, entry] of Object.entries(ticker)) {
-         const { baseAsset } = resolvePair(name, pairIndex)
+         const { baseAsset, quoteAsset } = resolvePair(name, pairIndex)
          const price = Number(entry?.c?.[0])
-         if (wanted.has(baseAsset) && Number.isFinite(price)) {
-            rates[baseAsset] = price
-         }
+         if (!Number.isFinite(price) || price === 0) continue
+
+         if (quoteAsset === 'USD' && wanted.has(baseAsset)) rates[baseAsset] = price
+         else if (baseAsset === 'USD' && wanted.has(quoteAsset)) rates[quoteAsset] = 1 / price
       }
 
       return rates
