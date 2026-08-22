@@ -167,7 +167,7 @@ export function tradeAggregations(body = {}) {
    const empty = {
       rows: [], total: 0, page, pageSize,
       baseAsset: filters.base ?? '', quoteAsset: filters.quote ?? '',
-      quoteAssets: [], truncated: false
+      quoteAssets: [], summary: emptySummary(), truncated: false
    }
 
    if (!filters.base) return empty
@@ -205,8 +205,59 @@ export function tradeAggregations(body = {}) {
       baseAsset: filters.base,
       quoteAsset: filters.quote ?? '',
       quoteAssets: [...new Set(groups.flatMap(group => group.quotes.map(quote => quote.quoteAsset)))],
+      summary: asSummary(orders),
       truncated: false
    }
+}
+
+function asSummary(orders) {
+
+   const sides = { buy: newSummarySide(), sell: newSummarySide() }
+
+   for (const order of orders) {
+
+      const side = sides[order.direction]
+      if (!side) continue
+
+      side.orderCount += 1
+      side.tradeCount += order.tradeCount
+
+      const totals = side.byQuote.get(order.quoteAsset)
+         ?? { volume: Big(0), cost: Big(0), fee: Big(0), netCost: Big(0), decimals: 2 }
+      totals.volume = totals.volume.plus(order.volume)
+      totals.cost = totals.cost.plus(order.cost)
+      totals.fee = totals.fee.plus(order.fee)
+      totals.netCost = totals.netCost.plus(order.netCost)
+      totals.decimals = Math.max(totals.decimals, decimalCount(order.price))
+      side.byQuote.set(order.quoteAsset, totals)
+   }
+
+   return { buy: asSummarySide(sides.buy), sell: asSummarySide(sides.sell) }
+}
+
+function newSummarySide() {
+   return { orderCount: 0, tradeCount: 0, byQuote: new Map() }
+}
+
+function asSummarySide(side) {
+   return {
+      orderCount: side.orderCount,
+      tradeCount: side.tradeCount,
+      volume: [...side.byQuote.values()]
+         .reduce((total, totals) => total.plus(totals.volume), Big(0)).toString(),
+      quotes: [...side.byQuote.entries()].map(([quoteAsset, totals]) => ({
+         quoteAsset,
+         volume: totals.volume.toString(),
+         cost: totals.cost.toString(),
+         fee: totals.fee.toString(),
+         netCost: totals.netCost.toString(),
+         price: totals.volume.eq(0) ? '0' : totals.cost.div(totals.volume).toFixed(totals.decimals)
+      }))
+   }
+}
+
+function emptySummary() {
+   return { buy: asSummarySide(newSummarySide()), sell: asSummarySide(newSummarySide()) }
 }
 
 function asAggregation(run, index) {
