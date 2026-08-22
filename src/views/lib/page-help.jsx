@@ -87,6 +87,17 @@ const pageHelp = {
          them — unlike the Kraken pages there is no local database behind this one, so
          nothing is shown until you fetch. Locked staking positions are listed with the
          date each one is released and the products they were subscribed to.
+      </>,
+
+   '/tools/trade-calculator':
+      <>
+         Turns the loss you are prepared to take into a position size: risk amount over the
+         distance from entry to stop loss. From there it lays out the take profit tiers as
+         multiples of that same risk, with the profit and return each one realises. It reaches
+         no exchange and knows nothing about your account — every number comes from what you
+         type, and only the form is kept, on this machine. The chart beside it is an embedded{' '}
+         <ExternalLink href="https://www.tradingview.com/" className="underline">TradingView</ExternalLink>{' '}
+         widget, the one part of the page that talks to the network.
       </>
 }
 

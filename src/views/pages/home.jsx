@@ -19,7 +19,8 @@ export default function Home() {
                <h2 className="font-heading text-2xl font-semibold tracking-tight">Welcome</h2>
                <p className="text-sm text-muted-foreground">
                   A small collection of tools for managing Kraken and Binance accounts — batch order
-                  creation, closed-order reports, balances and staking overviews.
+                  creation, closed-order reports, balances and staking overviews — and a few that
+                  need no account at all.
                </p>
             </section>
 

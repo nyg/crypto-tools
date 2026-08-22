@@ -36,6 +36,7 @@ export default function Layout({ children, name }) {
                <nav className="flex items-center gap-3 sm:gap-4">
                   <MenuLink href={groupHref('Kraken')} isActive={isSection}>Kraken</MenuLink>
                   <MenuLink href={groupHref('Binance')} isActive={isSection}>Binance</MenuLink>
+                  <MenuLink href={groupHref('Tools')} isActive={isSection}>Tools</MenuLink>
                   <MenuLink href="/settings" isActive={isSection}>Settings</MenuLink>
                </nav>
                <div className="ml-auto flex items-center gap-1">
