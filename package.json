@@ -24,13 +24,14 @@
       "dev": "concurrently -n vite,bun -c cyan,magenta \"vite\" \"bun --watch src/server/index.js\"",
       "dev:vite": "vite",
       "dev:server": "bun --watch src/server/index.js",
+      "desktop:prepare": "bunx electrobun prepare",
       "desktop:dev": "bunx electrobun dev --watch",
       "mocked": "VITE_MOCK_DATA=true vite",
       "build": "vite build",
       "build:stable": "bunx electrobun build --env=stable",
       "start": "NODE_ENV=production bun src/server/index.js",
       "lint": "eslint src --fix",
-      "typecheck": "tsc --noEmit"
+      "typecheck": "bunx electrobun prepare && tsc --noEmit"
    },
    "dependencies": {
       "@ai-sdk/anthropic": "4.0.24",
@@ -63,11 +64,10 @@
       "@babel/eslint-parser": "8.0.1",
       "@babel/preset-typescript": "8.0.1",
       "@tailwindcss/vite": "4.3.3",
-      "@types/three": "0.185.4",
       "@vitejs/plugin-react": "6.0.4",
       "bun-types": "1.4.0",
       "concurrently": "10.0.4",
-      "electrobun": "1.18.1",
+      "electrobun": "2.0.1",
       "eslint": "10.8.0",
       "eslint-plugin-react-hooks": "7.1.1",
       "globals": "17.8.0",

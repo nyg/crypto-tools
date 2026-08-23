@@ -1,6 +1,5 @@
-/// <reference types="bun-types" />
-import { $ } from "bun";
-import { existsSync } from "fs";
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 // This hook runs after ElectroBun assembles the self-extracting .app bundle,
 // before the DMG is created. We apply an ad-hoc signature so macOS does not
@@ -22,5 +21,20 @@ if (!bundlePath || !existsSync(bundlePath)) {
 }
 
 console.log(`postwrap: ad-hoc signing ${bundlePath}`);
-await $`codesign --sign - --deep --force ${bundlePath}`;
+
+const { status, error } = spawnSync(
+  "codesign",
+  ["--sign", "-", "--deep", "--force", bundlePath],
+  { stdio: "inherit" }
+);
+
+if (error) {
+  console.error("postwrap: could not run codesign:", error.message);
+  process.exit(1);
+}
+
+if (status !== 0) {
+  process.exit(status ?? 1);
+}
+
 console.log("postwrap: signing complete");

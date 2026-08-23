@@ -1,5 +1,5 @@
 /// <reference types="bun-types" />
-import { ApplicationMenu, BrowserWindow, Utils, app } from 'electrobun/bun'
+import { ApplicationMenu, BrowserWindow, BuildConfig, Utils } from 'electrobun/main'
 import { createApp } from '../server/app.js'
 import { systemLocales } from './locale'
 import { resolveInitialWindowState, trackWindowState } from './window-state'
@@ -9,7 +9,7 @@ const DEV_SERVER_URL = `http://localhost:${process.env.VITE_PORT ?? 3000}`
 const VIEWS_URL = 'views://main/index.html'
 
 async function resolveUrl(): Promise<string> {
-   if (app.channel !== 'dev') {
+   if (BuildConfig.getSync().channel !== 'dev') {
       return VIEWS_URL
    }
    try {

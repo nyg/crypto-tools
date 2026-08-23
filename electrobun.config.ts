@@ -1,7 +1,9 @@
-import { readFileSync } from "fs";
-import type { ElectrobunConfig } from "electrobun/bun";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import type { ElectrobunConfig } from "electrobun";
 
-const { version } = JSON.parse(readFileSync("./package.json", "utf-8")) as { version: string };
+const packageJsonPath = fileURLToPath(new URL("./package.json", import.meta.url));
+const { version } = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as { version: string };
 
 export default {
   app: {
@@ -10,12 +12,15 @@ export default {
     version,
   },
   build: {
+    mainProcess: "bun",
     mac: {
       // Generated from assets/icon.svg, see scripts/generate-icons.sh.
       icons: "assets/icon.iconset",
+      bundleCEF: false,
     },
     win: {
       icon: "assets/icon.ico",
+      bundleCEF: false,
     },
     bun: {
       entrypoint: "src/electrobun/index.ts",

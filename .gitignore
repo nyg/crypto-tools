@@ -36,3 +36,5 @@ yarn-error.log*
 # build output
 /dist
 /artifacts
+/.hutch
+/.cottontail-tmp
