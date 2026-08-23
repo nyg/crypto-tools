@@ -1,5 +1,7 @@
 /// <reference types="bun-types" />
 
+export {};
+
 const SEED_PATH = "src/server/data/xstocks.json";
 const CONCURRENCY = 6;
 
