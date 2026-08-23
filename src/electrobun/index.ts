@@ -7,6 +7,9 @@ import { resolveInitialWindowState, trackWindowState } from './window-state'
 const DEV_API_PORT = Number(process.env.PORT ?? 3001)
 const DEV_SERVER_URL = `http://localhost:${process.env.VITE_PORT ?? 3000}`
 const VIEWS_URL = 'views://main/index.html'
+const ABOUT_ACTION = 'show-about'
+const SHOW_ABOUT_JS = 'window.dispatchEvent(new CustomEvent(\'crypto-tools:show-about\'))'
+const hasApplicationMenu = process.platform !== 'win32'
 
 async function resolveUrl(): Promise<string> {
    if (BuildConfig.getSync().channel !== 'dev') {
@@ -84,11 +87,27 @@ async function main() {
 
    win.show()
 
+   if (!hasApplicationMenu) {
+      return
+   }
+
+   ApplicationMenu.on('application-menu-clicked', (event: any) => {
+      if (event?.data?.action !== ABOUT_ACTION) {
+         return
+      }
+      try {
+         win.webview.executeJavascript(SHOW_ABOUT_JS)
+      }
+      catch (error) {
+         console.error('✗ Could not open the About dialog:', error)
+      }
+   })
+
    ApplicationMenu.setApplicationMenu([
       {
          label: 'Crypto Tools',
          submenu: [
-            { role: 'about' },
+            { label: 'About Crypto Tools', action: ABOUT_ACTION },
             { type: 'separator' },
             { role: 'hide' },
             { role: 'hideOthers' },
