@@ -1,7 +1,13 @@
+import type { ReactNode } from 'react'
 import { InfoIcon } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 
-export default function FieldHint({ label = 'More information', children }) {
+interface FieldHintProps {
+   label?: string
+   children: ReactNode
+}
+
+export default function FieldHint({ label = 'More information', children }: FieldHintProps) {
    return (
       <Popover>
          <PopoverTrigger

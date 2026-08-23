@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import { CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 
 
@@ -10,7 +11,21 @@ import { CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, Receip
 // which is what decides whether the age of that database is worth showing beside the
 // tabs: on a page that talks to Kraken every time, it would say nothing about what is
 // on screen.
-export const toolGroups = [
+export interface Tool {
+   href: string
+   title: string
+   description: string
+   icon: LucideIcon
+   // Marks the pages served by the local database rather than by a live call.
+   readsLedger?: boolean
+}
+
+export interface ToolGroup {
+   name: string
+   tools: Tool[]
+}
+
+export const toolGroups: ToolGroup[] = [
    {
       name: 'Kraken',
       tools: [
@@ -93,12 +108,16 @@ export const toolGroups = [
    }
 ]
 
-const groupBy = name => toolGroups.find(group => group.name === name)
+const groupBy = (name: string): ToolGroup => {
+   const group = toolGroups.find(group => group.name === name)
+   if (!group) throw new Error(`No tool group named ${name}.`)
+   return group
+}
 
 // Where the header menu sends you for an exchange: its first tool.
-export const groupHref = name => groupBy(name).tools[0].href
+export const groupHref = (name: string): string => groupBy(name).tools[0].href
 
-export const subNavItems = name =>
+export const subNavItems = (name: string) =>
    groupBy(name).tools.map(({ title, href }) => ({ label: title, href }))
 
 // The routes whose data comes out of the synced ledger, for the sub-nav to check.

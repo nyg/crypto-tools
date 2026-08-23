@@ -1,3 +1,4 @@
+import type * as React from 'react'
 import { useState } from 'react'
 import { CalendarIcon, CircleXIcon } from 'lucide-react'
 import { Label } from '@/components/ui/label'
@@ -21,17 +22,27 @@ const patternParts = displayFormatter.formatToParts(Date.UTC(2024, 11, 31))
 
 const fieldOrder = patternParts.filter(part => part.type !== 'literal').map(part => part.type)
 
-const hints = { year: 'yyyy', month: 'mm', day: 'dd' }
+const hints: Record<string, string> = { year: 'yyyy', month: 'mm', day: 'dd' }
 
 const placeholder = patternParts
    .map(part => part.type === 'literal' ? part.value : hints[part.type])
    .join('')
 
-const weekStartsOn = (() => {
+// Intl.Locale's week info is still being standardised: getWeekInfo() in newer engines,
+// a weekInfo property in older ones, and neither is in the DOM lib yet.
+type WeekInfoLocale = Intl.Locale & {
+   getWeekInfo?: () => { firstDay?: number }
+   weekInfo?: { firstDay?: number }
+}
+
+// react-day-picker wants 0–6, and firstDay is 1–7 with Sunday as 7.
+type WeekDay = 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+const weekStartsOn: WeekDay = (() => {
    try {
-      const locale = new Intl.Locale(displayFormatter.resolvedOptions().locale)
+      const locale = new Intl.Locale(displayFormatter.resolvedOptions().locale) as WeekInfoLocale
       const info = locale.getWeekInfo?.() ?? locale.weekInfo
-      return (info?.firstDay ?? 1) % 7
+      return ((info?.firstDay ?? 1) % 7) as WeekDay
    }
    catch {
       return 1
@@ -41,17 +52,17 @@ const weekStartsOn = (() => {
 const START_MONTH = new Date(2011, 0)
 const END_MONTH = new Date()
 
-const asDisplay = (value) => value
+const asDisplay = (value: string | undefined): string => value
    ? displayFormatter.format(new Date(`${value}T00:00:00Z`))
    : ''
 
-const asLocalDate = (value) => {
+const asLocalDate = (value: string | undefined): Date | undefined => {
    if (!value) return undefined
    const [year, month, day] = value.split('-').map(Number)
    return new Date(year, month - 1, day)
 }
 
-const asValue = (date) => date
+const asValue = (date: Date | undefined): string => date
    ? [
       String(date.getFullYear()).padStart(4, '0'),
       String(date.getMonth() + 1).padStart(2, '0'),
@@ -59,7 +70,7 @@ const asValue = (date) => date
    ].join('-')
    : ''
 
-const parseDisplay = (text) => {
+const parseDisplay = (text: string): string | null => {
    const groups = text.match(/\d+/g)
    if (!groups || groups.length !== fieldOrder.length) return null
 
@@ -74,7 +85,18 @@ const parseDisplay = (text) => {
    return isRoundTrip ? date.toISOString().slice(0, 10) : null
 }
 
-export default function DateField({ name, label, value, onValueChange, disabled = false, className = '' }) {
+interface DateFieldProps {
+   name: string
+   label: string
+   value?: string
+   onValueChange: (value: string) => void
+   disabled?: boolean
+   className?: string
+}
+
+export default function DateField({
+   name, label, value, onValueChange, disabled = false, className = ''
+}: DateFieldProps) {
 
    const [open, setOpen] = useState(false)
    const [text, setText] = useState(asDisplay(value))
@@ -99,7 +121,7 @@ export default function DateField({ name, label, value, onValueChange, disabled 
       else setText(asDisplay(value))
    }
 
-   const onKeyDown = (event) => {
+   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key === 'Enter') {
          event.preventDefault()
          commit()

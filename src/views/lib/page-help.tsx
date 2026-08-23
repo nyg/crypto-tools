@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import ExternalLink from '../components/lib/external-link'
 
@@ -5,7 +6,7 @@ import ExternalLink from '../components/lib/external-link'
 // and out of the pages themselves: the copy is worth having, a banner above every
 // page is not, and whichever surface ends up showing it should have a single list to
 // read from rather than ten paragraphs scattered across the routes.
-const pageHelp = {
+const pageHelp: Record<string, ReactNode> = {
 
    '/settings':
       <>
