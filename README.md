@@ -78,7 +78,7 @@ If you don't have Scoop: `irm get.scoop.sh | iex`. It installs software in `C:\U
 
 ### Without package managers
 
-To install by hand instead, take the `.dmg` (macOS) or `.zip` (Windows) from the [latest release](https://github.com/nyg/crypto-tools/releases): drag **Crypto Tools.app** to **Applications**, or extract the ZIP and run **Crypto Tools-Setup.exe**.
+To install by hand instead, take the `.dmg` (macOS) or `-setup.exe` (Windows) from the [latest release](https://github.com/nyg/crypto-tools/releases): drag **Crypto Tools.app** to **Applications**, or run the installer. It installs per-user to `%LOCALAPPDATA%`, needs no admin rights, and shows no window while it works — the **Crypto Tools** shortcut it leaves on your Desktop and in the Start menu is how you know it finished.
 
 ### First launch
 
@@ -86,6 +86,8 @@ The app is ad-hoc signed on macOS and unsigned on Windows, so a manual install i
 
 - **macOS**: `xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"`, then open it. (**System Settings → Privacy & Security → Open Anyway** works for the *could not verify* dialog only.)
 - **Windows**: **More info → Run anyway**, which SmartScreen offers to administrators only. Standard users need the Scoop install.
+
+The app tells you when a newer release exists — a dot beside the version in the header, and the details in **About**, reachable by clicking that version. It never replaces itself, so Scoop and Homebrew installs stay under their package manager's control.
 
 ## Run locally
 
