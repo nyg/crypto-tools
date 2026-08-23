@@ -34,7 +34,7 @@ export default function RateFinder(assets) {
             try {
                return findPath(graph, asset, referenceAsset)
             }
-            catch (error) {
+            catch {
                console.warn(`Could not find a path for ${asset}`)
                return []
             }

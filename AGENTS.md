@@ -8,8 +8,12 @@
 - **Build (frontend)**: `bun run build`
 - **Build (desktop app)**: `bun run build:stable`
 - **Prepare the Electrobun devkit**: `bun run desktop:prepare` (projects the main-process SDK into `.hutch/devkit`; `desktop:dev`, `build:stable` and `typecheck` do it implicitly, but an editor or a bare `tsc` needs it once on a fresh checkout)
-- **Lint**: `bun run lint` (ESLint)
-- **Type-check**: `bun run typecheck` (`tsc --noEmit` over `src/electrobun`, `electrobun.config.ts` and `scripts`)
+- **Lint**: `bun run lint` (ESLint + typescript-eslint)
+- **Type-check**: `bun run typecheck` (`tsc --noEmit` over `src`, `scripts` and `electrobun.config.ts`)
+
+### Two TypeScript packages, on purpose
+
+`typescript-eslint` cannot run against the TypeScript 7 compiler API ([typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)), so `package.json` uses the side-by-side layout TypeScript 7 documents: `@typescript/native` is an alias of `typescript@7` and provides the `tsc` binary that `bun run typecheck` runs, while `typescript` is an alias of `@typescript/typescript6` and provides the TS 6 API that ESLint imports (its own binary is named `tsc6`, so the two never collide). Type checking is therefore TypeScript 7; only the linter's parser is TypeScript 6. Collapse this back to a single `typescript` dependency once typescript-eslint supports TS 7.
 
 No test framework is configured.
 

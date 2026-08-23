@@ -19,7 +19,7 @@ const priceFunctions = {
 }
 
 const volumeFunctions = {
-   'linear-base': (totalVolume, orderCount, price, allPrices) => totalVolume.div(orderCount),
+   'linear-base': (totalVolume, orderCount) => totalVolume.div(orderCount),
    'linear-quote': (totalVolume, orderCount, price, allPrices) => {
       // calculate total quote per order such that all orders have equal quote value
       const sumOfInversePrices = allPrices.reduce((sum, p) => sum.plus(Big(1).div(p)), Big(0))
