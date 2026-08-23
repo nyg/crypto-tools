@@ -21,15 +21,15 @@
       "url": "https://github.com/nyg/crypto-tools/issues"
    },
    "scripts": {
-      "dev": "concurrently -n vite,bun -c cyan,magenta \"vite\" \"bun --watch src/server/index.js\"",
+      "dev": "concurrently -n vite,bun -c cyan,magenta \"vite\" \"bun --watch src/server/index.ts\"",
       "dev:vite": "vite",
-      "dev:server": "bun --watch src/server/index.js",
+      "dev:server": "bun --watch src/server/index.ts",
       "desktop:prepare": "bunx electrobun prepare",
       "desktop:dev": "bunx electrobun dev --watch",
       "mocked": "VITE_MOCK_DATA=true vite",
       "build": "vite build",
       "build:stable": "bunx electrobun build --env=stable",
-      "start": "NODE_ENV=production bun src/server/index.js",
+      "start": "NODE_ENV=production bun src/server/index.ts",
       "lint": "eslint src --fix",
       "typecheck": "bunx electrobun prepare && tsc --noEmit"
    },

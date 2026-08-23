@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 import { ApplicationMenu, BrowserWindow, BuildConfig, Utils } from 'electrobun/main'
-import { createApp } from '../server/app.js'
+import { createApp } from '../server/app'
 import { systemLocales } from './locale'
 import { resolveInitialWindowState, trackWindowState } from './window-state'
 

@@ -3,7 +3,7 @@ import { readFileSync, renameSync, writeFileSync } from 'fs'
 import path from 'path'
 import { Screen, app } from 'electrobun/main'
 import type { BrowserWindow } from 'electrobun/main'
-import { resolveDataDir } from '../server/db/paths.js'
+import { resolveDataDir } from '../server/db/paths'
 
 const STATE_VERSION = 1
 const STATE_FILE = 'window-state.json'

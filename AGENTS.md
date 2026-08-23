@@ -45,19 +45,21 @@ Vite proxies all `/api/*` requests to the Hono server during development. In pro
 **Components** (`src/views/components/`) — exchange-specific components live in `components/binance/` and `components/kraken/`. Custom wrapper components (NumericInput, Checkbox, Select, DateField, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: false`, and `radix-nova` style.
 
 **Adapters** (`src/server/adapters/`) — each external API has an adapter directory (`binance-api/`, `binance-gateway-api/`, `kraken-api/`, `anthropic/`) following a three-layer pattern:
-- `adapter.js` — public interface with domain methods (constructor function, default export)
-- `resource.js` — raw HTTP endpoint calls (named exports)
-- `authenticator.js` — request signing as a higher-order function: `authenticator(credentials)` returns `async (request) => signedRequest`
+- `adapter.ts` — public interface with domain methods (constructor function, default export)
+- `resource.ts` — raw HTTP endpoint calls (named exports)
+- `authenticator.ts` — request signing as a higher-order function: `authenticator(credentials)` returns `async (request) => signedRequest`
 
-A single HTTP requester (`src/server/adapters/http-requester/server-http-requester.js`) abstracts the transport layer using Bun's native `fetch`. It exports `httpRequester` as a pre-instantiated singleton.
+A single HTTP requester (`src/server/adapters/http-requester/server-http-requester.ts`) abstracts the transport layer using Bun's native `fetch`. It exports `httpRequester` as a pre-instantiated singleton.
 
-**Routes** (`src/server/routes/`) — Hono route handlers, one file per exchange (`binance.js`, `kraken.js`). Each route destructures credentials from the request body, validates they exist (401 if missing), instantiates the appropriate adapter, and returns JSON. Sub-routers are mounted from within their exchange's file (`kraken.js` mounts `kraken-ledger.js` at `/ledger`) rather than in the server entry points, because `app.js` and `index.js` each declare their own route table and only one of them runs in a given environment.
+**Routes** (`src/server/routes/`) — Hono route handlers, one file per exchange (`binance.ts`, `kraken.ts`). Each route destructures credentials from the request body, validates they exist (401 if missing), instantiates the appropriate adapter, and returns JSON. Sub-routers are mounted from within their exchange's file (`kraken.ts` mounts `kraken-ledger.ts` at `/ledger`) rather than in the server entry points, because `app.ts` and `index.ts` each declare their own route table and only one of them runs in a given environment.
 
-**Database** (`src/server/db/`) — SQLite storage for the Kraken ledger via `bun:sqlite`. `paths.js` resolves a per-user OS application data directory (never a cwd-relative path: the desktop app launches from Finder, where `process.cwd()` is `/`). `database.js` opens a lazy singleton and applies `PRAGMA user_version`-based migrations. `ledger-repository.js` is a constructor function scoped to one `account_id`, derived from a hash of the API key so that several Kraken accounts can be stored side by side. Amounts are stored as the exact decimal strings the API returned, never as floats or via `Big`, which would rewrite small values in exponential notation.
+**Database** (`src/server/db/`) — SQLite storage for the Kraken ledger via `bun:sqlite`. `paths.ts` resolves a per-user OS application data directory (never a cwd-relative path: the desktop app launches from Finder, where `process.cwd()` is `/`). `database.ts` opens a lazy singleton and applies `PRAGMA user_version`-based migrations. `ledger-repository.ts` is a constructor function scoped to one `account_id`, derived from a hash of the API key so that several Kraken accounts can be stored side by side. Amounts are stored as the exact decimal strings the API returned, never as floats or via `Big`, which would rewrite small values in exponential notation.
 
-**Services** (`src/server/services/`) — `rate-finder.js` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT. `kraken-ledger-sync.js` runs the multi-step ledger export as a background job held in an in-memory registry keyed by account, which the page follows by polling a status endpoint.
+**Services** (`src/server/services/`) — `rate-finder.ts` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT. `kraken-ledger-sync.ts` runs the multi-step ledger export as a background job held in an in-memory registry keyed by account, which the page follows by polling a status endpoint.
 
-**Utils** (`src/utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`).
+**Utils** (`src/utils/`) — browser-side helpers shared by the views. `format.js` provides locale formatting via `Intl`, reading the locale list from `locale.js`, which prefers the one the Electrobun main process injects as `window.__LOCALES__` and falls back to the navigator's.
+
+**Types** (`src/types/`) — the third runtime target, imported by both of the others and shipping no code of its own. It holds the exchange payload shapes the adapters parse, the SQLite row shapes the repositories read, and — the point of the directory — the API response shapes, so a route and the page that reads it are checked against the same declaration. `index.ts` re-exports the lot for anything that wants one import.
 
 **Electrobun main process** (`src/electrobun/index.ts`) — TypeScript entry point for the desktop app. Starts the Hono server on an OS-assigned port (port 3001 only when it attaches to the Vite dev server, whose proxy needs a fixed target) and injects that port into the page as `window.__API_PORT__`, opens a `BrowserWindow`, and wires up menus and external link handling.
 
@@ -72,7 +74,7 @@ The SDK is imported from `electrobun/main` and comes from `.hutch/devkit`, not `
 
 ### AI Integration
 
-`src/server/adapters/anthropic/adapter.js` uses Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) with Zod-validated structured output to classify Kraken tokenized assets as stock/ETF/unknown. Called from the `/api/kraken/xstocks` Hono route.
+`src/server/adapters/anthropic/adapter.ts` uses Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) with Zod-validated structured output to classify Kraken tokenized assets as stock/ETF/unknown. Called from the `/api/kraken/xstocks` Hono route.
 
 ### Mocked Mode
 
@@ -83,10 +85,12 @@ The app supports a mocked mode for development and demos, activated via `bun run
 - **3-space indentation**, no semicolons, single quotes (enforced by ESLint; `react-hooks/exhaustive-deps` is disabled)
 - **Styling**: Tailwind CSS v4 + shadcn/ui components — no custom CSS
 - **Precision math**: use `big.js` for all numeric calculations involving asset amounts or rates
-- **Constructor functions** over ES6 classes (e.g. `export default function BinanceAPI(credentials) { this.method = async function () { ... } }`)
+- **ES6 classes** for the adapters, repositories and other stateful services (e.g. `export default class BinanceAPI { constructor(credentials) { … } }`), with `#private` fields for what used to be closure state. TypeScript cannot infer a construct signature from `this.x = …` in a plain function, so the constructor-function style this codebase used before the TypeScript migration typed every `new` expression as `any`. Everything stateless stays a plain function.
 - **Functional React components** with hooks; no class components, no global state libraries
-- All files use `.js`/`.jsx` extension (no TypeScript except `src/electrobun/index.ts` and `electrobun.config.ts`); shadcn/ui components use `.jsx`
-- **Path alias**: `@/*` maps to `src/views/` (configured in `jsconfig.json` and `vite.config.js`)
+- TypeScript throughout, checked under `strict`. `src/server`, `src/types` and `src/electrobun` are `.ts`; React components will be `.tsx`. No `any` in application code — external JSON enters as a declared interface at the adapter or route boundary, and `unknown` plus narrowing covers anything genuinely dynamic. (`src/views` and `src/utils` are still `.js`/`.jsx` until their own migration PRs land.)
+- Relative imports carry no file extension, so Bun, Vite and `tsc` all resolve them the same way
+- A caught value is `unknown`: use `messageOf(error)` from `src/server/errors.ts` to print one, and `instanceof HttpRequesterError` to tell an exchange's refusal apart from a bug
+- **Path alias**: `@/*` maps to `src/views/` (configured in `tsconfig.json` and `vite.config.ts`)
 - **Class merging**: use `cn()` from `src/views/lib/utils.js` (`clsx` + `tailwind-merge`) for conditional Tailwind classes
 
 ## Branching workflow
