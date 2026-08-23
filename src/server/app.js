@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import appRoutes from './routes/app.js'
 import binanceRoutes from './routes/binance.js'
 import krakenRoutes from './routes/kraken.js'
 import settingsRoutes from './routes/settings.js'
@@ -58,6 +59,7 @@ export function createApp() {
       console.log(`${color}${c.req.method} ${new URL(c.req.url).pathname} → ${status}${reset} (${ms}ms)`)
    })
 
+   app.route('/api/app', appRoutes)
    app.route('/api/binance', binanceRoutes)
    app.route('/api/kraken', krakenRoutes)
    app.route('/api/settings', settingsRoutes)

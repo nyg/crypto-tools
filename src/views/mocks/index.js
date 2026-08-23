@@ -37,6 +37,12 @@ const mockRoutes = {
    '/api/binance/aggregate-balance': () => aggregateBalance,
    '/api/settings': () => mockSettings(false),
    '/api/settings?reveal=true': () => mockSettings(true),
+   '/api/app/latest-release': () => mockLatestRelease,
+}
+
+const mockLatestRelease = {
+   version: '99.0.0',
+   url: 'https://github.com/nyg/crypto-tools/releases/latest'
 }
 
 const mockSettings = (reveal) => ({
