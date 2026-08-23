@@ -53,7 +53,7 @@ A single HTTP requester (`src/server/adapters/http-requester/server-http-request
 
 **Utils** (`src/utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`).
 
-**Electrobun main process** (`src/electrobun/index.ts`) — TypeScript entry point for the desktop app. Starts the Hono server on port 3001, opens a `BrowserWindow`, and wires up menus and external link handling.
+**Electrobun main process** (`src/electrobun/index.ts`) — TypeScript entry point for the desktop app. Starts the Hono server on an OS-assigned port (port 3001 only when it attaches to the Vite dev server, whose proxy needs a fixed target) and injects that port into the page as `window.__API_PORT__`, opens a `BrowserWindow`, and wires up menus and external link handling.
 
 ### Data Flow
 

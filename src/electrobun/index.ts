@@ -4,7 +4,7 @@ import { createApp } from '../server/app.js'
 import { systemLocales } from './locale'
 import { resolveInitialWindowState, trackWindowState } from './window-state'
 
-const PORT = Number(process.env.PORT ?? 3001)
+const DEV_API_PORT = Number(process.env.PORT ?? 3001)
 const DEV_SERVER_URL = `http://localhost:${process.env.VITE_PORT ?? 3000}`
 const VIEWS_URL = 'views://main/index.html'
 
@@ -25,24 +25,31 @@ async function main() {
 
    const honoApp = createApp()
 
+   // The dev server proxies /api to a fixed port; a packaged app takes whatever port
+   // the OS hands out, so two Electrobun apps never fight over the same one.
+   const usingDevServer = url === DEV_SERVER_URL
+   let server: ReturnType<typeof Bun.serve>
    try {
-      Bun.serve({
-         port: PORT,
+      server = Bun.serve({
+         port: usingDevServer ? DEV_API_PORT : 0,
          hostname: '127.0.0.1',
          fetch: honoApp.fetch,
          idleTimeout: 0,
       })
-      console.log(`✓ API server listening on http://127.0.0.1:${PORT}`)
+      console.log(`✓ API server listening on http://127.0.0.1:${server.port}`)
    }
    catch (error: any) {
       if (error?.code !== 'EADDRINUSE') throw error
-      console.error(`✗ Port ${PORT} is already in use — another instance is running.`)
+      console.error(`✗ Port ${DEV_API_PORT} is already in use — another instance is running.`)
       console.error('  Start this one on its own ports: PORT=3011 VITE_PORT=3010 bun run desktop:dev')
       process.exit(1)
    }
 
    const locales = systemLocales()
-   const preload = locales.length ? `window.__LOCALES__ = ${JSON.stringify(locales)};` : null
+   const preload = [
+      `window.__API_PORT__ = ${server.port};`,
+      locales.length ? `window.__LOCALES__ = ${JSON.stringify(locales)};` : null,
+   ].filter(Boolean).join(' ')
 
    // Created hidden so the geometry is applied before the window is ever drawn; the frame
    // is the restored (un-maximized) size, the maximized rectangle is left to the OS.
