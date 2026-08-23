@@ -1,8 +1,8 @@
 /// <reference types="bun-types" />
 import { readFileSync, renameSync, writeFileSync } from 'fs'
 import path from 'path'
-import { Screen, app } from 'electrobun/bun'
-import type { BrowserWindow } from 'electrobun/bun'
+import { Screen, app } from 'electrobun/main'
+import type { BrowserWindow } from 'electrobun/main'
 import { resolveDataDir } from '../server/db/paths.js'
 
 const STATE_VERSION = 1

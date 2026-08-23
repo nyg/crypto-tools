@@ -113,6 +113,8 @@ bun run desktop:dev
 bun run build:stable
 ```
 
+The desktop app is built by [Hutch](https://hutch.blackboard.sh), Electrobun's toolchain. There is nothing extra to install: the `electrobun` package downloads and caches it on first use, and projects the main-process SDK into `.hutch/devkit`. Run `bun run desktop:prepare` once on a fresh checkout if your editor needs to resolve those imports before you have run a build.
+
 ## Disclaimer
 
 Use at your own risk.

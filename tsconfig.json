@@ -15,7 +15,10 @@
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["./src/views/*"]
+      "@/*": ["./src/views/*"],
+      "electrobun": ["./.hutch/devkit/api/sdks/main/index.ts"],
+      "electrobun/main": ["./.hutch/devkit/api/sdks/main/index.ts"],
+      "electrobun/view": ["./.hutch/devkit/api/browser/index.ts"]
     }
   },
   "include": ["src/electrobun", "electrobun.config.ts", "scripts"]

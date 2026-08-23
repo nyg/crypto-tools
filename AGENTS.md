@@ -7,7 +7,9 @@
 - **Mocked mode**: `bun run mocked` (sets `VITE_MOCK_DATA=true`, Vite-only — no API keys or server required)
 - **Build (frontend)**: `bun run build`
 - **Build (desktop app)**: `bun run build:stable`
+- **Prepare the Electrobun devkit**: `bun run desktop:prepare` (projects the main-process SDK into `.hutch/devkit`; `desktop:dev`, `build:stable` and `typecheck` do it implicitly, but an editor or a bare `tsc` needs it once on a fresh checkout)
 - **Lint**: `bun run lint` (ESLint)
+- **Type-check**: `bun run typecheck` (`tsc --noEmit` over `src/electrobun`, `electrobun.config.ts` and `scripts`)
 
 No test framework is configured.
 
@@ -54,6 +56,8 @@ A single HTTP requester (`src/server/adapters/http-requester/server-http-request
 **Utils** (`src/utils/`) — `crypto.js` wraps Web Crypto API using higher-order factory functions (`hash(algo)`, `hmac(algo)`) that export `sha256`, `hmacSha256`, `hmacSha512`. `format.js` provides en-GB locale formatting via `Intl`. `event-bus.js` is a DOM-based pub/sub (SSR-safe, returns cleanup functions for `useEffect`).
 
 **Electrobun main process** (`src/electrobun/index.ts`) — TypeScript entry point for the desktop app. Starts the Hono server on an OS-assigned port (port 3001 only when it attaches to the Vite dev server, whose proxy needs a fixed target) and injects that port into the page as `window.__API_PORT__`, opens a `BrowserWindow`, and wires up menus and external link handling.
+
+The SDK is imported from `electrobun/main` and comes from `.hutch/devkit`, not `node_modules`: the `electrobun` npm package is a bootstrap that downloads and caches the paired Hutch toolchain, and `tsconfig.json` maps the import specifiers into the projected devkit. The build channel is read with `BuildConfig.getSync().channel`; `app.channel` is a different thing in Electrobun 2 and is always empty here. Build hooks (`scripts/prebuild.ts`, `scripts/postwrap.ts`) run under Cottontail rather than Bun, so they shell out with `node:child_process` instead of importing from `bun`.
 
 ### Data Flow
 
