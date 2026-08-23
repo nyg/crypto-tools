@@ -1,9 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
+import AboutDialog from './about-dialog'
 import MenuLink from './lib/menu-link'
 import PageHelpButton from './lib/page-help-button'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
+import { APP_VERSION, SHOW_ABOUT_EVENT } from '@/lib/about-event'
 import { groupHref, toolPaths } from '@/lib/tools'
 
 
@@ -20,10 +22,17 @@ const GithubLogo = props => (
 export default function Layout({ children, name }) {
 
    const { pathname } = useLocation()
+   const [aboutOpen, setAboutOpen] = useState(false)
 
    useEffect(() => {
       document.title = `Crypto Tools — ${name}`
    }, [name])
+
+   useEffect(() => {
+      const open = () => setAboutOpen(true)
+      window.addEventListener(SHOW_ABOUT_EVENT, open)
+      return () => window.removeEventListener(SHOW_ABOUT_EVENT, open)
+   }, [])
 
    return (
       <div className="flex min-h-svh flex-col">
@@ -43,6 +52,15 @@ export default function Layout({ children, name }) {
                   {/* Only where no sub-nav is carrying it: on a tool page the help sits
                       beside the tabs, next to the page it describes. */}
                   {!toolPaths.has(pathname) && <PageHelpButton />}
+                  <Button
+                     variant="ghost"
+                     size="sm"
+                     className="text-muted-foreground tabular-nums hover:text-foreground"
+                     aria-label="About Crypto Tools"
+                     title="About Crypto Tools"
+                     onClick={() => setAboutOpen(true)}>
+                     {APP_VERSION ? `v${APP_VERSION}` : 'About'}
+                  </Button>
                   <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                      <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
                         <GithubLogo />
@@ -56,6 +74,8 @@ export default function Layout({ children, name }) {
          <main className="w-full grow px-4 pt-5 pb-8 sm:px-6">
             {children}
          </main>
+
+         <AboutDialog open={aboutOpen} onOpenChange={setAboutOpen} />
 
          <Toaster />
 

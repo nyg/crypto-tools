@@ -1,9 +1,16 @@
+import { readFileSync } from 'fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
+const { version } = JSON.parse(
+   readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf-8'))
+
 export default defineConfig({
+   define: {
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
+   },
    // Relative base so assets resolve correctly under views:// (Electrobun's
    // custom scheme). Absolute /assets/... paths fail when loaded from
    // views://main/index.html because they resolve to the scheme root, not
