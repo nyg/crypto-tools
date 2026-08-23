@@ -20,8 +20,11 @@ export const isMockMode = import.meta.env.VITE_MOCK_DATA === 'true'
 // Hash-based routing keeps navigation inside the page regardless of scheme.
 const Router = window.location.protocol === 'views:' ? HashRouter : BrowserRouter
 // In Electrobun production, the page loads from views:// so relative /api paths won't reach
-// the Hono server. VITE_API_BASE is injected at build time by scripts/prebuild.ts.
-export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+// the Hono server. The main process picks a free port at startup and injects it through
+// the preload, so several Electrobun apps can run at once.
+export const API_BASE = window.__API_PORT__
+   ? `http://127.0.0.1:${window.__API_PORT__}`
+   : import.meta.env.VITE_API_BASE ?? ''
 
 async function fetcher(key, params) {
 
