@@ -3,6 +3,7 @@ import path from 'path'
 import { createApp } from './app.js'
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
+const HOST = process.env.HOST ?? '127.0.0.1'
 const IS_PROD = process.env.NODE_ENV === 'production'
 
 const app = createApp()
@@ -39,10 +40,11 @@ if (IS_PROD) {
 try {
    Bun.serve({
       port: PORT,
+      hostname: HOST,
       fetch: app.fetch,
       idleTimeout: 0,
    })
-   console.log(`✓ Server listening on http://localhost:${PORT}`)
+   console.log(`✓ Server listening on http://${HOST}:${PORT}`)
 }
 catch (error) {
    if (error.code !== 'EADDRINUSE') throw error
