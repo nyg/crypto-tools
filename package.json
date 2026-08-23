@@ -29,7 +29,8 @@
       "build": "vite build",
       "build:stable": "bunx electrobun build --env=stable",
       "start": "NODE_ENV=production bun src/server/index.js",
-      "lint": "eslint src --fix"
+      "lint": "eslint src --fix",
+      "typecheck": "tsc --noEmit"
    },
    "dependencies": {
       "@ai-sdk/anthropic": "4.0.24",
@@ -62,13 +63,16 @@
       "@babel/eslint-parser": "8.0.1",
       "@babel/preset-typescript": "8.0.1",
       "@tailwindcss/vite": "4.3.3",
+      "@types/three": "0.185.4",
       "@vitejs/plugin-react": "6.0.4",
+      "bun-types": "1.4.0",
       "concurrently": "10.0.4",
       "electrobun": "1.18.1",
       "eslint": "10.8.0",
       "eslint-plugin-react-hooks": "7.1.1",
       "globals": "17.8.0",
       "tailwindcss": "4.3.3",
+      "typescript": "7.0.2",
       "vite": "8.1.5"
    }
 }
