@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { APP_VERSION, SHOW_ABOUT_EVENT } from '@/lib/about-event'
 import { groupHref, toolPaths } from '@/lib/tools'
+import useLatestRelease from '@/lib/use-latest-release'
 
 
 const isSection = (path, href) => path.split('/')[1] === href.split('/')[1]
@@ -23,6 +24,7 @@ export default function Layout({ children, name }) {
 
    const { pathname } = useLocation()
    const [aboutOpen, setAboutOpen] = useState(false)
+   const { updateAvailable } = useLatestRelease()
 
    useEffect(() => {
       document.title = `Crypto Tools — ${name}`
@@ -56,10 +58,11 @@ export default function Layout({ children, name }) {
                      variant="ghost"
                      size="sm"
                      className="text-muted-foreground tabular-nums hover:text-foreground"
-                     aria-label="About Crypto Tools"
-                     title="About Crypto Tools"
+                     aria-label={updateAvailable ? 'Update available' : 'About Crypto Tools'}
+                     title={updateAvailable ? 'Update available' : 'About Crypto Tools'}
                      onClick={() => setAboutOpen(true)}>
                      {APP_VERSION ? `v${APP_VERSION}` : 'About'}
+                     {updateAvailable && <span aria-hidden className="size-1.5 rounded-full bg-primary" />}
                   </Button>
                   <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                      <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
