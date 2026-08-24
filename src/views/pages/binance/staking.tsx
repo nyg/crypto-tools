@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import useSWRMutation from 'swr/mutation'
+import useMutation from '../../lib/use-mutation'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import BinanceLayout from '../../components/binance/binance-layout'
 import CurrentPositions from '../../components/binance/current-positions'
@@ -10,11 +10,13 @@ import CredentialsAlert from '../../components/lib/credentials-alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { messageOf } from '../../lib/errors'
+import type { AggregateBalanceResponse } from '../../../types/api'
 
 
 export default function BinanceStaking() {
 
-   const { data, error, isMutating, trigger } = useSWRMutation('/api/binance/aggregate-balance')
+   const { data, error, isMutating, trigger } = useMutation<AggregateBalanceResponse>('/api/binance/aggregate-balance')
 
    const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('binance')
 
@@ -67,9 +69,9 @@ export default function BinanceStaking() {
       <BinanceLayout name="Staking">
          <div className="space-y-6">
 
-            {error &&
+            {Boolean(error) &&
                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>{messageOf(error)}</AlertDescription>
                </Alert>}
 
             <Card>

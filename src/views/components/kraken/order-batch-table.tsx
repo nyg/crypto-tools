@@ -47,13 +47,13 @@ function ApiResponseCell({ result }: { result?: CreatedOrder }) {
 }
 
 export default function OrderBatchTable({ ordersParams, tradingPairs, createdOrders }: {
-   ordersParams: OrderBatchPreview
+   ordersParams: OrderBatchPreview | null
    tradingPairs?: TradingPairs
    createdOrders?: CreatedOrder[]
 }) {
 
-   const orders = ordersParams.orders
-   if (!orders || orders.length === 0) {
+   const orders = ordersParams?.orders
+   if (!ordersParams || !orders || orders.length === 0) {
       return (
          <p className="text-sm text-muted-foreground">
             Configure the parameters above and click <i>Show preview</i> to see the orders.

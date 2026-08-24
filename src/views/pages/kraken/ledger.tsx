@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import useSWRMutation from 'swr/mutation'
+import useMutation from '../../lib/use-mutation'
 import { Loader2Icon, TriangleAlertIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import LedgerSyncCard from '../../components/kraken/ledger-sync-card'
@@ -17,10 +17,18 @@ import { Card, CardHeader, CardAction, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import type { LedgerFilterValues } from '../../components/kraken/ledger-filters'
+import type { TradeFilterValues } from '../../components/kraken/trade-filters'
+import type { Sort } from '../../../types/kraken'
+import type { SyncMode } from '../../../types/jobs'
+import type {
+   LedgerEntriesResponse, LedgerFiltersResponse, SyncStatusResponse,
+   TradeFiltersResponse, TradesResponse
+} from '../../../types/api'
 
 const PAGE_SIZE = 20
 const SYNC_STATUS_KEY = '/api/kraken/ledger/sync/status'
-const defaultSort = { column: 'time', direction: 'desc' }
+const defaultSort: Sort = { column: 'time', direction: 'desc' }
 
 
 export default function KrakenLedger() {
@@ -60,7 +68,7 @@ export default function KrakenLedger() {
    // as soon as the job reaches a terminal phase. Reacting to the run finishing
    // belongs here rather than in an effect: it is a response to an external event,
    // not state being synchronised.
-   const { data: status } = useSWR(
+   const { data: status } = useSWR<SyncStatusResponse>(
       configured ? SYNC_STATUS_KEY : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
@@ -80,10 +88,10 @@ export default function KrakenLedger() {
          }
       })
 
-   const { data: filterOptions } = useSWR(
+   const { data: filterOptions } = useSWR<LedgerFiltersResponse>(
       configured ? '/api/kraken/ledger/filters' : null)
 
-   const { data: entries, isLoading } = useSWR(
+   const { data: entries, isLoading } = useSWR<LedgerEntriesResponse>(
       configured ? ['/api/kraken/ledger/entries', { accountId, filters, sort, page, pageSize: PAGE_SIZE }] : null,
       { keepPreviousData: true })
 
@@ -91,19 +99,19 @@ export default function KrakenLedger() {
    // the trades — and kept in the cache afterwards, so switching back is instant.
    const showTrades = tab === 'trades'
 
-   const { data: tradeFilterOptions } = useSWR(
+   const { data: tradeFilterOptions } = useSWR<TradeFiltersResponse>(
       configured && showTrades ? '/api/kraken/ledger/trades/filters' : null)
 
-   const { data: trades, isLoading: isLoadingTrades } = useSWR(
+   const { data: trades, isLoading: isLoadingTrades } = useSWR<TradesResponse>(
       configured && showTrades
          ? ['/api/kraken/ledger/trades',
             { accountId, filters: tradeFilters, sort: tradeSort, page: tradePage, pageSize: PAGE_SIZE }]
          : null,
       { keepPreviousData: true })
 
-   const { trigger: startSync, isMutating, error: syncError } = useSWRMutation('/api/kraken/ledger/sync')
-   const { trigger: cancelSync } = useSWRMutation('/api/kraken/ledger/sync/cancel')
-   const { trigger: clearLedger } = useSWRMutation('/api/kraken/ledger/clear')
+   const { trigger: startSync, isMutating, error: syncError } = useMutation('/api/kraken/ledger/sync')
+   const { trigger: cancelSync } = useMutation('/api/kraken/ledger/sync/cancel')
+   const { trigger: clearLedger } = useMutation('/api/kraken/ledger/clear')
 
    const job = status?.job
    const running = isJobRunning(job)
@@ -118,7 +126,7 @@ export default function KrakenLedger() {
       )
    }
 
-   const sync = (mode) => {
+   const sync = (mode: SyncMode) => {
       startedRef.current = true
       setWasInterrupted(false)
       startSync({ mode })
@@ -136,34 +144,34 @@ export default function KrakenLedger() {
       ]))
       .catch(() => {})
 
-   const changeFilters = (next) => {
+   const changeFilters = (next: LedgerFilterValues) => {
       setFilters(next)
       setPage(0)
    }
 
    // Remounts the filter bar so its search box picks up the new value.
-   const replaceFilters = (next) => {
+   const replaceFilters = (next: LedgerFilterValues) => {
       changeFilters(next)
       setFiltersKey(key => key + 1)
    }
 
-   const changeTradeFilters = (next) => {
+   const changeTradeFilters = (next: TradeFilterValues) => {
       setTradeFilters(next)
       setTradePage(0)
    }
 
-   const replaceTradeFilters = (next) => {
+   const replaceTradeFilters = (next: TradeFilterValues) => {
       changeTradeFilters(next)
       setTradeFiltersKey(key => key + 1)
    }
 
-   const isTradeFiltered = Object.keys(defaultTradeFilters)
+   const isTradeFiltered = (Object.keys(defaultTradeFilters) as (keyof TradeFilterValues)[])
       .some(key => tradeFilters[key] !== defaultTradeFilters[key])
 
    // The badge counts whatever the open tab is showing.
    const count = showTrades
-      ? { isLoading: isLoadingTrades, label: asCount(trades?.total, 'trade') }
-      : { isLoading, label: asCount(entries?.total, 'entry', 'entries') }
+      ? { isLoading: isLoadingTrades, label: asCount(trades?.total ?? 0, 'trade') }
+      : { isLoading, label: asCount(entries?.total ?? 0, 'entry', 'entries') }
 
    return (
       <KrakenLayout name="Ledger">

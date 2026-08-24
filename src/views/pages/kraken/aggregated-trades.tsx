@@ -3,6 +3,7 @@ import useSWR, { useSWRConfig } from 'swr'
 import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import AggregateFilters, { defaultFilters } from '../../components/kraken/aggregate-filters'
+import type { AggregateFilterValues } from '../../components/kraken/aggregate-filters'
 import AggregateTable from '../../components/kraken/aggregate-table'
 import AggregateSummary from '../../components/kraken/aggregate-summary'
 import { isJobRunning } from '../../components/kraken/sync-status'
@@ -13,6 +14,7 @@ import { asCount } from '../../components/lib/filter-options'
 import { ratesAt } from '../../lib/quote-conversion'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import type { AggregationsResponse, AssetRatesResponse, TradeFiltersResponse } from '../../../types/api'
 
 const PAGE_SIZE = 20
 
@@ -43,7 +45,7 @@ export default function KrakenAggregatedTrades() {
          }
       })
 
-   const { data: filterOptions } = useSWR(
+   const { data: filterOptions } = useSWR<TradeFiltersResponse>(
       configured ? '/api/kraken/ledger/trades/filters' : null)
 
    const markets = filterOptions?.markets ?? []
@@ -60,7 +62,7 @@ export default function KrakenAggregatedTrades() {
       }
       : null
 
-   const { data: groups, isLoading } = useSWR(
+   const { data: groups, isLoading } = useSWR<AggregationsResponse>(
       configured && query
          ? ['/api/kraken/ledger/trades/aggregations', { accountId, filters: query, page, pageSize: PAGE_SIZE }]
          : null,
@@ -70,7 +72,7 @@ export default function KrakenAggregatedTrades() {
    const quoteAssets = groups?.quoteAssets ?? []
    const needsRates = quoteAssets.some(asset => asset !== targetQuote)
 
-   const { data: rateData, isLoading: isLoadingRates } = useSWR(
+   const { data: rateData, isLoading: isLoadingRates } = useSWR<AssetRatesResponse>(
       needsRates ? ['/api/kraken/asset-rates', { assets: [...new Set([...quoteAssets, targetQuote])] }] : null,
       { keepPreviousData: true })
 
@@ -84,7 +86,7 @@ export default function KrakenAggregatedTrades() {
       )
    }
 
-   const changeFilters = (next) => {
+   const changeFilters = (next: AggregateFilterValues) => {
       setFilters(next)
       setPage(0)
    }
@@ -117,7 +119,7 @@ export default function KrakenAggregatedTrades() {
                   <AggregateTable
                      groups={groups}
                      market={market}
-                     scope={filters.includeAllQuotes ? market?.baseAsset : market?.pairKey}
+                     scope={(filters.includeAllQuotes ? market?.baseAsset : market?.pairKey) ?? ''}
                      targetQuote={targetQuote}
                      rateAt={ratesAt(rateData?.rates)}
                      isLoadingRates={needsRates && isLoadingRates}

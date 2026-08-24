@@ -1,13 +1,23 @@
 import { useSWRConfig } from 'swr'
-import useSWRMutation from 'swr/mutation'
+import useMutation from '../lib/use-mutation'
 import { toast } from 'sonner'
 import Input from '../components/lib/input'
 import Layout from '../components/layout'
 import useSettings, { SETTINGS_KEY, SETTINGS_REVEAL_KEY } from '../lib/use-settings'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import type { FormEvent } from 'react'
+import type { Provider } from '../../types/credentials'
+import type { MaskedSettings, ProviderSettings } from '../../types/settings'
 
-const providers = [
+interface ProviderForm {
+   id: Provider
+   name: string
+   description: string
+   hasSecret: boolean
+}
+
+const providers: ProviderForm[] = [
    {
       id: 'binance',
       name: 'Binance',
@@ -33,17 +43,20 @@ export default function Settings() {
 
    // The only place that asks for the keys themselves, to prefill the form.
    const { settings, isLoading, mutate } = useSettings(SETTINGS_REVEAL_KEY)
-   const { trigger: saveSettings, isMutating } = useSWRMutation(SETTINGS_KEY)
+   const { trigger: saveSettings, isMutating } =
+      useMutation<MaskedSettings, Partial<Record<Provider, Partial<ProviderSettings>>>>(SETTINGS_KEY)
    const { mutate: globalMutate } = useSWRConfig()
 
-   const save = async (event, provider) => {
+   const save = async (event: FormEvent<HTMLFormElement>, provider: ProviderForm) => {
       event.preventDefault()
 
-      const formData = new FormData(event.target)
-      const update = { apiKey: formData.get(`${provider.id}-api-key`) }
+      const formData = new FormData(event.currentTarget)
+      const update: Partial<ProviderSettings> = {
+         apiKey: String(formData.get(`${provider.id}-api-key`) ?? '')
+      }
 
       if (provider.hasSecret) {
-         update.apiSecret = formData.get(`${provider.id}-api-secret`)
+         update.apiSecret = String(formData.get(`${provider.id}-api-secret`) ?? '')
       }
 
       try {

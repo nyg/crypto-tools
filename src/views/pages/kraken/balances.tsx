@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
-import useSWRMutation from 'swr/mutation'
+import useMutation from '../../lib/use-mutation'
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import BalanceSummaryCard from '../../components/kraken/balance-summary-card'
 import BalancePlacementCard from '../../components/kraken/balance-placement-card'
@@ -13,6 +13,7 @@ import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import type { AssetRatesResponse, BalanceSummary, BalancesResponse, SyncStatusResponse } from '../../../types/api'
 
 const BALANCES_KEY = '/api/kraken/ledger/balances'
 
@@ -28,7 +29,7 @@ export default function KrakenBalances() {
 
    // A sync is started on the Ledger page but rewrites the balances read here, so the
    // run is followed and the summary revalidated when it lands.
-   useSWR(
+   useSWR<SyncStatusResponse>(
       configured ? '/api/kraken/ledger/sync/status' : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
@@ -41,7 +42,7 @@ export default function KrakenBalances() {
          }
       })
 
-   const { data: balances, error, isLoading } = useSWR(
+   const { data: balances, error, isLoading } = useSWR<BalanceSummary>(
       configured ? BALANCES_KEY : null,
       { keepPreviousData: true })
 
@@ -49,7 +50,7 @@ export default function KrakenBalances() {
    // from the local database straight away and a failed rate lookup costs the amounts
    // nothing.
    const assets = (balances?.assets ?? []).map(asset => asset.asset)
-   const { data: rateData, isLoading: isLoadingRates } = useSWR(
+   const { data: rateData, isLoading: isLoadingRates } = useSWR<AssetRatesResponse>(
       assets.length > 0 ? ['/api/kraken/asset-rates', { assets }] : null,
       { keepPreviousData: true })
 
@@ -58,7 +59,8 @@ export default function KrakenBalances() {
    // that reaches the exchange, and reaching it should be an action rather than something
    // a revalidation can repeat. Triggered on mount rather than left to a button, so the
    // page is complete without being asked twice.
-   const { data: live, error: liveError, trigger, isMutating } = useSWRMutation('/api/kraken/balances')
+   const { data: live, error: liveError, trigger, isMutating } =
+      useMutation<BalancesResponse>('/api/kraken/balances')
 
    const canCheckLive = configured
    const checkLive = () => trigger().catch(() => {})

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import useSWRMutation from 'swr/mutation'
+import useMutation from '../../lib/use-mutation'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 import Big from 'big.js'
@@ -13,10 +13,17 @@ import { asCount } from '../../components/lib/filter-options'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { asLocalTimestamp, asUtcTimestamp } from '../../../utils/format'
+import type { OrderGroup } from '../../components/kraken/open-order-group'
+import type { CancelResult, OpenOrder } from '../../../types/kraken'
+import type { OpenOrdersResponse } from '../../../types/api'
 
-const groupByPair = (orders) => {
+// A pair's book plus what the whole book is worth, which is only used to order the
+// groups on the page.
+type ValuedGroup = OrderGroup & { value: Big }
 
-   const groups = new Map()
+const groupByPair = (orders: OpenOrder[]): ValuedGroup[] => {
+
+   const groups = new Map<string, OrderGroup>()
 
    for (const order of orders) {
       const key = order.pairKey || order.rawPair || 'unknown'
@@ -24,7 +31,7 @@ const groupByPair = (orders) => {
          pairKey: key,
          baseAsset: order.baseAsset,
          quoteAsset: order.quoteAsset,
-         orders: []
+         orders: [] as OpenOrder[]
       }
       group.orders.push(order)
       groups.set(key, group)
@@ -43,11 +50,13 @@ export default function KrakenOpenOrders() {
 
    const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
-   const [selection, setSelection] = useState({})
-   const [pending, setPending] = useState(null)
+   const [selection, setSelection] = useState<Record<string, Set<string>>>({})
+   const [pending, setPending] = useState<OrderGroup | null>(null)
 
-   const { data, error, trigger: fetchOrders, isMutating } = useSWRMutation('/api/kraken/open-orders')
-   const { trigger: cancelOrders, isMutating: isCancelling } = useSWRMutation('/api/kraken/cancel-orders')
+   const { data, error, trigger: fetchOrders, isMutating } =
+      useMutation<OpenOrdersResponse>('/api/kraken/open-orders')
+   const { trigger: cancelOrders, isMutating: isCancelling } =
+      useMutation<CancelResult, { txids: string[] }>('/api/kraken/cancel-orders')
 
    const refresh = () => fetchOrders().catch(() => {})
 
@@ -71,9 +80,11 @@ export default function KrakenOpenOrders() {
 
    const groups = groupByPair(data?.orders ?? [])
 
-   const selectionFor = pairKey => selection[pairKey] ?? new Set()
+   const selectionFor = (pairKey: string) => selection[pairKey] ?? new Set<string>()
 
    const confirmCancel = async () => {
+
+      if (!pending) return
 
       const txids = pending.orders.map(order => order.txid)
 
@@ -116,7 +127,7 @@ export default function KrakenOpenOrders() {
       <KrakenLayout name="Open Orders" trailing={liveStatus}>
          <div className="space-y-6">
 
-            {error &&
+            {Boolean(error) &&
                <Alert variant="destructive">
                   <AlertDescription>{String(error)}</AlertDescription>
                </Alert>}
@@ -132,7 +143,7 @@ export default function KrakenOpenOrders() {
                <OpenOrderGroup
                   key={group.pairKey}
                   group={group}
-                  lastPrice={data?.prices?.[group.pairKey] ?? null}
+                  lastPrice={data?.prices?.[group.pairKey]}
                   selected={selectionFor(group.pairKey)}
                   onSelectionChange={(txids) =>
                      setSelection(current => ({ ...current, [group.pairKey]: new Set(txids) }))}
@@ -140,9 +151,9 @@ export default function KrakenOpenOrders() {
 
             <CancelOrdersDialog
                orders={pending?.orders ?? null}
-               pairKey={pending?.pairKey}
-               baseAsset={pending?.baseAsset}
-               quoteAsset={pending?.quoteAsset}
+               pairKey={pending?.pairKey ?? ''}
+               baseAsset={pending?.baseAsset ?? ''}
+               quoteAsset={pending?.quoteAsset ?? ''}
                isCancelling={isCancelling}
                onConfirm={confirmCancel}
                onOpenChange={() => setPending(null)} />

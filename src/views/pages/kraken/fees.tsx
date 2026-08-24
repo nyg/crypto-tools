@@ -13,9 +13,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { asNumber } from '../../../utils/format'
+import type { Granularity } from '../../components/kraken/fee-chart'
+import type { LedgerFilterValues } from '../../components/kraken/ledger-filters'
+import type { AssetRatesResponse, FeeSummary, LedgerFiltersResponse } from '../../../types/api'
 
-const isUnfiltered = filters => Object.keys(defaultFilters)
-   .every(key => filters[key] === defaultFilters[key])
+const isUnfiltered = (filters: LedgerFilterValues) =>
+   (Object.keys(defaultFilters) as (keyof LedgerFilterValues)[])
+      .every(key => filters[key] === defaultFilters[key])
 
 
 export default function KrakenFees() {
@@ -24,18 +28,18 @@ export default function KrakenFees() {
 
    const [filters, setFilters] = usePersistentState('kraken.fees.filters', defaultFilters)
    const [filtersKey, setFiltersKey] = useState(0)
-   const [asset, setAsset] = useState(null)
-   const [granularity, setGranularity] = usePersistentState('kraken.fees.granularity', 'month')
+   const [asset, setAsset] = useState<string | null>(null)
+   const [granularity, setGranularity] = usePersistentState<Granularity>('kraken.fees.granularity', 'month')
 
-   const { data: fees, error, isLoading } = useSWR(
+   const { data: fees, error, isLoading } = useSWR<FeeSummary>(
       configured ? ['/api/kraken/ledger/fees', { accountId, filters }] : null,
       { keepPreviousData: true })
 
-   const { data: filterOptions } = useSWR(
+   const { data: filterOptions } = useSWR<LedgerFiltersResponse>(
       configured ? '/api/kraken/ledger/filters' : null)
 
    const assetOptions = (fees?.assets ?? []).map(row => row.asset)
-   const { data: rateData } = useSWR(
+   const { data: rateData } = useSWR<AssetRatesResponse>(
       assetOptions.length > 0 ? ['/api/kraken/asset-rates', { assets: assetOptions }] : null,
       { keepPreviousData: true })
 
@@ -60,9 +64,11 @@ export default function KrakenFees() {
 
    // Derived rather than stored: filtering the selected asset out of the results falls
    // back to the one charged most often instead of leaving the charts blank.
-   const selectedAsset = assetOptions.includes(asset) ? asset : (assetOptions[0] ?? null)
+   const selectedAsset = asset !== null && assetOptions.includes(asset)
+      ? asset
+      : (assetOptions[0] ?? null)
 
-   const changeFilters = (next) => setFilters(next)
+   const changeFilters = (next: LedgerFilterValues) => setFilters(next)
 
    const resetFilters = () => {
       setFilters(defaultFilters)
