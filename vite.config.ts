@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 const { version } = JSON.parse(
-   readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf-8'))
+   readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf-8')) as { version: string }
 
 export default defineConfig({
    define: {

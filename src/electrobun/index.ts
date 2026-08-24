@@ -11,6 +11,14 @@ const ABOUT_ACTION = 'show-about'
 const SHOW_ABOUT_JS = 'window.dispatchEvent(new CustomEvent(\'crypto-tools:show-about\'))'
 const hasApplicationMenu = process.platform !== 'win32'
 
+type NewWindowOpenEvent = { data?: { detail?: string | { url?: string } } }
+
+type NewWindowOpenListener = {
+   on(name: 'new-window-open', handler: (event: NewWindowOpenEvent) => void): void
+}
+
+type MenuClickEvent = { data?: { action?: string } }
+
 async function resolveUrl(): Promise<string> {
    if (BuildConfig.getSync().channel !== 'dev') {
       return VIEWS_URL
@@ -41,8 +49,8 @@ async function main() {
       })
       console.log(`✓ API server listening on http://127.0.0.1:${server.port}`)
    }
-   catch (error: any) {
-      if (error?.code !== 'EADDRINUSE') throw error
+   catch (error) {
+      if ((error as { code?: string }).code !== 'EADDRINUSE') throw error
       console.error(`✗ Port ${DEV_API_PORT} is already in use — another instance is running.`)
       console.error('  Start this one on its own ports: PORT=3011 VITE_PORT=3010 bun run desktop:dev')
       process.exit(1)
@@ -63,12 +71,16 @@ async function main() {
       preload,
       frame: initialWindowState.frame,
       hidden: true,
-   });
+   })
 
    // Open target="_blank" links in the default system browser instead of the WebView.
-   (win.webview as any).on('new-window-open', (event: any) => {
+   // The runtime emits 'new-window-open', but BrowserView.on's name union in the SDK
+   // does not list it, so the listener is registered through a narrowed view of it.
+   const newWindowOpener = win.webview as unknown as NewWindowOpenListener
+
+   newWindowOpener.on('new-window-open', (event) => {
       const detail = event?.data?.detail
-      const href: string | undefined = typeof detail === 'string' ? detail : detail?.url
+      const href = typeof detail === 'string' ? detail : detail?.url
       if (href) {
          Utils.openExternal(href)
       }
@@ -91,8 +103,8 @@ async function main() {
       return
    }
 
-   ApplicationMenu.on('application-menu-clicked', (event: any) => {
-      if (event?.data?.action !== ABOUT_ACTION) {
+   ApplicationMenu.on('application-menu-clicked', (event) => {
+      if ((event as MenuClickEvent)?.data?.action !== ABOUT_ACTION) {
          return
       }
       try {

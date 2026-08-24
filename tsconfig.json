@@ -5,6 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
+    "types": ["bun-types", "vite/client"],
     "allowJs": true,
     "strict": true,
     "noEmit": true,
@@ -21,5 +22,5 @@
       "electrobun/view": ["./.hutch/devkit/api/browser/index.ts"]
     }
   },
-  "include": ["src/electrobun", "electrobun.config.ts", "scripts"]
+  "include": ["src", "scripts", "*.config.ts"]
 }
