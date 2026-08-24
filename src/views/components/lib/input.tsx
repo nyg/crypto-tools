@@ -1,7 +1,23 @@
+import type * as React from 'react'
+import type { ReactNode } from 'react'
 import { Input as ShadcnInput } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export default function Input({ name, type = 'text', defaultValue, value, onChange, label, hint, disabled = false, className = '' }) {
+interface InputProps {
+   name: string
+   type?: string
+   defaultValue?: string
+   value?: string
+   onChange?: React.ChangeEventHandler<HTMLInputElement>
+   label: ReactNode
+   hint?: ReactNode
+   disabled?: boolean
+   className?: string
+}
+
+export default function Input({
+   name, type = 'text', defaultValue, value, onChange, label, hint, disabled = false, className = ''
+}: InputProps) {
 
    const autoComplete = type === 'password' ? 'current-password' : 'none'
 

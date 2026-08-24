@@ -1,13 +1,20 @@
 import Big from 'big.js'
+import type { QuoteTotals } from '../../types/api'
 
-export const ratesAt = (rates) => (asset) => {
+// A rate lookup for one asset at one moment. The time argument is accepted so a caller
+// can price historically; the rate maps in use today ignore it.
+export type RateAt = (asset: string, time?: number) => Big | null
+
+export const ratesAt = (rates: Record<string, number | string> | undefined): RateAt => (asset) => {
    const rate = rates?.[asset]
    if (rate === undefined || rate === null) return null
    const value = Big(rate)
    return value.eq(0) ? null : value
 }
 
-export function convertQuotes(quotes, targetQuote, rateAt, time) {
+export function convertQuotes(
+   quotes: QuoteTotals[], targetQuote: string, rateAt: RateAt, time?: number
+) {
 
    let cost = Big(0)
    let fee = Big(0)
@@ -15,7 +22,7 @@ export function convertQuotes(quotes, targetQuote, rateAt, time) {
    let volume = Big(0)
    let converted = false
 
-   const missing = []
+   const missing: string[] = []
 
    for (const quote of quotes) {
 
@@ -45,7 +52,9 @@ export function convertQuotes(quotes, targetQuote, rateAt, time) {
    }
 }
 
-function conversionFactor(quoteAsset, targetQuote, rateAt, time) {
+function conversionFactor(
+   quoteAsset: string, targetQuote: string, rateAt: RateAt, time?: number
+): Big | null {
 
    if (quoteAsset === targetQuote) return Big(1)
 

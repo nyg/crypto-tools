@@ -1,7 +1,38 @@
 import Big from 'big.js'
 
+export interface TakeProfitTier {
+   pct: number
+   rMultiple: number | null
+}
 
-export const tpStrategies = {
+export interface TakeProfitStrategy {
+   label: string
+   tiers: TakeProfitTier[]
+}
+
+export interface TakeProfitLevel {
+   label: string
+   rMultiple: number | null
+   pct: number
+   price: Big | null
+   quantity: Big | null
+   profit: Big | null
+   roi: Big | null
+}
+
+// What the form holds: free text as the user typed it, parsed here rather than on
+// every keystroke.
+export interface TradeCalculatorForm {
+   direction?: string
+   strategy?: string
+   portfolioValue?: string
+   riskPct?: string
+   entryPrice?: string
+   stopLoss?: string
+}
+
+
+export const tpStrategies: Record<string, TakeProfitStrategy> = {
    conservative: {
       label: 'Conservative (2 tiers)',
       tiers: [
@@ -36,7 +67,7 @@ export const directionOptions = [
    { value: 'sell', label: 'Sell (short)' }
 ]
 
-const positive = value => {
+const positive = (value: string | number | null | undefined): Big | null => {
    if (value === null || value === undefined || value === '') return null
    try {
       const parsed = Big(value)
@@ -47,14 +78,16 @@ const positive = value => {
    }
 }
 
-const tierPrice = (tier, entryPrice, riskPerUnit, isLong) => {
+const tierPrice = (tier: TakeProfitTier, entryPrice: Big, riskPerUnit: Big, isLong: boolean): Big | null => {
    if (tier.rMultiple === null) return null
    const move = riskPerUnit.times(tier.rMultiple)
    const price = isLong ? entryPrice.plus(move) : entryPrice.minus(move)
    return price.gt(0) ? price : null
 }
 
-const tierLevel = (tier, entryPrice, riskPerUnit, positionSize, isLong) => {
+const tierLevel = (
+   tier: TakeProfitTier, entryPrice: Big, riskPerUnit: Big, positionSize: Big | null, isLong: boolean
+): TakeProfitLevel => {
 
    const price = tierPrice(tier, entryPrice, riskPerUnit, isLong)
    const quantity = positionSize ? positionSize.times(tier.pct).div(100) : null
@@ -75,7 +108,7 @@ const tierLevel = (tier, entryPrice, riskPerUnit, positionSize, isLong) => {
    }
 }
 
-const totalsOf = (tpLevels, positionValue) => {
+const totalsOf = (tpLevels: TakeProfitLevel[], positionValue: Big | null) => {
 
    const pct = tpLevels.reduce((sum, level) => sum + level.pct, 0)
 
@@ -84,7 +117,7 @@ const totalsOf = (tpLevels, positionValue) => {
 
    const withProfit = tpLevels.filter(level => level.profit)
    const profit = withProfit.length > 0
-      ? withProfit.reduce((sum, level) => sum.plus(level.profit), Big(0))
+      ? withProfit.reduce((sum, level) => sum.plus(level.profit!), Big(0))
       : null
 
    return {
@@ -95,7 +128,7 @@ const totalsOf = (tpLevels, positionValue) => {
    }
 }
 
-export function calculate(formValues) {
+export function calculate(formValues: TradeCalculatorForm) {
 
    const direction = formValues.direction === 'sell' ? 'sell' : 'buy'
    const isLong = direction === 'buy'
@@ -105,7 +138,7 @@ export function calculate(formValues) {
    const entryPrice = positive(formValues.entryPrice)
    const stopLoss = positive(formValues.stopLoss)
 
-   const errors = []
+   const errors: string[] = []
 
    const riskTooLarge = riskPct !== null && riskPct.gt(100)
    if (riskTooLarge) {
@@ -133,7 +166,7 @@ export function calculate(formValues) {
    const stopDistance = riskPerUnit && entryPrice ? riskPerUnit.div(entryPrice) : null
    const leverage = positionValue && portfolioValue ? positionValue.div(portfolioValue) : null
 
-   const strategy = tpStrategies[formValues.strategy]
+   const strategy = tpStrategies[formValues.strategy ?? '']
    const tpLevels = strategy && entryPrice && riskPerUnit
       ? strategy.tiers.map(tier => tierLevel(tier, entryPrice, riskPerUnit, positionSize, isLong))
       : []
@@ -158,7 +191,7 @@ export function calculate(formValues) {
    }
 }
 
-export const chartSymbol = (pair, override) => {
+export const chartSymbol = (pair: string | undefined, override?: string): string => {
 
    const explicit = (override ?? '').trim().toUpperCase()
    if (explicit) return explicit

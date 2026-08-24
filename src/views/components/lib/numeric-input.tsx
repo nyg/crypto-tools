@@ -1,9 +1,11 @@
+import type * as React from 'react'
+import type { ReactNode } from 'react'
 import { useRef } from 'react'
 import { Input as ShadcnInput } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 // Format a number string with thousand separators
-const formatWithSeparators = (value) => {
+const formatWithSeparators = (value: string | undefined): string => {
    if (!value) return ''
 
    // Split by decimal point
@@ -15,24 +17,34 @@ const formatWithSeparators = (value) => {
 }
 
 // Remove thousand separators from a string
-const stripSeparators = (value) => {
+const stripSeparators = (value: string): string => {
    return value.replace(/'/g, '')
 }
 
 // Count separators before a given position
-const countSeparatorsBefore = (str, position) => {
+const countSeparatorsBefore = (str: string, position: number): number => {
    return (str.slice(0, position).match(/'/g) || []).length
 }
 
-export default function NumericInput({ name, value, onChange, label, className = '' }) {
+interface NumericInputProps {
+   name: string
+   value?: string
+   // A shim rather than a real change event: the raw value is handed back with the
+   // thousand separators removed, which is not what the input element holds.
+   onChange: (event: { target: { value: string } }) => void
+   label: ReactNode
+   className?: string
+}
 
-   const inputRef = useRef(null)
+export default function NumericInput({ name, value, onChange, label, className = '' }: NumericInputProps) {
+
+   const inputRef = useRef<HTMLInputElement>(null)
 
    const formattedValue = formatWithSeparators(value)
 
-   const handleChange = (e) => {
+   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const input = e.target
-      const cursorPos = input.selectionStart
+      const cursorPos = input.selectionStart ?? 0
       const oldFormatted = formattedValue
       const newRaw = stripSeparators(input.value)
 

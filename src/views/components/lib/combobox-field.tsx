@@ -1,13 +1,28 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { CheckIcon, ChevronDownIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import type { FieldOption } from './select-field'
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command'
 
 // Searchable, scrollable select (shadcn Combobox = Popover + Command).
 // Same field shape as SelectField, for lists with many options.
+interface ComboboxFieldProps {
+   name: string
+   label: ReactNode
+   value?: string
+   onValueChange: (value: string) => void
+   options: FieldOption[]
+   placeholder?: string
+   searchPlaceholder?: string
+   emptyText?: string
+   disabled?: boolean
+   className?: string
+}
+
 export default function ComboboxField({
    name,
    label,
@@ -19,7 +34,7 @@ export default function ComboboxField({
    emptyText = 'No results.',
    disabled,
    className = '',
-}) {
+}: ComboboxFieldProps) {
    const [open, setOpen] = useState(false)
    const selected = options.find(option => option.value === value)
 

@@ -1,8 +1,17 @@
+import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import ExternalLink from './external-link'
 
 
-export default function MenuLink({ children, href, isActive = (path, href) => path === href }) {
+interface MenuLinkProps {
+   children: ReactNode
+   href: string
+   isActive?: (path: string, href: string) => boolean
+}
+
+export default function MenuLink({
+   children, href, isActive = (path, href) => path === href
+}: MenuLinkProps) {
 
    const location = useLocation()
 

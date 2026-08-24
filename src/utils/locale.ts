@@ -8,6 +8,6 @@ const navigatorLocales = typeof navigator === 'undefined'
       ? [...navigator.languages]
       : navigator.language ? [navigator.language] : []
 
-export const locales = injectedLocales.length ? injectedLocales
+export const locales: string[] = injectedLocales.length ? injectedLocales
    : navigatorLocales.length ? navigatorLocales
       : ['en-US']

@@ -1,4 +1,6 @@
 import useSWR from 'swr'
+import type { MaskedProvider, MaskedSettings } from '../../types/settings'
+import type { Provider } from '../../types/credentials'
 
 export const SETTINGS_KEY = '/api/settings'
 
@@ -6,9 +8,9 @@ export const SETTINGS_KEY = '/api/settings'
 // this variant; everything else reads the booleans from the key above.
 export const SETTINGS_REVEAL_KEY = '/api/settings?reveal=true'
 
-export default function useSettings(key = SETTINGS_KEY) {
+export default function useSettings(key: string = SETTINGS_KEY) {
 
-   const { data, error, isLoading, mutate } = useSWR(key, { revalidateOnFocus: false })
+   const { data, error, isLoading, mutate } = useSWR<MaskedSettings>(key, { revalidateOnFocus: false })
 
    return {
       settings: data,
@@ -19,10 +21,10 @@ export default function useSettings(key = SETTINGS_KEY) {
    }
 }
 
-export function useProvider(provider) {
+export function useProvider(provider: Provider) {
 
    const { settings, error, isLoading, mutate } = useSettings()
-   const entry = settings?.[provider]
+   const entry: MaskedProvider | undefined = settings?.[provider]
 
    return {
       configured: Boolean(entry?.configured),

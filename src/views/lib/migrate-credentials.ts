@@ -1,19 +1,24 @@
-const legacyEntries = {
+import { messageOf } from './errors'
+import type { MaskedSettings, SettingsUpdate } from '../../types/settings'
+import type { Provider } from '../../types/credentials'
+
+const legacyEntries: Record<Provider, Record<string, string>> = {
    binance: { apiKey: 'binance.api.key', apiSecret: 'binance.api.secret' },
    kraken: { apiKey: 'kraken.api.key', apiSecret: 'kraken.api.secret' },
    anthropic: { apiKey: 'anthropic.api.key' }
 }
 
-const readLegacy = () => Object.entries(legacyEntries).reduce((found, [provider, fields]) => {
-   const values = Object.entries(fields).reduce((entry, [field, key]) => {
-      const value = localStorage.getItem(key)
-      if (value) entry[field] = value
-      return entry
-   }, {})
+const readLegacy = (): SettingsUpdate => Object.entries(legacyEntries)
+   .reduce<SettingsUpdate>((found, [provider, fields]) => {
+      const values = Object.entries(fields).reduce<Record<string, string>>((entry, [field, key]) => {
+         const value = localStorage.getItem(key)
+         if (value) entry[field] = value
+         return entry
+      }, {})
 
-   if (values.apiKey) found[provider] = values
-   return found
-}, {})
+      if (values.apiKey) found[provider as Provider] = values
+      return found
+   }, {})
 
 const forgetLegacy = () => Object.values(legacyEntries)
    .flatMap(fields => Object.values(fields))
@@ -24,7 +29,7 @@ const forgetLegacy = () => Object.values(legacyEntries)
 // cost the user their configuration, nor leave their secrets in the WebView's store.
 // A provider the server already knows about is left alone: what is on disk was entered
 // more recently than whatever this browser is still holding.
-export default async function migrateLegacyCredentials(apiBase = '') {
+export default async function migrateLegacyCredentials(apiBase = ''): Promise<void> {
 
    if (typeof window === 'undefined') return
 
@@ -41,9 +46,9 @@ export default async function migrateLegacyCredentials(apiBase = '') {
       const response = await fetch(`${apiBase}/api/settings`, { signal })
       if (!response.ok) return
 
-      const settings = await response.json()
+      const settings = await response.json() as MaskedSettings
       const updates = Object.fromEntries(Object.entries(legacy)
-         .filter(([provider]) => !settings[provider]?.keyConfigured))
+         .filter(([provider]) => !settings[provider as Provider]?.keyConfigured))
 
       if (Object.keys(updates).length > 0) {
          const saved = await fetch(`${apiBase}/api/settings`, {
@@ -60,6 +65,6 @@ export default async function migrateLegacyCredentials(apiBase = '') {
       forgetLegacy()
    }
    catch (error) {
-      console.warn('Could not move the stored credentials to the server:', error.message)
+      console.warn('Could not move the stored credentials to the server:', messageOf(error))
    }
 }

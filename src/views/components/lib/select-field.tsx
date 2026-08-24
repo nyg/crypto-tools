@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Label } from '@/components/ui/label'
 import {
    Select,
@@ -9,7 +10,25 @@ import {
 
 // shadcn-idiomatic labeled Select field (Radix based).
 // Mirrors the space-y-1 field pattern used by NumericInput.
-export default function SelectField({ name, label, value, onValueChange, options, placeholder, disabled, className = '' }) {
+export interface FieldOption {
+   value: string
+   label: string
+}
+
+interface SelectFieldProps {
+   name: string
+   label: ReactNode
+   value?: string
+   onValueChange: (value: string) => void
+   options: FieldOption[]
+   placeholder?: string
+   disabled?: boolean
+   className?: string
+}
+
+export default function SelectField({
+   name, label, value, onValueChange, options, placeholder, disabled, className = ''
+}: SelectFieldProps) {
    return (
       <div className={`space-y-1 ${className}`}>
          <Label htmlFor={name} className="pl-2.5 text-xs">{label}</Label>

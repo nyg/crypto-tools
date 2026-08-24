@@ -1,9 +1,33 @@
 import Big from 'big.js'
+import type {
+   Aggregation, AggregationsResponse, AggregationSummary, Order,
+   SummarySide, TradeFiltersResponse, TradesResponse
+} from '../../types/api'
+import type { TradeListRow, TradeRow } from '../../types/db'
+import type { AggregationFilters, Sort, TradeFilters } from '../../types/kraken'
+
+// The fixture holds trades in the shape the repository reads them back out of SQLite.
+type MockTrade = TradeRow
+
+// Exact totals per quote currency while a run is folded, before they become strings.
+interface QuoteFold {
+   volume: Big
+   cost: Big
+   fee: Big
+   netCost: Big
+   decimals: number
+}
+
+interface SideFold {
+   orderCount: number
+   tradeCount: number
+   byQuote: Map<string, QuoteFold>
+}
 
 // Deterministic pseudo-random source, so the fixture is identical across reloads.
-function randomizer(seed) {
+function randomizer(seed: number) {
    let state = seed
-   return (max) => {
+   return (max: number) => {
       state = (state * 1103515245 + 12345) % 2147483648
       return Math.floor(state / 65536) % max
    }
@@ -22,10 +46,12 @@ const orderTypes = ['limit', 'limit', 'limit', 'market', 'stop-loss']
 
 const ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
-const idSegment = (random, length) =>
+type Random = (max: number) => number
+
+const idSegment = (random: Random, length: number) =>
    Array.from({ length }, () => ID_ALPHABET[random(ID_ALPHABET.length)]).join('')
 
-const krakenId = (prefix, random) =>
+const krakenId = (prefix: string, random: Random) =>
    `${prefix}${idSegment(random, 5)}-${idSegment(random, 5)}-${idSegment(random, 6)}`
 
 // One row per trade, as Kraken's trades export writes them — several rows can share
@@ -33,7 +59,7 @@ const krakenId = (prefix, random) =>
 function buildTrades() {
 
    const random = randomizer(20260801)
-   const trades = []
+   const trades: MockTrade[] = []
    let time = Date.now() - 1250 * 86400000
 
    for (let order = 0; trades.length < 400; order++) {
@@ -107,7 +133,7 @@ export function restoreTrades() {
    trades = allTrades
 }
 
-function matches(trade, filters = {}) {
+function matches(trade: MockTrade, filters: TradeFilters = {}) {
    const search = filters.search?.toLowerCase()
    return (!filters.pair || trade.pairKey === filters.pair)
       && (!filters.direction || trade.type === filters.direction)
@@ -119,15 +145,16 @@ function matches(trade, filters = {}) {
          || trade.txid.toLowerCase().includes(search))
 }
 
-const decimalCount = value => (String(value).split('.')[1] ?? '').length
+const decimalCount = (value: string) => (String(value).split('.')[1] ?? '').length
 
 // Mirrors the server: a filter selects trades, but the order it belongs to is then
 // shown whole. Otherwise searching a single trade id would show that order with only
 // part of its volume.
-function asOrder(orderKey, trades) {
+function asOrder(orderKey: string, trades: MockTrade[]): Order {
 
    const first = trades[0]
-   const sum = key => trades.reduce((total, trade) => total.plus(trade[key]), Big(0))
+   const sum = (key: 'vol' | 'cost' | 'fee') =>
+      trades.reduce((total, trade) => total.plus(trade[key]), Big(0))
 
    const volume = sum('vol')
    const cost = sum('cost')
@@ -158,13 +185,15 @@ function asOrder(orderKey, trades) {
 
 // Grouping, filtering and paging are applied for real, so that mocked mode exercises
 // the same code paths the server does.
-export function tradeAggregations(body = {}) {
+export function tradeAggregations(
+   body: { filters?: AggregationFilters, page?: number, pageSize?: number } = {}
+): AggregationsResponse {
 
    const filters = body.filters ?? {}
    const page = Math.max(0, body.page ?? 0)
    const pageSize = body.pageSize ?? 20
 
-   const empty = {
+   const empty: AggregationsResponse = {
       rows: [], total: 0, page, pageSize,
       baseAsset: filters.base ?? '', quoteAsset: filters.quote ?? '',
       quoteAssets: [], summary: emptySummary(), truncated: false
@@ -178,7 +207,7 @@ export function tradeAggregations(body = {}) {
       && (!filters.from || trade.time >= filters.from)
       && (!filters.to || trade.time <= filters.to))
 
-   const byOrder = new Map()
+   const byOrder = new Map<string, MockTrade[]>()
    for (const trade of matched) {
       byOrder.set(trade.orderKey, [...(byOrder.get(trade.orderKey) ?? []), trade])
    }
@@ -187,7 +216,7 @@ export function tradeAggregations(body = {}) {
       .map(([orderKey, orderTrades]) => asOrder(orderKey, orderTrades.toSorted((a, b) => a.time - b.time)))
       .toSorted((a, b) => a.time - b.time || (a.orderKey < b.orderKey ? -1 : 1))
 
-   const runs = []
+   const runs: { direction: string, orders: Order[] }[] = []
    for (const order of orders) {
       const current = runs[runs.length - 1]
       if (current && current.direction === order.direction) current.orders.push(order)
@@ -210,9 +239,9 @@ export function tradeAggregations(body = {}) {
    }
 }
 
-function asSummary(orders) {
+function asSummary(orders: Order[]): AggregationSummary {
 
-   const sides = { buy: newSummarySide(), sell: newSummarySide() }
+   const sides: Record<string, SideFold> = { buy: newSummarySide(), sell: newSummarySide() }
 
    for (const order of orders) {
 
@@ -235,11 +264,11 @@ function asSummary(orders) {
    return { buy: asSummarySide(sides.buy), sell: asSummarySide(sides.sell) }
 }
 
-function newSummarySide() {
+function newSummarySide(): SideFold {
    return { orderCount: 0, tradeCount: 0, byQuote: new Map() }
 }
 
-function asSummarySide(side) {
+function asSummarySide(side: SideFold): SummarySide {
    return {
       orderCount: side.orderCount,
       tradeCount: side.tradeCount,
@@ -256,11 +285,11 @@ function asSummarySide(side) {
    }
 }
 
-function emptySummary() {
+function emptySummary(): AggregationSummary {
    return { buy: asSummarySide(newSummarySide()), sell: asSummarySide(newSummarySide()) }
 }
 
-function asAggregation(run, index) {
+function asAggregation(run: { direction: string, orders: Order[] }, index: number): Aggregation {
 
    const orders = run.orders
    const first = orders[0]
@@ -304,21 +333,23 @@ function asAggregation(run, index) {
 
 // The trades themselves, ungrouped, as the Ledger page's Trades tab reads them. A
 // filter selects a row here rather than the order behind it — nothing is folded.
-export function tradeRows(body = {}) {
+export function tradeRows(
+   body: { filters?: TradeFilters, sort?: Sort, page?: number, pageSize?: number } = {}
+): TradesResponse {
 
    const filtered = trades.filter(trade => matches(trade, body.filters))
 
    const columns = ['time', 'pair', 'direction', 'ordertype', 'volume', 'price', 'cost', 'fee']
-   const column = columns.includes(body.sort?.column) ? body.sort.column : 'time'
+   const column = columns.includes(body.sort?.column ?? '') ? body.sort!.column! : 'time'
    const factor = body.sort?.direction === 'asc' ? 1 : -1
 
    const numeric = ['volume', 'price', 'cost', 'fee'].includes(column)
-   const value = trade => {
+   const value = (trade: MockTrade): string | number => {
       if (column === 'volume') return Number(trade.vol)
       if (column === 'pair') return trade.pairKey
       if (column === 'direction') return trade.type
-      if (numeric) return Number(trade[column])
-      return trade[column]
+      if (numeric) return Number(trade[column as keyof MockTrade])
+      return trade[column as keyof MockTrade]
    }
 
    const sorted = filtered.toSorted((a, b) => {
@@ -333,7 +364,7 @@ export function tradeRows(body = {}) {
 
    // The server renames columns on the way out; the fixture has to answer in the same
    // shape or the table would render blanks under mocked data only.
-   const rows = sorted.slice(page * pageSize, (page + 1) * pageSize).map(trade => ({
+   const rows = sorted.slice(page * pageSize, (page + 1) * pageSize).map((trade): TradeListRow => ({
       txid: trade.txid,
       orderId: trade.ordertxid,
       orderKey: trade.orderKey,
@@ -355,9 +386,10 @@ export function tradeRows(body = {}) {
    return { rows, total: filtered.length, page, pageSize }
 }
 
-export function tradeFilters() {
+export function tradeFilters(): TradeFiltersResponse {
 
-   const distinct = pick => [...new Set(trades.map(pick))].filter(Boolean).toSorted()
+   const distinct = (pick: (trade: MockTrade) => string) =>
+      [...new Set(trades.map(pick))].filter(Boolean).toSorted()
 
    const markets = [...new Map(trades.map(trade =>
       [trade.pairKey, { pairKey: trade.pairKey, baseAsset: trade.baseAsset, quoteAsset: trade.quoteAsset }]))

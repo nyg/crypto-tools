@@ -1,9 +1,15 @@
+import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import PageHelpButton from './page-help-button'
 import { cn } from '@/lib/utils'
 
 
-export default function SubNav({ items, trailing }) {
+interface SubNavProps {
+   items: { label: string, href: string }[]
+   trailing?: ReactNode
+}
+
+export default function SubNav({ items, trailing }: SubNavProps) {
 
    const { pathname } = useLocation()
 

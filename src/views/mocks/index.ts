@@ -8,31 +8,42 @@ import {
 } from './kraken-ledger'
 import { tradeAggregations, tradeRows, tradeFilters } from './kraken-trades'
 import { aggregateBalance } from './binance'
+import type { LatestRelease } from '../../types/api'
+import type { MaskedSettings } from '../../types/settings'
+
+// A mocked route is handed the request body the fetcher would have posted, under the
+// same { arg } SWR wraps a mutation argument in.
+type MockParams = { arg?: unknown }
+type MockRoute = (params?: MockParams) => unknown
+
+// The fetcher posts the request body under { arg }, and each route below knows the
+// shape it asked for — which is what the inferred T here picks up.
+const body = <T>(params?: MockParams) => params?.arg as T | undefined
 
 
-const mockRoutes = {
+const mockRoutes: Record<string, MockRoute> = {
    '/api/kraken/trading-pairs': () => tradingPairs,
-   '/api/kraken/order-batch': (params) => orderBatch(params?.arg),
+   '/api/kraken/order-batch': (params) => orderBatch(body(params)),
    '/api/kraken/balances': () => balances(),
    '/api/kraken/open-orders': () => openOrders(),
-   '/api/kraken/cancel-orders': (params) => cancelOrders(params?.arg),
-   '/api/kraken/asset-rates': (params) => assetRates(params?.arg),
-   '/api/kraken/xstocks/listings': (params) => xstockListings(params?.arg),
-   '/api/kraken/xstocks/classify': (params) => xstockClassify(params?.arg),
-   '/api/kraken/xstocks/describe': (params) => xstockDescribe(params?.arg),
+   '/api/kraken/cancel-orders': (params) => cancelOrders(body(params)),
+   '/api/kraken/asset-rates': (params) => assetRates(body(params)),
+   '/api/kraken/xstocks/listings': (params) => xstockListings(body(params)),
+   '/api/kraken/xstocks/classify': (params) => xstockClassify(body(params)),
+   '/api/kraken/xstocks/describe': (params) => xstockDescribe(body(params)),
    '/api/kraken/xstocks/job': () => xstockJob(),
    '/api/kraken/xstocks/job/cancel': () => xstockJobCancel(),
-   '/api/kraken/ledger/sync': (params) => ledgerSync(params?.arg),
+   '/api/kraken/ledger/sync': (params) => ledgerSync(body(params)),
    '/api/kraken/ledger/sync/status': () => ledgerSyncStatus(),
    '/api/kraken/ledger/sync/cancel': () => ledgerSyncCancel(),
-   '/api/kraken/ledger/entries': (params) => ledgerEntries(params?.arg),
+   '/api/kraken/ledger/entries': (params) => ledgerEntries(body(params)),
    '/api/kraken/ledger/filters': () => ledgerFilters(),
-   '/api/kraken/ledger/fees': (params) => ledgerFees(params?.arg),
+   '/api/kraken/ledger/fees': (params) => ledgerFees(body(params)),
    '/api/kraken/ledger/rewards': () => ledgerRewards(),
    '/api/kraken/ledger/balances': () => ledgerBalances(),
    '/api/kraken/ledger/clear': () => ledgerClear(),
-   '/api/kraken/ledger/trades/aggregations': (params) => tradeAggregations(params?.arg),
-   '/api/kraken/ledger/trades': (params) => tradeRows(params?.arg),
+   '/api/kraken/ledger/trades/aggregations': (params) => tradeAggregations(body(params)),
+   '/api/kraken/ledger/trades': (params) => tradeRows(body(params)),
    '/api/kraken/ledger/trades/filters': () => tradeFilters(),
    '/api/binance/aggregate-balance': () => aggregateBalance,
    '/api/settings': () => mockSettings(false),
@@ -40,12 +51,12 @@ const mockRoutes = {
    '/api/app/latest-release': () => mockLatestRelease,
 }
 
-const mockLatestRelease = {
+const mockLatestRelease: LatestRelease = {
    version: '99.0.0',
    url: 'https://github.com/nyg/crypto-tools/releases/latest'
 }
 
-const mockSettings = (reveal) => ({
+const mockSettings = (reveal: boolean): MaskedSettings => ({
    version: 1,
    binance: {
       apiKey: reveal ? 'mock-binance-key' : '*****', apiSecret: '*****', source: 'file',
@@ -62,7 +73,7 @@ const mockSettings = (reveal) => ({
    }
 })
 
-export async function mockFetcher(url, params) {
+export async function mockFetcher(url: string, params?: MockParams): Promise<unknown> {
    await new Promise(resolve => setTimeout(resolve, 300))
 
    const handler = mockRoutes[url]

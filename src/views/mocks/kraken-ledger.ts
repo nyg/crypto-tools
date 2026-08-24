@@ -1,13 +1,34 @@
 import { tradeCount, orderCount, allTradeCount, clearTrades, restoreTrades } from './kraken-trades'
+import type {
+   BalanceAsset, BalancePosition, BalanceSummary, ClearResponse, FeeSummary,
+   LedgerEntriesResponse, LedgerFiltersResponse, RewardAsset, RewardSummary,
+   SyncCancelResponse, SyncStartResponse, SyncStatusResponse
+} from '../../types/api'
+import type { LedgerEntryRow, SyncStateRow } from '../../types/db'
+import type { SyncJob, SyncMode, SyncStep, SyncStepPhase } from '../../types/jobs'
+import type { ExportReportType, LedgerFilters, Sort } from '../../types/kraken'
+
+// A fixture entry carries the wallet the export writes, which the stored row keeps too.
+type MockEntry = LedgerEntryRow
+
+// Only the part of a run the fixture actually holds; the rest is derived from elapsed
+// time on every read, so mocked mode drives the real polling loop.
+interface MockJobSeed {
+   accountId: string
+   mode: SyncMode
+   startedAt: number
+   error: string | null
+   cancelRequested: boolean
+}
 
 // Deterministic pseudo-random source, so the fixture is identical across reloads.
 // The low bits of a linear congruential generator cycle far too quickly to be taken
 // modulo anything — the lowest one alternates every draw, so `state % 10` came out
 // even nine times out of ten and the rarer entry types never appeared. The draw is
 // taken from the high bits instead.
-function randomizer(seed) {
+function randomizer(seed: number) {
    let state = seed
-   return (max) => {
+   return (max: number) => {
       state = (state * 1103515245 + 12345) % 2147483648
       return Math.floor(state / 65536) % max
    }
@@ -40,12 +61,15 @@ const assets = [
 function buildEntries() {
 
    const random = randomizer(20240801)
-   const entries = []
+   const entries: MockEntry[] = []
    let time = Date.now() - 1250 * DAY
 
    // Wallets are spelled the way Kraken spells them in the export, because the Balances
    // page reads the placement of a holding out of exactly this string.
-   const push = entry => entries.push({ fee: '0.00000000', subtype: '', wallet: 'spot / main', ...entry })
+   const push = (entry: Partial<MockEntry>) =>
+      entries.push({
+         aclass: 'currency', balance: '', fee: '0.00000000', subtype: '', wallet: 'spot / main', ...entry
+      } as MockEntry)
 
    for (let i = 0; entries.length < 250; i++) {
 
@@ -90,7 +114,7 @@ function buildEntries() {
    // is present whatever the random draw did: a coin in each earn wallet, a spot holding
    // still being paid (Opt-In Rewards), a position carrying a retired staking name alongside
    // its current one, and one worth too little to be worth a row.
-   const recently = days => Date.now() - days * 86400000
+   const recently = (days: number) => Date.now() - days * 86400000
 
    // Opening deposits, so the random withdrawals above cannot take a spot wallet
    // negative — a holding below zero is not a case the page needs to show.
@@ -154,12 +178,13 @@ function buildEntries() {
 let entries = buildEntries()
 const allEntries = entries
 
-let syncState = {
+let syncState: SyncStateRow & { otherAccounts: [] } = {
+   accountId: 'mock-account',
    apiKeyPrefix: 'MOCKKEY1',
    coveredFrom: entries[0].time,
-   coveredTo: entries.at(-1).time,
+   coveredTo: entries.at(-1)!.time,
    tradesCoveredFrom: entries[0].time,
-   tradesCoveredTo: entries.at(-1).time,
+   tradesCoveredTo: entries.at(-1)!.time,
    firstSyncedAt: Date.now() - 6 * 86400000,
    lastSyncedAt: Date.now() - 3600000,
    lastReportId: null,
@@ -170,7 +195,7 @@ let syncState = {
 // Phases are derived from elapsed time so that mocked mode drives the real polling
 // loop and shows the whole progression rather than jumping straight to done. One step
 // walks these; the run walks the steps one after the other, as the server does.
-const stepSchedule = [
+const stepSchedule: [number, SyncStepPhase, string | null][] = [
    [0, 'requesting', null],
    [1500, 'waiting', 'Queued'],
    [3000, 'waiting', 'Processing'],
@@ -184,13 +209,17 @@ const stepSchedule = [
 const STEP_MS = 10500
 const SYNC_MS = 2 * STEP_MS
 
-const reportIds = { ledgers: 'TCWJRA-2JBAB-DHZE7X', trades: 'TCWJRA-9KLMN-QRSTU' }
+const reportIds: Record<ExportReportType, string> = {
+   ledgers: 'TCWJRA-2JBAB-DHZE7X', trades: 'TCWJRA-9KLMN-QRSTU'
+}
 
-let job = null
+let job: MockJobSeed | null = null
 
 // The step's own view of the run: `offset` is when its turn starts, so everything
 // before that reads as pending and everything after as finished.
-function stepAt(report, elapsed, offset, mode) {
+function stepAt(
+   report: ExportReportType, elapsed: number, offset: number, mode: SyncMode
+): SyncStep {
 
    const rowCount = report === 'trades' ? allTradeCount() : allEntries.length
    const local = elapsed - offset
@@ -201,7 +230,7 @@ function stepAt(report, elapsed, offset, mode) {
       reportStatus: null,
       reportRemoved: false,
       requestedFrom: null,
-      startedAt: local >= 0 ? job.startedAt + offset : null,
+      startedAt: local >= 0 ? job!.startedAt + offset : null,
       finishedAt: null,
       pollCount: 0,
       counts: { parsed: 0, stored: 0, inserted: 0, updated: 0, skipped: 0 },
@@ -219,7 +248,7 @@ function stepAt(report, elapsed, offset, mode) {
       reportStatus,
       reportRemoved: phase === 'done',
       pollCount: Math.floor(Math.min(local, 7000) / 1500),
-      finishedAt: phase === 'done' ? job.startedAt + offset + STEP_MS : null,
+      finishedAt: phase === 'done' ? job!.startedAt + offset + STEP_MS : null,
       counts: {
          parsed: ['requesting', 'waiting'].includes(phase) ? 0 : rowCount,
          stored: stored ? rowCount : 0,
@@ -230,12 +259,12 @@ function stepAt(report, elapsed, offset, mode) {
    }
 }
 
-function currentJob() {
+function currentJob(): SyncJob | null {
    if (!job) return null
 
    const elapsed = Date.now() - job.startedAt
-   const steps = ['ledgers', 'trades']
-      .map((report, index) => stepAt(report, elapsed, index * STEP_MS, job.mode))
+   const steps = (['ledgers', 'trades'] as ExportReportType[])
+      .map((report, index) => stepAt(report, elapsed, index * STEP_MS, job!.mode))
 
    if (job.cancelRequested) {
       return {
@@ -260,7 +289,7 @@ function currentJob() {
    }
 }
 
-export function ledgerSync(body) {
+export function ledgerSync(body?: { mode?: string }): SyncStartResponse {
    const running = currentJob()
    if (running && !['done', 'error', 'cancelled'].includes(running.phase)) {
       return { job: running, alreadyRunning: true }
@@ -274,10 +303,10 @@ export function ledgerSync(body) {
       cancelRequested: false
    }
 
-   return { job: currentJob(), alreadyRunning: false }
+   return { job: currentJob()!, alreadyRunning: false }
 }
 
-export function ledgerSyncStatus() {
+export function ledgerSyncStatus(): SyncStatusResponse {
    const current = currentJob()
 
    // A sync after a clear puts the fixture back, so the mocked pages can be emptied
@@ -301,12 +330,12 @@ export function ledgerSyncStatus() {
    }
 }
 
-export function ledgerSyncCancel() {
+export function ledgerSyncCancel(): SyncCancelResponse {
    if (job) job.cancelRequested = true
    return { job: currentJob() }
 }
 
-export function ledgerClear() {
+export function ledgerClear(): ClearResponse {
    entries = []
    const trades = clearTrades()
    syncState = {
@@ -319,7 +348,7 @@ export function ledgerClear() {
    return { entries: allEntries.length, trades }
 }
 
-function applyFilters(filters = {}) {
+function applyFilters(filters: LedgerFilters = {}) {
    return entries.filter(entry =>
       (!filters.asset || entry.baseAsset === filters.asset)
       && (!filters.type || entry.type === filters.type)
@@ -333,13 +362,17 @@ function applyFilters(filters = {}) {
 
 // Filtering, sorting and paging are applied for real, so that mocked mode exercises
 // the same code paths the server does rather than always returning the same page.
-export function ledgerEntries(body = {}) {
+export function ledgerEntries(
+   body: { filters?: LedgerFilters, sort?: Sort, page?: number, pageSize?: number } = {}
+): LedgerEntriesResponse {
 
    const filtered = applyFilters(body.filters)
-   const column = ['time', 'amount', 'asset', 'type'].includes(body.sort?.column) ? body.sort.column : 'time'
+   const column = ['time', 'amount', 'asset', 'type'].includes(body.sort?.column ?? '')
+      ? body.sort!.column!
+      : 'time'
    const factor = body.sort?.direction === 'asc' ? 1 : -1
 
-   const value = entry => {
+   const value = (entry: MockEntry): string | number => {
       if (column === 'amount') return Number(entry.amount)
       if (column === 'asset') return entry.baseAsset
       if (column === 'type') return entry.type
@@ -361,12 +394,12 @@ export function ledgerEntries(body = {}) {
 
 // Mirrors LedgerRepository.feeSummary: same groupings, same shape, computed over the
 // fixture so the page exercises its real rendering rather than a canned response.
-export function ledgerFees(body = {}) {
+export function ledgerFees(body: { filters?: LedgerFilters } = {}): FeeSummary {
 
    const charged = applyFilters(body.filters).filter(entry => Number(entry.fee) !== 0)
 
-   const group = (keyOf) => {
-      const groups = new Map()
+   const group = (keyOf: (entry: MockEntry) => string) => {
+      const groups = new Map<string, { total: number, entries: number }>()
       for (const entry of charged) {
          const key = keyOf(entry)
          const group = groups.get(key) ?? { total: 0, entries: 0 }
@@ -377,7 +410,7 @@ export function ledgerFees(body = {}) {
       return groups
    }
 
-   const monthOf = entry => new Date(entry.time).toISOString().slice(0, 7)
+   const monthOf = (entry: MockEntry) => new Date(entry.time).toISOString().slice(0, 7)
 
    const assets = [...group(entry => entry.baseAsset)]
       .map(([asset, group]) => ({ asset, ...group }))
@@ -399,13 +432,13 @@ export function ledgerFees(body = {}) {
 
 // Mirrors LedgerRepository.rewardSummary: the same reward predicate and the same pivot,
 // computed over the fixture.
-export function ledgerRewards() {
+export function ledgerRewards(): RewardSummary {
 
    const excludedSubtypes = ['allocation', 'deallocation', 'autoallocation', 'migration']
    const rewards = entries.filter(entry =>
       ['staking', 'earn'].includes(entry.type) && !excludedSubtypes.includes(entry.subtype))
 
-   const assets = new Map()
+   const assets = new Map<string, RewardAsset>()
 
    for (const entry of rewards) {
       const year = new Date(entry.time).getUTCFullYear()
@@ -425,9 +458,9 @@ export function ledgerRewards() {
    const years = [...new Set([...assets.values()].flatMap(asset => Object.keys(asset.byYear).map(Number)))]
       .toSorted((a, b) => a - b)
 
-   const periodAssets = (from, to) => {
+   const periodAssets = (from: number, to: number) => {
 
-      const totals = new Map()
+      const totals = new Map<string, { asset: string, total: number, entries: number }>()
 
       for (const entry of rewards.filter(entry => entry.time >= from && entry.time <= to)) {
          const total = totals.get(entry.baseAsset) ?? { asset: entry.baseAsset, total: 0, entries: 0 }
@@ -455,10 +488,23 @@ export function ledgerRewards() {
 // Mirrors LedgerRepository.balanceSummary: the same fold of amount - fee per asset and
 // wallet, over the same fixture, so that clearing and re-syncing empties and refills
 // the Balances page the way it does every other one.
-export function ledgerBalances() {
+export function ledgerBalances(): BalanceSummary {
 
    const excludedSubtypes = ['allocation', 'deallocation', 'autoallocation', 'migration']
-   const positions = new Map()
+
+   interface MockPosition {
+      asset: string
+      wallet: string
+      amount: number
+      rawAssets: Set<string>
+      entries: number
+      first: number
+      last: number
+      lastRewardAt: number | null
+      rewardEntries: number
+   }
+
+   const positions = new Map<string, MockPosition>()
 
    for (const entry of entries) {
 
@@ -483,7 +529,7 @@ export function ledgerBalances() {
       positions.set(key, position)
    }
 
-   const assets = new Map()
+   const assets = new Map<string, { asset: string, total: number, positions: BalancePosition[] }>()
 
    for (const position of positions.values()) {
 
@@ -492,7 +538,8 @@ export function ledgerBalances() {
       const amount = Number(position.amount.toFixed(8))
       if (amount === 0) continue
 
-      const asset = assets.get(position.asset) ?? { asset: position.asset, total: 0, positions: [] }
+      const asset = assets.get(position.asset)
+         ?? { asset: position.asset, total: 0, positions: [] as BalancePosition[] }
 
       asset.total += amount
       asset.positions.push({
@@ -512,7 +559,7 @@ export function ledgerBalances() {
    const held = [...assets.values()]
 
    return {
-      assets: held.map(asset => ({
+      assets: held.map((asset): BalanceAsset => ({
          asset: asset.asset,
          total: asset.total.toFixed(8),
          totalNum: asset.total,
@@ -521,12 +568,13 @@ export function ledgerBalances() {
       positions: held.reduce((count, asset) => count + asset.positions.length, 0),
       entries: entries.length,
       first: entries.length > 0 ? entries[0].time : null,
-      last: entries.length > 0 ? entries.at(-1).time : null
+      last: entries.length > 0 ? entries.at(-1)!.time : null
    }
 }
 
-export function ledgerFilters() {
-   const distinct = pick => [...new Set(entries.map(pick))].filter(Boolean).toSorted()
+export function ledgerFilters(): LedgerFiltersResponse {
+   const distinct = (pick: (entry: MockEntry) => string) =>
+      [...new Set(entries.map(pick))].filter(Boolean).toSorted()
    return {
       assets: distinct(entry => entry.baseAsset),
       types: distinct(entry => entry.type),
