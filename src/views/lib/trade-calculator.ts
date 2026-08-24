@@ -21,8 +21,10 @@ export interface TakeProfitLevel {
 }
 
 // What the form holds: free text as the user typed it, parsed here rather than on
-// every keystroke.
+// every keystroke. pair and tokenAddress only ever label the summary.
 export interface TradeCalculatorForm {
+   pair?: string
+   tokenAddress?: string
    direction?: string
    strategy?: string
    portfolioValue?: string
@@ -201,3 +203,20 @@ export const chartSymbol = (pair: string | undefined, override?: string): string
 
    return cleaned.includes(':') ? cleaned : `BINANCE:${cleaned}`
 }
+
+export type TradeResult = ReturnType<typeof calculate>
+
+// A trade whose position could actually be sized. The four amounts a summary reads are
+// produced by the same two guards as the size itself, so they are present together or
+// not at all — which is what this narrows.
+export type SizedTrade = TradeResult & {
+   positionSize: Big
+   positionValue: Big
+   entryPrice: Big
+   stopLoss: Big
+   stopDistance: Big
+}
+
+export const isSized = (result: TradeResult): result is SizedTrade =>
+   Boolean(result.positionSize && result.positionValue && result.entryPrice
+      && result.stopLoss && result.stopDistance)

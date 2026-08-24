@@ -95,6 +95,7 @@ export default class BinanceAPI {
             apy: position.apy,
             amount: Big(position.amount),
             duration: position.duration,
+            accrualDays: position.accrualDays,
             endDate: position.deliverDate
          })
          return positions

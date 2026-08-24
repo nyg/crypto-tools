@@ -17,7 +17,8 @@ export interface FieldOption {
 
 interface SelectFieldProps {
    name: string
-   label: ReactNode
+   // Absent where the field sits in a card header that already names it.
+   label?: ReactNode
    value?: string
    onValueChange: (value: string) => void
    options: FieldOption[]

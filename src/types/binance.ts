@@ -18,6 +18,7 @@ export interface StakingPositionAmount {
    apy: string
    amount: Big
    duration: number
+   accrualDays: number
    endDate: number
 }
 

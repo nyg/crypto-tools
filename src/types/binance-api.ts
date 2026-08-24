@@ -34,6 +34,7 @@ export interface BinanceStakingPosition {
    amount: string
    apy: string
    duration: number
+   accrualDays: number
    deliverDate: number
 }
 
