@@ -265,6 +265,8 @@ export interface StakingPosition {
    apy: string
    amount: string
    duration: number
+   // How far through its term the position is, which the page shows as progress.
+   accrualDays: number
    endDate: number
 }
 
