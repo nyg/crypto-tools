@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import useSWR from 'swr'
-import useSWRMutation from 'swr/mutation'
+import useMutation from '../../lib/use-mutation'
 import Big from 'big.js'
 import { Loader2Icon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
@@ -8,17 +8,25 @@ import OrderBatchForm from '../../components/kraken/order-batch-params'
 import OrderBatchTable from '../../components/kraken/order-batch-table'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import { messageOf } from '../../lib/errors'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import type { OrderBatchForm as FormValues } from '../../components/kraken/order-batch-params'
+import type { CreatedOrder, OrderBatchPreview } from '../../components/kraken/order-batch-table'
+import type { TradingPairs } from '../../../types/market'
+
+// Every price function walks the same arguments; only linear is offered so far.
+type PriceFunction = (x: number, from: Big, to: Big, count: number) => Big
+type VolumeFunction = (total: Big, count: number, price: Big, prices: Big[]) => Big
 
 
-const priceFunctions = {
+const priceFunctions: Record<string, PriceFunction> = {
    'linear': (x, a, b, n) => Big(b).minus(a).div(Big(n).minus(1)).times(x).plus(a)
 }
 
-const volumeFunctions = {
+const volumeFunctions: Record<string, VolumeFunction> = {
    'linear-base': (totalVolume, orderCount) => totalVolume.div(orderCount),
    'linear-quote': (totalVolume, orderCount, price, allPrices) => {
       // calculate total quote per order such that all orders have equal quote value
@@ -30,12 +38,12 @@ const volumeFunctions = {
 
 const INT32_LIMIT = 2147483647
 
-const asUserref = (value) => {
-   const parsed = Number.parseInt(value, 10)
+const asUserref = (value: string | undefined) => {
+   const parsed = Number.parseInt(value ?? '', 10)
    return Number.isInteger(parsed) && Math.abs(parsed) <= INT32_LIMIT ? parsed : undefined
 }
 
-const buildOrdersParams = (formValues, dryRun) => {
+const buildOrdersParams = (formValues: FormValues, dryRun?: boolean): OrderBatchPreview => {
    const orderCount = Number.parseInt(formValues.orderCount)
    const priceFrom = Big(formValues.priceFrom)
    const priceTo = Big(formValues.priceTo)
@@ -66,7 +74,7 @@ const buildOrdersParams = (formValues, dryRun) => {
 
 const STORAGE_KEY = 'kraken.orderBatch.formValues'
 
-const defaultFormValues = {
+const defaultFormValues: FormValues = {
    pair: 'XBTUSD',
    direction: 'buy',
    priceFrom: '500',
@@ -81,13 +89,14 @@ const defaultFormValues = {
 
 export default function KrakenOrderBatch() {
 
-   const { data: tradingPairs, isLoading } = useSWR('/api/kraken/trading-pairs')
-   const { data: createdOrders, isMutating, error, trigger: createOrders, reset } = useSWRMutation('/api/kraken/order-batch')
+   const { data: tradingPairs, isLoading } = useSWR<TradingPairs>('/api/kraken/trading-pairs')
+   const { data: createdOrders, isMutating, error, trigger: createOrders, reset } =
+      useMutation<CreatedOrder[], { ordersParams: OrderBatchPreview }>('/api/kraken/order-batch')
 
    const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
-   const [ordersParams, setOrdersParams] = useState({})
-   const [submittedMode, setSubmittedMode] = useState(null)
+   const [ordersParams, setOrdersParams] = useState<OrderBatchPreview | null>(null)
+   const [submittedMode, setSubmittedMode] = useState<string | null>(null)
    // Remember the last entered parameters across navigations and app restarts.
    const [formValues, setFormValues] = usePersistentState(STORAGE_KEY, defaultFormValues)
 
@@ -97,7 +106,7 @@ export default function KrakenOrderBatch() {
       reset()
    }
 
-   const createOrdersWith = (dryRun, mode) => {
+   const createOrdersWith = (dryRun: boolean, mode: string) => {
       const params = buildOrdersParams(formValues, dryRun)
       setOrdersParams(params)
       setSubmittedMode(mode)
@@ -128,10 +137,10 @@ export default function KrakenOrderBatch() {
    else if (createdOrders?.some(order => order?.txid)) {
       statusIndicator = <Badge>Orders created</Badge>
    }
-   else if (createdOrders?.length > 0) {
+   else if ((createdOrders?.length ?? 0) > 0) {
       statusIndicator = <Badge variant="secondary">Dry run · validated</Badge>
    }
-   else if (ordersParams.orders?.length > 0) {
+   else if ((ordersParams?.orders.length ?? 0) > 0) {
       statusIndicator = <Badge variant="outline">Preview</Badge>
    }
 
@@ -160,8 +169,8 @@ export default function KrakenOrderBatch() {
                   {statusIndicator && <CardAction>{statusIndicator}</CardAction>}
                </CardHeader>
                <CardContent className="space-y-3">
-                  {error &&
-                     <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+                  {Boolean(error) &&
+                     <Alert variant="destructive"><AlertDescription>{messageOf(error)}</AlertDescription></Alert>}
                   <OrderBatchTable
                      ordersParams={ordersParams}
                      tradingPairs={tradingPairs}

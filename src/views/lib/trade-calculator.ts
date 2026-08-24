@@ -25,6 +25,8 @@ export interface TakeProfitLevel {
 export interface TradeCalculatorForm {
    pair?: string
    tokenAddress?: string
+   // Overrides the symbol derived from the pair, for the chart only.
+   chartSymbol?: string
    direction?: string
    strategy?: string
    portfolioValue?: string

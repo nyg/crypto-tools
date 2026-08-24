@@ -6,7 +6,8 @@ import TakeProfitTable from '../../components/tools/take-profit-table'
 import TradeSummary from '../../components/tools/trade-summary'
 import TradingViewChart from '../../components/tools/tradingview-chart'
 import usePersistentState from '../../lib/use-persistent-state'
-import { calculate, chartSymbol } from '../../lib/trade-calculator'
+import { calculate, chartSymbol, isSized } from '../../lib/trade-calculator'
+import type { TradeCalculatorForm as FormValues } from '../../lib/trade-calculator'
 import { asDecimal } from '../../../utils/format'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input'
 
 const STORAGE_KEY = 'tools.tradeCalculator.formValues'
 
-const defaultFormValues = {
+const defaultFormValues: FormValues = {
    pair: 'BTC/USDT',
    tokenAddress: '',
    portfolioValue: '10000',
@@ -34,8 +35,7 @@ export default function TradeCalculator() {
    const symbol = chartSymbol(formValues.pair, formValues.chartSymbol)
    const derivedSymbol = chartSymbol(formValues.pair)
 
-   const isSized = Boolean(result.positionSize && result.positionValue)
-   const isLeveraged = Boolean(result.leverage?.gt(1))
+   const leverage = result.leverage
 
    return (
       <ToolsLayout name="Trade Calculator">
@@ -57,11 +57,11 @@ export default function TradeCalculator() {
                            <AlertDescription>{error}</AlertDescription>
                         </Alert>
                      )}
-                     {isLeveraged &&
+                     {leverage && leverage.gt(1) &&
                         <Alert>
                            <TriangleAlertIcon />
                            <AlertDescription>
-                              The position is worth {asDecimal(result.leverage.toNumber())}× the
+                              The position is worth {asDecimal(leverage.toNumber())}× the
                               portfolio. Holding it needs margin, and the stop loss no longer caps
                               the loss at the risk amount.
                            </AlertDescription>
@@ -78,7 +78,7 @@ export default function TradeCalculator() {
                   </CardContent>
                </Card>
 
-               {isSized && <TradeSummary formValues={formValues} result={result} />}
+               {isSized(result) && <TradeSummary formValues={formValues} result={result} />}
 
             </div>
 
@@ -93,7 +93,7 @@ export default function TradeCalculator() {
                         className="h-8 w-52 font-mono text-xs"
                         autoComplete="off"
                         value={formValues.chartSymbol}
-                        onChange={event => setFormValues(prev => ({ ...prev, chartSymbol: event.target.value }))} />
+                        onChange={event => setFormValues((prev: FormValues) => ({ ...prev, chartSymbol: event.target.value }))} />
                   </CardAction>
                </CardHeader>
                <CardContent className="flex-1 px-0">

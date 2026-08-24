@@ -40,9 +40,9 @@ Vite proxies all `/api/*` requests to the Hono server during development. In pro
 
 ### Layers
 
-**Pages** (`src/views/pages/`) — React Router route components. Each exchange has its own subdirectory (`binance/`, `kraken/`). `settings.jsx` handles API key management.
+**Pages** (`src/views/pages/`) — React Router route components. Each exchange has its own subdirectory (`binance/`, `kraken/`). `settings.tsx` handles API key management. A page names the response type it expects on each `useSWR`/`useMutation` call, which is what checks it against the route that serves it.
 
-**Components** (`src/views/components/`) — exchange-specific components live in `components/binance/` and `components/kraken/`. Custom wrapper components (NumericInput, Checkbox, Select, DateField, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: false`, and `radix-nova` style.
+**Components** (`src/views/components/`) — exchange-specific components live in `components/binance/` and `components/kraken/`. Custom wrapper components (NumericInput, Checkbox, Select, DateField, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: true`, and `radix-nova` style.
 
 **Adapters** (`src/server/adapters/`) — each external API has an adapter directory (`binance-api/`, `binance-gateway-api/`, `kraken-api/`, `anthropic/`) following a three-layer pattern:
 - `adapter.ts` — public interface with domain methods (constructor function, default export)
@@ -57,7 +57,7 @@ A single HTTP requester (`src/server/adapters/http-requester/server-http-request
 
 **Services** (`src/server/services/`) — `rate-finder.ts` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT. `kraken-ledger-sync.ts` runs the multi-step ledger export as a background job held in an in-memory registry keyed by account, which the page follows by polling a status endpoint.
 
-**Utils** (`src/utils/`) — browser-side helpers shared by the views. `format.js` provides locale formatting via `Intl`, reading the locale list from `locale.js`, which prefers the one the Electrobun main process injects as `window.__LOCALES__` and falls back to the navigator's.
+**Utils** (`src/utils/`) — browser-side helpers shared by the views. `format.ts` provides locale formatting via `Intl`, reading the locale list from `locale.ts`, which prefers the one the Electrobun main process injects as `window.__LOCALES__` and falls back to the navigator's.
 
 **Types** (`src/types/`) — the third runtime target, imported by both of the others and shipping no code of its own. It holds the exchange payload shapes the adapters parse, the SQLite row shapes the repositories read, and — the point of the directory — the API response shapes, so a route and the page that reads it are checked against the same declaration. `index.ts` re-exports the lot for anything that wants one import.
 
@@ -67,8 +67,8 @@ The SDK is imported from `electrobun/main` and comes from `.hutch/devkit`, not `
 
 ### Data Flow
 
-1. Pages fetch data via SWR. Public/read-only data uses `useSWR` (auto-fetch); authenticated operations use `useSWRMutation` (manual trigger).
-2. The global SWR fetcher in `src/views/app.jsx` accepts either a string key or an `[url, body]` array key, and POSTs whenever a body is present (from the array key, or from `params.arg` for `useSWRMutation`). Array keys are how a `useSWR` call — which never receives an `arg` — can still send credentials in a request body.
+1. Pages fetch data via SWR. Public/read-only data uses `useSWR` (auto-fetch); authenticated operations use `useMutation` from `src/views/lib/use-mutation.ts` (manual trigger), a thin wrapper over `useSWRMutation` that passes the shared fetcher explicitly — SWR's types demand a fetcher argument even though the hook falls back to the configured one.
+2. The global SWR fetcher lives in `src/views/lib/fetcher.ts` and is handed to `SWRConfig` by `app.tsx`. It accepts either a string key or an `[url, body]` array key, and POSTs whenever a body is present (from the array key, or from `params.arg` for a mutation). Array keys are how a `useSWR` call — which never receives an `arg` — can still send a request body.
 3. Hono route handlers destructure credentials from `req.body.credentials`, validate they exist (401 if missing), instantiate the appropriate adapter, and return JSON.
 4. API keys are stored in `localStorage` per provider (e.g. `binance.api.key`, `kraken.api.secret`) with fallback to `VITE_*` env vars. Always guard localStorage access with `typeof window !== 'undefined'`.
 
@@ -78,7 +78,7 @@ The SDK is imported from `electrobun/main` and comes from `.hutch/devkit`, not `
 
 ### Mocked Mode
 
-The app supports a mocked mode for development and demos, activated via `bun run mocked` or `VITE_MOCK_DATA=true`. In `src/views/app.jsx`, the global SWR fetcher checks this env var and routes all API calls through `mockFetcher()` from `src/views/mocks/index.js` instead of making real HTTP requests. Mock data generators live in `src/views/mocks/` with per-exchange files (`kraken.js`, `binance.js`). On startup, `initMockCredentials()` auto-populates `localStorage` with fake API keys so authenticated features work without configuration.
+The app supports a mocked mode for development and demos, activated via `bun run mocked` or `VITE_MOCK_DATA=true`. The fetcher in `src/views/lib/fetcher.ts` checks this env var and routes all API calls through `mockFetcher()` from `src/views/mocks/index.ts` instead of making real HTTP requests. Mock data generators live in `src/views/mocks/` with per-exchange files (`kraken.ts`, `binance.ts`). Each one declares the response type from `src/types/api.ts` that the route it stands in for returns, so a mock that drifts from the real shape is a compile error rather than a page that only breaks under mocked mode. On startup, `initMockCredentials()` auto-populates `localStorage` with fake API keys so authenticated features work without configuration.
 
 ## Code Conventions
 
@@ -87,11 +87,11 @@ The app supports a mocked mode for development and demos, activated via `bun run
 - **Precision math**: use `big.js` for all numeric calculations involving asset amounts or rates
 - **ES6 classes** for the adapters, repositories and other stateful services (e.g. `export default class BinanceAPI { constructor(credentials) { … } }`), with `#private` fields for what used to be closure state. TypeScript cannot infer a construct signature from `this.x = …` in a plain function, so the constructor-function style this codebase used before the TypeScript migration typed every `new` expression as `any`. Everything stateless stays a plain function.
 - **Functional React components** with hooks; no class components, no global state libraries
-- TypeScript throughout, checked under `strict`. `src/server`, `src/types` and `src/electrobun` are `.ts`; React components will be `.tsx`. No `any` in application code — external JSON enters as a declared interface at the adapter or route boundary, and `unknown` plus narrowing covers anything genuinely dynamic. (`src/views` and `src/utils` are still `.js`/`.jsx` until their own migration PRs land.)
+- TypeScript throughout, checked under `strict` with `allowJs` off — there is no JavaScript left under `src`. React components are `.tsx`, everything else `.ts`. No `any` in application code: external JSON enters as a declared interface at the adapter or route boundary, and `unknown` plus narrowing covers anything genuinely dynamic.
 - Relative imports carry no file extension, so Bun, Vite and `tsc` all resolve them the same way
 - A caught value is `unknown`: use `messageOf(error)` from `src/server/errors.ts` to print one, and `instanceof HttpRequesterError` to tell an exchange's refusal apart from a bug
 - **Path alias**: `@/*` maps to `src/views/` (configured in `tsconfig.json` and `vite.config.ts`)
-- **Class merging**: use `cn()` from `src/views/lib/utils.js` (`clsx` + `tailwind-merge`) for conditional Tailwind classes
+- **Class merging**: use `cn()` from `src/views/lib/utils.ts` (`clsx` + `tailwind-merge`) for conditional Tailwind classes
 
 ## Branching workflow
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import useSWR from 'swr'
-import useSWRMutation from 'swr/mutation'
+import useMutation from '../../lib/use-mutation'
 import { toast } from 'sonner'
 import { Loader2Icon, SparklesIcon, SearchIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
@@ -19,6 +19,18 @@ import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import type { XStockJob, XStockJobKind } from '../../../types/jobs'
+import type { XStockListingsResponse, XStockJobResponse, XStockRow, XStockStartResponse } from '../../../types/api'
+import type { Sort } from '../../../types/kraken'
+
+// What the page remembers between visits: the filters and the description length,
+// none of which the server knows about.
+interface XStockSettings {
+   wordCount: number
+   type: string
+   scope: string
+   sort: Sort
+}
 
 const PAGE_SIZE = 50
 const SETTINGS_KEY = 'kraken.xstocks.settings'
@@ -40,25 +52,25 @@ const scopeOptions = [
 
 const scopeValues = new Set(scopeOptions.map(option => option.value))
 
-const inScope = (listing, scope) => scope === 'all' || listing.type === scope
+const inScope = (listing: XStockRow, scope: string) => scope === 'all' || listing.type === scope
 
 const numericColumns = new Set(['volumeUsd24h'])
 
 const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
 
-const defaultSettings = {
+const defaultSettings: XStockSettings = {
    wordCount: 60,
    type: ANY,
    scope: 'etf',
    sort: { column: 'volumeUsd24h', direction: 'desc' }
 }
 
-const reviveSettings = (stored, defaults) => ({
+const reviveSettings = (stored: XStockSettings, defaults: XStockSettings): XStockSettings => ({
    ...stored,
    scope: scopeValues.has(stored.scope) ? stored.scope : defaults.scope
 })
 
-function announce(job) {
+function announce(job: XStockJob) {
 
    const verbs = jobVerbs[job.kind] ?? jobVerbs.describe
    const { done, failed } = jobCounts(job)
@@ -88,7 +100,8 @@ export default function KrakenXStocks() {
    const [settings, setSettings] = usePersistentState(SETTINGS_KEY, defaultSettings, reviveSettings)
    const { wordCount, type, scope, sort } = settings
 
-   const updateSettings = patch => setSettings(previous => ({ ...previous, ...patch }))
+   const updateSettings = (patch: Partial<XStockSettings>) =>
+      setSettings(previous => ({ ...previous, ...patch }))
 
    const [wordCountInput, setWordCountInput] = useState(() => String(wordCount))
    const [searchInput, setSearchInput] = useState('')
@@ -113,23 +126,26 @@ export default function KrakenXStocks() {
       return () => clearTimeout(timer)
    }, [wordCountInput])
 
-   const changeType = (value) => {
+   const changeType = (value: string) => {
       updateSettings({ type: value })
       setPage(0)
    }
 
-   const changeSort = (value) => {
+   const changeSort = (value: Sort) => {
       updateSettings({ sort: value })
       setPage(0)
    }
 
-   const { data, error, isLoading, mutate } = useSWR(['/api/kraken/xstocks/listings', { wordCount }])
+   const { data, error, isLoading, mutate } =
+      useSWR<XStockListingsResponse>(['/api/kraken/xstocks/listings', { wordCount }])
 
-   const { trigger: describe } = useSWRMutation('/api/kraken/xstocks/describe')
-   const { trigger: classify } = useSWRMutation('/api/kraken/xstocks/classify')
-   const { trigger: cancel } = useSWRMutation('/api/kraken/xstocks/job/cancel')
+   const { trigger: describe } =
+      useMutation<XStockStartResponse, { tickers: string[], wordCount: number }>('/api/kraken/xstocks/describe')
+   const { trigger: classify } =
+      useMutation<XStockStartResponse, { tickers: string[], wordCount: number }>('/api/kraken/xstocks/classify')
+   const { trigger: cancel } = useMutation<XStockJobResponse>('/api/kraken/xstocks/job/cancel')
 
-   const { data: jobData, mutate: mutateJob } = useSWR(JOB_KEY, {
+   const { data: jobData, mutate: mutateJob } = useSWR<XStockJobResponse>(JOB_KEY, {
       refreshInterval: latest => isJobRunning(latest?.job) ? 1000 : 0,
       onSuccess: (latest) => {
          const latestJob = latest?.job ?? null
@@ -178,15 +194,16 @@ export default function KrakenXStocks() {
       const direction = sort.direction === 'asc' ? 1 : -1
 
       return matches.sort((a, b) => {
-         if (numericColumns.has(sort.column)) {
-            const left = a[sort.column]
-            const right = b[sort.column]
+         if (numericColumns.has(sort.column ?? '')) {
+            const left = a[sort.column as 'volumeUsd24h']
+            const right = b[sort.column as 'volumeUsd24h']
             if (left === null && right === null) return collator.compare(a.ticker, b.ticker)
             if (left === null) return 1
             if (right === null) return -1
             return (left - right) * direction || collator.compare(a.ticker, b.ticker)
          }
-         return collator.compare(a[sort.column] ?? '', b[sort.column] ?? '') * direction
+         const key = sort.column as keyof XStockRow
+         return collator.compare(String(a[key] ?? ''), String(b[key] ?? '')) * direction
             || collator.compare(a.ticker, b.ticker)
       })
    }, [listings, search, type, sort])
@@ -194,7 +211,11 @@ export default function KrakenXStocks() {
    const isFiltered = search !== '' || type !== ANY
    const visible = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
-   const startJob = (tickers, kind, trigger) => {
+   const startJob = (
+      tickers: string[],
+      kind: XStockJobKind,
+      trigger: (arg: { tickers: string[], wordCount: number }) => Promise<unknown>
+   ) => {
 
       if (tickers.length === 0) return toast.info(`Nothing to ${jobVerbs[kind].action}.`)
 
@@ -207,7 +228,7 @@ export default function KrakenXStocks() {
             : `Could not start ${jobVerbs[kind].gerund}.`))
    }
 
-   const generateDescriptions = (tickers) => startJob(tickers, 'describe', describe)
+   const generateDescriptions = (tickers: string[]) => startJob(tickers, 'describe', describe)
 
    const classifyUnknown = () => startJob(
       listings.filter(listing => listing.type === 'unclassified').map(listing => listing.ticker),
@@ -222,7 +243,7 @@ export default function KrakenXStocks() {
    const stop = () => cancel().then(() => mutateJob()).catch(() => {})
 
    const isBusy = isJobRunning(job)
-   const isGenerating = isBusy && job.kind === 'describe'
+   const isGenerating = isBusy && job?.kind === 'describe'
    const canDescribe = hasAnthropicKey && !isBusy
    const describing = describingTickers(job)
 

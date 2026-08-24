@@ -10,6 +10,7 @@ import RewardTable from '../../components/kraken/reward-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import type { AssetRatesResponse, RewardSummary, SyncStatusResponse } from '../../../types/api'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const REWARDS_KEY = '/api/kraken/ledger/rewards'
@@ -24,7 +25,7 @@ export default function KrakenRewards() {
 
    // A sync is started on the Ledger page but writes the rewards read here, so the run
    // is followed and the summary revalidated when it lands.
-   useSWR(
+   useSWR<SyncStatusResponse>(
       configured ? '/api/kraken/ledger/sync/status' : null,
       {
          refreshInterval: latest => isJobRunning(latest?.job) ? 1500 : 0,
@@ -37,7 +38,7 @@ export default function KrakenRewards() {
          }
       })
 
-   const { data: rewards, error, isLoading } = useSWR(
+   const { data: rewards, error, isLoading } = useSWR<RewardSummary>(
       configured ? REWARDS_KEY : null,
       { keepPreviousData: true })
 
@@ -45,7 +46,7 @@ export default function KrakenRewards() {
    // from the local database straight away and a failed rate lookup costs the amounts
    // nothing.
    const assets = (rewards?.assets ?? []).map(asset => asset.asset)
-   const { data: rateData, isLoading: isLoadingRates } = useSWR(
+   const { data: rateData, isLoading: isLoadingRates } = useSWR<AssetRatesResponse>(
       assets.length > 0 ? ['/api/kraken/asset-rates', { assets }] : null,
       { keepPreviousData: true })
 

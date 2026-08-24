@@ -16,13 +16,13 @@ const commonRules = {
 
 const typescriptConfigs = tseslint.configs.recommended.map(config => ({
    ...config,
-   files: ['src/**/*.{js,jsx,ts,tsx}'],
+   files: ['src/**/*.{ts,tsx}'],
 }))
 
 const eslintConfig = defineConfig([
    ...typescriptConfigs,
    {
-      files: ['src/views/**/*.{js,jsx,ts,tsx}'],
+      files: ['src/views/**/*.{ts,tsx}', 'src/utils/**/*.ts'],
       plugins: {
          'react-hooks': reactHooksPlugin,
       },
@@ -39,7 +39,7 @@ const eslintConfig = defineConfig([
       },
    },
    {
-      files: ['src/server/**/*.{js,ts}', 'src/utils/**/*.{js,ts}'],
+      files: ['src/server/**/*.ts', 'src/types/**/*.ts'],
       languageOptions: {
          globals: globals.node,
       },
