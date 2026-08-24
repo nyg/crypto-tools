@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 function Command({
    className,
    ...props
-}) {
+}: React.ComponentProps<typeof CommandPrimitive>) {
    return (
       <CommandPrimitive
          data-slot="command"
@@ -22,7 +22,7 @@ function Command({
 function CommandInput({
    className,
    ...props
-}) {
+}: React.ComponentProps<typeof CommandPrimitive.Input>) {
    return (
       <div data-slot="command-input-wrapper" className="flex h-9 items-center gap-2 border-b px-2.5">
          <SearchIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -40,7 +40,7 @@ function CommandInput({
 function CommandList({
    className,
    ...props
-}) {
+}: React.ComponentProps<typeof CommandPrimitive.List>) {
    return (
       <CommandPrimitive.List
          data-slot="command-list"
@@ -51,7 +51,7 @@ function CommandList({
 
 function CommandEmpty({
    ...props
-}) {
+}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
    return (
       <CommandPrimitive.Empty
          data-slot="command-empty"
@@ -63,7 +63,7 @@ function CommandEmpty({
 function CommandGroup({
    className,
    ...props
-}) {
+}: React.ComponentProps<typeof CommandPrimitive.Group>) {
    return (
       <CommandPrimitive.Group
          data-slot="command-group"
@@ -78,7 +78,7 @@ function CommandGroup({
 function CommandSeparator({
    className,
    ...props
-}) {
+}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
    return (
       <CommandPrimitive.Separator
          data-slot="command-separator"
@@ -90,7 +90,7 @@ function CommandSeparator({
 function CommandItem({
    className,
    ...props
-}) {
+}: React.ComponentProps<typeof CommandPrimitive.Item>) {
    return (
       <CommandPrimitive.Item
          data-slot="command-item"

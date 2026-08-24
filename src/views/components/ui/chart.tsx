@@ -8,6 +8,28 @@ import { asNumber } from '../../../utils/format'
 const THEMES = {
    light: '',
    dark: '.dark'
+} as const
+
+type Theme = keyof typeof THEMES
+
+export type ChartConfig = Record<string, {
+   label?: React.ReactNode
+   icon?: React.ComponentType
+} & ({ color?: string, theme?: never } | { color?: never, theme: Record<Theme, string> })>
+
+interface ChartContextProps {
+   config: ChartConfig
+}
+
+// The payload entries Recharts hands to a custom tooltip or legend. Its own types
+// describe them loosely, so the fields actually read here are named instead.
+type ChartPayloadItem = {
+   type?: string
+   value?: unknown
+   name?: string
+   dataKey?: string | number
+   color?: string
+   payload?: Record<string, unknown>
 }
 
 const INITIAL_DIMENSION = {
@@ -15,7 +37,7 @@ const INITIAL_DIMENSION = {
    height: 200
 }
 
-const ChartContext = React.createContext(null)
+const ChartContext = React.createContext<ChartContextProps | null>(null)
 
 function useChart() {
    const context = React.useContext(ChartContext)
@@ -34,6 +56,10 @@ function ChartContainer({
    config,
    initialDimension = INITIAL_DIMENSION,
    ...props
+}: React.ComponentProps<'div'> & {
+   config: ChartConfig
+   initialDimension?: { width: number, height: number }
+   children: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>['children']
 }) {
    const uniqueId = React.useId()
    const chartId = `chart-${id ?? uniqueId.replace(/:/g, '')}`
@@ -63,7 +89,7 @@ function ChartContainer({
 const ChartStyle = ({
    id,
    config
-}) => {
+}: { id: string, config: ChartConfig }) => {
    const colorConfig = Object.entries(config).filter(([, config]) => config.theme ?? config.color)
 
    if (!colorConfig.length) {
@@ -79,7 +105,7 @@ ${prefix} [data-chart=${id}] {
 ${colorConfig
          .map(([key, itemConfig]) => {
             const color =
-  itemConfig.theme?.[theme] ??
+  itemConfig.theme?.[theme as Theme] ??
   itemConfig.color
             return color ? `  --color-${key}: ${color};` : null
          })
@@ -107,6 +133,22 @@ function ChartTooltipContent({
    color,
    nameKey,
    labelKey
+}: {
+   active?: boolean
+   payload?: ChartPayloadItem[]
+   className?: string
+   indicator?: 'line' | 'dot' | 'dashed'
+   hideLabel?: boolean
+   hideIndicator?: boolean
+   label?: unknown
+   labelFormatter?: (value: React.ReactNode, payload: ChartPayloadItem[]) => React.ReactNode
+   labelClassName?: string
+   formatter?: (
+      value: unknown, name: string, item: ChartPayloadItem, index: number, payload: unknown
+   ) => React.ReactNode
+   color?: string
+   nameKey?: string
+   labelKey?: string
 }) {
    const { config } = useChart()
 
@@ -194,7 +236,7 @@ function ChartTooltipContent({
                                           {
                                              '--color-bg': indicatorColor,
                                              '--color-border': indicatorColor
-                                          }
+                                          } as React.CSSProperties
                                        } />
                                  )
                               )}
@@ -235,6 +277,12 @@ function ChartLegendContent({
    payload,
    verticalAlign = 'bottom',
    nameKey
+}: {
+   className?: string
+   hideIcon?: boolean
+   payload?: ChartPayloadItem[]
+   verticalAlign?: 'top' | 'bottom' | 'middle'
+   nameKey?: string
 }) {
    const { config } = useChart()
 
@@ -279,28 +327,30 @@ function ChartLegendContent({
 }
 
 function getPayloadConfigFromPayload(
-   config,
-   payload,
-   key
+   config: ChartConfig,
+   payload: unknown,
+   key: string
 ) {
    if (typeof payload !== 'object' || payload === null) {
       return undefined
    }
 
+   const entry = payload as Record<string, unknown>
+
    const payloadPayload =
-    'payload' in payload &&
-    typeof payload.payload === 'object' &&
-    payload.payload !== null
-       ? payload.payload
+    'payload' in entry &&
+    typeof entry.payload === 'object' &&
+    entry.payload !== null
+       ? entry.payload as Record<string, unknown>
        : undefined
 
    let configLabelKey = key
 
    if (
-      key in payload &&
-    typeof payload[key] === 'string'
+      key in entry &&
+    typeof entry[key] === 'string'
    ) {
-      configLabelKey = payload[key]
+      configLabelKey = entry[key]
    } else if (
       payloadPayload &&
     key in payloadPayload &&

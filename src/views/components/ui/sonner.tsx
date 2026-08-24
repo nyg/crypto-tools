@@ -1,9 +1,10 @@
+import type * as React from 'react'
 import { Toaster as Sonner } from 'sonner'
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from 'lucide-react'
 
 const Toaster = ({
    ...props
-}) => {
+}: React.ComponentProps<typeof Sonner>) => {
    return (
       <Sonner
          theme="system"
@@ -31,7 +32,7 @@ const Toaster = ({
                '--normal-text': 'var(--popover-foreground)',
                '--normal-border': 'var(--border)',
                '--border-radius': 'var(--radius)'
-            }
+            } as React.CSSProperties
          }
          toastOptions={{
             classNames: {
