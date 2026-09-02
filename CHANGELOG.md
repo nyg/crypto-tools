@@ -1,6 +1,34 @@
 # Changelog
 
 
+## [0.6.0](https://github.com/nyg/crypto-tools/compare/v0.5.0..v0.6.0) - 2026-09-02
+
+### ⛰️  Features
+
+- [`2c9bec7`](https://github.com/nyg/crypto-tools/commit/2c9bec72d612cef4f9f776aa52f40dea7e670792) *(release)* Ship a single-file Windows installer ([#272](https://github.com/nyg/crypto-tools/issues/272))
+- [`2f8e500`](https://github.com/nyg/crypto-tools/commit/2f8e500c46533bc4f8afd319df1505003c11764c) *(app)* Check for a newer release without ever replacing the app ([#271](https://github.com/nyg/crypto-tools/issues/271))
+- [`b3e0662`](https://github.com/nyg/crypto-tools/commit/b3e0662bc499495cadeb3b17bf46a2ccfe1d7898) *(app)* Add an About dialog reachable from the header version ([#269](https://github.com/nyg/crypto-tools/issues/269))
+
+### 🐛 Bug Fixes
+
+- [`d7e3434`](https://github.com/nyg/crypto-tools/commit/d7e3434741da6da8434318445e449b3d0ddeaad1) *(desktop)* Drop the application menu on Windows ([#270](https://github.com/nyg/crypto-tools/issues/270))
+- [`83bd33e`](https://github.com/nyg/crypto-tools/commit/83bd33e4b688a8facfc1f56eda91e5a97493f931) *(server)* Bind the API to loopback ([#268](https://github.com/nyg/crypto-tools/issues/268))
+- [`da17a85`](https://github.com/nyg/crypto-tools/commit/da17a85bf4baeff04686a1ee933c73c596c50549) *(desktop)* Let the API server take an OS-assigned port ([#266](https://github.com/nyg/crypto-tools/issues/266))
+
+### 🚜 Refactor
+
+- [`e925fcd`](https://github.com/nyg/crypto-tools/commit/e925fcdb73ebb1ccaac79b16ad23823b5a0c09a9) *(views)* Migrate the pages and turn off allowJs ([#280](https://github.com/nyg/crypto-tools/issues/280))
+- [`be08011`](https://github.com/nyg/crypto-tools/commit/be08011e996b2a0530f1a7b70a7960825e643c8b) *(views)* Migrate the feature components to TypeScript ([#279](https://github.com/nyg/crypto-tools/issues/279))
+- [`807ac6a`](https://github.com/nyg/crypto-tools/commit/807ac6a5916f4442ab99092f720601abd9316ef5) *(views)* Migrate the hooks, mocks and shared modules ([#278](https://github.com/nyg/crypto-tools/issues/278))
+- [`ab0a07f`](https://github.com/nyg/crypto-tools/commit/ab0a07f98e99f3f4ea8c3d89589cca34b00fb273) *(views)* Migrate the shadcn/ui primitives to TypeScript ([#277](https://github.com/nyg/crypto-tools/issues/277))
+- [`7115dce`](https://github.com/nyg/crypto-tools/commit/7115dce72ae640389771b04f5e64e1dd17b5a791) *(server)* Migrate the API server to TypeScript ([#276](https://github.com/nyg/crypto-tools/issues/276))
+
+### ⚙️ Miscellaneous
+
+- [`6f44103`](https://github.com/nyg/crypto-tools/commit/6f44103eb53b7422586bf9c58e042ba7a8832ca4) *(typescript)* Set up the TypeScript toolchain ([#275](https://github.com/nyg/crypto-tools/issues/275))
+- [`08f1d76`](https://github.com/nyg/crypto-tools/commit/08f1d766629f3a7d219f785891b5627174dad1dd) *(desktop)* Migrate to Electrobun 2.0 ([#267](https://github.com/nyg/crypto-tools/issues/267))
+- [`f8d4baa`](https://github.com/nyg/crypto-tools/commit/f8d4baa4c46bfb495b6730214eb05d1a90e6bea1) *(typescript)* Type-check the existing TypeScript sources ([#265](https://github.com/nyg/crypto-tools/issues/265))
+
 ## [0.5.0](https://github.com/nyg/crypto-tools/compare/v0.4.0..v0.5.0) - 2026-08-22
 
 ### ⛰️  Features
