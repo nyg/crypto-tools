@@ -28,7 +28,7 @@ const priceFunctions: Record<string, PriceFunction> = {
 
 const volumeFunctions: Record<string, VolumeFunction> = {
    'linear-base': (totalVolume, orderCount) => totalVolume.div(orderCount),
-   'linear-quote': (totalVolume, orderCount, price, allPrices) => {
+   'linear-quote': (totalVolume, _orderCount, price, allPrices) => {
       // calculate total quote per order such that all orders have equal quote value
       const sumOfInversePrices = allPrices.reduce((sum, p) => sum.plus(Big(1).div(p)), Big(0))
       const quotePerOrder = totalVolume.div(sumOfInversePrices)

@@ -123,7 +123,7 @@ interface LadderSeed {
 const ladder = ({
    pairKey, baseAsset, quoteAsset, type, from, to, count, volume, reference, agedHours
 }: LadderSeed): OpenOrder[] =>
-   Array.from({ length: count }, (unused, index) => {
+   Array.from({ length: count }, (_unused, index) => {
       const price = from + (to - from) * (index / Math.max(1, count - 1))
       return mockOrder({
          txid: fakeTxid(),
