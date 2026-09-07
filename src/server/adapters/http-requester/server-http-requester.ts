@@ -40,7 +40,7 @@ class ServerHttpRequester {
          const fetchResponse = await fetch(this.#urlWithSearchParams(requestData), {
             method,
             headers: requestData.headers,
-            body: method === 'GET' ? undefined : requestData.bodyParams as BodyInit,
+            body: method === 'GET' ? undefined : requestData.bodyParams as string,
          })
 
          if (!fetchResponse.ok) {
