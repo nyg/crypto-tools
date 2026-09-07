@@ -30,7 +30,8 @@
       "build": "vite build",
       "build:stable": "bunx electrobun build --env=stable",
       "start": "NODE_ENV=production bun src/server/index.ts",
-      "lint": "eslint src --fix",
+      "lint": "eslint src",
+      "lint:fix": "eslint src --fix",
       "typecheck": "bunx electrobun prepare && tsc --noEmit"
    },
    "dependencies": {
