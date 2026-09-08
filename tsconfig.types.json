@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["src/types"],
+  "exclude": ["src/types/globals.d.ts", "src/types/vite-env.d.ts"]
+}

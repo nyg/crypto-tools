@@ -66,9 +66,9 @@ function buildTrades() {
 
       time += (12 + random(160)) * 3600000
 
-      const market = markets[random(markets.length)]
+      const market = markets[random(markets.length)]!
       const direction = random(10) < 6 ? 'buy' : 'sell'
-      const ordertype = orderTypes[random(orderTypes.length)]
+      const ordertype = orderTypes[random(orderTypes.length)]!
       const isMargin = random(20) === 0
 
       // Most orders fill in one go; the rest are what makes the grouping visible.
@@ -152,7 +152,7 @@ const decimalCount = (value: string) => (String(value).split('.')[1] ?? '').leng
 // part of its volume.
 function asOrder(orderKey: string, trades: MockTrade[]): Order {
 
-   const first = trades[0]
+   const first = trades[0]!
    const sum = (key: 'vol' | 'cost' | 'fee') =>
       trades.reduce((total, trade) => total.plus(trade[key]), Big(0))
 
@@ -241,11 +241,12 @@ export function tradeAggregations(
 
 function asSummary(orders: Order[]): AggregationSummary {
 
-   const sides: Record<string, SideFold> = { buy: newSummarySide(), sell: newSummarySide() }
+   const buy = newSummarySide()
+   const sell = newSummarySide()
 
    for (const order of orders) {
 
-      const side = sides[order.direction]
+      const side = order.direction === 'buy' ? buy : order.direction === 'sell' ? sell : null
       if (!side) continue
 
       side.orderCount += 1
@@ -261,7 +262,7 @@ function asSummary(orders: Order[]): AggregationSummary {
       side.byQuote.set(order.quoteAsset, totals)
    }
 
-   return { buy: asSummarySide(sides.buy), sell: asSummarySide(sides.sell) }
+   return { buy: asSummarySide(buy), sell: asSummarySide(sell) }
 }
 
 function newSummarySide(): SideFold {
@@ -292,8 +293,8 @@ function emptySummary(): AggregationSummary {
 function asAggregation(run: { direction: string, orders: Order[] }, index: number): Aggregation {
 
    const orders = run.orders
-   const first = orders[0]
-   const last = orders[orders.length - 1]
+   const first = orders[0]!
+   const last = orders[orders.length - 1]!
 
    const byQuote = new Map()
 

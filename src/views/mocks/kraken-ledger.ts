@@ -75,7 +75,7 @@ function buildEntries() {
 
       time += (24 + random(300)) * 3600000
       const roll = random(10)
-      const { asset, baseAsset } = assets[random(assets.length)]
+      const { asset, baseAsset } = assets[random(assets.length)]!
       const balance = (random(100000) / 100).toFixed(8)
 
       if (roll < 5) {
@@ -181,9 +181,9 @@ const allEntries = entries
 let syncState: SyncStateRow & { otherAccounts: [] } = {
    accountId: 'mock-account',
    apiKeyPrefix: 'MOCKKEY1',
-   coveredFrom: entries[0].time,
+   coveredFrom: entries[0]!.time,
    coveredTo: entries.at(-1)!.time,
-   tradesCoveredFrom: entries[0].time,
+   tradesCoveredFrom: entries[0]!.time,
    tradesCoveredTo: entries.at(-1)!.time,
    firstSyncedAt: Date.now() - 6 * 86400000,
    lastSyncedAt: Date.now() - 3600000,
@@ -239,7 +239,7 @@ function stepAt(
 
    if (local < 0) return { ...base, phase: 'pending' }
 
-   const [, phase, reportStatus] = stepSchedule.findLast(([at]) => local >= at) ?? stepSchedule[0]
+   const [, phase, reportStatus] = stepSchedule.findLast(([at]) => local >= at) ?? stepSchedule[0]!
    const stored = ['storing', 'cleaning', 'done'].includes(phase)
 
    return {
@@ -417,12 +417,15 @@ export function ledgerFees(body: { filters?: LedgerFilters } = {}): FeeSummary {
       .toSorted((a, b) => b.entries - a.entries || a.asset.localeCompare(b.asset))
 
    const byType = [...group(entry => `${entry.baseAsset}|${entry.type}`)]
-      .map(([key, group]) => ({ asset: key.split('|')[0], type: key.split('|')[1], total: group.total, entries: group.entries }))
+      .map(([key, group]) => {
+         const [asset = '', type = ''] = key.split('|')
+         return { asset, type, total: group.total, entries: group.entries }
+      })
       .toSorted((a, b) => b.entries - a.entries)
 
    const byMonth = [...group(entry => `${monthOf(entry)}|${entry.baseAsset}|${entry.type}`)]
       .map(([key, group]) => {
-         const [month, asset, type] = key.split('|')
+         const [month = '', asset = '', type = ''] = key.split('|')
          return { month, asset, type, total: group.total, entries: group.entries }
       })
       .toSorted((a, b) => a.month.localeCompare(b.month))
@@ -567,7 +570,7 @@ export function ledgerBalances(): BalanceSummary {
       })),
       positions: held.reduce((count, asset) => count + asset.positions.length, 0),
       entries: entries.length,
-      first: entries.length > 0 ? entries[0].time : null,
+      first: entries.length > 0 ? entries[0]!.time : null,
       last: entries.length > 0 ? entries.at(-1)!.time : null
    }
 }

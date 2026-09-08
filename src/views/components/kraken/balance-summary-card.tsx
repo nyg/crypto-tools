@@ -50,8 +50,10 @@ export default function BalanceSummaryCard({
 
    const assets = balances?.assets ?? []
    const priced = rates ?? {}
-   const valueOf = (asset: BalanceAsset) =>
-      priced[asset.asset] == null ? null : asset.totalNum * priced[asset.asset]
+   const valueOf = (asset: BalanceAsset) => {
+      const rate = priced[asset.asset]
+      return rate == null ? null : asset.totalNum * rate
+   }
 
    const valued = assets.filter(asset => valueOf(asset) != null)
    const totalValue = valued.reduce((sum, asset) => sum + (valueOf(asset) ?? 0), 0)
@@ -60,11 +62,11 @@ export default function BalanceSummaryCard({
    // page exists to answer — not by spot against earn, since an opted-in holding is both.
    const earningValue = valued.reduce((sum, asset) => sum + asset.positions
       .filter(position => isEarning(placementOf(position)))
-      .reduce((value, position) => value + position.amountNum * priced[asset.asset], 0), 0)
+      .reduce((value, position) => value + position.amountNum * (priced[asset.asset] ?? 0), 0), 0)
 
    const holdValue = (live?.assets ?? [])
       .filter(asset => priced[asset.asset] != null)
-      .reduce((sum, asset) => sum + asset.holdNum * priced[asset.asset], 0)
+      .reduce((sum, asset) => sum + asset.holdNum * (priced[asset.asset] ?? 0), 0)
 
    const drifted = compareToLive(assets, live)
 

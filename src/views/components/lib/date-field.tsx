@@ -59,6 +59,7 @@ const asDisplay = (value: string | undefined): string => value
 const asLocalDate = (value: string | undefined): Date | undefined => {
    if (!value) return undefined
    const [year, month, day] = value.split('-').map(Number)
+   if (year === undefined || month === undefined || day === undefined) return undefined
    return new Date(year, month - 1, day)
 }
 
@@ -75,12 +76,15 @@ const parseDisplay = (text: string): string | null => {
    if (!groups || groups.length !== fieldOrder.length) return null
 
    const fields = Object.fromEntries(fieldOrder.map((type, index) => [type, Number(groups[index])]))
-   const year = fields.year < 100 ? 2000 + fields.year : fields.year
-   const date = new Date(Date.UTC(year, fields.month - 1, fields.day))
+   const { year: entered, month, day } = fields
+   if (entered === undefined || month === undefined || day === undefined) return null
+
+   const year = entered < 100 ? 2000 + entered : entered
+   const date = new Date(Date.UTC(year, month - 1, day))
 
    const isRoundTrip = date.getUTCFullYear() === year
-      && date.getUTCMonth() === fields.month - 1
-      && date.getUTCDate() === fields.day
+      && date.getUTCMonth() === month - 1
+      && date.getUTCDate() === day
 
    return isRoundTrip ? date.toISOString().slice(0, 10) : null
 }

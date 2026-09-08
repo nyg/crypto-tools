@@ -22,18 +22,22 @@ type PriceFunction = (x: number, from: Big, to: Big, count: number) => Big
 type VolumeFunction = (total: Big, count: number, price: Big, prices: Big[]) => Big
 
 
+const linearPrice: PriceFunction = (x, a, b, n) => Big(b).minus(a).div(Big(n).minus(1)).times(x).plus(a)
+
+const linearQuoteVolume: VolumeFunction = (totalVolume, _orderCount, price, allPrices) => {
+   // calculate total quote per order such that all orders have equal quote value
+   const sumOfInversePrices = allPrices.reduce((sum, p) => sum.plus(Big(1).div(p)), Big(0))
+   const quotePerOrder = totalVolume.div(sumOfInversePrices)
+   return quotePerOrder.div(price)
+}
+
 const priceFunctions: Record<string, PriceFunction> = {
-   'linear': (x, a, b, n) => Big(b).minus(a).div(Big(n).minus(1)).times(x).plus(a)
+   'linear': linearPrice
 }
 
 const volumeFunctions: Record<string, VolumeFunction> = {
    'linear-base': (totalVolume, orderCount) => totalVolume.div(orderCount),
-   'linear-quote': (totalVolume, orderCount, price, allPrices) => {
-      // calculate total quote per order such that all orders have equal quote value
-      const sumOfInversePrices = allPrices.reduce((sum, p) => sum.plus(Big(1).div(p)), Big(0))
-      const quotePerOrder = totalVolume.div(sumOfInversePrices)
-      return quotePerOrder.div(price)
-   }
+   'linear-quote': linearQuoteVolume
 }
 
 const INT32_LIMIT = 2147483647
@@ -49,8 +53,8 @@ const buildOrdersParams = (formValues: FormValues, dryRun?: boolean): OrderBatch
    const priceTo = Big(formValues.priceTo)
    const volume = Big(formValues.volume)
 
-   const priceFunction = priceFunctions[formValues.priceFn]
-   const volumeFunction = volumeFunctions[formValues.volumeFn]
+   const priceFunction = priceFunctions[formValues.priceFn] ?? linearPrice
+   const volumeFunction = volumeFunctions[formValues.volumeFn] ?? linearQuoteVolume
 
    const prices = [...Array(orderCount).keys()].map(i =>
       priceFunction(i, priceFrom, priceTo, orderCount)

@@ -16,7 +16,7 @@ export default function RewardChartCard({ rewards, rates }: {
       .map(asset => ({
          key: asset.asset,
          label: asset.asset,
-         value: asset.total * priced[asset.asset],
+         value: asset.total * (priced[asset.asset] ?? 0),
          amount: asset.total
       })))
 

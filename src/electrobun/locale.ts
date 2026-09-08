@@ -18,12 +18,13 @@ function regionOf(tag: string): string | undefined {
 }
 
 function withRegion(languages: string[], region: string | undefined): string[] {
-   if (languages.length === 0 || !region) {
+   const [first] = languages
+   if (!first || !region) {
       return languages
    }
    try {
-      const preferred = new Intl.Locale(languages[0], { region }).toString()
-      return preferred === languages[0] ? languages : [preferred, ...languages]
+      const preferred = new Intl.Locale(first, { region }).toString()
+      return preferred === first ? languages : [preferred, ...languages]
    } catch {
       return languages
    }
@@ -39,7 +40,8 @@ function macosLocales(): string[] {
 
    const appleLocale = run(['defaults', 'read', '-g', 'AppleLocale'])
    const override = appleLocale.match(/@.*\brg=([A-Za-z]{2})/)?.[1]
-   const region = override ?? regionOf(appleLocale.split('@')[0].replace('_', '-'))
+   const [baseLocale = ''] = appleLocale.split('@')
+   const region = override ?? regionOf(baseLocale.replace('_', '-'))
 
    return withRegion(languages, region?.toUpperCase())
 }

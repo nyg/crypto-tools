@@ -38,3 +38,6 @@ yarn-error.log*
 /artifacts
 /.hutch
 /.cottontail-tmp
+
+# typescript
+*.tsbuildinfo

@@ -16,7 +16,7 @@ export default function BalanceChartCard({ balances, rates }: {
       .map(asset => ({
          key: asset.asset,
          label: asset.asset,
-         value: asset.totalNum * priced[asset.asset],
+         value: asset.totalNum * (priced[asset.asset] ?? 0),
          amount: asset.totalNum
       })))
 

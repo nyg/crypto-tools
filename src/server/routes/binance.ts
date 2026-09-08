@@ -69,6 +69,7 @@ app.post('/aggregate-balance', async (c) => withCredentials(c, 'binance', async 
       const free = spotBalance[asset]?.free ?? Big(0)
       const locked = spotBalance[asset]?.locked ?? Big(0)
       const total = free.add(locked).add(staking.balance)
+      const rate = rates[asset] ?? 0
 
       return {
          asset,
@@ -76,8 +77,8 @@ app.post('/aggregate-balance', async (c) => withCredentials(c, 'binance', async 
          locked,
          staking: { ...staking, products },
          total,
-         freeFiatValue: free.times(rates[asset]),
-         fiatValue: total.times(rates[asset])
+         freeFiatValue: free.times(rate),
+         fiatValue: total.times(rate)
       }
    })
 
@@ -157,8 +158,8 @@ app.get('/eoy-rates', async (c) => {
 
    for (const asset of assets) {
       try {
-         const candlestick = await binanceAPI.fetchCandlestickData(`${asset}USDT`, '1m', startTime, endTime, 1)
-         rates[asset] = candlestick[0].close
+         const [candle] = await binanceAPI.fetchCandlestickData(`${asset}USDT`, '1m', startTime, endTime, 1)
+         if (candle) rates[asset] = candle.close
       }
       catch (error) {
          console.error(error)

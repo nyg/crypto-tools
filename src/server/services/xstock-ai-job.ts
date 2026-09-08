@@ -162,8 +162,11 @@ async function describeWorker({ job, anthropicAPI, repository, signal }: WorkerC
 
    return async ([ticker], onActivity) => {
 
+      const target = ticker === undefined ? undefined : targets.get(ticker)
+      if (!target) throw new Error('No listing to describe.')
+
       const described = await anthropicAPI.describeListing(
-         targets.get(ticker)!, job.wordCount!, { onActivity, abortSignal: signal })
+         target, job.wordCount!, { onActivity, abortSignal: signal })
 
       if (!described.description.trim()) throw new Error('Claude returned an empty description.')
 
@@ -249,7 +252,7 @@ function finish(job: XStockJob) {
    if (job.cancelRequested) job.phase = 'cancelled'
    else if (done === 0 && failed.length > 0) {
       job.phase = 'error'
-      job.error = failed[0].error
+      job.error = failed[0]?.error ?? null
    }
    else job.phase = 'done'
 
@@ -260,9 +263,9 @@ function finish(job: XStockJob) {
 }
 
 const inParallel = async <T>(items: T[], size: number, worker: (item: T) => Promise<void>) => {
-   let cursor = 0
+   const queue = items.values()
    const runners = Array.from({ length: Math.min(size, items.length) }, async () => {
-      while (cursor < items.length) await worker(items[cursor++])
+      for (const item of queue) await worker(item)
    })
    await Promise.all(runners)
 }

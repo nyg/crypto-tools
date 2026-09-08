@@ -159,7 +159,7 @@ export default function BalanceTable({
             // The exact string Kraken wrote, kept for the cell's title: the column is
             // rounded to stay readable, and a tenth of a bitcoin is worth seeing.
             exact: positions.length === asset.positions.length ? asset.total
-               : positions.length === 1 ? positions[0].amount : String(amount),
+               : positions.length === 1 ? (positions[0]?.amount ?? String(amount)) : String(amount),
             rate: rateFor(asset.asset),
             value: valueOf(amount, rateFor(asset.asset)),
             hold: holds.get(asset.asset) ?? null
@@ -176,13 +176,11 @@ export default function BalanceTable({
    const dust = rows.filter(isDust)
    const shown = rows.filter(row => !isDust(row))
 
-   const sortValues: Record<string, (row: BalanceRow) => string | number | null> = {
-      asset: row => row.asset,
-      value: row => row.value,
-      hold: row => valueOf(row.hold, row.rate)
-   }
+   const byAsset = (row: BalanceRow) => row.asset
+   const byValue = (row: BalanceRow) => row.value
+   const byHold = (row: BalanceRow) => valueOf(row.hold, row.rate)
 
-   const sortValue = sortValues[sort.column ?? 'value'] ?? sortValues.value
+   const sortValue = sort.column === 'asset' ? byAsset : sort.column === 'hold' ? byHold : byValue
 
    const sorted = shown.toSorted((a, b) => {
       const [left, right] = [sortValue(a), sortValue(b)]

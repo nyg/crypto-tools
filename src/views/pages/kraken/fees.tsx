@@ -66,7 +66,7 @@ export default function KrakenFees() {
    // back to the one charged most often instead of leaving the charts blank.
    const selectedAsset = asset !== null && assetOptions.includes(asset)
       ? asset
-      : (assetOptions[0] ?? null)
+      : assetOptions[0]
 
    const changeFilters = (next: LedgerFilterValues) => setFilters(next)
 
