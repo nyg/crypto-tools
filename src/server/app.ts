@@ -19,7 +19,13 @@ const isAllowedOrigin = (origin: string) =>
 
 const readOnlyMethods = ['GET', 'HEAD', 'OPTIONS']
 
-export function createApp() {
+export interface AppOptions {
+   // The packaged desktop app says so, because an install path is a thing only it has:
+   // the web build is not installed anywhere.
+   desktop?: boolean
+}
+
+export function createApp({ desktop = false }: AppOptions = {}) {
    const app = new Hono()
 
    app.use('/api/*', cors({
@@ -59,7 +65,7 @@ export function createApp() {
       console.log(`${color}${c.req.method} ${new URL(c.req.url).pathname} → ${status}${reset} (${ms}ms)`)
    })
 
-   app.route('/api/app', appRoutes)
+   app.route('/api/app', appRoutes({ desktop }))
    app.route('/api/binance', binanceRoutes)
    app.route('/api/kraken', krakenRoutes)
    app.route('/api/settings', settingsRoutes)

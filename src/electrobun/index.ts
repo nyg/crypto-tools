@@ -34,7 +34,7 @@ async function resolveUrl(): Promise<string> {
 async function main() {
    const url = await resolveUrl()
 
-   const honoApp = createApp()
+   const honoApp = createApp({ desktop: true })
 
    // The dev server proxies /api to a fixed port; a packaged app takes whatever port
    // the OS hands out, so two Electrobun apps never fight over the same one.
