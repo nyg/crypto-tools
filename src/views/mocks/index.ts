@@ -57,18 +57,18 @@ const mockLatestRelease: LatestRelease = {
 }
 
 const mockSettings = (reveal: boolean): MaskedSettings => ({
-   version: 1,
+   version: 2,
    binance: {
-      apiKey: reveal ? 'mock-binance-key' : '*****', apiSecret: '*****', source: 'file',
+      apiKey: reveal ? 'mock-binance-key' : '*****', apiSecret: '*****', store: 'keychain',
       hasSecret: true, configured: true, keyConfigured: true
    },
    kraken: {
-      apiKey: reveal ? 'mock-kraken-key' : '*****', apiSecret: '*****', source: 'file',
+      apiKey: reveal ? 'mock-kraken-key' : '*****', apiSecret: '*****', store: 'keychain',
       hasSecret: true, configured: true, keyConfigured: true,
       accountId: 'mock-account-id'
    },
    anthropic: {
-      apiKey: reveal ? 'mock-anthropic-key' : '*****', apiSecret: '', source: 'file',
+      apiKey: reveal ? 'mock-anthropic-key' : '*****', apiSecret: '', store: 'keychain',
       hasSecret: false, configured: true, keyConfigured: true
    }
 })

@@ -1,28 +1,38 @@
 import type { Provider } from './credentials'
 
-export type CredentialSource = 'env' | 'file'
+// Where a credential actually came from, which the Settings page states rather than
+// implies: the OS store is not always reachable, and the file is the fallback.
+export type CredentialStore =
+   'env' | 'keychain' | 'credential-manager' | 'keyring' | 'file' | 'none'
 
-// apiSecret is absent for a provider that has none (Anthropic), and source is filled
-// in by readSettings rather than stored, so both are optional on the shape as written.
-export interface ProviderSettings {
+export type SecretField = 'apiKey' | 'apiSecret'
+
+export interface ProviderSecrets {
    apiKey: string
+   apiSecret: string
+   store: CredentialStore
+}
+
+// What settings.json holds. The secrets are absent once they live in the OS credential
+// store, and present only where storing them there failed.
+export interface StoredProvider {
+   apiKey?: string
    apiSecret?: string
-   source?: CredentialSource
 }
 
-export interface Settings {
+export interface StoredSettings {
    version: number
-   kraken: ProviderSettings & { accountId: string }
-   binance: ProviderSettings
-   anthropic: ProviderSettings
+   kraken: StoredProvider & { accountId: string }
+   binance: StoredProvider
+   anthropic: StoredProvider
 }
 
-export type SettingsUpdate = Partial<Record<Provider, Partial<ProviderSettings>>>
+export type SettingsUpdate = Partial<Record<Provider, Partial<Record<SecretField, string>>>>
 
 // What the Settings route hands back: the keys themselves are replaced by a mask
 // unless the form explicitly asks to reveal them.
 export interface MaskedProvider {
-   source: CredentialSource
+   store: CredentialStore
    hasSecret: boolean
    apiKey: string
    apiSecret: string

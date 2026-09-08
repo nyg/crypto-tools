@@ -1,10 +1,18 @@
 import { existsSync, statSync } from 'fs'
 import path from 'path'
 import { createApp } from './app'
+import { allowEnvironmentOverrides } from './environment'
+import { migrateSecretsToCredentialStore } from './secrets'
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
 const HOST = process.env.HOST ?? '127.0.0.1'
 const IS_PROD = process.env.NODE_ENV === 'production'
+
+allowEnvironmentOverrides()
+
+// Keys written by an earlier version sit in plaintext in the settings file; move them
+// into the OS credential store before anything serves a request from either.
+await migrateSecretsToCredentialStore()
 
 const app = createApp()
 

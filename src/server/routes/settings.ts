@@ -1,7 +1,10 @@
 import { Hono } from 'hono'
-import { providers, readSettings, writeSettings } from '../settings'
+import secrets from '../secrets'
+import { krakenAccountId, providers, settingsVersion } from '../settings'
 import type { Provider } from '../../types/credentials'
-import type { MaskedProvider, MaskedSettings, Settings, SettingsUpdate } from '../../types/settings'
+import type {
+   MaskedProvider, MaskedSettings, ProviderSecrets, SettingsUpdate
+} from '../../types/settings'
 
 const app = new Hono()
 
@@ -10,14 +13,16 @@ const MASK = '*****'
 // Only the Settings form has any use for the key itself; every other page reads the
 // booleans below. Withholding it by default keeps the plaintext out of the SWR cache
 // of all nine of them.
-function maskSettings(settings: Settings, { reveal = false } = {}): MaskedSettings {
+function maskSettings(
+   stored: Record<Provider, ProviderSecrets>, { reveal = false } = {}
+): MaskedSettings {
 
    const mask = (id: Provider): MaskedProvider => {
       const { hasSecret } = providers[id]
-      const { apiKey, apiSecret, source } = settings[id]
+      const { apiKey, apiSecret, store } = stored[id]
 
       return {
-         source: source ?? 'file',
+         store,
          hasSecret,
          apiKey: reveal ? apiKey : (apiKey ? MASK : ''),
          apiSecret: hasSecret && apiSecret ? MASK : '',
@@ -27,15 +32,15 @@ function maskSettings(settings: Settings, { reveal = false } = {}): MaskedSettin
    }
 
    return {
-      version: settings.version,
-      kraken: { ...mask('kraken'), accountId: settings.kraken.accountId },
+      version: settingsVersion(),
+      kraken: { ...mask('kraken'), accountId: krakenAccountId() },
       binance: mask('binance'),
       anthropic: mask('anthropic')
    }
 }
 
-app.get('/', (c) =>
-   c.json(maskSettings(readSettings(), { reveal: c.req.query('reveal') === 'true' })))
+app.get('/', async (c) =>
+   c.json(maskSettings(await secrets.readAll(), { reveal: c.req.query('reveal') === 'true' })))
 
 app.post('/', async (c) => {
    try {
@@ -54,7 +59,8 @@ app.post('/', async (c) => {
          updates[id] = next
       }
 
-      return c.json(maskSettings(writeSettings(updates)))
+      await secrets.save(updates)
+      return c.json(maskSettings(await secrets.readAll()))
    }
    catch (error) {
       console.error('Could not save the settings:', error)

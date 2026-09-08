@@ -9,5 +9,6 @@
       "electrobun/view": ["./.hutch/devkit/api/browser/index.ts"]
     }
   },
-  "include": ["src/electrobun", "src/types/modern-dijkstra.d.ts"]
+  "include": ["src/electrobun", "src/types/modern-dijkstra.d.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

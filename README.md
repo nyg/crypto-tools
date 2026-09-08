@@ -102,6 +102,8 @@ bun run dev
 
 The app is then on http://localhost:3000: `bun run dev` starts the Vite dev server (port 3000) and the Hono API server (port 3001), with `/api` proxied to the latter. API keys are set on the **Settings** page, the same as in the installed app.
 
+Keys are kept in your operating system's credential store — Keychain on macOS, Credential Manager on Windows, libsecret on Linux — and never leave the machine. Where that store is not reachable they fall back to a `0600` file in the app's data directory, and the Settings page says which of the two holds each key. Keys saved by an earlier version are moved across the first time this one starts.
+
 ### Other run commands
 
 ```sh

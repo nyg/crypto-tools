@@ -3,5 +3,6 @@
   "compilerOptions": {
     "types": ["bun-types"]
   },
-  "include": ["src/server", "src/types/modern-dijkstra.d.ts"]
+  "include": ["src/server", "src/types/modern-dijkstra.d.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }
