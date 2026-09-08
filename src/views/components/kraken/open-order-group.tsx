@@ -20,7 +20,7 @@ export interface OrderGroup {
    orders: OpenOrder[]
 }
 
-const PAGE_SIZES = [10, 25, 50]
+const PAGE_SIZES = [10, 25, 50] as const
 
 const sideOptions = (orders: OpenOrder[]) => [
    { value: '', label: 'All', count: orders.length },
@@ -52,7 +52,7 @@ export default function OpenOrderGroup({
 }) {
 
    const [page, setPage] = useState(0)
-   const [pageSize, setPageSize] = useState(PAGE_SIZES[0])
+   const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0])
    const [side, setSide] = useState('')
 
    const { orders, pairKey, baseAsset, quoteAsset } = group

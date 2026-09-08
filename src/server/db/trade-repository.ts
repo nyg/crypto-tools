@@ -135,8 +135,9 @@ export default class TradeRepository {
       if (truncated) trades.length = TRADE_LIMIT
       trades.reverse()
 
-      const kept = truncated
-         ? trades.filter(trade => trade.orderKey !== trades[0].orderKey)
+      const [partial] = trades
+      const kept = truncated && partial
+         ? trades.filter(trade => trade.orderKey !== partial.orderKey)
          : trades
 
       const orders = foldOrders(kept)
@@ -246,11 +247,12 @@ interface SideFold {
 // converts them once it knows which quote to total in.
 function asSummary(orders: Order[]): AggregationSummary {
 
-   const sides: Record<string, SideFold> = { buy: newSummarySide(), sell: newSummarySide() }
+   const buy = newSummarySide()
+   const sell = newSummarySide()
 
    for (const order of orders) {
 
-      const side = sides[order.direction]
+      const side = order.direction === 'buy' ? buy : order.direction === 'sell' ? sell : null
       if (!side) continue
 
       side.orderCount += 1
@@ -266,7 +268,7 @@ function asSummary(orders: Order[]): AggregationSummary {
       side.byQuote.set(order.quoteAsset, totals)
    }
 
-   return { buy: asSummarySide(sides.buy), sell: asSummarySide(sides.sell) }
+   return { buy: asSummarySide(buy), sell: asSummarySide(sell) }
 }
 
 function newSummarySide(): SideFold {
@@ -325,8 +327,8 @@ function asAggregations(orders: Order[]): Aggregation[] {
 function asAggregation(run: { direction: string, orders: Order[] }, index: number): Aggregation {
 
    const orders = run.orders
-   const first = orders[0]
-   const last = orders[orders.length - 1]
+   const first = orders[0]!
+   const last = orders[orders.length - 1]!
 
    const byQuote = new Map<string, QuoteFold>()
 

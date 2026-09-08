@@ -116,9 +116,9 @@ function migrate(db: Database) {
    if (version >= migrations.length) return
 
    db.transaction(() => {
-      for (let v = version; v < migrations.length; v++) {
-         console.log(`Applying ledger database migration v${v + 1}`)
-         migrations[v](db)
+      for (const [index, migration] of migrations.slice(version).entries()) {
+         console.log(`Applying ledger database migration v${version + index + 1}`)
+         migration(db)
       }
       // PRAGMA values cannot be bound, but this one is a length we control.
       db.exec(`PRAGMA user_version = ${migrations.length}`)

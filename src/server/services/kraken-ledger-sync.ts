@@ -24,7 +24,8 @@ const OVERLAP_MS = 72 * 60 * 60 * 1000
 // Kraken's private endpoints share a decaying call counter. Polling every two
 // seconds outruns the counter's refill on a Starter key and starts failing calls
 // made by the rest of the app, so the interval widens as the wait goes on.
-const pollDelays = [2000, 2000, 3000, 3000, 5000, 5000, 8000, 10000]
+const pollDelays = [2000, 2000, 3000, 3000, 5000, 5000, 8000]
+const maxPollDelay = 10000
 const MAX_WAIT_MS = 10 * 60 * 1000
 
 // Reports left behind by an interrupted run count against Kraken's per-account
@@ -304,7 +305,7 @@ async function waitForReport(job: SyncJob, krakenAPI: KrakenAPI, step: SyncStep)
 
    while (Date.now() < deadline) {
 
-      await delay(pollDelays[Math.min(step.pollCount, pollDelays.length - 1)])
+      await delay(pollDelays[step.pollCount] ?? maxPollDelay)
 
       throwIfCancelled(job)
 

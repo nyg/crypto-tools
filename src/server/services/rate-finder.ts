@@ -20,22 +20,21 @@ export default class RateFinder {
    buildPairs(tradingPairs: TradingPairs): string[] {
 
       this.#assets = this.#assets.filter(asset => asset !== referenceAsset)
-      const pairs = Object.keys(tradingPairs).map(pairId => tradingPairs[pairId])
+      const pairs = Object.values(tradingPairs)
 
       const quoteAssetsFrequency = pairs
          .map(pair => pair.quote.name)
          .reduce<AssetFrequency>((quoteAssets, asset) => {
-            quoteAssets[asset] ??= 0
-            quoteAssets[asset] += 1
+            quoteAssets[asset] = (quoteAssets[asset] ?? 0) + 1
             return quoteAssets
          }, {})
 
-      quoteAssetsFrequency[referenceAsset] *= 10
+      quoteAssetsFrequency[referenceAsset] = (quoteAssetsFrequency[referenceAsset] ?? 0) * 10
 
       const graph = pairs
          .reduce<Graph>((graph, pair) => {
-            graph[pair.base.name] ??= {}
-            graph[pair.base.name][pair.quote.name] = this.#tradingPairWeight(pair, quoteAssetsFrequency)
+            const edges = graph[pair.base.name] ??= {}
+            edges[pair.quote.name] = this.#tradingPairWeight(pair, quoteAssetsFrequency)
             return graph
          }, {})
 
@@ -50,7 +49,8 @@ export default class RateFinder {
             }
          })
          .reduce<Record<string, string[]>>((paths, path) => {
-            paths[path[0]] ??= this.#tradingPairsFrom(path)
+            const [asset] = path
+            if (asset) paths[asset] ??= this.#tradingPairsFrom(path)
             return paths
          }, {})
 
@@ -61,7 +61,7 @@ export default class RateFinder {
       return this.#assets.reduce<Record<string, Big | number>>((prices, asset) => {
          prices[asset] = this.#paths[asset]
             ?.map(pair => rates[pair])
-            .reduce((acc, val) => acc.times(val)) ?? 0
+            .reduce((total, rate) => total && rate ? total.times(rate) : undefined) ?? 0
          return prices
       }, { [referenceAsset]: 1 })
    }

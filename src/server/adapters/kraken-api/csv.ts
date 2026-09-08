@@ -67,7 +67,8 @@ export function parseCsv(text: string): CsvRow[] {
    const rows = parseRows(text)
    if (rows.length === 0) return []
 
-   const headers = rows[0].map(header => header.trim().toLowerCase())
+   const [headerRow = []] = rows
+   const headers = headerRow.map(header => header.trim().toLowerCase())
 
    return rows.slice(1).map(row =>
       headers.reduce<CsvRow>((entry, header, index) => {
@@ -83,6 +84,6 @@ export function parseCsvTime(value: string | undefined): number {
    const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(value ?? '')
    if (!match) return Number.NaN
 
-   const [, year, month, day, hours, minutes, seconds] = match.map(Number)
+   const [, year = NaN, month = NaN, day = NaN, hours = NaN, minutes = NaN, seconds = NaN] = match.map(Number)
    return Date.UTC(year, month - 1, day, hours, minutes, seconds)
 }

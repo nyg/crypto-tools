@@ -97,11 +97,11 @@ export function placementOf(
 // Unknown wallets keep their raw name rather than all collapsing into one "Other"
 // badge: if Kraken adds a sixth wallet, it should be visible that it did.
 export function placementLabel(key: Placement, position?: { wallet?: string }): string {
-   return key === OTHER ? (position?.wallet || 'Unknown') : placements[key].label
+   return key === OTHER ? (position?.wallet || 'Unknown') : (placements[key]?.label ?? key)
 }
 
-export const placementDescription = (key: Placement): string => placements[key].description
-export const isEarning = (key: Placement): boolean => placements[key].earning
+export const placementDescription = (key: Placement): string => placements[key]?.description ?? ''
+export const isEarning = (key: Placement): boolean => placements[key]?.earning ?? false
 
 // One colour per placement, fixed by position in PLACEMENT_ORDER so the ring, the
 // legend and the badges agree however few of them a given account uses. Idle spot is

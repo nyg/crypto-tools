@@ -70,7 +70,7 @@ const htmlEntities: Record<string, string> = {
 };
 
 const decodeEntities = (value: string) =>
-   value.replace(/&(?:amp|lt|gt|quot|apos|#39);/g, entity => htmlEntities[entity]);
+   value.replace(/&(?:amp|lt|gt|quot|apos|#39);/g, entity => htmlEntities[entity] ?? entity);
 
 async function resolve(ticker: string): Promise<Listing | null> {
    const response = await fetch(`https://stockanalysis.com/stocks/${ticker.toLowerCase()}/`, {
@@ -86,7 +86,7 @@ async function resolve(ticker: string): Promise<Listing | null> {
    const heading = body.match(/<h1[^>]*>([^<]*)<\/h1>/);
    if (!heading) return null;
 
-   const name = decodeEntities(heading[1])
+   const name = decodeEntities(heading[1] ?? "")
       .replace(/\s*\([^)]*\)\s*$/, "")
       .trim();
 
@@ -134,7 +134,9 @@ for (const ticker of Object.keys(listings)) {
    }
 }
 
-const sorted = Object.fromEntries(Object.keys(listings).sort().map(ticker => [ticker, listings[ticker]]));
+const sorted = Object.fromEntries(
+  Object.entries(listings).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+);
 
 const output: Seed = {
    generatedAt: new Date().toISOString().slice(0, 10),

@@ -95,8 +95,9 @@ export default function AggregateTable({
                   const isExpanded = expanded.has(group.groupKey)
                   const totals = convertQuotes(group.quotes, targetQuote, rateAt, group.startTime)
 
-                  const exact = group.quotes.length === 1 && group.quotes[0].quoteAsset === targetQuote
-                     ? group.quotes[0]
+                  const [onlyQuote] = group.quotes
+                  const exact = group.quotes.length === 1 && onlyQuote?.quoteAsset === targetQuote
+                     ? onlyQuote
                      : null
 
                   const pending = !exact && isLoadingRates

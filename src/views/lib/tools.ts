@@ -115,7 +115,11 @@ const groupBy = (name: string): ToolGroup => {
 }
 
 // Where the header menu sends you for an exchange: its first tool.
-export const groupHref = (name: string): string => groupBy(name).tools[0].href
+export const groupHref = (name: string): string => {
+   const [first] = groupBy(name).tools
+   if (!first) throw new Error(`The ${name} tool group has no tools.`)
+   return first.href
+}
 
 export const subNavItems = (name: string) =>
    groupBy(name).tools.map(({ title, href }) => ({ label: title, href }))

@@ -39,7 +39,7 @@ const asAxisTick = (value: number) => {
 // The server buckets by month; anything coarser is folded from those here.
 const bucketOf = (month: string, granularity: Granularity): Bucket => {
 
-   const [year, index] = month.split('-').map(Number)
+   const [year = NaN, index = NaN] = month.split('-').map(Number)
 
    if (granularity === 'year') return { key: `${year}`, label: `${year}` }
 
@@ -56,9 +56,9 @@ const bucketOf = (month: string, granularity: Granularity): Bucket => {
 // of the axis and the bars either side would read as consecutive.
 function bucketsBetween(firstMonth: string, lastMonth: string, granularity: Granularity): Bucket[] {
 
-   const [lastYear, lastIndex] = lastMonth.split('-').map(Number)
+   const [lastYear = NaN, lastIndex = NaN] = lastMonth.split('-').map(Number)
    const buckets: Bucket[] = []
-   let [year, index] = firstMonth.split('-').map(Number)
+   let [year = NaN, index = NaN] = firstMonth.split('-').map(Number)
 
    while (year < lastYear || (year === lastYear && index <= lastIndex)) {
 
@@ -93,7 +93,7 @@ function buildChart(byMonth: FeeMonthRow[], asset: string | undefined, granulari
    // Every series gets a value in every bucket, including zero. A stacked bar chart
    // needs the full set: leaving a key out makes the offsets of the segments above it
    // in that bucket come out as NaN, and the whole stack then draws nothing.
-   const buckets = new Map(bucketsBetween(months[0], months.at(-1)!, granularity)
+   const buckets = new Map(bucketsBetween(months[0]!, months.at(-1)!, granularity)
       .map((bucket): [string, ChartRow] =>
          [bucket.key, { period: bucket.label, ...Object.fromEntries(types.map(type => [type, 0])) }]))
 

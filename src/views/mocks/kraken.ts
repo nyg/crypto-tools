@@ -189,9 +189,10 @@ const assetRates = (params?: { assets?: string[] }): AssetRatesResponse => {
       USD: 1, EUR: 1.08, USDT: 1, USDC: 1
    }
    return {
-      rates: (params?.assets ?? [])
-         .filter(asset => known[asset] !== undefined)
-         .reduce<Record<string, number>>((rates, asset) => ({ ...rates, [asset]: known[asset] }), { USD: 1 })
+      rates: (params?.assets ?? []).reduce<Record<string, number>>((rates, asset) => {
+         const rate = known[asset]
+         return rate === undefined ? rates : { ...rates, [asset]: rate }
+      }, { USD: 1 })
    }
 }
 
@@ -303,7 +304,7 @@ const advanceMockJob = (): XStockJobResponse => {
    const running = mockJob.steps.filter(step => step.phase === 'running')
 
    for (const step of running) {
-      step.activity = mockActivities[Math.min(mockJob.ticks % 5, mockActivities.length - 1)]
+      step.activity = mockActivities[Math.min(mockJob.ticks % 5, mockActivities.length - 1)] ?? ''
    }
 
    if (mockJob.ticks % 4 === 0) {
@@ -322,7 +323,7 @@ const advanceMockJob = (): XStockJobResponse => {
          for (const step of mockJob.steps.filter(s => s.group === next.group)) {
             step.phase = 'running'
             step.startedAt = Date.now()
-            step.activity = mockActivities[0]
+            step.activity = mockActivities[0] ?? ''
          }
       }
       else {
