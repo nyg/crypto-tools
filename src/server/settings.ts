@@ -41,9 +41,6 @@ function readFile(): StoredSettings {
       const stored = JSON.parse(readFileSync(file, 'utf-8')) as Partial<StoredSettings>
       const merged = defaults()
 
-      // Filled in field by field rather than spread over: a provider whose secrets have
-      // moved to the credential store no longer carries them, and replacing the whole
-      // object would drop what the defaults put there.
       for (const [id] of entries(providers)) {
          const saved = stored[id]
          if (saved?.apiKey !== undefined) merged[id].apiKey = saved.apiKey
@@ -80,7 +77,6 @@ export function environmentValue(provider: Provider, field: SecretField): string
    return process.env[name] || process.env[`VITE_${name}`] || ''
 }
 
-// The fallback store, used only where the OS credential store refused the write.
 export function readStoredSecret(provider: Provider, field: SecretField): string {
    const stored: StoredProvider = readFile()[provider]
    return stored[field] || ''
@@ -101,9 +97,6 @@ export function writeStoredSecret(provider: Provider, field: SecretField, value:
    writeFile(settings)
 }
 
-// The account id partitions the ledger database and is not itself a secret, so it stays
-// in the file — which is what lets the read-only ledger routes answer without waking the
-// OS credential store, and its prompt, on every request.
 export function krakenAccountId(): string {
    const fromEnvironment = environmentValue('kraken', 'apiKey')
    if (fromEnvironment) return accountIdFor(fromEnvironment)
@@ -113,10 +106,6 @@ export function krakenAccountId(): string {
 export function rememberKrakenAccount(apiKey: string): void {
    const settings = readFile()
 
-   // A stored id outlives a key rotation on purpose: it partitions the ledger database,
-   // so deriving a fresh one from the new key would orphan every synced row. Clearing
-   // the key does clear it, which is what stops the read-only routes serving the rows
-   // of an account whose credentials are gone.
    const accountId = apiKey ? (settings.kraken.accountId || accountIdFor(apiKey)) : ''
    if (settings.kraken.accountId === accountId) return
 

@@ -35,8 +35,6 @@ async function resolveUrl(): Promise<string> {
 async function main() {
    const url = await resolveUrl()
 
-   // Keys written by an earlier version sit in plaintext in the settings file; move them
-   // into the OS credential store before anything serves a request from either.
    await migrateSecretsToCredentialStore()
 
    const honoApp = createApp()

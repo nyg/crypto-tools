@@ -10,8 +10,6 @@ const IS_PROD = process.env.NODE_ENV === 'production'
 
 allowEnvironmentOverrides()
 
-// Keys written by an earlier version sit in plaintext in the settings file; move them
-// into the OS credential store before anything serves a request from either.
 await migrateSecretsToCredentialStore()
 
 const app = createApp()
