@@ -44,9 +44,6 @@ jobs:
       - name: Build SPA
         run: bun run build
 
-  # The Ubuntu image has no secret service, so the credential-store half of the suite
-  # skips there. Windows Credential Manager is real on this runner, which is what keeps
-  # the stored path covered rather than only the fallback.
   test-windows:
     runs-on: windows-latest
     steps:

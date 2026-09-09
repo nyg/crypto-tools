@@ -1,7 +1,5 @@
 import type { Provider } from './credentials'
 
-// Where a credential actually came from, which the Settings page states rather than
-// implies: the OS store is not always reachable, and the file is the fallback.
 export type CredentialStore =
    'env' | 'keychain' | 'credential-manager' | 'keyring' | 'file' | 'none'
 
@@ -13,8 +11,6 @@ export interface ProviderSecrets {
    store: CredentialStore
 }
 
-// What settings.json holds. The secrets are absent once they live in the OS credential
-// store, and present only where storing them there failed.
 export interface StoredProvider {
    apiKey?: string
    apiSecret?: string

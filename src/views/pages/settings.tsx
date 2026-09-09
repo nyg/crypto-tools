@@ -17,8 +17,6 @@ interface ProviderForm {
    hasSecret: boolean
 }
 
-// Named rather than derived, so the page says where a key actually is instead of
-// implying the credential store always took it.
 const storeNotes: Record<CredentialStore, string> = {
    env: ' Currently provided by an environment variable, which takes precedence over anything saved here.',
    keychain: ' Stored in the macOS Keychain.',

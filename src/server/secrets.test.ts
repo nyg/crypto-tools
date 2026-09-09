@@ -10,8 +10,6 @@ const ENVIRONMENT_MODULE = path.join(import.meta.dir, 'environment.ts')
 const PROVIDERS = ['kraken', 'binance', 'anthropic'] as const
 const FIELDS = ['api-key', 'api-secret'] as const
 
-// Every step runs in a child process: the modules hold process-wide state — the
-// environment gate, the warn-once flag — and the data directory is read at import time.
 const CHILD = `
 if (process.env.TEST_BREAK_CREDENTIAL_STORE) {
    const unavailable = async () => { throw new Error('no credential store') }
@@ -61,9 +59,6 @@ interface Result {
 const services: string[] = []
 const homes: string[] = []
 
-// A CI runner with no secret service — the stock Ubuntu image is one — exercises only
-// the fallback half of this file. Probing once says which half is running rather than
-// reporting the missing daemon as a defect.
 const storeAvailable = await (async () => {
    const service = `io.github.nyg.crypto-tools.test.probe.${process.pid}`
    try {
@@ -80,8 +75,6 @@ const needsStore = test.skipIf(!storeAvailable)
 
 interface Account { dataDir: string, service: string }
 
-// A pair of a data directory and a credential-store service, so a test can run two
-// child processes against the same stored state.
 function account(): Account {
    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-secrets-'))
    const service = `io.github.nyg.crypto-tools.test.${process.pid}.${services.length}`

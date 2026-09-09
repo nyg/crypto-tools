@@ -7,10 +7,6 @@ import type {
    CredentialStore, ProviderSecrets, SecretField, SettingsUpdate
 } from '../types/settings'
 
-// Keeping the dev and packaged builds on separate services means `bun run dev` cannot
-// overwrite the keys of the installed app, the way settings-dev.json already keeps their
-// files apart. Suffixing the service rather than the entry name also groups the entries
-// under one name in Keychain Access, and gives Windows two separable target prefixes.
 const SERVICE = process.env.CRYPTO_TOOLS_KEYCHAIN_SERVICE
    ?? (process.env.NODE_ENV === 'production'
       ? 'io.github.nyg.crypto-tools'
@@ -36,10 +32,6 @@ class SecretStore {
 
    #warned = false
 
-   // A machine with no secret service — a headless Linux box, or a user who refused the
-   // Keychain prompt — must keep working, so every call through here can fail, and the
-   // file behind it takes over. Saying so once is enough; once per read would drown the
-   // log of a page that asks for three providers.
    #reportUnavailable(action: string, error: unknown): void {
       if (this.#warned) return
       this.#warned = true
@@ -68,14 +60,11 @@ class SecretStore {
          else await Bun.secrets.delete({ service: SERVICE, name })
       }
       catch (error) {
-         // Losing the value would be worse than leaving it in a 0600 file, so a refusal
-         // falls back rather than throwing.
          this.#reportUnavailable('store', error)
          writeStoredSecret(provider, field, value || null)
          return
       }
 
-      // The store took it, so any earlier plaintext copy is now stale.
       writeStoredSecret(provider, field, null)
    }
 
@@ -103,9 +92,6 @@ class SecretStore {
       const fromEnvironment = secretFields(provider)
          .map(field => environmentValue(provider, field))
 
-      // Half a credential is not a credential. Exporting only the key would otherwise
-      // blank a secret sitting in the store and 401 every private call, while the
-      // Settings page went on showing a populated key.
       if (fromEnvironment.every(Boolean) && fromEnvironment.length > 0) {
          const [apiKey = '', apiSecret = ''] = fromEnvironment
          return { apiKey, apiSecret, store: 'env' }
@@ -144,15 +130,11 @@ class SecretStore {
             const trimmed = value.trim()
             await this.#write(id, field, trimmed)
 
-            // The account id has to follow the key it belongs to, and it is written
-            // before anything reads it back through the synchronous path.
             if (id === 'kraken' && field === 'apiKey') rememberKrakenAccount(trimmed)
          }
       }
    }
 
-   // Keys written by an earlier version sit in plaintext in settings.json. Move them
-   // across on startup, and leave them exactly where they are if the store refuses.
    async migrate(): Promise<void> {
       for (const [id] of providerEntries()) {
          for (const field of secretFields(id)) {
