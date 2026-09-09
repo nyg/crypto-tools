@@ -30,7 +30,7 @@ export function useProvider(provider: Provider) {
       configured: Boolean(entry?.configured),
       keyConfigured: Boolean(entry?.keyConfigured),
       accountId: settings?.kraken?.accountId ?? null,
-      source: entry?.source ?? 'file',
+      store: entry?.store ?? 'none',
       unreachable: Boolean(error),
       error,
       isLoading,

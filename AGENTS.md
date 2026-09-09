@@ -15,7 +15,7 @@
 
 `typescript-eslint` cannot run against the TypeScript 7 compiler API ([typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)), so `package.json` uses the side-by-side layout TypeScript 7 documents: `@typescript/native` is an alias of `typescript@7` and provides the `tsc` binary that `bun run typecheck` runs, while `typescript` is an alias of `@typescript/typescript6` and provides the TS 6 API that ESLint imports (its own binary is named `tsc6`, so the two never collide). Type checking is therefore TypeScript 7; only the linter's parser is TypeScript 6. Collapse this back to a single `typescript` dependency once typescript-eslint supports TS 7.
 
-No test framework is configured.
+**Test**: `bun run test` (`bun test`). The only suite is `src/server/secrets.test.ts`, which drives the credential store through child processes — the modules hold process-wide state, and the data directory is read at import time. `CRYPTO_TOOLS_DATA_DIR` and `CRYPTO_TOOLS_KEYCHAIN_SERVICE` are what keep a run off your real keys. The store-backed cases skip themselves on a host with no secret service, which is why CI runs the suite on Windows as well as Ubuntu.
 
 ## README screenshots
 
@@ -69,8 +69,17 @@ The SDK is imported from `electrobun/main` and comes from `.hutch/devkit`, not `
 
 1. Pages fetch data via SWR. Public/read-only data uses `useSWR` (auto-fetch); authenticated operations use `useMutation` from `src/views/lib/use-mutation.ts` (manual trigger), a thin wrapper over `useSWRMutation` that passes the shared fetcher explicitly — SWR's types demand a fetcher argument even though the hook falls back to the configured one.
 2. The global SWR fetcher lives in `src/views/lib/fetcher.ts` and is handed to `SWRConfig` by `app.tsx`. It accepts either a string key or an `[url, body]` array key, and POSTs whenever a body is present (from the array key, or from `params.arg` for a mutation). Array keys are how a `useSWR` call — which never receives an `arg` — can still send a request body.
-3. Hono route handlers destructure credentials from `req.body.credentials`, validate they exist (401 if missing), instantiate the appropriate adapter, and return JSON.
-4. API keys are stored in `localStorage` per provider (e.g. `binance.api.key`, `kraken.api.secret`) with fallback to `VITE_*` env vars. Always guard localStorage access with `typeof window !== 'undefined'`.
+3. Hono route handlers wrap themselves in `withCredentials` or `withAccount` from `src/server/routes/with-account.ts`, which read the credentials server-side and answer 401 when there are none. The browser never sends a key.
+
+### Credentials
+
+API keys live in the OS credential store — Keychain on macOS, Credential Manager on Windows, libsecret on Linux — reached through `Bun.secrets` in `src/server/secrets.ts`, the only module that touches it. Read order per secret is environment, then the store, then `settings.json` as a fallback. A store that refuses a write is not an error: the value goes to the 0600 file instead, and the Settings page says so rather than implying otherwise. `src/server/settings.ts` owns that file and knows nothing about the store.
+
+Environment variables win only where an entry point asks for it. `allowEnvironmentOverrides()` in `src/server/environment.ts` is called by `src/server/index.ts` and deliberately not by `src/electrobun/index.ts`, because a packaged build launched from a terminal inherits whatever the shell exports and runs with `NODE_ENV` unset.
+
+`kraken.accountId` stays in `settings.json`: it partitions the ledger database rather than authenticating anything, which is what lets `krakenAccountId()` stay synchronous and keeps the read-only ledger routes off the credential store — and its prompt — on every request. It survives a key rotation on purpose, since deriving a fresh one would orphan every synced row.
+
+The macOS keychain identity is the bundled `bun` binary, not the app bundle ([oven-sh/bun#28071](https://github.com/oven-sh/bun/issues/28071)). Shipping new JavaScript does not re-prompt; a release that bumps the bundled Bun version does, once. `bun run dev` runs your own Bun against a `.dev`-suffixed service, so it gets its own entry and its own prompt.
 
 ### AI Integration
 
@@ -78,7 +87,7 @@ The SDK is imported from `electrobun/main` and comes from `.hutch/devkit`, not `
 
 ### Mocked Mode
 
-The app supports a mocked mode for development and demos, activated via `bun run mocked` or `VITE_MOCK_DATA=true`. The fetcher in `src/views/lib/fetcher.ts` checks this env var and routes all API calls through `mockFetcher()` from `src/views/mocks/index.ts` instead of making real HTTP requests. Mock data generators live in `src/views/mocks/` with per-exchange files (`kraken.ts`, `binance.ts`). Each one declares the response type from `src/types/api.ts` that the route it stands in for returns, so a mock that drifts from the real shape is a compile error rather than a page that only breaks under mocked mode. On startup, `initMockCredentials()` auto-populates `localStorage` with fake API keys so authenticated features work without configuration.
+The app supports a mocked mode for development and demos, activated via `bun run mocked` or `VITE_MOCK_DATA=true`. The fetcher in `src/views/lib/fetcher.ts` checks this env var and routes all API calls through `mockFetcher()` from `src/views/mocks/index.ts` instead of making real HTTP requests. Mock data generators live in `src/views/mocks/` with per-exchange files (`kraken.ts`, `binance.ts`). Each one declares the response type from `src/types/api.ts` that the route it stands in for returns, so a mock that drifts from the real shape is a compile error rather than a page that only breaks under mocked mode.
 
 ## Code Conventions
 

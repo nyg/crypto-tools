@@ -1,10 +1,16 @@
 import { existsSync, statSync } from 'fs'
 import path from 'path'
 import { createApp } from './app'
+import { allowEnvironmentOverrides } from './environment'
+import { migrateSecretsToCredentialStore } from './secrets'
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10)
 const HOST = process.env.HOST ?? '127.0.0.1'
 const IS_PROD = process.env.NODE_ENV === 'production'
+
+allowEnvironmentOverrides()
+
+await migrateSecretsToCredentialStore()
 
 const app = createApp()
 

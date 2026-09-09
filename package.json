@@ -32,6 +32,7 @@
       "start": "NODE_ENV=production bun src/server/index.ts",
       "lint": "eslint src",
       "lint:fix": "eslint src --fix",
+      "test": "bun test",
       "typecheck": "bunx electrobun prepare && tsc --build"
    },
    "dependencies": {

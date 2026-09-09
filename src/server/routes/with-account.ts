@@ -1,5 +1,6 @@
 import type { Context } from 'hono'
-import { credentialsFor, krakenAccountId } from '../settings'
+import { credentialsFor } from '../secrets'
+import { krakenAccountId } from '../settings'
 import { HttpRequesterError } from '../errors'
 import type { Credentials, Provider } from '../../types/credentials'
 
@@ -52,7 +53,7 @@ export async function withCredentials(
    { secret = true }: { secret?: boolean } = {}
 ): Promise<Response> {
 
-   const credentials = credentialsFor(provider)
+   const credentials = await credentialsFor(provider)
    if (!credentials.apiKey || (secret && !credentials.apiSecret)) return noCredentials(c)
 
    try {

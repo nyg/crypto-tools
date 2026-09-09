@@ -8,13 +8,22 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import type { FormEvent } from 'react'
 import type { Provider } from '../../types/credentials'
-import type { MaskedSettings, ProviderSettings } from '../../types/settings'
+import type { CredentialStore, MaskedSettings, SecretField, SettingsUpdate } from '../../types/settings'
 
 interface ProviderForm {
    id: Provider
    name: string
    description: string
    hasSecret: boolean
+}
+
+const storeNotes: Record<CredentialStore, string> = {
+   env: ' Currently provided by an environment variable, which takes precedence over anything saved here.',
+   keychain: ' Stored in the macOS Keychain.',
+   'credential-manager': ' Stored in Windows Credential Manager.',
+   keyring: ' Stored in the system keyring.',
+   file: ' Stored in the settings file — the OS credential store was not reachable.',
+   none: ''
 }
 
 const providers: ProviderForm[] = [
@@ -44,14 +53,14 @@ export default function Settings() {
    // The only place that asks for the keys themselves, to prefill the form.
    const { settings, isLoading, mutate } = useSettings(SETTINGS_REVEAL_KEY)
    const { trigger: saveSettings, isMutating } =
-      useMutation<MaskedSettings, Partial<Record<Provider, Partial<ProviderSettings>>>>(SETTINGS_KEY)
+      useMutation<MaskedSettings, SettingsUpdate>(SETTINGS_KEY)
    const { mutate: globalMutate } = useSWRConfig()
 
    const save = async (event: FormEvent<HTMLFormElement>, provider: ProviderForm) => {
       event.preventDefault()
 
       const formData = new FormData(event.currentTarget)
-      const update: Partial<ProviderSettings> = {
+      const update: Partial<Record<SecretField, string>> = {
          apiKey: String(formData.get(`${provider.id}-api-key`) ?? '')
       }
 
@@ -76,7 +85,7 @@ export default function Settings() {
 
             {providers.map(provider => {
                const stored = settings?.[provider.id]
-               const fromEnvironment = stored?.source === 'env'
+               const storeNote = storeNotes[stored?.store ?? 'none']
 
                return (
                   <Card key={provider.id} size="sm">
@@ -84,7 +93,7 @@ export default function Settings() {
                         <CardTitle>{provider.name}</CardTitle>
                         <CardDescription>
                            {provider.description}
-                           {fromEnvironment && ' Currently provided by an environment variable, which takes precedence over anything saved here.'}
+                           {storeNote}
                         </CardDescription>
                      </CardHeader>
                      <CardContent>
