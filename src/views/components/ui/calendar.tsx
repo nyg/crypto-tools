@@ -1,11 +1,69 @@
 import * as React from 'react'
 import { DayPicker, getDefaultClassNames } from 'react-day-picker'
-import type { DayButton } from 'react-day-picker'
+import type {
+   ChevronProps, CustomComponents, DayButton, DropdownProps, RootProps, WeekNumberProps
+} from 'react-day-picker'
 import type { VariantProps } from 'class-variance-authority'
 
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from 'lucide-react'
+
+function CalendarRoot({ className, rootRef, ...props }: RootProps) {
+   return <div data-slot="calendar" ref={rootRef} className={cn(className)} {...props} />
+}
+
+function CalendarChevron({ className, orientation, ...props }: ChevronProps) {
+   const Icon = orientation === 'left' ? ChevronLeftIcon
+      : orientation === 'right' ? ChevronRightIcon
+         : ChevronDownIcon
+
+   return <Icon className={cn('size-4', className)} {...props} />
+}
+
+function CalendarWeekNumber({ children, ...props }: WeekNumberProps) {
+   return (
+      <td {...props}>
+         <div className="flex size-(--cell-size) items-center justify-center text-center">
+            {children}
+         </div>
+      </td>
+   )
+}
+
+// react-day-picker's own month and year dropdowns are native <select> elements laid
+// invisibly over the caption, and a WebView hands the AppKit popup a font it cannot
+// resolve, so on macOS the menu comes up in a serif. Three things here are load-bearing:
+// the trigger stays positioned so it paints above the absolutely placed nav and can be
+// clicked, the popup renders inline so the surrounding Popover still counts it as
+// inside, and popper placement keeps Radix on floating-ui's fixed strategy rather than
+// the item-aligned maths, which needs a Select.Value the caption does not render.
+function CalendarDropdown({ options, value, onChange, disabled, className, 'aria-label': ariaLabel }: DropdownProps) {
+
+   const selected = options?.find(option => option.value === Number(value))
+
+   return (
+      <Select
+         value={String(value)}
+         disabled={disabled}
+         onValueChange={next =>
+            onChange?.({ target: { value: next } } as React.ChangeEvent<HTMLSelectElement>)}>
+         <SelectTrigger
+            size="sm"
+            aria-label={ariaLabel}
+            className={cn('relative h-(--cell-size) gap-1 border-transparent px-1.5 text-sm font-medium hover:border-input', className)}>
+            {selected?.label}
+         </SelectTrigger>
+         <SelectContent portal={false} position="popper" align="start" className="min-w-0">
+            {options?.map(option =>
+               <SelectItem key={option.value} value={String(option.value)} disabled={option.disabled}>
+                  {option.label}
+               </SelectItem>)}
+         </SelectContent>
+      </Select>
+   )
+}
 
 function Calendar({
    className,
@@ -21,6 +79,17 @@ function Calendar({
    buttonVariant?: VariantProps<typeof buttonVariants>['variant']
 }) {
    const defaultClassNames = getDefaultClassNames()
+
+   // A fresh Dropdown identity on every render would remount the Select and close the
+   // month list mid-click; the native <select> it replaces held no state to lose.
+   const mergedComponents = React.useMemo((): Partial<CustomComponents> => ({
+      Root: CalendarRoot,
+      Chevron: CalendarChevron,
+      Dropdown: CalendarDropdown,
+      WeekNumber: CalendarWeekNumber,
+      DayButton: props => <CalendarDayButton locale={locale} {...props} />,
+      ...components
+   }), [locale, components])
 
    return (
       <DayPicker
@@ -64,8 +133,6 @@ function Calendar({
                'flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium',
                defaultClassNames.dropdowns
             ),
-            dropdown_root: cn('relative rounded-(--cell-radius)', defaultClassNames.dropdown_root),
-            dropdown: cn('absolute inset-0 bg-popover opacity-0', defaultClassNames.dropdown),
             caption_label: cn('font-medium select-none', captionLayout === 'label'
                ? 'text-sm'
                : 'flex items-center gap-1 rounded-(--cell-radius) text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground', defaultClassNames.caption_label),
@@ -109,36 +176,7 @@ function Calendar({
             hidden: cn('invisible', defaultClassNames.hidden),
             ...classNames,
          }}
-         components={{
-            Root: ({ className, rootRef, ...props }) => {
-               return (<div data-slot="calendar" ref={rootRef} className={cn(className)} {...props} />)
-            },
-            Chevron: ({ className, orientation, ...props }) => {
-               if (orientation === 'left') {
-                  return (<ChevronLeftIcon className={cn('size-4', className)} {...props} />)
-               }
-
-               if (orientation === 'right') {
-                  return (<ChevronRightIcon className={cn('size-4', className)} {...props} />)
-               }
-
-               return (<ChevronDownIcon className={cn('size-4', className)} {...props} />)
-            },
-            DayButton: ({ ...props }) => (
-               <CalendarDayButton locale={locale} {...props} />
-            ),
-            WeekNumber: ({ children, ...props }) => {
-               return (
-                  <td {...props}>
-                     <div
-                        className="flex size-(--cell-size) items-center justify-center text-center">
-                        {children}
-                     </div>
-                  </td>
-               )
-            },
-            ...components,
-         }}
+         components={mergedComponents}
          {...props} />
    )
 }
