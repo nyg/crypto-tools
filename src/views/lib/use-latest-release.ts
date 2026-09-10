@@ -4,8 +4,10 @@ import type { LatestRelease } from '../../types/api'
 
 export const LATEST_RELEASE_KEY = '/api/app/latest-release'
 
-const segments = (version: string) =>
-   String(version).split('-')[0].split('.').map(part => parseInt(part, 10) || 0)
+const segments = (version: string) => {
+   const [core = ''] = String(version).split('-')
+   return core.split('.').map(part => parseInt(part, 10) || 0)
+}
 
 export function isNewer(candidate: string | null | undefined, current: string | null | undefined): boolean {
 

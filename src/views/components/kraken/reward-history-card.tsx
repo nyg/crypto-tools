@@ -42,8 +42,10 @@ export default function RewardHistoryCard({ rewards, rates }: {
    const data = years.map(year => ({
       year: String(year),
       value: isTotal
-         ? assets.reduce((sum, row) =>
-            sum + (priced[row.asset] != null ? (row.byYear[year] ?? 0) * priced[row.asset] : 0), 0)
+         ? assets.reduce((sum, row) => {
+            const rate = priced[row.asset]
+            return sum + (rate != null ? (row.byYear[year] ?? 0) * rate : 0)
+         }, 0)
          : selected!.byYear[year] ?? 0
    }))
 

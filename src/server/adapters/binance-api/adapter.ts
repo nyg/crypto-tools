@@ -87,9 +87,9 @@ export default class BinanceAPI {
    async fetchStakingBalances(): Promise<StakingBalances> {
       const response = await resource.fetchStakingPositions(this.#authenticated)
       return response.reduce<StakingBalances>((positions, position) => {
-         positions[position.asset] ??= { balance: Big(0), positions: [] }
-         positions[position.asset].balance = positions[position.asset].balance.add(position.amount)
-         positions[position.asset].positions.push({
+         const held = positions[position.asset] ??= { balance: Big(0), positions: [] }
+         held.balance = held.balance.add(position.amount)
+         held.positions.push({
             id: position.positionId,
             asset: position.asset,
             apy: position.apy,

@@ -17,7 +17,7 @@ export default function RewardSummaryCard({ rewards, rates, isLoading, isLoading
 
    const priced = rates ?? {}
    const valued = assets.filter(asset => priced[asset.asset] != null)
-   const totalValue = valued.reduce((sum, asset) => sum + asset.total * priced[asset.asset], 0)
+   const totalValue = valued.reduce((sum, asset) => sum + asset.total * (priced[asset.asset] ?? 0), 0)
 
    return (
       <Card>

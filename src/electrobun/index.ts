@@ -1,6 +1,7 @@
 /// <reference types="bun-types" />
 import { ApplicationMenu, BrowserWindow, BuildConfig, Utils } from 'electrobun/main'
 import { createApp } from '../server/app'
+import { migrateSecretsToCredentialStore } from '../server/secrets'
 import { systemLocales } from './locale'
 import { resolveInitialWindowState, trackWindowState } from './window-state'
 
@@ -33,6 +34,8 @@ async function resolveUrl(): Promise<string> {
 
 async function main() {
    const url = await resolveUrl()
+
+   await migrateSecretsToCredentialStore()
 
    const honoApp = createApp({ desktop: true })
 

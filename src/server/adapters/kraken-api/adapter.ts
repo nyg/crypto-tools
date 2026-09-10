@@ -59,17 +59,17 @@ export default class KrakenAPI {
 
    async fetchTradingPairs(): Promise<TradingPairs> {
       const assetPairs = (await resource.fetchAssetPairs()).result
-      return Object.keys(assetPairs)
-         .map((pairId): TradingPair => ({
-            id: assetPairs[pairId].altname,
-            name: assetPairs[pairId].wsname ?? '',
+      return Object.values(assetPairs)
+         .map((assetPair): TradingPair => ({
+            id: assetPair.altname,
+            name: assetPair.wsname ?? '',
             base: {
-               name: assetPairs[pairId].base,
-               decimals: assetPairs[pairId].lot_decimals,
+               name: assetPair.base,
+               decimals: assetPair.lot_decimals,
             },
             quote: {
-               name: assetPairs[pairId].quote,
-               decimals: assetPairs[pairId].cost_decimals,
+               name: assetPair.quote,
+               decimals: assetPair.cost_decimals,
             }
          }))
          .reduce<TradingPairs>((pairs, pair) => {
@@ -221,8 +221,9 @@ export default class KrakenAPI {
 
    async cancelOrders(txids: string[]): Promise<CancelResult> {
 
-      if (txids.length === 1) {
-         const response = await resource.cancelOrder(this.#authenticated, { txid: txids[0] })
+      const [single] = txids
+      if (txids.length === 1 && single) {
+         const response = await resource.cancelOrder(this.#authenticated, { txid: single })
          return { count: response.result?.count ?? 0 }
       }
 
@@ -318,7 +319,7 @@ export default class KrakenAPI {
 
       const volumes = new Map<string, TokenizedVolume>()
       for (const [symbol, entry] of snapshots) {
-         const altname = symbol.split('/')[0]
+         const [altname = symbol] = symbol.split('/')
          const volume = Number(entry.volume)
          const vwap = Number(entry.vwap)
          if (!Number.isFinite(volume)) continue

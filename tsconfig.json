@@ -1,25 +1,16 @@
 {
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.types.json" },
+    { "path": "./tsconfig.server.json" },
+    { "path": "./tsconfig.views.json" },
+    { "path": "./tsconfig.electrobun.json" },
+    { "path": "./tsconfig.tools.json" },
+    { "path": "./tsconfig.tests.json" }
+  ],
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "types": ["bun-types", "vite/client"],
-    "strict": true,
-    "noEmit": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["./src/views/*"],
-      "electrobun": ["./.hutch/devkit/api/sdks/main/index.ts"],
-      "electrobun/main": ["./.hutch/devkit/api/sdks/main/index.ts"],
-      "electrobun/view": ["./.hutch/devkit/api/browser/index.ts"]
+      "@/*": ["./src/views/*"]
     }
-  },
-  "include": ["src", "scripts", "*.config.ts"]
+  }
 }

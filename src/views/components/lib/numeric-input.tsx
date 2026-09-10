@@ -9,9 +9,8 @@ const formatWithSeparators = (value: string | undefined): string => {
    if (!value) return ''
 
    // Split by decimal point
-   const parts = value.split('.')
-   const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '\'')
-   const decimalPart = parts[1]
+   const [whole = '', decimalPart] = value.split('.')
+   const integerPart = whole.replace(/\B(?=(\d{3})+(?!\d))/g, '\'')
 
    return decimalPart !== undefined ? `${integerPart}.${decimalPart}` : integerPart
 }

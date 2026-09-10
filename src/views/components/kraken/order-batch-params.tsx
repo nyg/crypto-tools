@@ -52,7 +52,7 @@ export default function OrderBatchParameters({
    }
 
    const pairs = tradingPairs ?? {}
-   const pairOptions = Object.keys(pairs).map(pair => ({ value: pair, label: pairs[pair].name }))
+   const pairOptions = Object.entries(pairs).map(([id, pair]) => ({ value: id, label: pair.name }))
 
    return (
       <form onSubmit={(e) => e.preventDefault()} className="space-y-4">

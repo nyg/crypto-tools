@@ -2,13 +2,14 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSy
 import path from 'path'
 import { resolveDataDir } from './db/paths'
 import { accountIdFor } from './db/entry-key'
+import { environmentOverridesEnabled } from './environment'
 import { messageOf } from './errors'
-import type { Credentials, Provider } from '../types/credentials'
-import type { ProviderSettings, Settings, SettingsUpdate } from '../types/settings'
+import type { Provider } from '../types/credentials'
+import type { SecretField, StoredProvider, StoredSettings } from '../types/settings'
 
 type ProviderConfig = { hasSecret: boolean }
 
-const SETTINGS_VERSION = 1
+const SETTINGS_VERSION = 2
 
 // Object.entries widens the key to string, which loses the provider union every loop
 // below needs to index the settings with.
@@ -21,11 +22,11 @@ export const providers: Record<Provider, ProviderConfig> = {
    anthropic: { hasSecret: false }
 }
 
-const defaults = (): Settings => ({
+const defaults = (): StoredSettings => ({
    version: SETTINGS_VERSION,
-   kraken: { apiKey: '', apiSecret: '', accountId: '' },
-   binance: { apiKey: '', apiSecret: '' },
-   anthropic: { apiKey: '' }
+   kraken: { accountId: '' },
+   binance: {},
+   anthropic: {}
 })
 
 function settingsPath(): string {
@@ -33,74 +34,29 @@ function settingsPath(): string {
    return path.join(resolveDataDir(), name)
 }
 
-function readStored(): Partial<Settings> {
+function readFile(): StoredSettings {
    try {
       const file = settingsPath()
-      if (!existsSync(file)) return {}
-      return JSON.parse(readFileSync(file, 'utf-8')) as Partial<Settings>
+      if (!existsSync(file)) return defaults()
+      const stored = JSON.parse(readFileSync(file, 'utf-8')) as Partial<StoredSettings>
+      const merged = defaults()
+
+      for (const [id] of entries(providers)) {
+         const saved = stored[id]
+         if (saved?.apiKey !== undefined) merged[id].apiKey = saved.apiKey
+         if (saved?.apiSecret !== undefined) merged[id].apiSecret = saved.apiSecret
+      }
+
+      merged.kraken.accountId = stored.kraken?.accountId ?? ''
+      return merged
    }
    catch (error) {
       console.warn('Could not read the settings file, falling back to defaults:', messageOf(error))
-      return {}
+      return defaults()
    }
 }
 
-function envValue(provider: Provider, field: 'apiKey' | 'apiSecret'): string {
-   const name = `${provider.toUpperCase()}_${field === 'apiSecret' ? 'API_SECRET' : 'API_KEY'}`
-   return process.env[name] || process.env[`VITE_${name}`] || ''
-}
-
-export function readSettings(): Settings {
-   const stored = readStored()
-   const settings = defaults()
-   const environmentWins = process.env.NODE_ENV !== 'production'
-
-   for (const [id, { hasSecret }] of entries(providers)) {
-      const saved: Partial<ProviderSettings> = stored[id] ?? {}
-
-      const environmentKey = environmentWins ? envValue(id, 'apiKey') : ''
-      const environmentSecret = environmentWins && hasSecret ? envValue(id, 'apiSecret') : ''
-
-      // Half a credential is not a credential. Exporting only the key would otherwise
-      // blank a secret sitting in the file and 401 every private call, while the
-      // Settings page went on showing a populated key.
-      const fromEnvironment = Boolean(environmentKey) && (!hasSecret || Boolean(environmentSecret))
-
-      settings[id].apiKey = fromEnvironment ? environmentKey : (saved.apiKey || '')
-      settings[id].source = fromEnvironment ? 'env' : 'file'
-
-      if (hasSecret) {
-         settings[id].apiSecret = fromEnvironment ? environmentSecret : (saved.apiSecret || '')
-      }
-   }
-
-   // The stored id belongs to the stored key. A key from the environment is a
-   // different account, so it gets its own partition rather than syncing into
-   // whichever one the file happens to name.
-   settings.kraken.accountId = settings.kraken.apiKey === ''
-      ? ''
-      : settings.kraken.source === 'env'
-         ? accountIdFor(settings.kraken.apiKey)
-         : (stored.kraken?.accountId || accountIdFor(settings.kraken.apiKey))
-
-   return settings
-}
-
-export function writeSettings(updates: SettingsUpdate | undefined): Settings {
-   const merged = { ...defaults(), ...readStored(), version: SETTINGS_VERSION }
-
-   for (const [id, { hasSecret }] of entries(providers)) {
-      const update = updates?.[id]
-      if (!update) continue
-
-      if (typeof update.apiKey === 'string') merged[id].apiKey = update.apiKey.trim()
-      if (hasSecret && typeof update.apiSecret === 'string') merged[id].apiSecret = update.apiSecret.trim()
-   }
-
-   if (merged.kraken.apiKey && !merged.kraken.accountId) {
-      merged.kraken.accountId = accountIdFor(merged.kraken.apiKey)
-   }
-
+function writeFile(settings: StoredSettings): void {
    // Written to a sibling and renamed over the target: a crash or a full disk part way
    // through would otherwise truncate the file and take every provider's keys with it.
    // The rename also carries the temp file's 0600 across, which a plain write would not
@@ -110,18 +66,57 @@ export function writeSettings(updates: SettingsUpdate | undefined): Settings {
    const temporary = `${file}.tmp`
 
    mkdirSync(path.dirname(file), { recursive: true })
-   writeFileSync(temporary, JSON.stringify(merged, null, 3), { encoding: 'utf-8', mode: 0o600 })
+   writeFileSync(temporary, JSON.stringify(settings, null, 3), { encoding: 'utf-8', mode: 0o600 })
    chmodSync(temporary, 0o600)
    renameSync(temporary, file)
-
-   return readSettings()
 }
 
-export function credentialsFor(provider: Provider): Credentials {
-   const { apiKey, apiSecret } = readSettings()[provider]
-   return { apiKey, apiSecret: apiSecret ?? '' }
+export function environmentValue(provider: Provider, field: SecretField): string {
+   if (!environmentOverridesEnabled()) return ''
+   const name = `${provider.toUpperCase()}_${field === 'apiSecret' ? 'API_SECRET' : 'API_KEY'}`
+   return process.env[name] || process.env[`VITE_${name}`] || ''
+}
+
+export function readStoredSecret(provider: Provider, field: SecretField): string {
+   const stored: StoredProvider = readFile()[provider]
+   return stored[field] || ''
+}
+
+export function writeStoredSecret(provider: Provider, field: SecretField, value: string | null): void {
+   const settings = readFile()
+   const stored: StoredProvider = settings[provider]
+
+   if (value === null) {
+      if (stored[field] === undefined) return
+      delete stored[field]
+   }
+   else {
+      stored[field] = value
+   }
+
+   writeFile(settings)
 }
 
 export function krakenAccountId(): string {
-   return readSettings().kraken.accountId
+   const fromEnvironment = environmentValue('kraken', 'apiKey')
+   if (fromEnvironment) return accountIdFor(fromEnvironment)
+   return readFile().kraken.accountId
+}
+
+export function rememberKrakenAccount(apiKey: string): void {
+   const settings = readFile()
+
+   const accountId = apiKey ? (settings.kraken.accountId || accountIdFor(apiKey)) : ''
+   if (settings.kraken.accountId === accountId) return
+
+   settings.kraken.accountId = accountId
+   writeFile(settings)
+}
+
+export function settingsVersion(): number {
+   return readFile().version
+}
+
+export function settingsFilePath(): string {
+   return settingsPath()
 }
