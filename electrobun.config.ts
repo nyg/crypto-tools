@@ -24,6 +24,7 @@ export default {
     },
     bun: {
       entrypoint: "src/electrobun/index.ts",
+      minify: true,
     },
     copy: {
       // These paths are populated by scripts.preBuild (runs `vite build`).
