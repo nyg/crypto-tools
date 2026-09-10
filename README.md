@@ -60,13 +60,25 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 
 Desktop apps for macOS (Apple Silicon) and Windows (x64). No admin rights needed.
 
-**macOS — [Homebrew](https://brew.sh):**
+### Installing on macOS
+
+**Manual** — take the `.dmg` from the [latest release](https://github.com/nyg/crypto-tools/releases/latest), open it and drag **Crypto Tools.app** into **Applications**. The app is ad-hoc signed but not notarized, so macOS quarantines it after download and blocks the first launch — as *damaged* or *could not verify*, which mean the same thing and neither of which means the app is broken. Open **System Settings → Privacy & Security**, scroll to the bottom and click **Open Anyway**. Alternatively, remove the quarantine flag yourself:
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"
+```
+
+**[Homebrew](https://brew.sh)** — handles the above automatically:
 
 ```sh
 brew install --cask nyg/tap/crypto-tools
 ```
 
-**Windows — [Scoop](https://scoop.sh):**
+### Installing on Windows
+
+**Manual** — take the `-setup.exe` from the [latest release](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs per-user to `%LOCALAPPDATA%`, needs no admin rights, and shows no window while it works — the **Crypto Tools** shortcut it leaves on your Desktop and in the Start menu is how you know it finished. The app is not code-signed, so SmartScreen shows *Windows protected your PC*: click **More info → Run anyway**, which it offers to administrators only.
+
+**[Scoop](https://scoop.sh)** — no admin rights, no SmartScreen prompt, and what standard users need:
 
 ```powershell
 # run in PowerShell
@@ -76,16 +88,7 @@ scoop install git crypto-tools
 
 If you don't have Scoop: `irm get.scoop.sh | iex`. It installs software in `C:\Users\<YOUR USERNAME>\scoop`.
 
-### Without package managers
-
-To install by hand instead, take the `.dmg` (macOS) or `-setup.exe` (Windows) from the [latest release](https://github.com/nyg/crypto-tools/releases): drag **Crypto Tools.app** to **Applications**, or run the installer. It installs per-user to `%LOCALAPPDATA%`, needs no admin rights, and shows no window while it works — the **Crypto Tools** shortcut it leaves on your Desktop and in the Start menu is how you know it finished.
-
-### First launch
-
-The app is ad-hoc signed on macOS and unsigned on Windows, so a manual install is blocked once — as *damaged* or *could not verify* on macOS, as *Windows protected your PC* on Windows. Neither means the app is broken or infected.
-
-- **macOS**: `xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"`, then open it. (**System Settings → Privacy & Security → Open Anyway** works for the *could not verify* dialog only.)
-- **Windows**: **More info → Run anyway**, which SmartScreen offers to administrators only. Standard users need the Scoop install.
+### Updates
 
 The app tells you when a newer release exists — a dot beside the version in the header, and the details in **About**, reachable by clicking that version. It never replaces itself, so Scoop and Homebrew installs stay under their package manager's control.
 

@@ -143,14 +143,17 @@ jobs:
 
       # Electrobun names its artifacts after the channel, OS and arch; the release
       # assets instead say which OS and CPU they are for and which version they are,
-      # so a download is unambiguous once it sits in a Downloads folder.
+      # so a download is unambiguous once it sits in a Downloads folder. Everything
+      # left in artifacts/ after the two extraction steps below is a release asset —
+      # the Windows ZIP is only the box the other two come out of, so it is moved
+      # aside rather than renamed into place.
       - name: Rename release assets
         env:
           VERSION: ${{ needs.prepare.outputs.release_version }}
         run: |
           set -euo pipefail
           find artifacts -name '*.dmg' -exec mv {} "artifacts/crypto-tools-${VERSION}-macos-arm64.dmg" \;
-          find artifacts -name '*.zip' -exec mv {} "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip" \;
+          find artifacts -name '*.zip' -exec mv {} "$GITHUB_WORKSPACE/_windows-setup.zip" \;
 
       - name: Create Scoop ZIP
         env:
@@ -169,7 +172,7 @@ jobs:
           # files are in .installer/*.tar.zst inside the same ZIP. Extract them
           # into a flat zip that Scoop can consume directly (bin\launcher.exe
           # at the root), so no Scoop installer script is required.
-          unzip -q "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip" '.installer/*' -d _scoop_build
+          unzip -q "$GITHUB_WORKSPACE/_windows-setup.zip" '.installer/*' -d _scoop_build
           mapfile -t tarballs < <(find _scoop_build/.installer -mindepth 1 -maxdepth 1 -type f -name '*.tar.zst' -print)
           if [ "${#tarballs[@]}" -ne 1 ]; then
             found='(none)'
@@ -203,7 +206,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf _exe_build && mkdir -p _exe_build
-          unzip -q "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip" -d _exe_build
+          unzip -q "$GITHUB_WORKSPACE/_windows-setup.zip" -d _exe_build
 
           setup_exe=$(find _exe_build -maxdepth 1 -type f -name '*-Setup.exe' -print -quit)
           metadata=$(find _exe_build/.installer -maxdepth 1 -type f -name '*.metadata.json' -print -quit)
@@ -253,46 +256,62 @@ jobs:
           fi
 
           ls -l "$output"
-          rm -rf _exe_build
+          rm -rf _exe_build "$GITHUB_WORKSPACE/_windows-setup.zip"
 
       - name: Generate release notes
         uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
         with:
           args: --latest --strip all
 
-      - name: Append macOS install guidance to release notes
+      - name: Append install guidance to release notes
+        env:
+          VERSION: ${{ needs.prepare.outputs.release_version }}
         run: |
+          # The heredoc is quoted so the backticks and %LOCALAPPDATA% in the notes
+          # survive verbatim; the version is stitched in afterwards.
           cat >> git-cliff/CHANGELOG.md <<'EOF'
 
           ## Installing on macOS
 
-          The app is ad-hoc signed but **not notarized**, so macOS quarantines it after download and blocks the first launch (you may see *"Crypto Tools.app is damaged"* or *"Apple could not verify…"* — both mean the same thing; the app is not corrupted).
+          ### Manual
 
-          **Easiest — Homebrew** (handles this automatically):
-
-          ```sh
-          brew install --cask nyg/tap/crypto-tools
-          ```
-
-          **Manual DMG** — after copying Crypto Tools.app to Applications, remove the quarantine flag once:
+          Download [`crypto-tools-__VERSION__-macos-arm64.dmg`](https://github.com/nyg/crypto-tools/releases/download/v__VERSION__/crypto-tools-__VERSION__-macos-arm64.dmg), open it and drag **Crypto Tools.app** into your Applications folder. The app is ad-hoc signed but **not notarized**, so macOS quarantines it after download and blocks the first launch — you may see *"Crypto Tools.app is damaged"* or *"Apple could not verify…"*, and both mean the same thing: the app is not corrupted. Open **System Settings → Privacy & Security**, scroll to the bottom and click **Open Anyway**. Alternatively, remove the quarantine flag yourself:
 
           ```sh
           xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"
           ```
 
+          ### [Homebrew](https://brew.sh)
+
+          Handles the above automatically:
+
+          ```sh
+          brew install --cask nyg/tap/crypto-tools
+          ```
+
           ## Installing on Windows
 
-          **Easiest — Scoop** (no admin rights, no SmartScreen prompt):
+          ### Manual
+
+          Download [`crypto-tools-__VERSION__-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/download/v__VERSION__/crypto-tools-__VERSION__-windows-x64-setup.exe) and run it. It installs per-user to `%LOCALAPPDATA%` (`C:\Users\<you>\AppData\Local` — no admin rights needed) and finishes by putting a **Crypto Tools** shortcut on your Desktop and in the Start menu; there is no completion dialog, so that shortcut is how you know it worked. The app is not code-signed, so SmartScreen shows *"Windows protected your PC"* — click **More info → Run anyway** (offered to administrators only).
+
+          ### [Scoop](https://scoop.sh)
+
+          No admin rights, no SmartScreen prompt:
 
           ```powershell
           scoop bucket add nyg https://github.com/nyg/scoop-bucket
-          scoop install crypto-tools
+          scoop install git crypto-tools
           ```
 
-          **Manual installer** — download the `…-windows-x64-setup.exe` asset and run it. The app installs per-user to `%LOCALAPPDATA%` (no admin rights needed) and finishes by putting a **Crypto Tools** shortcut on your Desktop and in the Start menu; there is no completion dialog, so that shortcut is how you know it worked. Because the app is not code-signed, SmartScreen shows *"Windows protected your PC"* — click **More info → Run anyway** (offered to administrators only). Installing via Scoop avoids this prompt entirely.
+          If you don't have Scoop at all, you can install it with:
 
-          The `…-windows-x64-setup.zip` asset is the same installer in Electrobun's original layout, kept for one release as a fallback.
+          ```powershell
+          irm get.scoop.sh | iex
+          ```
           EOF
+
+          sed -i "s/__VERSION__/${VERSION}/g" git-cliff/CHANGELOG.md
 
       - name: Create GitHub release
         env:
@@ -303,7 +322,6 @@ jobs:
           assets=(
             "artifacts/crypto-tools-${VERSION}-macos-arm64.dmg"
             "artifacts/crypto-tools-${VERSION}-windows-x64-setup.exe"
-            "artifacts/crypto-tools-${VERSION}-windows-x64-setup.zip"
             "artifacts/crypto-tools-${VERSION}-windows-x64-scoop.zip"
           )
 
