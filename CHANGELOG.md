@@ -1,6 +1,28 @@
 # Changelog
 
 
+## [0.7.0](https://github.com/nyg/crypto-tools/compare/v0.6.0..v0.7.0) - 2026-09-10
+
+### ⛰️  Features
+
+- [`d099e72`](https://github.com/nyg/crypto-tools/commit/d099e7267a7f9687478e263ee55548ac852e6542) *(about)* Show the update path that matches the install ([#289](https://github.com/nyg/crypto-tools/issues/289))
+- [`a5db51e`](https://github.com/nyg/crypto-tools/commit/a5db51e7afaec86136235cc372bce9ac6a1667d6) *(secrets)* Keep API keys in the OS credential store ([#288](https://github.com/nyg/crypto-tools/issues/288))
+
+### 🐛 Bug Fixes
+
+- [`ff0af93`](https://github.com/nyg/crypto-tools/commit/ff0af93835b66509eb5523c8d711e54b2844be61) *(desktop)* Close the macOS installer panel automatically ([#291](https://github.com/nyg/crypto-tools/issues/291))
+- [`a36620f`](https://github.com/nyg/crypto-tools/commit/a36620f0277fc3210cf07097131c450cb10ab151) *(deps)* Update all stable non-major dependencies ([#293](https://github.com/nyg/crypto-tools/issues/293))
+- [`4355d8a`](https://github.com/nyg/crypto-tools/commit/4355d8a4eb3f7ec695149e8b6b059919fafe8c27) *(calendar)* Replace the native month/year select with a Radix Select ([#287](https://github.com/nyg/crypto-tools/issues/287))
+- [`cd75b9e`](https://github.com/nyg/crypto-tools/commit/cd75b9e664b9a89710c05c88246526d2d828972e) *(deps)* Update all stable non-major dependencies ([#282](https://github.com/nyg/crypto-tools/issues/282))
+- [`96873d1`](https://github.com/nyg/crypto-tools/commit/96873d1e1224d62d58a1a74e782434a0529993d3) *(deps)* Update dependency qs to v6.16.0 [security] ([#283](https://github.com/nyg/crypto-tools/issues/283))
+
+### ⚙️ Miscellaneous
+
+- [`01af1a9`](https://github.com/nyg/crypto-tools/commit/01af1a9e4624a9ac40a09151d4e5de586d4ad73c) *(release)* Drop the Windows setup ZIP and restructure the install guidance ([#292](https://github.com/nyg/crypto-tools/issues/292))
+- [`876d0df`](https://github.com/nyg/crypto-tools/commit/876d0df0f702e84b135627e15fe33962997326a2) *(desktop)* Minify the packaged main process bundle ([#290](https://github.com/nyg/crypto-tools/issues/290))
+- [`dc2aa2f`](https://github.com/nyg/crypto-tools/commit/dc2aa2f632fde85ea1a2493d15c1d8cb4f6c9345) *(types)* Give each runtime its own tsconfig and tighten strictness ([#286](https://github.com/nyg/crypto-tools/issues/286))
+- [`5115d99`](https://github.com/nyg/crypto-tools/commit/5115d993f227368fe3172d774da64c4456acf31a) Verify pull requests ([#285](https://github.com/nyg/crypto-tools/issues/285))
+
 ## [0.6.0](https://github.com/nyg/crypto-tools/compare/v0.5.0..v0.6.0) - 2026-09-02
 
 ### ⛰️  Features
