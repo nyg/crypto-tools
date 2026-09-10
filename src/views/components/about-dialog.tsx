@@ -3,11 +3,21 @@ import { ArrowUpCircleIcon, CheckCircleIcon, CircleAlertIcon, LoaderCircleIcon }
 import ExternalLink from './lib/external-link'
 import { APP_VERSION } from '@/lib/about-event'
 import useLatestRelease from '@/lib/use-latest-release'
+import useInstallInfo from '@/lib/use-install-info'
 import {
    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
+import type { InstallMethod } from '../../types/api'
 
 const REPOSITORY_URL = 'https://github.com/nyg/crypto-tools'
+
+// A package manager updates its own installs, so naming the one that matches beats
+// listing both and leaving the reader to work out which applies. A manual or browser
+// install has no command, and gets the download link instead.
+const UPDATE_COMMANDS: Partial<Record<InstallMethod, string>> = {
+   homebrew: 'brew upgrade --cask nyg/tap/crypto-tools',
+   scoop: 'scoop update crypto-tools'
+}
 
 const Command = ({ children }: { children: ReactNode }) =>
    <code className="rounded bg-muted px-1 py-0.5 text-xs">{children}</code>
@@ -61,6 +71,31 @@ function UpdateStatus() {
    )
 }
 
+function UpdateInstructions() {
+
+   const install = useInstallInfo()
+   const command = install ? UPDATE_COMMANDS[install.method] : undefined
+
+   if (command) {
+      return (
+         <p className="text-sm text-muted-foreground">
+            The app never updates itself. Update it with your package manager
+            — <Command>{command}</Command>.
+         </p>
+      )
+   }
+
+   return (
+      <p className="text-sm text-muted-foreground">
+         The app never updates itself.{' '}
+         <ExternalLink href={`${REPOSITORY_URL}/releases/latest`} className="font-medium underline underline-offset-4">
+            Download the latest release
+         </ExternalLink>
+         {' '}to update it.
+      </p>
+   )
+}
+
 export default function AboutDialog({ open, onOpenChange }: {
    open: boolean
    onOpenChange: (open: boolean) => void
@@ -80,11 +115,7 @@ export default function AboutDialog({ open, onOpenChange }: {
             <section className="space-y-2">
                <SectionTitle>Updates</SectionTitle>
                <UpdateStatus />
-               <p className="text-sm text-muted-foreground">
-                  The app never updates itself. Installed with Scoop or Homebrew? Update it
-                  with your package manager — <Command>scoop update crypto-tools</Command> or{' '}
-                  <Command>brew upgrade --cask nyg/tap/crypto-tools</Command>.
-               </p>
+               <UpdateInstructions />
             </section>
 
             <section className="space-y-2">

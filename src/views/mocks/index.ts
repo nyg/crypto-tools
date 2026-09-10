@@ -8,7 +8,7 @@ import {
 } from './kraken-ledger'
 import { tradeAggregations, tradeRows, tradeFilters } from './kraken-trades'
 import { aggregateBalance } from './binance'
-import type { LatestRelease } from '../../types/api'
+import type { InstallInfo, LatestRelease } from '../../types/api'
 import type { MaskedSettings } from '../../types/settings'
 
 // A mocked route is handed the request body the fetcher would have posted, under the
@@ -49,6 +49,12 @@ const mockRoutes: Record<string, MockRoute> = {
    '/api/settings': () => mockSettings(false),
    '/api/settings?reveal=true': () => mockSettings(true),
    '/api/app/latest-release': () => mockLatestRelease,
+   '/api/app/install': () => mockInstallInfo,
+}
+
+const mockInstallInfo: InstallInfo = {
+   platform: 'macos',
+   method: 'homebrew'
 }
 
 const mockLatestRelease: LatestRelease = {

@@ -26,6 +26,14 @@ export interface LatestRelease {
    url: string
 }
 
+export type InstallMethod = 'homebrew' | 'scoop' | 'manual' | 'web'
+export type InstallPlatform = 'macos' | 'windows' | 'linux' | 'other'
+
+export interface InstallInfo {
+   platform: InstallPlatform
+   method: InstallMethod
+}
+
 /* Kraken — live calls */
 
 export interface BalancesResponse {

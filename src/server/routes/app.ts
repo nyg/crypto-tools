@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { installInfo } from '../install'
 import { messageOf } from '../errors'
 import type { LatestRelease } from '../../types/api'
 
@@ -8,7 +9,9 @@ interface CachedRelease {
    expiresAt: number
 }
 
-const app = new Hono()
+export interface AppRouteOptions {
+   desktop?: boolean
+}
 
 const LATEST_RELEASE_URL = 'https://api.github.com/repos/nyg/crypto-tools/releases/latest'
 const RELEASES_URL = 'https://github.com/nyg/crypto-tools/releases/latest'
@@ -39,24 +42,31 @@ async function fetchLatestRelease(): Promise<LatestRelease> {
    return { version, url: release.html_url || RELEASES_URL }
 }
 
-app.get('/latest-release', async (c) => {
+export default function appRoutes({ desktop = false }: AppRouteOptions = {}) {
 
-   if (cached && Date.now() < cached.expiresAt) {
-      return cached.release
-         ? c.json(cached.release)
-         : c.json({ error: cached.error }, 502)
-   }
+   const app = new Hono()
 
-   try {
-      const release = await fetchLatestRelease()
-      cached = { release, expiresAt: Date.now() + SUCCESS_TTL_MS }
-      return c.json(release)
-   }
-   catch (error) {
-      console.warn('Could not read the latest release:', messageOf(error))
-      cached = { error: 'Could not check for updates.', expiresAt: Date.now() + FAILURE_TTL_MS }
-      return c.json({ error: cached.error }, 502)
-   }
-})
+   app.get('/install', (c) => c.json(installInfo(desktop)))
 
-export default app
+   app.get('/latest-release', async (c) => {
+
+      if (cached && Date.now() < cached.expiresAt) {
+         return cached.release
+            ? c.json(cached.release)
+            : c.json({ error: cached.error }, 502)
+      }
+
+      try {
+         const release = await fetchLatestRelease()
+         cached = { release, expiresAt: Date.now() + SUCCESS_TTL_MS }
+         return c.json(release)
+      }
+      catch (error) {
+         console.warn('Could not read the latest release:', messageOf(error))
+         cached = { error: 'Could not check for updates.', expiresAt: Date.now() + FAILURE_TTL_MS }
+         return c.json({ error: cached.error }, 502)
+      }
+   })
+
+   return app
+}
