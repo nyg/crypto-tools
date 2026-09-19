@@ -511,8 +511,6 @@ export default class PortfolioService {
       }
       plans.set(stored.id, stored)
 
-      const assets = [...new Set([...targets.keys(), ...plan.before.keys(), ...plan.after.keys()])]
-
       return {
          planId: stored.id,
          portfolioId: portfolio.id,
@@ -528,12 +526,6 @@ export default class PortfolioService {
             asset, symbol, side, unit, amount: amount.toFixed(), price: price.toFixed(), value: decimal(value)
          })),
          skipped: plan.skipped.map(({ asset, reason, value }) => ({ asset, reason, value: decimal(value) })),
-         weights: assets.map(asset => ({
-            asset,
-            before: decimal(plan.before.get(asset) ?? ZERO, 4),
-            after: decimal(plan.after.get(asset) ?? ZERO, 4),
-            target: (targets.get(asset) ?? ZERO).toFixed()
-         })),
          cashAfter: decimal(plan.cashAfter),
          shortfall: decimal(plan.shortfall),
          canTrade: account.canTrade

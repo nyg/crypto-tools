@@ -5,7 +5,9 @@ import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
 import NumericInput from '../lib/numeric-input'
 import RunProgress from './run-progress'
+import { cn } from '@/lib/utils'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -16,11 +18,12 @@ import {
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { asCount } from '../lib/filter-options'
-import { asQuantity, asQuoteAmount, asWeight, runStatusLabels, skipReasons } from './format'
+import { asQuantity, asQuoteAmount, runStatusLabels, skipReasons } from './format'
 import type {
    PortfolioExecuteRequest, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun,
    PortfolioRunResponse, PortfolioSummary
 } from '../../../types/api'
+import type { OrderSide } from '../../../types/portfolio'
 
 export interface PlanTarget {
    portfolio: PortfolioSummary
@@ -34,6 +37,11 @@ interface PlanDialogProps {
    target: PlanTarget | null
    onOpenChange: (open: boolean) => void
    onFinished: () => void
+}
+
+const sideColours: Record<OrderSide, string> = {
+   buy: 'bg-emerald-600/10 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300',
+   sell: 'bg-rose-600/10 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300'
 }
 
 const totalOf = (plan: PortfolioPlanResponse, side: 'buy' | 'sell') =>
@@ -56,7 +64,7 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
    return (
       <div className="space-y-4">
          {plan.orders.length > 0
-            ? <Table className="tabular-nums">
+            ? <Table className="text-[13px] tabular-nums">
                <TableHeader>
                   <TableRow>
                      <TableHead>Order</TableHead>
@@ -68,7 +76,12 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                <TableBody>
                   {plan.orders.map((order, index) =>
                      <TableRow key={`${order.symbol}-${index}`}>
-                        <TableCell className="font-medium capitalize">{order.side} {order.asset}</TableCell>
+                        <TableCell>
+                           <div className="flex items-center gap-2">
+                              <Badge className={cn('w-10 capitalize', sideColours[order.side])}>{order.side}</Badge>
+                              <span className="font-medium">{order.asset}</span>
+                           </div>
+                        </TableCell>
                         <TableCell className="text-right">
                            {asQuantity(order.amount)} {order.unit === 'base' ? order.asset : quote}
                         </TableCell>
@@ -93,26 +106,6 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                      {Number(skip.value) > 0 && ` (about ${asQuoteAmount(skip.value, quote)})`}
                   </li>)}
             </ul>}
-
-         <Table className="tabular-nums">
-            <TableHeader>
-               <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead className="text-right">Target</TableHead>
-                  <TableHead className="text-right">Now</TableHead>
-                  <TableHead className="text-right">After, about</TableHead>
-               </TableRow>
-            </TableHeader>
-            <TableBody>
-               {plan.weights.map(weight =>
-                  <TableRow key={weight.asset}>
-                     <TableCell className="font-medium">{weight.asset}</TableCell>
-                     <TableCell className="text-right">{asWeight(weight.target)}</TableCell>
-                     <TableCell className="text-right">{asWeight(weight.before)}</TableCell>
-                     <TableCell className="text-right">{asWeight(weight.after)}</TableCell>
-                  </TableRow>)}
-            </TableBody>
-         </Table>
 
          {Number(plan.shortfall) > 0 &&
             <Alert variant="destructive">

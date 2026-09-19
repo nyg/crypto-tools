@@ -328,14 +328,7 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
    const planId = `mock-plan-${state.nextId++}`
    state.plans.set(planId, { portfolioId: portfolio.id, orders, withdraw, all: Boolean(request.all) })
 
-   const after = new Map(Object.entries(portfolio.holdings).map(([asset, amount]) => [asset, amount * (prices[asset] ?? 0)]))
-   for (const order of orders) {
-      const sign = order.side === 'buy' ? 1 : -1
-      after.set(order.asset, (after.get(order.asset) ?? 0) + sign * Number(order.value))
-      after.set(quote, (after.get(quote) ?? 0) - sign * Number(order.value))
-   }
-   after.set(quote, (after.get(quote) ?? 0) - withdraw)
-   const afterTotal = [...after.values()].reduce((sum, value) => sum + value, 0)
+   const traded = orders.reduce((sum, order) => sum + (order.side === 'sell' ? 1 : -1) * Number(order.value), 0)
 
    return {
       planId,
@@ -350,13 +343,7 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       withdraw: fixed(withdraw, 2),
       orders,
       skipped,
-      weights: [...new Set([...weights.keys(), ...after.keys()])].map(asset => ({
-         asset,
-         before: fixed(total > 0 ? (portfolio.holdings[asset] ?? 0) * (prices[asset] ?? 0) / total * 100 : 0, 4),
-         after: fixed(afterTotal > 0 ? (after.get(asset) ?? 0) / afterTotal * 100 : 0, 4),
-         target: String(weights.get(asset) ?? 0)
-      })),
-      cashAfter: fixed(after.get(quote) ?? 0, 2),
+      cashAfter: fixed(cash + traded - withdraw, 2),
       shortfall: '0',
       canTrade: true
    }

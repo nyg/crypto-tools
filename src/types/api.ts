@@ -448,13 +448,6 @@ export interface PortfolioPlanSkip {
    value: string
 }
 
-export interface PortfolioPlanWeight {
-   asset: string
-   before: string
-   after: string
-   target: string
-}
-
 export interface PortfolioPlanResponse {
    planId: string
    portfolioId: number
@@ -468,7 +461,6 @@ export interface PortfolioPlanResponse {
    withdraw: string
    orders: PortfolioPlanOrder[]
    skipped: PortfolioPlanSkip[]
-   weights: PortfolioPlanWeight[]
    cashAfter: string
    shortfall: string
    canTrade: boolean
