@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import { ArchiveIcon, ArrowDownToLineIcon, ArrowUpFromLineIcon, HistoryIcon, PencilIcon, ScaleIcon } from 'lucide-react'
+import { ArchiveIcon, ArrowRightLeftIcon, CircleMinusIcon, CirclePlusIcon, HistoryIcon, SlidersHorizontalIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import HoldingsTable from './holdings-table'
 import { asDecimal } from '../../../utils/format'
 import { asQuoteAmount, asSignedQuoteAmount } from './format'
@@ -42,9 +42,6 @@ export default function PortfolioCard({
                <Badge variant="outline">band ±{asDecimal(Number(portfolio.band), 1)} pt</Badge>
                {portfolio.needsRebalance && <Badge variant="destructive">Needs rebalance</Badge>}
             </CardTitle>
-            <CardDescription>
-               {portfolio.targets.map(({ asset, weight }) => `${asset} ${weight}%`).join(' · ')}
-            </CardDescription>
          </CardHeader>
          <CardContent className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-4">
@@ -60,16 +57,16 @@ export default function PortfolioCard({
                </div>
                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" disabled={busy} onClick={onDeposit}>
-                     <ArrowDownToLineIcon /> Deposit
+                     <CirclePlusIcon /> Deposit
                   </Button>
                   <Button size="sm" variant="outline" disabled={busy || empty} onClick={onWithdraw}>
-                     <ArrowUpFromLineIcon /> Withdraw
+                     <CircleMinusIcon /> Withdraw
                   </Button>
                   <Button size="sm" disabled={busy || empty} onClick={onRebalance}>
-                     <ScaleIcon /> Rebalance
+                     <ArrowRightLeftIcon /> Rebalance
                   </Button>
                   <Button size="icon-sm" variant="ghost" title="Edit targets" onClick={onEdit}>
-                     <PencilIcon /><span className="sr-only">Edit targets</span>
+                     <SlidersHorizontalIcon /><span className="sr-only">Edit targets</span>
                   </Button>
                   <Button size="icon-sm" variant="ghost" title="History" onClick={onHistory}>
                      <HistoryIcon /><span className="sr-only">History</span>
