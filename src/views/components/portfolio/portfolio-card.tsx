@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import HoldingsTable from './holdings-table'
 import { asDecimal } from '../../../utils/format'
-import { asQuoteAmount, asSignedQuoteAmount } from './format'
+import { asQuoteAmount, asSignedQuoteAmount, profitColor } from './format'
 import type { PortfolioSummary } from '../../../types/api'
 
 interface PortfolioCardProps {
@@ -30,7 +30,6 @@ export default function PortfolioCard({
    portfolio, busy, onDeposit, onWithdraw, onRebalance, onEdit, onHistory, onArchive
 }: PortfolioCardProps) {
 
-   const profit = Number(portfolio.profit)
    const empty = Number(portfolio.value) === 0
 
    return (
@@ -48,9 +47,7 @@ export default function PortfolioCard({
                <div className="flex flex-wrap gap-x-8 gap-y-3">
                   <Stat label="Value">{asQuoteAmount(portfolio.value, portfolio.quoteAsset)}</Stat>
                   <Stat label="Net deposited">{asQuoteAmount(portfolio.netInvested, portfolio.quoteAsset)}</Stat>
-                  <Stat
-                     label="Profit / loss"
-                     className={cn(profit > 0 && 'text-emerald-600 dark:text-emerald-400', profit < 0 && 'text-destructive')}>
+                  <Stat label="Profit / loss" className={profitColor(portfolio.profit)}>
                      {asSignedQuoteAmount(portfolio.profit, portfolio.quoteAsset)}
                   </Stat>
                   <Stat

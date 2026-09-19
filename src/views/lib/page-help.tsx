@@ -97,8 +97,11 @@ const pageHelp: Record<string, ReactNode> = {
          database on this machine; whatever no portfolio holds shows as{' '}
          <b>unallocated</b>, and trades you make on Bybit yourself never touch a portfolio.
          Rebalancing and withdrawing preview their orders first and only place spot
-         market orders once you confirm. Switch to <b>Demo</b> to try it with Bybit&apos;s
-         test funds.
+         market orders once you confirm. Profit is split per coin at average cost:{' '}
+         <b>unrealized</b> is what the coins still held are worth above what they cost, and{' '}
+         <b>realized</b> is what sells brought in above that cost, after fees. A coin you
+         deposit counts at its value on the day it came in. Switch to <b>Demo</b> to try it
+         with Bybit&apos;s test funds.
       </>,
 
    '/tools/trade-calculator':

@@ -2,8 +2,10 @@ import { describe, expect, test } from 'bun:test'
 import Big from 'big.js'
 import { foldHoldings } from './holdings'
 import { PlanError, planPortfolio, splitAmount } from './planner'
+import { foldPositions } from './positions'
 import { TargetError, validateTargets } from './targets'
 import type { PlanInput, PlanMarket } from './planner'
+import type { PositionMovement, PositionOrder } from './positions'
 
 function market(base: string, price: string, overrides: Partial<Record<keyof PlanMarket, string>> = {}): PlanMarket {
    const values = {
@@ -268,6 +270,81 @@ describe('folding holdings', () => {
       const holdings = foldHoldings([{ asset: 'USDT', amount: '100' }, { asset: 'MNT', amount: '-0.25' }])
 
       expect(holdings.get('MNT')!.toFixed()).toBe('-0.25')
+   })
+})
+
+const movement = (createdAt: number, kind: PositionMovement['kind'], asset: string, amount: string, value = '0', orderLinkId: string | null = null): PositionMovement =>
+   ({ kind, asset, amount, value, orderLinkId, createdAt })
+
+const order = (createdAt: number, orderLinkId: string, side: PositionOrder['side'], base: string, quote: string): PositionOrder =>
+   ({ orderLinkId, side, baseAsset: 'BTC', base, quote, createdAt })
+
+describe('folding positions', () => {
+
+   test('realizes a sell against the average cost of every buy before it', () => {
+      const { coins } = foldPositions('USDT',
+         [movement(0, 'deposit', 'USDT', '2000', '2000'), movement(4, 'fee', 'USDT', '-0.7', '0', 'sell-1')],
+         [order(1, 'buy-1', 'buy', '0.01', '500'), order(2, 'buy-2', 'buy', '0.01', '600'), order(3, 'sell-1', 'sell', '0.01', '700')])
+
+      const btc = coins.get('BTC')!
+      expect(btc.quantity.toFixed()).toBe('0.01')
+      expect(btc.cost.toFixed()).toBe('550')
+      expect(btc.realized.toFixed()).toBe('149.3')
+   })
+
+   test('folds a buy fee paid in the coin into its average cost', () => {
+      const { coins } = foldPositions('USDT',
+         [movement(2, 'fee', 'BTC', '-0.00001', '0', 'buy-1')],
+         [order(1, 'buy-1', 'buy', '0.01', '500')])
+
+      const btc = coins.get('BTC')!
+      expect(btc.quantity.toFixed()).toBe('0.00999')
+      expect(btc.cost.toFixed()).toBe('500')
+      expect(btc.realized.toFixed()).toBe('0')
+   })
+
+   test('applies a fee with its order even when it was recorded after later events', () => {
+      const { coins } = foldPositions('USDT',
+         [movement(9, 'fee', 'BTC', '-0.01', '0', 'buy-1')],
+         [order(1, 'buy-1', 'buy', '0.02', '1000'), order(2, 'sell-1', 'sell', '0.005', '300')])
+
+      const btc = coins.get('BTC')!
+      expect(btc.quantity.toFixed()).toBe('0.005')
+      expect(btc.cost.toFixed()).toBe('500')
+      expect(btc.realized.toFixed()).toBe('-200')
+   })
+
+   test('costs a deposited coin at its value on the day it came in', () => {
+      const { coins } = foldPositions('USDT', [movement(1, 'deposit', 'BTC', '0.01', '400')],
+         [order(2, 'sell-1', 'sell', '0.005', '300')])
+
+      const btc = coins.get('BTC')!
+      expect(btc.cost.toFixed()).toBe('200')
+      expect(btc.realized.toFixed()).toBe('100')
+   })
+
+   test('counts an adjustment up as free coins and one down as lost cost', () => {
+      const { coins } = foldPositions('USDT', [
+         movement(1, 'deposit', 'BTC', '0.01', '400'),
+         movement(2, 'adjust', 'BTC', '0.01', '500'),
+         movement(3, 'adjust', 'BTC', '-0.005', '-250')
+      ], [])
+
+      const btc = coins.get('BTC')!
+      expect(btc.quantity.toFixed()).toBe('0.015')
+      expect(btc.cost.toFixed()).toBe('300')
+      expect(btc.realized.toFixed()).toBe('-100')
+   })
+
+   test('keeps cash out of the coins and books its adjustments on their own', () => {
+      const { coins, cashRealized } = foldPositions('USDT', [
+         movement(1, 'deposit', 'USDT', '1000', '1000'),
+         movement(2, 'adjust', 'USDT', '-30', '-30'),
+         movement(3, 'withdraw', 'USDT', '-500', '500')
+      ], [])
+
+      expect(coins.size).toBe(0)
+      expect(cashRealized.toFixed()).toBe('-30')
    })
 })
 

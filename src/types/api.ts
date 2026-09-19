@@ -321,6 +321,9 @@ export interface PortfolioHolding {
    weight: string | null
    target: string
    drift: string | null
+   averageCost: string | null
+   unrealized: string | null
+   realized: string
 }
 
 export interface PortfolioSummary {
@@ -335,6 +338,9 @@ export interface PortfolioSummary {
    valueNum: number
    netInvested: string
    profit: string
+   realized: string
+   unrealized: string
+   closedRealized: string
    maxDrift: string
    needsRebalance: boolean
    quoteLocked: boolean

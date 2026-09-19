@@ -4,6 +4,7 @@ import PortfolioRepository from '../../db/portfolio-repository'
 import { HttpRequesterError, messageOf } from '../../errors'
 import { foldHoldings, sameHoldings } from './holdings'
 import { buyFits, buyScale, floorTo, planPortfolio } from './planner'
+import { foldPositions } from './positions'
 import { validateTargets } from './targets'
 import type { PortfolioExchange } from './exchange'
 import type { PlanMarket, PlannedOrder } from './planner'
@@ -218,10 +219,11 @@ export default class PortfolioService {
       const holdings = this.#holdings(repository)
       const targets = groupBy(repository.targets(), row => row.portfolioId)
       const movements = groupBy(repository.movements(), row => row.portfolioId)
+      const orders = groupBy(repository.orders(), row => row.portfolioId)
 
       const portfolios = repository.portfolios().map(portfolio => this.#summarize(
          repository, portfolio, targets.get(portfolio.id) ?? [], holdings.get(portfolio.id) ?? new Map(),
-         movements.get(portfolio.id) ?? [], prices))
+         movements.get(portfolio.id) ?? [], orders.get(portfolio.id) ?? [], prices))
 
       const { coins, totalValue, unallocatedValue } = this.#coins(wallet, [...holdings.values()], prices)
       const activeRun = repository.runningRuns().find(run => liveRuns.has(run.id))
@@ -243,10 +245,12 @@ export default class PortfolioService {
 
    #summarize(
       repository: PortfolioRepository, portfolio: PortfolioRow, targets: PortfolioTargetRow[],
-      holdings: Map<string, Big>, movements: PortfolioMovementRow[], prices: Record<string, SpotPrice>
+      holdings: Map<string, Big>, movements: PortfolioMovementRow[], orders: PortfolioOrderRow[],
+      prices: Record<string, SpotPrice>
    ): PortfolioSummary {
 
       const quote = portfolio.quoteAsset
+      const positions = foldPositions(quote, movements, orders)
       const weights = new Map(targets.map(({ asset, weight }) => [asset, Big(weight)]))
       const others = [...holdings.keys()].filter(asset => !weights.has(asset))
       const assets = [...weights.keys(), ...others]
@@ -262,6 +266,8 @@ export default class PortfolioService {
       const rows: PortfolioHolding[] = valued.map(({ asset, quantity, price, value }) => {
          const target = weights.get(asset) ?? ZERO
          const weight = value && total.gt(0) ? value.div(total).times(HUNDRED) : null
+         const position = asset === quote ? null : positions.coins.get(asset) ?? null
+         const realized = asset === quote ? positions.cashRealized : position?.realized ?? ZERO
          return {
             asset,
             quantity: quantity.toFixed(),
@@ -270,9 +276,18 @@ export default class PortfolioService {
             valueNum: value ? value.toNumber() : 0,
             weight: weight ? decimal(weight, 4) : null,
             target: target.toFixed(),
-            drift: weight ? decimal(weight.minus(target), 4) : null
+            drift: weight ? decimal(weight.minus(target), 4) : null,
+            averageCost: position?.quantity.gt(0) ? decimal(position.cost.div(position.quantity)) : null,
+            unrealized: position && value ? decimal(value.minus(position.cost)) : null,
+            realized: decimal(realized)
          }
       })
+
+      const listed = new Set(assets)
+      const realizedTotal = [...positions.coins].reduce((sum, [asset, position]) =>
+         sum.plus(position.realized).minus(listed.has(asset) ? ZERO : position.cost), positions.cashRealized)
+      const unrealizedTotal = rows.reduce((sum, row) => sum.plus(row.unrealized ?? ZERO), ZERO)
+      const realizedInRows = rows.reduce((sum, row) => sum.plus(row.realized), ZERO)
 
       const maxDrift = rows.reduce((max, { drift }) => {
          const absolute = drift ? Big(drift).abs() : ZERO
@@ -297,6 +312,9 @@ export default class PortfolioService {
          valueNum: total.toNumber(),
          netInvested: decimal(netInvested),
          profit: decimal(total.minus(netInvested)),
+         realized: decimal(realizedTotal),
+         unrealized: decimal(unrealizedTotal),
+         closedRealized: decimal(realizedTotal.minus(realizedInRows)),
          maxDrift: decimal(maxDrift, 4),
          needsRebalance: total.gt(0) && maxDrift.gt(portfolio.band),
          quoteLocked: repository.hasActivity(portfolio.id)
