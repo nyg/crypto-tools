@@ -321,7 +321,6 @@ export interface PortfolioHolding {
    weight: string | null
    target: string
    drift: string | null
-   averageCost: string | null
    unrealized: string | null
    realized: string
 }

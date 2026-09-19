@@ -22,7 +22,6 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                <TableHead className="text-right">Current</TableHead>
                <TableHead className="text-right">Drift</TableHead>
                <TableHead className="text-right">Quantity</TableHead>
-               <TableHead className="text-right">Avg cost</TableHead>
                <TableHead className="text-right">Price</TableHead>
                <TableHead className="text-right">Value</TableHead>
                <TableHead className="text-right">Unrealized</TableHead>
@@ -41,7 +40,7 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                            {holding.asset}
                            <span className="ml-2 text-xs text-muted-foreground">cash</span>
                         </TableCell>
-                        <TableCell colSpan={6} />
+                        <TableCell colSpan={5} />
                         <TableCell className="text-right">{asQuoteAmount(holding.value, quote)}</TableCell>
                         <TableCell />
                         {realizedShown ? <ProfitCell value={holding.realized} quote={quote} /> : <TableCell />}
@@ -65,7 +64,6 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                      <TableCell className={cn('text-right', Number(holding.quantity) < 0 && 'text-destructive')}>
                         {asQuantity(holding.quantity)}
                      </TableCell>
-                     <TableCell className="text-right text-muted-foreground">{asQuantity(holding.averageCost)}</TableCell>
                      <TableCell className="text-right text-muted-foreground">
                         {holding.price === null ? 'no price' : asQuantity(holding.price)}
                      </TableCell>
@@ -77,13 +75,13 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
             })}
             {!showsAsZeroQuoteAmount(portfolio.closedRealized) &&
                <TableRow>
-                  <TableCell colSpan={9} className="text-muted-foreground">Closed positions</TableCell>
+                  <TableCell colSpan={8} className="text-muted-foreground">Closed positions</TableCell>
                   <ProfitCell value={portfolio.closedRealized} quote={quote} />
                </TableRow>}
          </TableBody>
          <TableFooter>
             <TableRow>
-               <TableCell colSpan={7}>Total</TableCell>
+               <TableCell colSpan={6}>Total</TableCell>
                <TableCell className="text-right">{asQuoteAmount(portfolio.value, quote)}</TableCell>
                <ProfitCell value={portfolio.unrealized} quote={quote} />
                <ProfitCell value={portfolio.realized} quote={quote} />

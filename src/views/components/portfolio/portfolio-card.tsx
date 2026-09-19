@@ -5,8 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import HoldingsTable from './holdings-table'
-import { asDecimal } from '../../../utils/format'
-import { asQuoteAmount, asSignedQuoteAmount, profitColor } from './format'
+import { asPoints, asQuoteAmount, asSignedQuoteAmount, profitColor } from './format'
 import type { PortfolioSummary } from '../../../types/api'
 
 interface PortfolioCardProps {
@@ -38,7 +37,7 @@ export default function PortfolioCard({
             <CardTitle className="flex flex-wrap items-center gap-2">
                {portfolio.name}
                <Badge variant="outline">{portfolio.quoteAsset}</Badge>
-               <Badge variant="outline">band ±{asDecimal(Number(portfolio.band), 1)} pt</Badge>
+               <Badge variant="outline">band ±{asPoints(portfolio.band)} pt</Badge>
                {portfolio.needsRebalance && <Badge variant="destructive">Needs rebalance</Badge>}
             </CardTitle>
          </CardHeader>
@@ -55,7 +54,7 @@ export default function PortfolioCard({
                      className={Number(portfolio.maxDrift) > Number(portfolio.band)
                         ? 'text-destructive'
                         : 'text-emerald-600 dark:text-emerald-400'}>
-                     {asDecimal(Number(portfolio.maxDrift), 2)} pt
+                     {asPoints(portfolio.maxDrift)} pt
                   </Stat>
                </div>
                <div className="flex flex-wrap gap-2">

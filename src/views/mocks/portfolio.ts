@@ -136,7 +136,6 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          weight: weight === null ? null : fixed(weight, 4),
          target: String(target),
          drift: weight === null ? null : fixed(weight - target, 4),
-         averageCost: cost !== undefined && quantity > 0 ? fixed(cost / quantity) : null,
          unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
          realized: fixed(portfolio.realized[asset] ?? 0)
       }

@@ -272,7 +272,6 @@ describe('profit split into realized and unrealized', () => {
          const portfolio = (await service().overview()).portfolios.find(({ id }) => id === portfolioId)!
          const btc = portfolio.holdings.find(({ asset }) => asset === 'BTC')!
 
-         expect(btc.averageCost).toBe('50000')
          expect(Big(btc.unrealized!).eq(Big(btc.quantity).times(10000))).toBe(true)
          expect(Big(btc.realized).gt(0)).toBe(true)
          expect(portfolio.closedRealized).toBe('0')

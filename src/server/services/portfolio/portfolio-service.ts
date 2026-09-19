@@ -277,7 +277,6 @@ export default class PortfolioService {
             weight: weight ? decimal(weight, 4) : null,
             target: target.toFixed(),
             drift: weight ? decimal(weight.minus(target), 4) : null,
-            averageCost: position?.quantity.gt(0) ? decimal(position.cost.div(position.quantity)) : null,
             unrealized: position && value ? decimal(value.minus(position.cost)) : null,
             realized: decimal(realized)
          }
