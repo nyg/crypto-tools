@@ -129,7 +129,12 @@ export default class PortfolioRepository {
       this.#db.query<void, Params>('DELETE FROM portfolio_target WHERE portfolio_id = ?').run(portfolioId)
       const insert = this.#db.prepare<void, Params>(
          'INSERT INTO portfolio_target (portfolio_id, asset, weight, position) VALUES (?, ?, ?, ?)')
-      targets.forEach(({ asset, weight }, position) => insert.run(portfolioId, asset, weight, position))
+      try {
+         targets.forEach(({ asset, weight }, position) => insert.run(portfolioId, asset, weight, position))
+      }
+      finally {
+         insert.finalize()
+      }
    }
 
    archive(id: number, now = Date.now()): boolean {
@@ -188,9 +193,14 @@ export default class PortfolioRepository {
                base_asset, quote_asset, unit, requested, status, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`)
 
-         for (const order of orders) {
-            insert.run(order.orderLinkId, run.id, run.portfolioId, order.seq, order.symbol, order.side,
-               order.baseAsset, order.quoteAsset, order.unit, order.requested, run.startedAt, run.startedAt)
+         try {
+            for (const order of orders) {
+               insert.run(order.orderLinkId, run.id, run.portfolioId, order.seq, order.symbol, order.side,
+                  order.baseAsset, order.quoteAsset, order.unit, order.requested, run.startedAt, run.startedAt)
+            }
+         }
+         finally {
+            insert.finalize()
          }
       })()
    }
