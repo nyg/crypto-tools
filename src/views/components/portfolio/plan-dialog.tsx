@@ -4,10 +4,9 @@ import { toast } from 'sonner'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
 import NumericInput from '../lib/numeric-input'
+import OrderLabel from './order-label'
 import RunProgress from './run-progress'
-import { cn } from '@/lib/utils'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -23,7 +22,6 @@ import type {
    PortfolioExecuteRequest, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun,
    PortfolioRunResponse, PortfolioSummary
 } from '../../../types/api'
-import type { OrderSide } from '../../../types/portfolio'
 
 export interface PlanTarget {
    portfolio: PortfolioSummary
@@ -37,11 +35,6 @@ interface PlanDialogProps {
    target: PlanTarget | null
    onOpenChange: (open: boolean) => void
    onFinished: () => void
-}
-
-const sideColours: Record<OrderSide, string> = {
-   buy: 'bg-emerald-600/10 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300',
-   sell: 'bg-rose-600/10 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300'
 }
 
 const totalOf = (plan: PortfolioPlanResponse, side: 'buy' | 'sell') =>
@@ -76,12 +69,7 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                <TableBody>
                   {plan.orders.map((order, index) =>
                      <TableRow key={`${order.symbol}-${index}`}>
-                        <TableCell>
-                           <div className="flex items-center gap-2">
-                              <Badge className={cn('w-10 capitalize', sideColours[order.side])}>{order.side}</Badge>
-                              <span className="font-medium">{order.asset}</span>
-                           </div>
-                        </TableCell>
+                        <TableCell><OrderLabel side={order.side} asset={order.asset} /></TableCell>
                         <TableCell className="text-right">
                            {asQuantity(order.amount)} {order.unit === 'base' ? order.asset : quote}
                         </TableCell>

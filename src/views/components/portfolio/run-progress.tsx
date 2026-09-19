@@ -4,6 +4,7 @@ import { Loader2Icon } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import OrderLabel from './order-label'
 import { asQuantity, asQuoteAmount, orderStatusLabels, runStatusLabels } from './format'
 import type { PortfolioRun, PortfolioRunRequest, PortfolioRunResponse } from '../../../types/api'
 import type { RunOrderStatus } from '../../../types/portfolio'
@@ -13,7 +14,7 @@ const badgeVariant = (status: RunOrderStatus) =>
 
 export function RunOrdersTable({ run, quoteAsset }: { run: PortfolioRun, quoteAsset: string }) {
    return (
-      <Table className="tabular-nums">
+      <Table className="text-[13px] tabular-nums">
          <TableHeader>
             <TableRow>
                <TableHead>Order</TableHead>
@@ -29,7 +30,7 @@ export function RunOrdersTable({ run, quoteAsset }: { run: PortfolioRun, quoteAs
                const base = order.symbol.replace(new RegExp(`${quoteAsset}$`), '')
                return (
                   <TableRow key={order.orderLinkId}>
-                     <TableCell className="font-medium capitalize">{order.side} {base}</TableCell>
+                     <TableCell><OrderLabel side={order.side} asset={base} /></TableCell>
                      <TableCell className="text-right">
                         {asQuantity(order.requested)} {order.unit === 'base' ? base : quoteAsset}
                      </TableCell>
