@@ -70,6 +70,9 @@ const HUNDRED = Big(100)
 export const floorTo = (amount: Big, step: Big): Big =>
    step.gt(0) ? amount.div(step).round(0, Big.roundDown).times(step) : amount
 
+export const ceilTo = (amount: Big, step: Big): Big =>
+   step.gt(0) ? amount.div(step).round(0, Big.roundUp).times(step) : amount
+
 export function splitAmount(amount: Big, max: Big, step: Big): Big[] {
    if (max.lte(0) || amount.lte(max)) return [amount]
    const count = amount.div(max).round(0, Big.roundUp).toNumber()
@@ -180,7 +183,7 @@ export function planPortfolio(input: PlanInput): Plan {
          const needed = reserve.minus(cash)
          const share = overTotal.gt(0) ? needed.div(overTotal) : ZERO
          for (const { asset, value } of over) {
-            const gross = value.times(share).times(Big(1).plus(feeRate))
+            const gross = value.times(share).div(Big(1).minus(feeRate))
             const worth = values.get(asset)!
             sells.push({ asset, value: gross.gt(worth) ? worth : gross, all: gross.gte(worth) })
          }
@@ -225,7 +228,8 @@ export function planPortfolio(input: PlanInput): Plan {
          continue
       }
 
-      const wanted = all ? quantity : value.div(market.bid)
+      const sized = withdraw.gt(0) ? ceilTo(value.div(market.bid), market.baseStep) : value.div(market.bid)
+      const wanted = all ? quantity : sized
       const planned = sellOrders(market, wanted.gt(cap) ? cap : wanted)
 
       if (planned.length === 0) skipped.push({ asset, reason: 'below-minimum', value })

@@ -658,7 +658,8 @@ export default class PortfolioService {
          }
 
          const settled = repository.runOrders(runId)
-         const short = !stored.withdrawAll && withdrawn.lt(stored.withdraw)
+         const tolerated = stored.withdraw.times(Big(1).minus(Big(stored.slippage).div(HUNDRED)))
+         const short = !stored.withdrawAll && withdrawn.lt(tolerated)
          status = settled.some(order => order.status !== 'filled') || short ? 'partial' : 'done'
       }
       catch (caught) {

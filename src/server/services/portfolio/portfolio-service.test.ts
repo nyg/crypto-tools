@@ -222,6 +222,29 @@ describe('a portfolio from creation to withdrawal', () => {
    })
 })
 
+describe('a withdrawal that fills below the preview price', () => {
+
+   test('still counts as done while the shortfall is within the slippage allowed', async () => {
+      const { id: portfolioId } = await service().save({
+         name: 'Slipping', quoteAsset: 'USDT', band: '1', targets: [{ asset: 'BTC', weight: '100' }]
+      })
+      await service().deposit({ portfolioId, asset: 'BTC', amount: '0.01' })
+      const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '100' })
+
+      prices.BTCUSDT = { ...prices.BTCUSDT!, last: '49750' }
+      try {
+         const run = await finished((await service().execute({ planId: plan.planId })).run.id)
+         expect(Number(run.withdrawn)).toBeLessThan(100)
+         expect(run.status).toBe('done')
+      }
+      finally {
+         prices.BTCUSDT = { ...prices.BTCUSDT!, last: '50000' }
+      }
+
+      await service().archive({ portfolioId })
+   })
+})
+
 describe('reconciliation', () => {
 
    test('marks a run the server no longer tracks as interrupted', async () => {

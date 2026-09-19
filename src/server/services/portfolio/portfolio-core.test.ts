@@ -191,6 +191,23 @@ describe('a withdrawal plan', () => {
       expect(plan.cashAfter.gte(0)).toBe(true)
    })
 
+   test('raises the whole amount net of fees, rounding each sell up to its lot step', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.02', ETH: '0.4', USDT: '0' },
+         markets: new Map([
+            ['BTC', market('BTC', '50000', { baseStep: '0.0001' })],
+            ['ETH', market('ETH', '2500', { baseStep: '0.001' })]
+         ]),
+         withdraw: Big(500),
+         feeRate: Big('0.001')
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0051', 'sell ETH 0.101'])
+      expect(plan.shortfall.toFixed()).toBe('0')
+      expect(plan.cashAfter.gte(0)).toBe(true)
+   })
+
    test('sells everything to withdraw the whole value', () => {
       const plan = planPortfolio(input({
          holdingsOf: { BTC: '0.02', ETH: '0.2', USDT: '100' },
