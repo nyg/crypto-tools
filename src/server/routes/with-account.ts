@@ -1,6 +1,6 @@
 import type { Context } from 'hono'
 import { credentialsFor } from '../secrets'
-import { krakenAccountId } from '../settings'
+import { krakenAccountId, providers } from '../settings'
 import { HttpRequesterError } from '../errors'
 import type { Credentials, Provider } from '../../types/credentials'
 
@@ -16,10 +16,10 @@ export interface CredentialledContext extends HandlerContext {
    credentials: Credentials
 }
 
-export function handleError(c: Context, error: unknown): Response {
+export function handleError(c: Context, error: unknown, label = 'Kraken'): Response {
    if (error instanceof HttpRequesterError) {
-      console.log('An error happened while contacting the Kraken API:', error.cause)
-      return c.json({ error: `An error happened while contacting the Kraken API: ${error.cause}` }, 500)
+      console.log(`An error happened while contacting the ${label} API:`, error.cause)
+      return c.json({ error: `An error happened while contacting the ${label} API: ${error.cause}` }, 500)
    }
    console.error('An unexpected error happened:', error)
    return c.json({ error: 'An unexpected error happened.' }, 500)
@@ -60,6 +60,6 @@ export async function withCredentials(
       return await handler({ body: await readBody(c), credentials, accountId: krakenAccountId() })
    }
    catch (error) {
-      return handleError(c, error)
+      return handleError(c, error, providers[provider].label)
    }
 }

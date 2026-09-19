@@ -5,6 +5,7 @@ import { fetcher } from './lib/fetcher'
 import Home from './pages/home'
 import Settings from './pages/settings'
 import BinanceStaking from './pages/binance/staking'
+import BybitPortfolios from './pages/bybit/portfolios'
 import KrakenBalances from './pages/kraken/balances'
 import KrakenAggregatedTrades from './pages/kraken/aggregated-trades'
 import KrakenFees from './pages/kraken/fees'
@@ -28,6 +29,7 @@ export default function App() {
                <Route path="/" element={<Home />} />
                <Route path="/settings" element={<Settings />} />
                <Route path="/binance/staking" element={<BinanceStaking />} />
+               <Route path="/bybit/portfolios" element={<BybitPortfolios />} />
                <Route path="/kraken/balances" element={<KrakenBalances />} />
                <Route path="/kraken/aggregated-trades" element={<KrakenAggregatedTrades />} />
                <Route path="/kraken/fees" element={<KrakenFees />} />

@@ -15,7 +15,7 @@
 
 `typescript-eslint` cannot run against the TypeScript 7 compiler API ([typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)), so `package.json` uses the side-by-side layout TypeScript 7 documents: `@typescript/native` is an alias of `typescript@7` and provides the `tsc` binary that `bun run typecheck` runs, while `typescript` is an alias of `@typescript/typescript6` and provides the TS 6 API that ESLint imports (its own binary is named `tsc6`, so the two never collide). Type checking is therefore TypeScript 7; only the linter's parser is TypeScript 6. Collapse this back to a single `typescript` dependency once typescript-eslint supports TS 7.
 
-**Test**: `bun run test` (`bun test`). The only suite is `src/server/secrets.test.ts`, which drives the credential store through child processes — the modules hold process-wide state, and the data directory is read at import time. `CRYPTO_TOOLS_DATA_DIR` and `CRYPTO_TOOLS_KEYCHAIN_SERVICE` are what keep a run off your real keys. The store-backed cases skip themselves on a host with no secret service, which is why CI runs the suite on Windows as well as Ubuntu.
+**Test**: `bun run test` (`bun test`). `src/server/secrets.test.ts` drives the credential store through child processes — the modules hold process-wide state, and the data directory is read at import time. `CRYPTO_TOOLS_DATA_DIR` and `CRYPTO_TOOLS_KEYCHAIN_SERVICE` are what keep a run off your real keys. The store-backed cases skip themselves on a host with no secret service, which is why CI runs the suite on Windows as well as Ubuntu. `src/server/services/portfolio/portfolio-core.test.ts` covers the pure planner, holdings fold and target validation; `portfolio-service.test.ts` runs the portfolio service end to end against a fake exchange and a database in a temporary `CRYPTO_TOOLS_DATA_DIR`, set before the first `getDatabase()` call.
 
 ## README screenshots
 
@@ -29,7 +29,7 @@ The shadow numbers are not arbitrary — they were measured off the existing scr
 
 ## Architecture
 
-This is a **Vite + React Router + Hono** app providing cryptocurrency tools for Binance and Kraken exchanges, plus AI-powered asset classification via Anthropic. The desktop app is built with **[Electrobun](https://electrobun.dev/)**.
+This is a **Vite + React Router + Hono** app providing cryptocurrency tools for Binance, Kraken and Bybit exchanges, plus AI-powered asset classification via Anthropic. The desktop app is built with **[Electrobun](https://electrobun.dev/)**.
 
 The project is split into two runtime targets:
 
@@ -44,16 +44,18 @@ Vite proxies all `/api/*` requests to the Hono server during development. In pro
 
 **Components** (`src/views/components/`) — exchange-specific components live in `components/binance/` and `components/kraken/`. Custom wrapper components (NumericInput, Checkbox, Select, DateField, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: true`, and `radix-nova` style.
 
-**Adapters** (`src/server/adapters/`) — each external API has an adapter directory (`binance-api/`, `binance-gateway-api/`, `kraken-api/`, `anthropic/`) following a three-layer pattern:
+**Adapters** (`src/server/adapters/`) — each external API has an adapter directory (`binance-api/`, `binance-gateway-api/`, `bybit-api/`, `kraken-api/`, `anthropic/`) following a three-layer pattern:
 - `adapter.ts` — public interface with domain methods (constructor function, default export)
 - `resource.ts` — raw HTTP endpoint calls (named exports)
 - `authenticator.ts` — request signing as a higher-order function: `authenticator(credentials)` returns `async (request) => signedRequest`
 
 A single HTTP requester (`src/server/adapters/http-requester/server-http-requester.ts`) abstracts the transport layer using Bun's native `fetch`. It exports `httpRequester` as a pre-instantiated singleton.
 
-**Routes** (`src/server/routes/`) — Hono route handlers, one file per exchange (`binance.ts`, `kraken.ts`). Each route destructures credentials from the request body, validates they exist (401 if missing), instantiates the appropriate adapter, and returns JSON. Sub-routers are mounted from within their exchange's file (`kraken.ts` mounts `kraken-ledger.ts` at `/ledger`) rather than in the server entry points, because `app.ts` and `index.ts` each declare their own route table and only one of them runs in a given environment.
+**Routes** (`src/server/routes/`) — Hono route handlers, one file per exchange (`binance.ts`, `bybit.ts`, `kraken.ts`). Each route destructures credentials from the request body, validates they exist (401 if missing), instantiates the appropriate adapter, and returns JSON. Sub-routers are mounted from within their exchange's file (`kraken.ts` mounts `kraken-ledger.ts` at `/ledger`) rather than in the server entry points, because `app.ts` and `index.ts` each declare their own route table and only one of them runs in a given environment. `portfolios.ts` is a factory rather than a router: `bybit.ts` mounts `portfolioRoutes('bybit')` at `/portfolios` and `portfolioRoutes('bybitDemo')` at `/demo/portfolios`, and another exchange gets its own mount the same way. Its ids travel in the request body, never the path, because the mock fetcher matches exact URLs.
 
 **Database** (`src/server/db/`) — SQLite storage for the Kraken ledger via `bun:sqlite`. `paths.ts` resolves a per-user OS application data directory (never a cwd-relative path: the desktop app launches from Finder, where `process.cwd()` is `/`). `database.ts` opens a lazy singleton and applies `PRAGMA user_version`-based migrations. `ledger-repository.ts` is a constructor function scoped to one `account_id`, derived from a hash of the API key so that several Kraken accounts can be stored side by side. Amounts are stored as the exact decimal strings the API returned, never as floats or via `Big`, which would rewrite small values in exponential notation.
+
+**Portfolios** (`src/server/services/portfolio/`) — virtual portfolios, several per exchange account. A portfolio owns only what its own `portfolio_movement` rows (deposits, withdrawals, adjustments, fees) and `portfolio_order` fills add up to, folded with `Big` in `holdings.ts`; whatever no portfolio holds is the account's unallocated balance, and trades made outside the app never change a portfolio. `planner.ts` is pure: holdings, targets and market limits in, rounded market orders out, sells before buys. `portfolio-service.ts` keeps each preview in memory for two minutes under a `planId`, and `execute` refuses a preview whose holdings or prices have moved since; it writes the run and every order row before placing anything, runs them detached, and records each fill as it settles, so `overview` can reconcile a run the server stopped in the middle of by each order's `orderLinkId`. Everything exchange-specific sits behind `PortfolioExchange` in `exchange.ts`: `bybit-exchange.ts` is the one implementation, and `venues.ts` maps a venue to its provider and factory. The Bybit account id is the `userID` of the key, so rotating a key keeps the portfolios. Market data is always read from mainnet, because demo trading follows mainnet prices.
 
 **Services** (`src/server/services/`) — `rate-finder.ts` uses Dijkstra's algorithm (`modern-dijkstra`) to find trading pair paths and calculate fiat rates against USDT. `kraken-ledger-sync.ts` runs the multi-step ledger export as a background job held in an in-memory registry keyed by account, which the page follows by polling a status endpoint.
 
@@ -75,7 +77,7 @@ The SDK is imported from `electrobun/main` and comes from `.hutch/devkit`, not `
 
 API keys live in the OS credential store — Keychain on macOS, Credential Manager on Windows, libsecret on Linux — reached through `Bun.secrets` in `src/server/secrets.ts`, the only module that touches it. Read order per secret is environment, then the store, then `settings.json` as a fallback. A store that refuses a write is not an error: the value goes to the 0600 file instead, and the Settings page says so rather than implying otherwise. `src/server/settings.ts` owns that file and knows nothing about the store.
 
-Environment variables win only where an entry point asks for it. `allowEnvironmentOverrides()` in `src/server/environment.ts` is called by `src/server/index.ts` and deliberately not by `src/electrobun/index.ts`, because a packaged build launched from a terminal inherits whatever the shell exports and runs with `NODE_ENV` unset.
+Environment variables win only where an entry point asks for it. `allowEnvironmentOverrides()` in `src/server/environment.ts` is called by `src/server/index.ts` and deliberately not by `src/electrobun/index.ts`, because a packaged build launched from a terminal inherits whatever the shell exports and runs with `NODE_ENV` unset. A provider id is snake-cased into its variable names, so `bybitDemo` reads `BYBIT_DEMO_API_KEY` and `BYBIT_DEMO_API_SECRET`.
 
 `kraken.accountId` stays in `settings.json`: it partitions the ledger database rather than authenticating anything, which is what lets `krakenAccountId()` stay synchronous and keeps the read-only ledger routes off the credential store — and its prompt — on every request. It survives a key rotation on purpose, since deriving a fresh one would orphan every synced row.
 

@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import { CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, PieChartIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 
 
 // The single source of truth for navigation: the home dashboard, the per-exchange
@@ -92,6 +92,17 @@ export const toolGroups: ToolGroup[] = [
             title: 'Staking',
             description: 'Overview of your staking positions and upcoming redemptions.',
             icon: CoinsIcon
+         }
+      ]
+   },
+   {
+      name: 'Bybit',
+      tools: [
+         {
+            href: '/bybit/portfolios',
+            title: 'Portfolios',
+            description: 'Keep baskets of coins at their target weights: deposit, withdraw and rebalance with market orders.',
+            icon: PieChartIcon
          }
       ]
    },

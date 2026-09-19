@@ -7,7 +7,7 @@ import { messageOf } from './errors'
 import type { Provider } from '../types/credentials'
 import type { SecretField, StoredProvider, StoredSettings } from '../types/settings'
 
-type ProviderConfig = { hasSecret: boolean }
+type ProviderConfig = { hasSecret: boolean, label: string }
 
 const SETTINGS_VERSION = 2
 
@@ -17,15 +17,19 @@ const entries = <K extends string, V>(record: Record<K, V>) =>
    Object.entries(record) as [K, V][]
 
 export const providers: Record<Provider, ProviderConfig> = {
-   kraken: { hasSecret: true },
-   binance: { hasSecret: true },
-   anthropic: { hasSecret: false }
+   kraken: { hasSecret: true, label: 'Kraken' },
+   binance: { hasSecret: true, label: 'Binance' },
+   bybit: { hasSecret: true, label: 'Bybit' },
+   bybitDemo: { hasSecret: true, label: 'Bybit demo trading' },
+   anthropic: { hasSecret: false, label: 'Anthropic' }
 }
 
 const defaults = (): StoredSettings => ({
    version: SETTINGS_VERSION,
    kraken: { accountId: '' },
    binance: {},
+   bybit: {},
+   bybitDemo: {},
    anthropic: {}
 })
 
@@ -73,7 +77,8 @@ function writeFile(settings: StoredSettings): void {
 
 export function environmentValue(provider: Provider, field: SecretField): string {
    if (!environmentOverridesEnabled()) return ''
-   const name = `${provider.toUpperCase()}_${field === 'apiSecret' ? 'API_SECRET' : 'API_KEY'}`
+   const prefix = provider.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
+   const name = `${prefix}_${field === 'apiSecret' ? 'API_SECRET' : 'API_KEY'}`
    return process.env[name] || process.env[`VITE_${name}`] || ''
 }
 

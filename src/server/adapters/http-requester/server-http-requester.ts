@@ -1,4 +1,4 @@
-import { HttpRequesterError } from '../../errors'
+import { HttpRequesterError, messageOf } from '../../errors'
 import type { AuthenticatedRequest, Authenticator } from '../../../types/credentials'
 
 export type ResponseType = 'json' | 'binary'
@@ -8,6 +8,7 @@ export interface RequestOptions {
    searchParams?: Record<string, unknown>
    bodyParams?: unknown
    responseType?: ResponseType
+   timeoutMs?: number
 }
 
 interface ExecuteOptions extends RequestOptions {
@@ -31,7 +32,8 @@ class ServerHttpRequester {
       searchParams = {},
       bodyParams = {},
       authenticate = identityFunction,
-      responseType = 'json'
+      responseType = 'json',
+      timeoutMs
    }: ExecuteOptions): Promise<T> {
 
       console.log('Fetching:', url, searchParams, bodyParams)
@@ -41,6 +43,7 @@ class ServerHttpRequester {
             method,
             headers: requestData.headers,
             body: method === 'GET' ? undefined : requestData.bodyParams as string,
+            signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined
          })
 
          if (!fetchResponse.ok) {
@@ -73,7 +76,7 @@ class ServerHttpRequester {
          }
 
          console.error('Response error:', error)
-         throw new Error('HTTP Requester Error', { cause: JSON.stringify(error) })
+         throw new Error(`HTTP Requester Error: ${messageOf(error)}`, { cause: error })
       }
    }
 

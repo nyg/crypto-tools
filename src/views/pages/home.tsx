@@ -9,7 +9,8 @@ import { toolGroups } from '@/lib/tools'
 export default function Home() {
 
    const { settings, isLoading } = useSettings()
-   const hasApiKeys = Boolean(settings?.kraken.keyConfigured || settings?.binance.keyConfigured)
+   const hasApiKeys = Boolean(settings?.kraken.keyConfigured || settings?.binance.keyConfigured
+      || settings?.bybit.keyConfigured || settings?.bybitDemo.keyConfigured)
 
    return (
       <Layout name="Home">

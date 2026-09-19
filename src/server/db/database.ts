@@ -108,6 +108,85 @@ const migrations: Migration[] = [
          generated_at INTEGER NOT NULL,
          PRIMARY KEY (ticker, word_count)
       ) STRICT;
+   `),
+
+   db => db.exec(`
+      CREATE TABLE portfolio (
+         id           INTEGER NOT NULL PRIMARY KEY,
+         venue        TEXT    NOT NULL,
+         account_id   TEXT    NOT NULL,
+         name         TEXT    NOT NULL,
+         quote_asset  TEXT    NOT NULL,
+         band         TEXT    NOT NULL,
+         created_at   INTEGER NOT NULL,
+         archived_at  INTEGER
+      ) STRICT;
+
+      CREATE UNIQUE INDEX portfolio_active_name
+         ON portfolio (venue, account_id, name) WHERE archived_at IS NULL;
+
+      CREATE TABLE portfolio_target (
+         portfolio_id INTEGER NOT NULL,
+         asset        TEXT    NOT NULL,
+         weight       TEXT    NOT NULL,
+         position     INTEGER NOT NULL,
+         PRIMARY KEY (portfolio_id, asset)
+      ) STRICT;
+
+      CREATE TABLE portfolio_movement (
+         id            INTEGER NOT NULL PRIMARY KEY,
+         portfolio_id  INTEGER NOT NULL,
+         kind          TEXT    NOT NULL CHECK (kind IN ('deposit', 'withdraw', 'adjust', 'fee')),
+         asset         TEXT    NOT NULL,
+         amount        TEXT    NOT NULL,
+         value         TEXT    NOT NULL,
+         order_link_id TEXT,
+         note          TEXT    NOT NULL DEFAULT '',
+         created_at    INTEGER NOT NULL
+      ) STRICT;
+
+      CREATE INDEX portfolio_movement_portfolio ON portfolio_movement (portfolio_id);
+      CREATE INDEX portfolio_movement_order ON portfolio_movement (order_link_id);
+
+      CREATE TABLE portfolio_run (
+         id           TEXT    NOT NULL PRIMARY KEY,
+         portfolio_id INTEGER NOT NULL,
+         kind         TEXT    NOT NULL CHECK (kind IN ('rebalance', 'withdraw')),
+         status       TEXT    NOT NULL,
+         withdraw     TEXT    NOT NULL,
+         withdrawn    TEXT    NOT NULL DEFAULT '0',
+         reserve      TEXT    NOT NULL,
+         slippage     TEXT    NOT NULL,
+         error        TEXT,
+         started_at   INTEGER NOT NULL,
+         finished_at  INTEGER
+      ) STRICT;
+
+      CREATE INDEX portfolio_run_portfolio ON portfolio_run (portfolio_id, started_at);
+
+      CREATE TABLE portfolio_order (
+         order_link_id TEXT    NOT NULL PRIMARY KEY,
+         run_id        TEXT    NOT NULL,
+         portfolio_id  INTEGER NOT NULL,
+         seq           INTEGER NOT NULL,
+         symbol        TEXT    NOT NULL,
+         side          TEXT    NOT NULL CHECK (side IN ('buy', 'sell')),
+         base_asset    TEXT    NOT NULL,
+         quote_asset   TEXT    NOT NULL,
+         unit          TEXT    NOT NULL CHECK (unit IN ('base', 'quote')),
+         requested     TEXT    NOT NULL,
+         order_id      TEXT,
+         status        TEXT    NOT NULL,
+         cum_base      TEXT    NOT NULL DEFAULT '0',
+         cum_quote     TEXT    NOT NULL DEFAULT '0',
+         avg_price     TEXT    NOT NULL DEFAULT '0',
+         error         TEXT,
+         created_at    INTEGER NOT NULL,
+         updated_at    INTEGER NOT NULL
+      ) STRICT;
+
+      CREATE INDEX portfolio_order_run ON portfolio_order (run_id, seq);
+      CREATE INDEX portfolio_order_portfolio ON portfolio_order (portfolio_id);
    `)
 ]
 
@@ -143,4 +222,9 @@ export function getDatabase(): Database {
 
    database = db
    return database
+}
+
+export function closeDatabase(): void {
+   database?.close()
+   database = null
 }

@@ -8,6 +8,7 @@ import {
 } from './kraken-ledger'
 import { tradeAggregations, tradeRows, tradeFilters } from './kraken-trades'
 import { aggregateBalance } from './binance'
+import { portfolioRoutes } from './portfolio'
 import type { InstallInfo, LatestRelease } from '../../types/api'
 import type { MaskedSettings } from '../../types/settings'
 
@@ -46,6 +47,7 @@ const mockRoutes: Record<string, MockRoute> = {
    '/api/kraken/ledger/trades': (params) => tradeRows(body(params)),
    '/api/kraken/ledger/trades/filters': () => tradeFilters(),
    '/api/binance/aggregate-balance': () => aggregateBalance,
+   ...portfolioRoutes,
    '/api/settings': () => mockSettings(false),
    '/api/settings?reveal=true': () => mockSettings(true),
    '/api/app/latest-release': () => mockLatestRelease,
@@ -72,6 +74,14 @@ const mockSettings = (reveal: boolean): MaskedSettings => ({
       apiKey: reveal ? 'mock-kraken-key' : '*****', apiSecret: '*****', store: 'keychain',
       hasSecret: true, configured: true, keyConfigured: true,
       accountId: 'mock-account-id'
+   },
+   bybit: {
+      apiKey: reveal ? 'mock-bybit-key' : '*****', apiSecret: '*****', store: 'keychain',
+      hasSecret: true, configured: true, keyConfigured: true
+   },
+   bybitDemo: {
+      apiKey: reveal ? 'mock-bybit-demo-key' : '*****', apiSecret: '*****', store: 'keychain',
+      hasSecret: true, configured: true, keyConfigured: true
    },
    anthropic: {
       apiKey: reveal ? 'mock-anthropic-key' : '*****', apiSecret: '', store: 'keychain',

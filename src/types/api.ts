@@ -9,6 +9,10 @@ import type {
 import type { JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
+import type {
+   FeeAmount, MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, SkipReason,
+   VenueId
+} from './portfolio'
 import type { XStockListingType } from './xstock'
 
 export interface ErrorResponse {
@@ -299,6 +303,225 @@ export interface AggregateBalanceRow {
 
 export interface AggregateBalanceResponse {
    balance: AggregateBalanceRow[]
+}
+
+/* Bybit — portfolios */
+
+export interface PortfolioTarget {
+   asset: string
+   weight: string
+}
+
+export interface PortfolioHolding {
+   asset: string
+   quantity: string
+   price: string | null
+   value: string | null
+   valueNum: number
+   weight: string | null
+   target: string
+   drift: string | null
+}
+
+export interface PortfolioSummary {
+   id: number
+   name: string
+   quoteAsset: string
+   band: string
+   createdAt: number
+   targets: PortfolioTarget[]
+   holdings: PortfolioHolding[]
+   value: string
+   valueNum: number
+   netInvested: string
+   profit: string
+   maxDrift: string
+   needsRebalance: boolean
+   quoteLocked: boolean
+}
+
+export interface AccountCoin {
+   asset: string
+   wallet: string
+   free: string
+   allocated: string
+   unallocated: string
+   value: string | null
+   valueNum: number
+   overallocated: boolean
+}
+
+export interface PortfolioKeyStatus {
+   canTrade: boolean
+   expiresAt: number | null
+}
+
+export interface PortfolioOverviewResponse {
+   fetchedAt: number
+   venue: VenueId
+   accountId: string
+   key: PortfolioKeyStatus
+   valuationAsset: string
+   coins: AccountCoin[]
+   totalValue: string
+   unallocatedValue: string
+   portfolios: PortfolioSummary[]
+   activeRun: { id: string, portfolioId: number } | null
+   reconciled: number
+}
+
+export interface PortfolioMarket {
+   symbol: string
+   base: string
+   quote: string
+}
+
+export interface PortfolioMarketsResponse {
+   quoteAssets: string[]
+   markets: PortfolioMarket[]
+}
+
+export interface PortfolioSaveRequest {
+   id?: number
+   name: string
+   quoteAsset: string
+   band: string
+   targets: PortfolioTarget[]
+}
+
+export interface PortfolioSaveResponse {
+   id: number
+}
+
+export interface PortfolioArchiveRequest {
+   portfolioId: number
+}
+
+export interface PortfolioArchiveResponse {
+   archived: number
+}
+
+export interface PortfolioMovementRequest {
+   portfolioId: number
+   asset: string
+   amount: string
+   note?: string
+}
+
+export interface PortfolioMovement {
+   id: number
+   kind: MovementKind
+   asset: string
+   amount: string
+   value: string
+   orderLinkId: string | null
+   note: string
+   createdAt: number
+}
+
+export interface PortfolioMovementResponse {
+   movement: PortfolioMovement
+}
+
+export interface PortfolioPlanRequest {
+   portfolioId: number
+   kind: RunKind
+   amount?: string
+   all?: boolean
+   band?: string
+   slippage?: string
+}
+
+export interface PortfolioPlanOrder {
+   asset: string
+   symbol: string
+   side: OrderSide
+   unit: SizeUnit
+   amount: string
+   price: string
+   value: string
+}
+
+export interface PortfolioPlanSkip {
+   asset: string
+   reason: SkipReason
+   value: string
+}
+
+export interface PortfolioPlanWeight {
+   asset: string
+   before: string
+   after: string
+   target: string
+}
+
+export interface PortfolioPlanResponse {
+   planId: string
+   portfolioId: number
+   venue: VenueId
+   kind: RunKind
+   quoteAsset: string
+   expiresAt: number
+   band: string
+   slippage: string
+   total: string
+   withdraw: string
+   orders: PortfolioPlanOrder[]
+   skipped: PortfolioPlanSkip[]
+   weights: PortfolioPlanWeight[]
+   cashAfter: string
+   shortfall: string
+   canTrade: boolean
+}
+
+export interface PortfolioExecuteRequest {
+   planId: string
+}
+
+export interface PortfolioRunRequest {
+   runId: string
+}
+
+export interface PortfolioRunOrder {
+   orderLinkId: string
+   seq: number
+   symbol: string
+   side: OrderSide
+   unit: SizeUnit
+   requested: string
+   status: RunOrderStatus
+   base: string
+   quote: string
+   averagePrice: string
+   fees: FeeAmount[]
+   error: string | null
+}
+
+export interface PortfolioRun {
+   id: string
+   portfolioId: number
+   kind: RunKind
+   status: RunStatus
+   running: boolean
+   withdraw: string
+   withdrawn: string
+   startedAt: number
+   finishedAt: number | null
+   error: string | null
+   orders: PortfolioRunOrder[]
+}
+
+export interface PortfolioRunResponse {
+   run: PortfolioRun
+}
+
+export interface PortfolioHistoryRequest {
+   portfolioId: number
+}
+
+export interface PortfolioHistoryResponse {
+   movements: PortfolioMovement[]
+   runs: PortfolioRun[]
 }
 
 export type { JobPhase }
