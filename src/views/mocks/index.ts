@@ -73,6 +73,14 @@ const mockSettings = (reveal: boolean): MaskedSettings => ({
       hasSecret: true, configured: true, keyConfigured: true,
       accountId: 'mock-account-id'
    },
+   bybit: {
+      apiKey: reveal ? 'mock-bybit-key' : '*****', apiSecret: '*****', store: 'keychain',
+      hasSecret: true, configured: true, keyConfigured: true
+   },
+   bybitDemo: {
+      apiKey: reveal ? 'mock-bybit-demo-key' : '*****', apiSecret: '*****', store: 'keychain',
+      hasSecret: true, configured: true, keyConfigured: true
+   },
    anthropic: {
       apiKey: reveal ? 'mock-anthropic-key' : '*****', apiSecret: '', store: 'keychain',
       hasSecret: false, configured: true, keyConfigured: true

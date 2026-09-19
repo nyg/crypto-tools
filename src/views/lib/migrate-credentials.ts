@@ -2,7 +2,7 @@ import { messageOf } from './errors'
 import type { MaskedSettings, SettingsUpdate } from '../../types/settings'
 import type { Provider } from '../../types/credentials'
 
-const legacyEntries: Record<Provider, Record<string, string>> = {
+const legacyEntries: Partial<Record<Provider, Record<string, string>>> = {
    binance: { apiKey: 'binance.api.key', apiSecret: 'binance.api.secret' },
    kraken: { apiKey: 'kraken.api.key', apiSecret: 'kraken.api.secret' },
    anthropic: { apiKey: 'anthropic.api.key' }

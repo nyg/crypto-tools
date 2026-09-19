@@ -7,7 +7,7 @@ const SECRETS_MODULE = path.join(import.meta.dir, 'secrets.ts')
 const SETTINGS_MODULE = path.join(import.meta.dir, 'settings.ts')
 const ENVIRONMENT_MODULE = path.join(import.meta.dir, 'environment.ts')
 
-const PROVIDERS = ['kraken', 'binance', 'anthropic'] as const
+const PROVIDERS = ['kraken', 'binance', 'bybit', 'bybitDemo', 'anthropic'] as const
 const FIELDS = ['api-key', 'api-secret'] as const
 
 const CHILD = `
@@ -289,6 +289,17 @@ describe('environment overrides', () => {
 
       expect(read?.apiKey).toBe('stored-key')
       expect(read?.store).toBe(nativeStore())
+   })
+
+   test('name a camel-cased provider in snake case', () => {
+      const { read } = run([
+         { op: 'webMode' },
+         { op: 'read', provider: 'bybitDemo' }
+      ], { BYBIT_DEMO_API_KEY: 'demo-key', BYBIT_DEMO_API_SECRET: 'demo-secret' })
+
+      expect(read?.apiKey).toBe('demo-key')
+      expect(read?.apiSecret).toBe('demo-secret')
+      expect(read?.store).toBe('env')
    })
 
    test('are ignored when only half a credential is exported', () => {

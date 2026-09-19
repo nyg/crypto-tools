@@ -40,6 +40,18 @@ const providers: ProviderForm[] = [
       hasSecret: true
    },
    {
+      id: 'bybit',
+      name: 'Bybit',
+      description: 'Values your portfolios and places the spot market orders that rebalance them. Grant Read and Spot trade permissions only, never Withdrawal. Keys without an IP whitelist expire after 90 days.',
+      hasSecret: true
+   },
+   {
+      id: 'bybitDemo',
+      name: 'Bybit demo trading',
+      description: 'Same as Bybit, against the demo trading account and its test funds. Create these keys from Bybit\'s demo trading mode; mainnet keys do not work here.',
+      hasSecret: true
+   },
+   {
       id: 'anthropic',
       name: 'Anthropic',
       description: 'Writes the xStocks summaries. Usage is billed to your own Anthropic account.',
