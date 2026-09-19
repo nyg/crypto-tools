@@ -25,6 +25,8 @@ function cached<T>(entry: Cached<T> | null | undefined, ttl: number, load: () =>
 
 export default class BybitExchange implements PortfolioExchange {
 
+   readonly balanceDecimals = 8
+
    readonly #api: BybitAPI
    readonly #accountKey: string
 

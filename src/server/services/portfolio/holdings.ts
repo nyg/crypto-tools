@@ -22,7 +22,7 @@ export function orderDeltas({ side, baseAsset, quoteAsset, base, quote }: Holdin
    ]
 }
 
-export function foldHoldings(movements: HoldingMovement[], orders: HoldingOrder[] = []): Map<string, Big> {
+export function foldHoldings(movements: HoldingMovement[], orders: HoldingOrder[] = [], decimals?: number): Map<string, Big> {
 
    const holdings = new Map<string, Big>()
 
@@ -31,7 +31,9 @@ export function foldHoldings(movements: HoldingMovement[], orders: HoldingOrder[
    }
 
    for (const [asset, amount] of holdings) {
-      if (amount.eq(0)) holdings.delete(asset)
+      const rounded = decimals === undefined ? amount : amount.round(decimals, Big.roundDown)
+      if (rounded.eq(0)) holdings.delete(asset)
+      else holdings.set(asset, rounded)
    }
 
    return holdings

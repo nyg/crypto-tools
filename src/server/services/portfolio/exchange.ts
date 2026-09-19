@@ -3,6 +3,7 @@ import type {
 } from '../../../types/portfolio'
 
 export interface PortfolioExchange {
+   readonly balanceDecimals: number
    account(): Promise<ExchangeAccount>
    wallet(): Promise<WalletCoin[]>
    markets(): Promise<SpotMarket[]>

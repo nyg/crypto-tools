@@ -201,7 +201,8 @@ export default class PortfolioService {
       const movements = groupBy(repository.movements(), row => row.portfolioId)
       const orders = groupBy(repository.orders(), row => row.portfolioId)
       const ids = new Set([...movements.keys(), ...orders.keys()])
-      return new Map([...ids].map(id => [id, foldHoldings(movements.get(id) ?? [], orders.get(id) ?? [])]))
+      const decimals = this.#exchange.balanceDecimals
+      return new Map([...ids].map(id => [id, foldHoldings(movements.get(id) ?? [], orders.get(id) ?? [], decimals)]))
    }
 
    #holdingsOf(repository: PortfolioRepository, portfolioId: number): Map<string, Big> {

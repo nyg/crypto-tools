@@ -25,6 +25,7 @@ const market = (base: string): SpotMarket => ({
 
 class FakeExchange implements PortfolioExchange {
 
+   readonly balanceDecimals = 8
    readonly balances = new Map<string, Big>([['USDT', Big(10000)], ['BTC', Big('0.5')]])
    readonly settlements = new Map<string, OrderSettlement>()
    rejectNext = false

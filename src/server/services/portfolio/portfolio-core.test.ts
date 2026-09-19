@@ -215,6 +215,16 @@ describe('folding holdings', () => {
       expect(holdings.get('USDT')!.toFixed()).toBe('499.5')
    })
 
+   test('rounds down to the precision the exchange reports balances in', () => {
+      const holdings = foldHoldings(
+         [{ asset: 'USDT', amount: '800' }, { asset: 'PUMP', amount: '-194.269062651772705196' }],
+         [{ side: 'buy', baseAsset: 'PUMP', quoteAsset: 'USDT', base: '194269.062651772705196697', quote: '800' }],
+         8)
+
+      expect(holdings.get('PUMP')!.toFixed()).toBe('194074.79358912')
+      expect(holdings.has('USDT')).toBe(false)
+   })
+
    test('keeps a fee paid in a third coin as a negative holding', () => {
       const holdings = foldHoldings([{ asset: 'USDT', amount: '100' }, { asset: 'MNT', amount: '-0.25' }])
 
