@@ -53,7 +53,13 @@ export default function PortfolioCard({
                      className={cn(profit > 0 && 'text-emerald-600 dark:text-emerald-400', profit < 0 && 'text-destructive')}>
                      {asSignedQuoteAmount(portfolio.profit, portfolio.quoteAsset)}
                   </Stat>
-                  <Stat label="Largest drift">{asDecimal(Number(portfolio.maxDrift), 2)} pt</Stat>
+                  <Stat
+                     label="Largest drift"
+                     className={Number(portfolio.maxDrift) > Number(portfolio.band)
+                        ? 'text-destructive'
+                        : 'text-emerald-600 dark:text-emerald-400'}>
+                     {asDecimal(Number(portfolio.maxDrift), 2)} pt
+                  </Stat>
                </div>
                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" disabled={busy} onClick={onDeposit}>
