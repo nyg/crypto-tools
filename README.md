@@ -1,6 +1,6 @@
 <h1 align="center">Crypto Tools</h1>
 
-A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [Binance](https://www.binance.com/) exchanges. Built with Vite, React, React Router, Hono, Tailwind CSS and [shadcn/ui](https://ui.shadcn.com/); the desktop app is powered by [Electrobun](https://electrobun.dev/).
+A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Binance](https://www.binance.com/) and [Bybit](https://www.bybit.com/) exchanges. Built with Vite, React, React Router, Hono, Tailwind CSS and [shadcn/ui](https://ui.shadcn.com/); the desktop app is powered by [Electrobun](https://electrobun.dev/).
 
 ![Home](public/screenshot-home.png)
 
@@ -53,6 +53,15 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/) and [
 **Staking**
 
 ![Binance Staking](public/screenshot-binance-staking.png)
+
+</details>
+
+<details>
+<summary><b>Bybit</b></summary>
+
+<br>
+
+**Portfolios** — define baskets of coins with target weights inside one Bybit unified trading account, deposit coins already on the account into them, and withdraw or rebalance with spot market orders. Every order is previewed first and only placed once you confirm; each portfolio's holdings are tracked on this machine from its own deposits and fills, so several portfolios can share one account and trades you make on Bybit yourself never touch them. A Demo switch runs the same thing against Bybit's demo trading account. The API key needs the Read and Spot trade permissions, and never the Withdrawal one.
 
 </details>
 

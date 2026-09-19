@@ -48,6 +48,7 @@ export default function Layout({ children, name }: { children: ReactNode, name: 
                <nav className="flex items-center gap-3 sm:gap-4">
                   <MenuLink href={groupHref('Kraken')} isActive={isSection}>Kraken</MenuLink>
                   <MenuLink href={groupHref('Binance')} isActive={isSection}>Binance</MenuLink>
+                  <MenuLink href={groupHref('Bybit')} isActive={isSection}>Bybit</MenuLink>
                   <MenuLink href={groupHref('Tools')} isActive={isSection}>Tools</MenuLink>
                   <MenuLink href="/settings" isActive={isSection}>Settings</MenuLink>
                </nav>

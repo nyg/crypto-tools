@@ -90,6 +90,17 @@ const pageHelp: Record<string, ReactNode> = {
          date each one is released and the products they were subscribed to.
       </>,
 
+   '/bybit/portfolios':
+      <>
+         Baskets of coins kept at target weights inside one Bybit account. Each portfolio
+         owns only what it was given and what its own orders bought, tracked in the
+         database on this machine; whatever no portfolio holds shows as{' '}
+         <b>unallocated</b>, and trades you make on Bybit yourself never touch a portfolio.
+         Rebalancing and withdrawing preview their orders first and only place spot
+         market orders once you confirm. Switch to <b>Demo</b> to try it with Bybit&apos;s
+         test funds.
+      </>,
+
    '/tools/trade-calculator':
       <>
          Turns the loss you are prepared to take into a position size: risk amount over the
