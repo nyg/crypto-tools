@@ -187,6 +187,8 @@ export function planPortfolio(input: PlanInput): Plan {
       }
    }
    else {
+      const cashDrift = total.gt(0) ? cash.div(total).times(HUNDRED).minus(targets.get(quote) ?? ZERO) : ZERO
+
       for (const asset of priced) {
          const value = values.get(asset)!
          const target = targets.get(asset) ?? ZERO
@@ -198,12 +200,13 @@ export function planPortfolio(input: PlanInput): Plan {
          }
 
          const drift = total.gt(0) ? value.div(total).times(HUNDRED).minus(target) : ZERO
-         if (drift.abs().lte(band)) {
-            if (!drift.eq(0)) skipped.push({ asset, reason: 'within-band', value: value.minus(targetValue(asset)).abs() })
+         const delta = targetValue(asset).minus(value)
+         const absorbsCash = (cashDrift.gt(band) && delta.gt(0)) || (cashDrift.lt(band.neg()) && delta.lt(0))
+         if (drift.abs().lte(band) && !absorbsCash) {
+            if (!drift.eq(0)) skipped.push({ asset, reason: 'within-band', value: delta.abs() })
             continue
          }
 
-         const delta = targetValue(asset).minus(value)
          if (delta.lt(0)) sells.push({ asset, value: delta.abs(), all: false })
          else if (delta.gt(0)) buys.push({ asset, value: delta, all: false })
       }

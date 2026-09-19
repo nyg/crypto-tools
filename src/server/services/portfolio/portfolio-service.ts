@@ -262,7 +262,6 @@ export default class PortfolioService {
       const rows: PortfolioHolding[] = valued.map(({ asset, quantity, price, value }) => {
          const target = weights.get(asset) ?? ZERO
          const weight = value && total.gt(0) ? value.div(total).times(HUNDRED) : null
-         const idleCash = asset === quote && !weights.has(asset)
          return {
             asset,
             quantity: quantity.toFixed(),
@@ -271,7 +270,7 @@ export default class PortfolioService {
             valueNum: value ? value.toNumber() : 0,
             weight: weight ? decimal(weight, 4) : null,
             target: target.toFixed(),
-            drift: weight && !idleCash ? decimal(weight.minus(target), 4) : null
+            drift: weight ? decimal(weight.minus(target), 4) : null
          }
       })
 

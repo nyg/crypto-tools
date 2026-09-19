@@ -222,23 +222,6 @@ describe('a portfolio from creation to withdrawal', () => {
    })
 })
 
-describe('cash the portfolio does not target', () => {
-
-   test('carries no drift of its own, so only the targets decide a rebalance', async () => {
-      const { id: portfolioId } = await service().save({
-         name: 'Bitcoin', quoteAsset: 'USDT', band: '1', targets: [{ asset: 'BTC', weight: '100' }]
-      })
-      await service().deposit({ portfolioId, asset: 'USDT', amount: '100' })
-
-      const portfolio = (await service().overview()).portfolios.find(({ id }) => id === portfolioId)!
-      expect(Object.fromEntries(portfolio.holdings.map(({ asset, drift }) => [asset, drift])))
-         .toEqual({ BTC: '-100', USDT: null })
-      expect(portfolio.maxDrift).toBe('100')
-
-      await service().archive({ portfolioId })
-   })
-})
-
 describe('reconciliation', () => {
 
    test('marks a run the server no longer tracks as interrupted', async () => {

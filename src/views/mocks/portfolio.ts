@@ -114,7 +114,6 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       const value = price === null ? null : quantity * price
       const weight = value !== null && total > 0 ? value / total * 100 : null
       const target = weights.get(asset) ?? 0
-      const idleCash = asset === portfolio.quoteAsset && !weights.has(asset)
       return {
          asset,
          quantity: fixed(quantity),
@@ -123,7 +122,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          valueNum: value ?? 0,
          weight: weight === null ? null : fixed(weight, 4),
          target: String(target),
-         drift: weight === null || idleCash ? null : fixed(weight - target, 4)
+         drift: weight === null ? null : fixed(weight - target, 4)
       }
    })
 
@@ -296,6 +295,7 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
    const cash = portfolio.holdings[quote] ?? 0
    const weights = new Map(portfolio.targets.map(({ asset, weight }) => [asset, Number(weight)]))
    const assets = [...new Set([...weights.keys(), ...Object.keys(portfolio.holdings)])].filter(asset => asset !== quote)
+   const cashDrift = total > 0 ? cash * (prices[quote] ?? 1) / total * 100 - (weights.get(quote) ?? 0) : 0
 
    const orders: PortfolioPlanOrder[] = []
    const skipped: PortfolioPlanResponse['skipped'] = []
@@ -308,7 +308,8 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       const delta = target - value
 
       if (request.kind === 'withdraw' && (cash >= withdraw || delta >= 0)) continue
-      if (request.kind === 'rebalance' && weights.has(asset) && Math.abs(drift) <= band) {
+      const absorbsCash = (cashDrift > band && delta > 0) || (cashDrift < -band && delta < 0)
+      if (request.kind === 'rebalance' && weights.has(asset) && Math.abs(drift) <= band && !absorbsCash) {
          if (drift !== 0) skipped.push({ asset, reason: 'within-band', value: fixed(Math.abs(delta), 2) })
          continue
       }
