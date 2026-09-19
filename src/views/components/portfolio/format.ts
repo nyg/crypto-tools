@@ -1,17 +1,32 @@
-import { asAssetAmount, asDecimal, asPercentage } from '../../../utils/format'
+import Big from 'big.js'
+import { asAssetAmount, asDecimal, asShortPercentage } from '../../../utils/format'
 import type { RunOrderStatus, RunStatus, SkipReason } from '../../../types/portfolio'
 
-export const asQuoteAmount = (value: string | null | undefined, asset: string) =>
-   value === null || value === undefined ? '—' : `${asDecimal(Number(value), 2)} ${asset}`
+const QUOTE_DECIMALS = 2
+const POINT_DECIMALS = 1
 
-export const asSignedQuoteAmount = (value: string, asset: string) =>
-   `${Number(value) > 0 ? '+' : ''}${asQuoteAmount(value, asset)}`
+export const asQuoteAmount = (value: string | null | undefined, asset: string) =>
+   value === null || value === undefined ? '—' : `${asDecimal(Number(value), QUOTE_DECIMALS)} ${asset}`
+
+export const showsAsZeroQuoteAmount = (value: string) => Big(value).round(QUOTE_DECIMALS).eq(0)
+
+export const asSignedQuoteAmount = (value: string | null, asset: string) =>
+   value === null ? '—'
+      : showsAsZeroQuoteAmount(value) ? asQuoteAmount('0', asset)
+         : `${Number(value) > 0 ? '+' : ''}${asQuoteAmount(value, asset)}`
+
+export const profitColor = (value: string | null) =>
+   value === null || showsAsZeroQuoteAmount(value) ? undefined
+      : Number(value) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
 
 export const asWeight = (value: string | null | undefined) =>
-   value === null || value === undefined ? '—' : asPercentage(Number(value) / 100)
+   value === null || value === undefined ? '—' : asShortPercentage(Number(value) / 100)
+
+export const asPoints = (value: string) => asDecimal(Number(value), POINT_DECIMALS)
 
 export const asDrift = (value: string | null | undefined) =>
-   value === null || value === undefined ? '—' : `${Number(value) > 0 ? '+' : ''}${asDecimal(Number(value), 2)} pt`
+   value === null || value === undefined ? '—'
+      : `${Big(value).round(POINT_DECIMALS).gt(0) ? '+' : ''}${asPoints(value)} pt`
 
 export const asQuantity = (value: string | null | undefined) =>
    value === null || value === undefined ? '—' : Number(value) === 0 ? '0' : asAssetAmount(Number(value))

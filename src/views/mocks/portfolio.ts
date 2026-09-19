@@ -22,6 +22,9 @@ interface MockPortfolio {
    createdAt: number
    targets: PortfolioTarget[]
    holdings: Record<string, number>
+   costs: Record<string, number>
+   realized: Record<string, number>
+   closedRealized: number
    deposited?: number
 }
 
@@ -56,12 +59,18 @@ function seed(venue: VenueId): VenueState {
             id: 1, name: 'Core', quoteAsset: 'USDT', band: '1', createdAt: created,
             targets: [{ asset: 'BTC', weight: '50' }, { asset: 'ETH', weight: '30' }, { asset: 'USDT', weight: '20' }],
             holdings: { BTC: 0.0712, ETH: 0.84, USDT: 1480 },
+            costs: { BTC: 3900, ETH: 2750 },
+            realized: { BTC: 820, ETH: 310 },
+            closedRealized: 0,
             deposited: 7000
          },
          {
             id: 2, name: 'Alts', quoteAsset: 'USDT', band: '2', createdAt: created + 5 * DAY,
             targets: [{ asset: 'SOL', weight: '40' }, { asset: 'SUI', weight: '30' }, { asset: 'ENA', weight: '30' }],
             holdings: { SOL: 6.1, SUI: 240, ENA: 1150, USDT: 12.4 },
+            costs: { SOL: 980, SUI: 610, ENA: 1010 },
+            realized: { SOL: 40 },
+            closedRealized: 72.4,
             deposited: 2500
          }
       ]
@@ -70,6 +79,9 @@ function seed(venue: VenueId): VenueState {
             id: 1, name: 'Demo core', quoteAsset: 'USDT', band: '1', createdAt: created,
             targets: [{ asset: 'BTC', weight: '60' }, { asset: 'ETH', weight: '40' }],
             holdings: { USDT: 1000 },
+            costs: {},
+            realized: {},
+            closedRealized: 0,
             deposited: 1000
          }
       ]
@@ -114,6 +126,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       const value = price === null ? null : quantity * price
       const weight = value !== null && total > 0 ? value / total * 100 : null
       const target = weights.get(asset) ?? 0
+      const cost = asset === portfolio.quoteAsset ? undefined : portfolio.costs[asset]
       return {
          asset,
          quantity: fixed(quantity),
@@ -122,9 +135,14 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          valueNum: value ?? 0,
          weight: weight === null ? null : fixed(weight, 4),
          target: String(target),
-         drift: weight === null ? null : fixed(weight - target, 4)
+         drift: weight === null ? null : fixed(weight - target, 4),
+         unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
+         realized: fixed(portfolio.realized[asset] ?? 0)
       }
    })
+
+   const realized = Object.values(portfolio.realized).reduce((sum, amount) => sum + amount, portfolio.closedRealized)
+   const unrealized = holdings.reduce((sum, holding) => sum + Number(holding.unrealized ?? 0), 0)
 
    const maxDrift = Math.max(0, ...holdings.map(({ drift }) => Math.abs(Number(drift ?? 0))))
    const netInvested = (state.movements.get(portfolio.id) ?? []).reduce((sum, { kind, value }) =>
@@ -142,6 +160,9 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       valueNum: total,
       netInvested: fixed(netInvested),
       profit: fixed(total - netInvested),
+      realized: fixed(realized),
+      unrealized: fixed(unrealized),
+      closedRealized: fixed(portfolio.closedRealized),
       maxDrift: fixed(maxDrift, 4),
       needsRebalance: total > 0 && maxDrift > Number(portfolio.band),
       quoteLocked: (state.movements.get(portfolio.id) ?? []).length > 0
@@ -228,7 +249,7 @@ function save(venue: VenueId, request?: PortfolioSaveRequest): PortfolioSaveResp
    const id = state.nextId++
    state.portfolios.push({
       id, name: request.name, quoteAsset: request.quoteAsset, band: request.band,
-      createdAt: Date.now(), targets: request.targets, holdings: {}
+      createdAt: Date.now(), targets: request.targets, holdings: {}, costs: {}, realized: {}, closedRealized: 0
    })
    return { id }
 }
@@ -239,9 +260,27 @@ function archive(venue: VenueId, request?: PortfolioArchiveRequest): PortfolioAr
    return { archived: request?.portfolioId ?? 0 }
 }
 
+function dispose(portfolio: MockPortfolio, asset: string, quantity: number, proceeds: number) {
+   const held = portfolio.holdings[asset] ?? 0
+   const cost = portfolio.costs[asset] ?? 0
+   const released = held > quantity ? cost * quantity / held : cost
+   portfolio.costs[asset] = cost - released
+   portfolio.realized[asset] = (portfolio.realized[asset] ?? 0) + proceeds - released
+}
+
+function trackCost(portfolio: MockPortfolio, { kind, asset, amount, value }: Omit<PortfolioMovement, 'id' | 'createdAt'>) {
+   const quantity = Number(amount)
+   if (asset === portfolio.quoteAsset) {
+      if (kind === 'adjust') portfolio.realized[asset] = (portfolio.realized[asset] ?? 0) + quantity
+   }
+   else if (quantity > 0) portfolio.costs[asset] = (portfolio.costs[asset] ?? 0) + (kind === 'deposit' ? Number(value) : 0)
+   else dispose(portfolio, asset, -quantity, kind === 'withdraw' ? Math.abs(Number(value)) : 0)
+}
+
 function addMovement(state: VenueState, portfolio: MockPortfolio, movement: Omit<PortfolioMovement, 'id' | 'createdAt'>): PortfolioMovement {
    const entry = { ...movement, id: state.nextId++, createdAt: Date.now() }
    state.movements.set(portfolio.id, [entry, ...state.movements.get(portfolio.id) ?? []])
+   trackCost(portfolio, movement)
    portfolio.holdings[movement.asset] = (portfolio.holdings[movement.asset] ?? 0) + Number(movement.amount)
    return entry
 }
@@ -395,6 +434,9 @@ function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRun['
    const value = quantity * price
    const buy = order.side === 'buy'
    const fee = buy ? quantity * FEE_RATE : value * FEE_RATE
+
+   if (buy) portfolio.costs[base] = (portfolio.costs[base] ?? 0) + value
+   else dispose(portfolio, base, quantity, value - fee)
 
    portfolio.holdings[base] = (portfolio.holdings[base] ?? 0) + (buy ? quantity - fee : -quantity)
    portfolio.holdings[portfolio.quoteAsset] = (portfolio.holdings[portfolio.quoteAsset] ?? 0) + (buy ? -value : value - fee)

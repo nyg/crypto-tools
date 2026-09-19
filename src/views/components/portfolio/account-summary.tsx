@@ -1,6 +1,6 @@
 import { TriangleAlertIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import Checkbox from '../lib/checkbox'
 import usePersistentState from '../../lib/use-persistent-state'
@@ -9,10 +9,9 @@ import type { PortfolioOverviewResponse } from '../../../types/api'
 
 export default function AccountSummary({ overview, label }: { overview: PortfolioOverviewResponse, label: string }) {
 
-   const [hideAllocated, setHideAllocated] = usePersistentState('bybit.portfolios.hideAllocated', false)
+   const [hideAllocated, setHideAllocated] = usePersistentState('bybit.portfolios.hideAllocated', true)
 
    const asset = overview.valuationAsset
-   const allocated = Number(overview.totalValue) - Number(overview.unallocatedValue)
    const coins = hideAllocated
       ? overview.coins.filter(coin => Number(coin.unallocated) !== 0)
       : overview.coins
@@ -21,11 +20,6 @@ export default function AccountSummary({ overview, label }: { overview: Portfoli
       <Card size="sm">
          <CardHeader>
             <CardTitle>{label} account</CardTitle>
-            <CardDescription>
-               {asQuoteAmount(overview.totalValue, asset)} in the unified trading account ·{' '}
-               {asQuoteAmount(String(allocated), asset)} in portfolios ·{' '}
-               {asQuoteAmount(overview.unallocatedValue, asset)} unallocated
-            </CardDescription>
             <CardAction>
                <Checkbox
                   name="portfolio-hide-allocated"

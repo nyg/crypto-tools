@@ -175,6 +175,16 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(overview.portfolios[0]!.needsRebalance).toBe(false)
    })
 
+   test('counts the buy fees as unrealized loss while prices stand still', async () => {
+      const portfolio = (await service().overview()).portfolios[0]!
+      const btc = portfolio.holdings.find(({ asset }) => asset === 'BTC')!
+
+      expect(btc.unrealized).toBe('-0.5')
+      expect(portfolio.unrealized).toBe('-0.8')
+      expect(portfolio.realized).toBe('0')
+      expect(portfolio.profit).toBe('-0.8')
+   })
+
    test('will not run the same preview twice', async () => {
       const plan = await service().plan({ portfolioId, kind: 'rebalance', band: '0' })
       await finished((await service().execute({ planId: plan.planId })).run.id)
@@ -239,6 +249,36 @@ describe('a withdrawal that fills below the preview price', () => {
       }
       finally {
          prices.BTCUSDT = { ...prices.BTCUSDT!, last: '50000' }
+      }
+
+      await service().archive({ portfolioId })
+   })
+})
+
+describe('profit split into realized and unrealized', () => {
+
+   test('adds up to the profit after a sell at a higher price', async () => {
+      const { id: portfolioId } = await service().save({
+         name: 'Split', quoteAsset: 'USDT', band: '1', targets: [{ asset: 'BTC', weight: '100' }]
+      })
+      await service().deposit({ portfolioId, asset: 'BTC', amount: '0.01' })
+
+      const before = prices.BTCUSDT!
+      prices.BTCUSDT = { last: '60000', bid: '60000', ask: '60000' }
+      try {
+         const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '120' })
+         await finished((await service().execute({ planId: plan.planId })).run.id)
+
+         const portfolio = (await service().overview()).portfolios.find(({ id }) => id === portfolioId)!
+         const btc = portfolio.holdings.find(({ asset }) => asset === 'BTC')!
+
+         expect(Big(btc.unrealized!).eq(Big(btc.quantity).times(10000))).toBe(true)
+         expect(Big(btc.realized).gt(0)).toBe(true)
+         expect(portfolio.closedRealized).toBe('0')
+         expect(Big(portfolio.realized).plus(portfolio.unrealized).eq(portfolio.profit)).toBe(true)
+      }
+      finally {
+         prices.BTCUSDT = before
       }
 
       await service().archive({ portfolioId })
