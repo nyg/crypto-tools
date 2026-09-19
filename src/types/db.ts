@@ -1,3 +1,4 @@
+import type { MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit } from './portfolio'
 import type { XStockType } from './xstock'
 
 // The row shapes the repositories read back out of SQLite. Column names are aliased
@@ -170,4 +171,65 @@ export interface XStockDescriptionRow {
    description: string
    sources: string
    generatedAt: number
+}
+
+export interface PortfolioRow {
+   id: number
+   name: string
+   quoteAsset: string
+   band: string
+   createdAt: number
+}
+
+export interface PortfolioTargetRow {
+   portfolioId: number
+   asset: string
+   weight: string
+}
+
+export interface PortfolioMovementRow {
+   id: number
+   portfolioId: number
+   kind: MovementKind
+   asset: string
+   amount: string
+   value: string
+   orderLinkId: string | null
+   note: string
+   createdAt: number
+}
+
+export interface PortfolioRunRow {
+   id: string
+   portfolioId: number
+   kind: RunKind
+   status: RunStatus
+   withdraw: string
+   withdrawn: string
+   reserve: string
+   slippage: string
+   error: string | null
+   startedAt: number
+   finishedAt: number | null
+}
+
+export interface PortfolioOrderRow {
+   orderLinkId: string
+   runId: string
+   portfolioId: number
+   seq: number
+   symbol: string
+   side: OrderSide
+   baseAsset: string
+   quoteAsset: string
+   unit: SizeUnit
+   requested: string
+   orderId: string | null
+   status: RunOrderStatus
+   base: string
+   quote: string
+   averagePrice: string
+   error: string | null
+   createdAt: number
+   updatedAt: number
 }

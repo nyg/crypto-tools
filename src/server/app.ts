@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import appRoutes from './routes/app'
 import binanceRoutes from './routes/binance'
+import bybitRoutes from './routes/bybit'
 import krakenRoutes from './routes/kraken'
 import settingsRoutes from './routes/settings'
 
@@ -67,6 +68,7 @@ export function createApp({ desktop = false }: AppOptions = {}) {
 
    app.route('/api/app', appRoutes({ desktop }))
    app.route('/api/binance', binanceRoutes)
+   app.route('/api/bybit', bybitRoutes)
    app.route('/api/kraken', krakenRoutes)
    app.route('/api/settings', settingsRoutes)
 
