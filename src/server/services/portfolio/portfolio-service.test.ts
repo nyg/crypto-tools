@@ -138,6 +138,11 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(overview.portfolios.map(({ name }) => name)).toEqual(['Core'])
    })
 
+   test('refuses a deposit of a coin that is neither a target nor the quote asset', async () => {
+      await expect(service().deposit({ portfolioId, asset: 'SOL', amount: '1' }))
+         .rejects.toThrow('SOL is not one of Core\'s targets.')
+   })
+
    test('refuses a deposit larger than what is unallocated', async () => {
       expect(await statusOf(service().deposit({ portfolioId, asset: 'USDT', amount: '20000' }))).toBe(400)
    })
@@ -214,6 +219,23 @@ describe('a portfolio from creation to withdrawal', () => {
       const overview = await service().overview()
       expect(overview.portfolios).toHaveLength(0)
       expect(overview.coins.every(({ allocated }) => allocated === '0')).toBe(true)
+   })
+})
+
+describe('cash the portfolio does not target', () => {
+
+   test('carries no drift of its own, so only the targets decide a rebalance', async () => {
+      const { id: portfolioId } = await service().save({
+         name: 'Bitcoin', quoteAsset: 'USDT', band: '1', targets: [{ asset: 'BTC', weight: '100' }]
+      })
+      await service().deposit({ portfolioId, asset: 'USDT', amount: '100' })
+
+      const portfolio = (await service().overview()).portfolios.find(({ id }) => id === portfolioId)!
+      expect(Object.fromEntries(portfolio.holdings.map(({ asset, drift }) => [asset, drift])))
+         .toEqual({ BTC: '-100', USDT: null })
+      expect(portfolio.maxDrift).toBe('100')
+
+      await service().archive({ portfolioId })
    })
 })
 

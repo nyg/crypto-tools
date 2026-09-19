@@ -114,6 +114,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       const value = price === null ? null : quantity * price
       const weight = value !== null && total > 0 ? value / total * 100 : null
       const target = weights.get(asset) ?? 0
+      const idleCash = asset === portfolio.quoteAsset && !weights.has(asset)
       return {
          asset,
          quantity: fixed(quantity),
@@ -122,7 +123,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          valueNum: value ?? 0,
          weight: weight === null ? null : fixed(weight, 4),
          target: String(target),
-         drift: weight === null ? null : fixed(weight - target, 4)
+         drift: weight === null || idleCash ? null : fixed(weight - target, 4)
       }
    })
 
@@ -250,6 +251,10 @@ function deposit(venue: VenueId, request?: PortfolioMovementRequest): PortfolioM
    const state = stateOf(venue)
    const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
    if (!portfolio || !request) return reject('This portfolio does not exist.')
+
+   if (request.asset !== portfolio.quoteAsset && !portfolio.targets.some(({ asset }) => asset === request.asset)) {
+      return reject(`${request.asset} is not one of ${portfolio.name}'s targets. Deposit ${portfolio.quoteAsset} or a coin it targets.`)
+   }
 
    const coin = coinsOf(state).find(({ asset }) => asset === request.asset)
    const amount = Number(request.amount)
