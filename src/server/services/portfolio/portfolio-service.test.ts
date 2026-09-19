@@ -117,7 +117,11 @@ beforeAll(async () => {
    PortfolioRepository = (await import('../../db/portfolio-repository')).default
 })
 
-afterAll(() => fs.rmSync(dataDir, { recursive: true, force: true }))
+afterAll(async () => {
+   const { closeDatabase } = await import('../../db/database')
+   closeDatabase()
+   fs.rmSync(dataDir, { recursive: true, force: true })
+})
 
 describe('a portfolio from creation to withdrawal', () => {
 

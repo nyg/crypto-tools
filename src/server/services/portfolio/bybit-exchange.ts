@@ -1,4 +1,3 @@
-import { createHash } from 'crypto'
 import BybitAPI from '../../adapters/bybit-api/adapter'
 import type { PortfolioExchange } from './exchange'
 import type { Credentials } from '../../../types/credentials'
@@ -32,7 +31,7 @@ export default class BybitExchange implements PortfolioExchange {
 
    constructor(environment: BybitEnvironment, credentials: Credentials) {
       this.#api = new BybitAPI(environment, credentials)
-      this.#accountKey = `${environment}:${createHash('sha256').update(credentials.apiKey).digest('hex')}`
+      this.#accountKey = `${environment}:${credentials.apiKey}`
    }
 
    account(): Promise<ExchangeAccount> {

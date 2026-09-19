@@ -223,3 +223,8 @@ export function getDatabase(): Database {
    database = db
    return database
 }
+
+export function closeDatabase(): void {
+   database?.close()
+   database = null
+}
