@@ -405,6 +405,11 @@ export default class PortfolioService {
       const asset = assetOf(body.asset)
       const amount = parsePositive(body.amount, 'The amount')
 
+      const targeted = repository.targets().some(row => row.portfolioId === portfolio.id && row.asset === asset)
+      if (asset !== quote && !targeted) {
+         throw new PortfolioError(400, `${asset} is not one of ${portfolio.name}'s targets. Deposit ${quote} or a coin it targets.`)
+      }
+
       const [wallet, markets, prices] = await Promise.all([
          this.#exchange.wallet(), this.#exchange.markets(), this.#exchange.prices()])
 
@@ -506,8 +511,6 @@ export default class PortfolioService {
       }
       plans.set(stored.id, stored)
 
-      const assets = [...new Set([...targets.keys(), ...plan.before.keys(), ...plan.after.keys()])]
-
       return {
          planId: stored.id,
          portfolioId: portfolio.id,
@@ -523,12 +526,6 @@ export default class PortfolioService {
             asset, symbol, side, unit, amount: amount.toFixed(), price: price.toFixed(), value: decimal(value)
          })),
          skipped: plan.skipped.map(({ asset, reason, value }) => ({ asset, reason, value: decimal(value) })),
-         weights: assets.map(asset => ({
-            asset,
-            before: decimal(plan.before.get(asset) ?? ZERO, 4),
-            after: decimal(plan.after.get(asset) ?? ZERO, 4),
-            target: (targets.get(asset) ?? ZERO).toFixed()
-         })),
          cashAfter: decimal(plan.cashAfter),
          shortfall: decimal(plan.shortfall),
          canTrade: account.canTrade
@@ -653,7 +650,8 @@ export default class PortfolioService {
          }
 
          const settled = repository.runOrders(runId)
-         const short = !stored.withdrawAll && withdrawn.lt(stored.withdraw)
+         const tolerated = stored.withdraw.times(Big(1).minus(Big(stored.slippage).div(HUNDRED)))
+         const short = !stored.withdrawAll && withdrawn.lt(tolerated)
          status = settled.some(order => order.status !== 'filled') || short ? 'partial' : 'done'
       }
       catch (caught) {

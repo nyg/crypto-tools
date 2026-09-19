@@ -27,8 +27,9 @@ const minOf = (left: string, right: string) => Big(left).lt(right) ? left : righ
 function DepositForm({ apiBase, portfolio, coins, onCancel, onDeposited }: DepositFormProps) {
 
    const quote = portfolio.quoteAsset
+   const depositable = new Set([quote, ...portfolio.targets.map(({ asset }) => asset)])
    const available = coins
-      .filter(coin => Big(coin.unallocated).gt(0) && Big(coin.free).gt(0))
+      .filter(coin => depositable.has(coin.asset) && Big(coin.unallocated).gt(0) && Big(coin.free).gt(0))
       .toSorted((left, right) => (left.asset === quote ? -1 : right.asset === quote ? 1 : right.valueNum - left.valueNum))
 
    const [asset, setAsset] = useState(() => available[0]?.asset ?? '')
@@ -57,16 +58,17 @@ function DepositForm({ apiBase, portfolio, coins, onCancel, onDeposited }: Depos
          <DialogHeader>
             <DialogTitle>Deposit into {portfolio.name}</DialogTitle>
             <DialogDescription>
-               Moves coins that are already in your Bybit account, and not in any portfolio,
-               into this one. Nothing is traded; rebalance afterwards to put the deposit to work.
+               Moves {quote}, or a coin this portfolio targets, from the part of your Bybit account
+               no portfolio holds into this one. Nothing is traded; rebalance afterwards to put the
+               deposit to work.
             </DialogDescription>
          </DialogHeader>
 
          {available.length === 0
             ? <Alert>
                <AlertDescription>
-                  Every coin in the account is already in a portfolio. Transfer funds into your
-                  Bybit unified trading account first.
+                  No {quote} or target coin of this portfolio is free outside your portfolios.
+                  Transfer some into your Bybit unified trading account first.
                </AlertDescription>
             </Alert>
             : <div className="grid gap-3 sm:grid-cols-2">

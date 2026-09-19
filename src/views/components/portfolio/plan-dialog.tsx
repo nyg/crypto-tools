@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
 import NumericInput from '../lib/numeric-input'
+import OrderLabel from './order-label'
 import RunProgress from './run-progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { asCount } from '../lib/filter-options'
-import { asQuantity, asQuoteAmount, asWeight, runStatusLabels, skipReasons } from './format'
+import { asQuantity, asQuoteAmount, runStatusLabels, skipReasons } from './format'
 import type {
    PortfolioExecuteRequest, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun,
    PortfolioRunResponse, PortfolioSummary
@@ -56,7 +57,7 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
    return (
       <div className="space-y-4">
          {plan.orders.length > 0
-            ? <Table className="tabular-nums">
+            ? <Table className="text-[13px] tabular-nums">
                <TableHeader>
                   <TableRow>
                      <TableHead>Order</TableHead>
@@ -68,7 +69,7 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                <TableBody>
                   {plan.orders.map((order, index) =>
                      <TableRow key={`${order.symbol}-${index}`}>
-                        <TableCell className="font-medium capitalize">{order.side} {order.asset}</TableCell>
+                        <TableCell><OrderLabel side={order.side} asset={order.asset} /></TableCell>
                         <TableCell className="text-right">
                            {asQuantity(order.amount)} {order.unit === 'base' ? order.asset : quote}
                         </TableCell>
@@ -93,26 +94,6 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                      {Number(skip.value) > 0 && ` (about ${asQuoteAmount(skip.value, quote)})`}
                   </li>)}
             </ul>}
-
-         <Table className="tabular-nums">
-            <TableHeader>
-               <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead className="text-right">Target</TableHead>
-                  <TableHead className="text-right">Now</TableHead>
-                  <TableHead className="text-right">After, about</TableHead>
-               </TableRow>
-            </TableHeader>
-            <TableBody>
-               {plan.weights.map(weight =>
-                  <TableRow key={weight.asset}>
-                     <TableCell className="font-medium">{weight.asset}</TableCell>
-                     <TableCell className="text-right">{asWeight(weight.target)}</TableCell>
-                     <TableCell className="text-right">{asWeight(weight.before)}</TableCell>
-                     <TableCell className="text-right">{asWeight(weight.after)}</TableCell>
-                  </TableRow>)}
-            </TableBody>
-         </Table>
 
          {Number(plan.shortfall) > 0 &&
             <Alert variant="destructive">

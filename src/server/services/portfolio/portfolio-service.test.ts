@@ -138,6 +138,11 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(overview.portfolios.map(({ name }) => name)).toEqual(['Core'])
    })
 
+   test('refuses a deposit of a coin that is neither a target nor the quote asset', async () => {
+      await expect(service().deposit({ portfolioId, asset: 'SOL', amount: '1' }))
+         .rejects.toThrow('SOL is not one of Core\'s targets.')
+   })
+
    test('refuses a deposit larger than what is unallocated', async () => {
       expect(await statusOf(service().deposit({ portfolioId, asset: 'USDT', amount: '20000' }))).toBe(400)
    })
@@ -214,6 +219,29 @@ describe('a portfolio from creation to withdrawal', () => {
       const overview = await service().overview()
       expect(overview.portfolios).toHaveLength(0)
       expect(overview.coins.every(({ allocated }) => allocated === '0')).toBe(true)
+   })
+})
+
+describe('a withdrawal that fills below the preview price', () => {
+
+   test('still counts as done while the shortfall is within the slippage allowed', async () => {
+      const { id: portfolioId } = await service().save({
+         name: 'Slipping', quoteAsset: 'USDT', band: '1', targets: [{ asset: 'BTC', weight: '100' }]
+      })
+      await service().deposit({ portfolioId, asset: 'BTC', amount: '0.01' })
+      const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '100' })
+
+      prices.BTCUSDT = { ...prices.BTCUSDT!, last: '49750' }
+      try {
+         const run = await finished((await service().execute({ planId: plan.planId })).run.id)
+         expect(Number(run.withdrawn)).toBeLessThan(100)
+         expect(run.status).toBe('done')
+      }
+      finally {
+         prices.BTCUSDT = { ...prices.BTCUSDT!, last: '50000' }
+      }
+
+      await service().archive({ portfolioId })
    })
 })
 

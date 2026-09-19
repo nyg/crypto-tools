@@ -22,8 +22,22 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
          </TableHeader>
          <TableBody>
             {portfolio.holdings.map(holding => {
-               const drift = holding.drift === null ? 0 : Number(holding.drift)
                const untargeted = Number(holding.target) === 0
+               if (untargeted && holding.asset === portfolio.quoteAsset) {
+                  return (
+                     <TableRow key={holding.asset}>
+                        <TableCell className="font-medium">
+                           {holding.asset}
+                           <span className="ml-2 text-xs text-muted-foreground">cash</span>
+                        </TableCell>
+                        <TableCell colSpan={5} />
+                        <TableCell className="text-right">{asQuoteAmount(holding.value, portfolio.quoteAsset)}</TableCell>
+                     </TableRow>
+                  )
+               }
+               const driftColor = holding.drift === null ? undefined : Math.abs(Number(holding.drift)) > band
+                  ? 'text-destructive'
+                  : 'text-emerald-600 dark:text-emerald-400'
                return (
                   <TableRow key={holding.asset}>
                      <TableCell className="font-medium">
@@ -32,7 +46,7 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                      </TableCell>
                      <TableCell className="text-right">{asWeight(holding.target)}</TableCell>
                      <TableCell className="text-right">{asWeight(holding.weight)}</TableCell>
-                     <TableCell className={cn('text-right', Math.abs(drift) > band && 'text-destructive')}>
+                     <TableCell className={cn('text-right', driftColor)}>
                         {asDrift(holding.drift)}
                      </TableCell>
                      <TableCell className={cn('text-right', Number(holding.quantity) < 0 && 'text-destructive')}>

@@ -60,6 +60,28 @@ describe('the rebalance planner', () => {
       expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toContain('BTC within-band')
    })
 
+   test('spends cash above its band on the underweight targets, even within their own band', () => {
+      const plan = planPortfolio(input({ holdingsOf: { BTC: '0.0098', ETH: '0.116', USDT: '220' } }))
+
+      expect(summary(plan)).toEqual(['buy BTC 10', 'buy ETH 10'])
+   })
+
+   test('raises cash below its band from the overweight targets, even within their own band', () => {
+      const plan = planPortfolio(input({ holdingsOf: { BTC: '0.0102', ETH: '0.124', USDT: '180' } }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0002', 'sell ETH 0.004'])
+   })
+
+   test('holds cash the portfolio does not target to a band around zero', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '60', ETH: '40' }),
+         holdingsOf: { BTC: '0.0117', ETH: '0.156', USDT: '25' },
+         band: Big(2)
+      }))
+
+      expect(summary(plan)).toEqual(['buy BTC 15', 'buy ETH 10'])
+   })
+
    test('sells an asset that is not a target at all, whatever the band', () => {
       const plan = planPortfolio(input({
          targets: bigMap({ BTC: '100' }),
@@ -165,6 +187,23 @@ describe('a withdrawal plan', () => {
       }))
 
       expect(plan.orders.every(({ side }) => side === 'sell')).toBe(true)
+      expect(plan.shortfall.toFixed()).toBe('0')
+      expect(plan.cashAfter.gte(0)).toBe(true)
+   })
+
+   test('raises the whole amount net of fees, rounding each sell up to its lot step', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.02', ETH: '0.4', USDT: '0' },
+         markets: new Map([
+            ['BTC', market('BTC', '50000', { baseStep: '0.0001' })],
+            ['ETH', market('ETH', '2500', { baseStep: '0.001' })]
+         ]),
+         withdraw: Big(500),
+         feeRate: Big('0.001')
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0051', 'sell ETH 0.101'])
       expect(plan.shortfall.toFixed()).toBe('0')
       expect(plan.cashAfter.gte(0)).toBe(true)
    })
