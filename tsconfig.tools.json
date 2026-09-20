@@ -7,5 +7,6 @@
       "electrobun": ["./.hutch/devkit/api/sdks/main/index.ts"]
     }
   },
-  "include": ["vite.config.ts", "electrobun.config.ts", "hutch.config.ts", "scripts"]
+  "include": ["vite.config.ts", "electrobun.config.ts", "hutch.config.ts", "scripts"],
+  "exclude": ["scripts/demo"]
 }
