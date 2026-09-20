@@ -3,14 +3,15 @@ import Big from 'big.js'
 import { foldHoldings } from './holdings'
 import { PlanError, planPortfolio, splitAmount } from './planner'
 import { foldPositions } from './positions'
-import { TargetError, validateTargets } from './targets'
+import { planStops, stopActions } from './stops'
+import { moveWeightToCash, TargetError, validateTargets } from './targets'
 import type { PlanInput, PlanMarket } from './planner'
 import type { PositionMovement, PositionOrder } from './positions'
 
 function market(base: string, price: string, overrides: Partial<Record<keyof PlanMarket, string>> = {}): PlanMarket {
    const values = {
       last: price, bid: price, ask: price,
-      baseStep: '0.000001', quoteStep: '0.01',
+      baseStep: '0.000001', quoteStep: '0.01', tickStep: '0.01',
       minQty: '0.000001', minAmount: '5',
       maxQty: '1000000', maxAmount: '10000000',
       ...overrides
@@ -18,7 +19,7 @@ function market(base: string, price: string, overrides: Partial<Record<keyof Pla
    return {
       symbol: `${base}USDT`, base, quote: 'USDT',
       last: Big(values.last), bid: Big(values.bid), ask: Big(values.ask),
-      baseStep: Big(values.baseStep), quoteStep: Big(values.quoteStep),
+      baseStep: Big(values.baseStep), quoteStep: Big(values.quoteStep), tickStep: Big(values.tickStep),
       minQty: Big(values.minQty), minAmount: Big(values.minAmount),
       maxQty: Big(values.maxQty), maxAmount: Big(values.maxAmount)
    }
@@ -354,7 +355,25 @@ describe('validating targets', () => {
 
    test('accepts weights that add up to exactly 100', () => {
       expect(validateTargets([{ asset: 'btc', weight: '60.5' }, { asset: 'USDT', weight: '39.5' }], 'USDT', tradable))
-         .toEqual([{ asset: 'BTC', weight: '60.5' }, { asset: 'USDT', weight: '39.5' }])
+         .toEqual([
+            { asset: 'BTC', weight: '60.5', stopPrice: null },
+            { asset: 'USDT', weight: '39.5', stopPrice: null }
+         ])
+   })
+
+   test('keeps a stop price on a coin and refuses one on the cash coin', () => {
+      expect(validateTargets([{ asset: 'BTC', weight: '100', stopPrice: '45000.50' }], 'USDT', tradable))
+         .toEqual([{ asset: 'BTC', weight: '100', stopPrice: '45000.5' }])
+
+      expect(() => validateTargets([{ asset: 'USDT', weight: '100', stopPrice: '1' }], 'USDT', tradable))
+         .toThrow(TargetError)
+   })
+
+   test('refuses a stop price that is zero, negative or not a number', () => {
+      for (const stopPrice of ['0', '-1', 'soon']) {
+         expect(() => validateTargets([{ asset: 'BTC', weight: '100', stopPrice }], 'USDT', tradable))
+            .toThrow(TargetError)
+      }
    })
 
    test('refuses weights that do not add up to 100', () => {
@@ -369,5 +388,84 @@ describe('validating targets', () => {
    test('refuses an asset listed twice', () => {
       expect(() => validateTargets([{ asset: 'BTC', weight: '50' }, { asset: 'BTC', weight: '50' }], 'USDT', tradable))
          .toThrow(TargetError)
+   })
+})
+
+describe('moving a stopped coin to cash', () => {
+
+   const targets = [
+      { asset: 'BTC', weight: '50', stopPrice: '45000' },
+      { asset: 'ETH', weight: '30', stopPrice: null },
+      { asset: 'USDT', weight: '20', stopPrice: null }
+   ]
+
+   test('adds the weight to an existing cash target', () => {
+      expect(moveWeightToCash(targets, 'BTC', 'USDT')).toEqual([
+         { asset: 'ETH', weight: '30', stopPrice: null },
+         { asset: 'USDT', weight: '70', stopPrice: null }
+      ])
+   })
+
+   test('creates a cash target when the portfolio had none', () => {
+      const without = targets.filter(({ asset }) => asset !== 'USDT')
+         .map(target => target.asset === 'ETH' ? { ...target, weight: '50' } : target)
+
+      expect(moveWeightToCash(without, 'BTC', 'USDT')).toEqual([
+         { asset: 'ETH', weight: '50', stopPrice: null },
+         { asset: 'USDT', weight: '50', stopPrice: null }
+      ])
+   })
+
+   test('leaves the targets alone when the coin is not one of them', () => {
+      expect(moveWeightToCash(targets, 'SOL', 'USDT')).toBe(targets)
+   })
+})
+
+describe('planning stop orders', () => {
+
+   const btc = market('BTC', '50000')
+
+   test('floors the trigger to the tick and the quantity to the lot step', () => {
+      const { desired, skipped } = planStops([
+         { asset: 'BTC', stopPrice: Big('45000.567'), holding: Big('0.1234567891'), market: btc }
+      ])
+
+      expect(skipped).toEqual([])
+      expect(desired).toEqual([
+         { asset: 'BTC', symbol: 'BTCUSDT', quantity: Big('0.123456'), triggerPrice: Big('45000.56') }
+      ])
+   })
+
+   test('skips a stop with no market, a stop above the price and a holding below the minimum', () => {
+      const { desired, skipped } = planStops([
+         { asset: 'SOL', stopPrice: Big('100'), holding: Big('1'), market: undefined },
+         { asset: 'BTC', stopPrice: Big('50000'), holding: Big('1'), market: btc },
+         { asset: 'ETH', stopPrice: Big('2000'), holding: Big('0.0000001'), market: market('ETH', '2500') }
+      ])
+
+      expect(desired).toEqual([])
+      expect(skipped).toEqual([
+         { asset: 'SOL', reason: 'no-market' },
+         { asset: 'BTC', reason: 'above-price' },
+         { asset: 'ETH', reason: 'too-small' }
+      ])
+   })
+
+   test('keeps a resting stop that already matches and replaces one that does not', () => {
+      const desired = [
+         { asset: 'BTC', symbol: 'BTCUSDT', quantity: Big('0.5'), triggerPrice: Big('45000') },
+         { asset: 'ETH', symbol: 'ETHUSDT', quantity: Big('2'), triggerPrice: Big('2000') }
+      ]
+      const live = [
+         { orderLinkId: 'keep', asset: 'BTC', symbol: 'BTCUSDT', quantity: Big('0.5'), triggerPrice: Big('45000') },
+         { orderLinkId: 'resize', asset: 'ETH', symbol: 'ETHUSDT', quantity: Big('1'), triggerPrice: Big('2000') },
+         { orderLinkId: 'gone', asset: 'SOL', symbol: 'SOLUSDT', quantity: Big('3'), triggerPrice: Big('100') }
+      ]
+
+      const actions = stopActions(desired, live)
+
+      expect(actions.keep.map(({ orderLinkId }) => orderLinkId)).toEqual(['keep'])
+      expect(actions.cancel.map(({ orderLinkId }) => orderLinkId)).toEqual(['resize', 'gone'])
+      expect(actions.place.map(({ asset }) => asset)).toEqual(['ETH'])
    })
 })

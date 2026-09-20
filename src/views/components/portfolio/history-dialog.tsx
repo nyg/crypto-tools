@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { asLocalTimestamp } from '../../../utils/format'
-import { asQuantity, asQuoteAmount, runStatusLabels } from './format'
+import { asQuantity, asQuoteAmount, runKindLabels, runStatusLabels } from './format'
 import type { PortfolioHistoryRequest, PortfolioHistoryResponse, PortfolioSummary } from '../../../types/api'
 import type { MovementKind } from '../../../types/portfolio'
 
@@ -86,7 +86,7 @@ export default function HistoryDialog({ apiBase, portfolio, onOpenChange }: Hist
                      {data.runs.map(run =>
                         <div key={run.id} className="space-y-2">
                            <div className="text-sm">
-                              <span className="font-medium capitalize">{run.kind}</span>{' '}
+                              <span className="font-medium">{runKindLabels[run.kind]}</span>{' '}
                               <span className="text-muted-foreground">
                                  {asLocalTimestamp(run.startedAt)} · {runStatusLabels[run.status]}
                                  {Number(run.withdraw) > 0 && ` · ${asQuoteAmount(run.withdrawn, quote)} withdrawn`}

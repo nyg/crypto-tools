@@ -11,7 +11,7 @@ import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
 import type {
    FeeAmount, MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, SkipReason,
-   VenueId
+   StopSkipReason, StopStatus, VenueId
 } from './portfolio'
 import type { XStockListingType } from './xstock'
 
@@ -310,6 +310,34 @@ export interface AggregateBalanceResponse {
 export interface PortfolioTarget {
    asset: string
    weight: string
+   stopPrice: string | null
+}
+
+export interface PortfolioStopState {
+   orderLinkId: string
+   asset: string
+   symbol: string
+   quantity: string
+   triggerPrice: string
+   status: StopStatus
+   error: string | null
+   placedAt: number
+}
+
+export interface PortfolioStopSkip {
+   asset: string
+   reason: StopSkipReason
+}
+
+export interface PortfolioStopFill {
+   orderLinkId: string
+   portfolioId: number
+   portfolioName: string
+   asset: string
+   quantity: string
+   proceeds: string
+   averagePrice: string
+   settledAt: number | null
 }
 
 export interface PortfolioHolding {
@@ -323,6 +351,8 @@ export interface PortfolioHolding {
    drift: string | null
    unrealized: string | null
    realized: string
+   stopPrice: string | null
+   stopStatus: StopStatus | null
 }
 
 export interface PortfolioSummary {
@@ -343,6 +373,7 @@ export interface PortfolioSummary {
    maxDrift: string
    needsRebalance: boolean
    quoteLocked: boolean
+   stops: PortfolioStopState[]
 }
 
 export interface AccountCoin {
@@ -373,6 +404,9 @@ export interface PortfolioOverviewResponse {
    portfolios: PortfolioSummary[]
    activeRun: { id: string, portfolioId: number } | null
    reconciled: number
+   hardStops: boolean
+   stopsSyncing: boolean
+   stopFills: PortfolioStopFill[]
 }
 
 export interface PortfolioMarket {
@@ -510,6 +544,23 @@ export interface PortfolioRun {
 
 export interface PortfolioRunResponse {
    run: PortfolioRun
+}
+
+export interface PortfolioStopSyncRequest {
+   portfolioId: number
+}
+
+export interface PortfolioStopSyncResponse {
+   stops: PortfolioStopState[]
+   skipped: PortfolioStopSkip[]
+}
+
+export interface PortfolioStopAckRequest {
+   orderLinkId: string
+}
+
+export interface PortfolioStopAckResponse {
+   acknowledged: number
 }
 
 export interface PortfolioHistoryRequest {

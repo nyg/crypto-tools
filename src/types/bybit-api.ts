@@ -60,7 +60,7 @@ export interface BybitApiKeyInfo {
 
 export type BybitOrderSide = 'Buy' | 'Sell'
 
-export interface BybitOrderRequest {
+export interface BybitOrderBase {
    category: 'spot'
    symbol: string
    side: BybitOrderSide
@@ -69,11 +69,33 @@ export interface BybitOrderRequest {
    marketUnit: 'baseCoin' | 'quoteCoin'
    isLeverage: 0
    orderLinkId: string
+}
+
+export interface BybitMarketOrderRequest extends BybitOrderBase {
    slippageToleranceType: 'Percent'
    slippageTolerance: string
 }
 
+export interface BybitStopOrderRequest extends BybitOrderBase {
+   orderFilter: 'StopOrder'
+   triggerPrice: string
+}
+
+export type BybitOrderRequest = BybitMarketOrderRequest | BybitStopOrderRequest
+
+export interface BybitCancelRequest {
+   category: 'spot'
+   symbol: string
+   orderFilter: 'StopOrder'
+   orderLinkId: string
+}
+
 export interface BybitOrderCreated {
+   orderId: string
+   orderLinkId: string
+}
+
+export interface BybitOrderCancelled {
    orderId: string
    orderLinkId: string
 }
@@ -84,6 +106,9 @@ export interface BybitOrder {
    symbol: string
    side: BybitOrderSide
    orderStatus: string
+   orderFilter?: string
+   qty?: string
+   triggerPrice?: string
    rejectReason?: string
    avgPrice: string
    cumExecQty: string

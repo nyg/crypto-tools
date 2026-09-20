@@ -3,9 +3,9 @@ import { authenticator } from './authenticator'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   BybitApiKeyInfo, BybitEnvironment, BybitExecution, BybitOrder, BybitOrderCreated,
-   BybitOrderRequest, BybitPage, BybitResponse, BybitSpotInstrument, BybitSpotTicker,
-   BybitWalletAccount
+   BybitApiKeyInfo, BybitCancelRequest, BybitEnvironment, BybitExecution, BybitOrder,
+   BybitOrderCancelled, BybitOrderCreated, BybitOrderRequest, BybitPage, BybitResponse,
+   BybitSpotInstrument, BybitSpotTicker, BybitWalletAccount
 } from '../../../types/bybit-api'
 
 const hosts: Record<BybitEnvironment, string> = {
@@ -22,6 +22,7 @@ const tickersEndpoint = '/v5/market/tickers'
 const walletBalanceEndpoint = '/v5/account/wallet-balance'
 const apiKeyInfoEndpoint = '/v5/user/query-api'
 const createOrderEndpoint = '/v5/order/create'
+const cancelOrderEndpoint = '/v5/order/cancel'
 const realtimeOrdersEndpoint = '/v5/order/realtime'
 const orderHistoryEndpoint = '/v5/order/history'
 const executionsEndpoint = '/v5/execution/list'
@@ -88,6 +89,31 @@ export async function createOrder(
       environment, credentials, createOrderEndpoint, { bodyParams: order })
 }
 
+export async function cancelOrder(
+   environment: BybitEnvironment, credentials: Credentials, request: BybitCancelRequest
+): Promise<BybitOrderCancelled> {
+   return await privateRequest<BybitOrderCancelled>(
+      environment, credentials, cancelOrderEndpoint, { bodyParams: request })
+}
+
+export async function fetchOpenStopOrders(
+   environment: BybitEnvironment, credentials: Credentials
+): Promise<BybitOrder[]> {
+
+   const orders: BybitOrder[] = []
+   let cursor: string | undefined
+
+   do {
+      const page = await privateRequest<BybitPage<BybitOrder>>(
+         environment, credentials, realtimeOrdersEndpoint,
+         { searchParams: { category: 'spot', orderFilter: 'StopOrder', limit: 50, cursor } })
+      orders.push(...page.list)
+      cursor = page.nextPageCursor || undefined
+   } while (cursor)
+
+   return orders
+}
+
 export async function fetchOrderByLinkId(
    environment: BybitEnvironment, credentials: Credentials, orderLinkId: string
 ): Promise<BybitOrder | undefined> {
@@ -97,6 +123,11 @@ export async function fetchOrderByLinkId(
    const realtime = await privateRequest<BybitPage<BybitOrder>>(
       environment, credentials, realtimeOrdersEndpoint, { searchParams })
    if (realtime.list.length > 0) return realtime.list[0]
+
+   const conditional = await privateRequest<BybitPage<BybitOrder>>(
+      environment, credentials, realtimeOrdersEndpoint,
+      { searchParams: { ...searchParams, orderFilter: 'StopOrder' } })
+   if (conditional.list.length > 0) return conditional.list[0]
 
    const history = await privateRequest<BybitPage<BybitOrder>>(
       environment, credentials, orderHistoryEndpoint, { searchParams })

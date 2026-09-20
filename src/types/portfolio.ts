@@ -10,6 +10,7 @@ export interface SpotMarket {
    quote: string
    baseStep: string
    quoteStep: string
+   tickStep: string
    minQty: string
    minAmount: string
    maxQty: string
@@ -44,6 +45,21 @@ export interface OrderRequest {
    maxSlippagePercent: string
 }
 
+export interface StopOrderRequest {
+   clientOrderId: string
+   symbol: string
+   quantity: string
+   triggerPrice: string
+}
+
+export interface OpenStopOrder {
+   clientOrderId: string
+   orderId: string
+   symbol: string
+   quantity: string
+   triggerPrice: string
+}
+
 export type SettlementStatus = 'open' | 'filled' | 'partial' | 'rejected'
 
 export interface OrderSettlement {
@@ -61,12 +77,17 @@ export type SkipReason =
 
 export type MovementKind = 'deposit' | 'withdraw' | 'adjust' | 'fee'
 
-export type RunKind = 'rebalance' | 'withdraw'
+export type RunKind = 'rebalance' | 'withdraw' | 'stop'
 
 export type RunStatus = 'running' | 'done' | 'partial' | 'error' | 'interrupted'
 
 export type RunOrderStatus =
    'pending' | 'placed' | 'filled' | 'partial' | 'rejected' | 'failed' | 'skipped' | 'unknown'
+
+export type StopStatus =
+   'pending' | 'placed' | 'cancelled' | 'filled' | 'partial' | 'failed' | 'missing'
+
+export type StopSkipReason = 'no-market' | 'too-small' | 'above-price' | 'no-free-balance'
 
 export interface FeeAmount {
    asset: string

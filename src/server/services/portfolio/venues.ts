@@ -7,6 +7,7 @@ export interface Venue {
    id: VenueId
    provider: Provider
    label: string
+   hardStops: boolean
    exchange: (credentials: Credentials) => PortfolioExchange
 }
 
@@ -15,12 +16,14 @@ export const venues: Record<VenueId, Venue> = {
       id: 'bybit',
       provider: 'bybit',
       label: 'Bybit',
+      hardStops: true,
       exchange: credentials => new BybitExchange('mainnet', credentials)
    },
    bybitDemo: {
       id: 'bybitDemo',
       provider: 'bybitDemo',
       label: 'Bybit demo trading',
+      hardStops: true,
       exchange: credentials => new BybitExchange('demo', credentials)
    }
 }

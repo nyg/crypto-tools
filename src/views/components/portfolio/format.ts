@@ -1,6 +1,8 @@
 import Big from 'big.js'
 import { asAssetAmount, asDecimal, asShortPercentage } from '../../../utils/format'
-import type { RunOrderStatus, RunStatus, SkipReason } from '../../../types/portfolio'
+import type {
+   RunKind, RunOrderStatus, RunStatus, SkipReason, StopSkipReason, StopStatus
+} from '../../../types/portfolio'
 
 const QUOTE_DECIMALS = 2
 const POINT_DECIMALS = 1
@@ -51,10 +53,33 @@ export const orderStatusLabels: Record<RunOrderStatus, string> = {
    unknown: 'Checking'
 }
 
+export const stopStatusLabels: Record<StopStatus, string> = {
+   pending: 'Placing',
+   placed: 'Armed',
+   cancelled: 'Cancelled',
+   filled: 'Sold',
+   partial: 'Partly sold',
+   failed: 'Failed',
+   missing: 'Gone'
+}
+
+export const stopSkipReasons: Record<StopSkipReason, string> = {
+   'no-market': 'no market against the cash coin',
+   'too-small': 'the holding is below the minimum order',
+   'above-price': 'the stop price is at or above the current price',
+   'no-free-balance': 'nothing free in the wallet to sell'
+}
+
 export const runStatusLabels: Record<RunStatus, string> = {
    running: 'Running',
    done: 'Done',
    partial: 'Partly done',
    error: 'Failed',
    interrupted: 'Interrupted'
+}
+
+export const runKindLabels: Record<RunKind, string> = {
+   rebalance: 'Rebalance',
+   withdraw: 'Withdrawal',
+   stop: 'Stop'
 }

@@ -8,7 +8,8 @@ import type { PortfolioExchange } from './exchange'
 import type PortfolioServiceType from './portfolio-service'
 import type { Venue } from './venues'
 import type {
-   ExchangeAccount, OrderRequest, OrderSettlement, SpotMarket, SpotPrice, WalletCoin
+   ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
+   StopOrderRequest, WalletCoin
 } from '../../../types/portfolio'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-portfolio-'))
@@ -20,15 +21,24 @@ const prices: Record<string, SpotPrice> = {
 
 const market = (base: string): SpotMarket => ({
    symbol: `${base}USDT`, base, quote: 'USDT', baseStep: '0.000001', quoteStep: '0.01',
-   minQty: '0.000001', minAmount: '5', maxQty: '1000', maxAmount: '10000000'
+   tickStep: '0.01', minQty: '0.000001', minAmount: '5', maxQty: '1000', maxAmount: '10000000'
 })
+
+interface FakeStop {
+   symbol: string
+   quantity: string
+   triggerPrice: string
+   orderId: string
+}
 
 class FakeExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
    readonly balances = new Map<string, Big>([['USDT', Big(10000)], ['BTC', Big('0.5')]])
    readonly settlements = new Map<string, OrderSettlement>()
+   readonly stops = new Map<string, FakeStop>()
    rejectNext = false
+   rejectStopNext = false
    accountId = 'uid-1'
 
    async account(): Promise<ExchangeAccount> {
@@ -76,6 +86,57 @@ class FakeExchange implements PortfolioExchange {
       return this.settlements.get(clientOrderId) ?? null
    }
 
+   async placeStopOrder({ clientOrderId, symbol, quantity, triggerPrice }: StopOrderRequest): Promise<string> {
+      if (this.rejectStopNext) {
+         this.rejectStopNext = false
+         throw new HttpRequesterError(200, { retCode: 170131, retMsg: 'Insufficient balance.' })
+      }
+      const orderId = `stop-${this.stops.size + 1}`
+      this.stops.set(clientOrderId, { symbol, quantity, triggerPrice, orderId })
+      return orderId
+   }
+
+   async cancelStopOrder(_symbol: string, clientOrderId: string): Promise<void> {
+      this.stops.delete(clientOrderId)
+   }
+
+   async openStopOrders(): Promise<OpenStopOrder[]> {
+      return [...this.stops].map(([clientOrderId, { orderId, symbol, quantity, triggerPrice }]) =>
+         ({ clientOrderId, orderId, symbol, quantity, triggerPrice }))
+   }
+
+   triggerStop(clientOrderId: string): void {
+      const stop = this.stops.get(clientOrderId)!
+      this.stops.delete(clientOrderId)
+
+      const base = stop.symbol.replace(/USDT$/, '')
+      const price = Big(stop.triggerPrice)
+      const quantity = Big(stop.quantity)
+      const value = quantity.times(price)
+      const fee = value.times('0.001')
+
+      this.#move(base, quantity.times(-1))
+      this.#move('USDT', value.minus(fee))
+
+      this.settlements.set(clientOrderId, {
+         orderId: stop.orderId, status: 'filled', base: quantity.toFixed(), quote: value.toFixed(),
+         averagePrice: price.toFixed(), fees: { USDT: fee.toFixed() }, reason: ''
+      })
+   }
+
+   refuseStop(clientOrderId: string): void {
+      const stop = this.stops.get(clientOrderId)!
+      this.stops.delete(clientOrderId)
+      this.settlements.set(clientOrderId, {
+         orderId: stop.orderId, status: 'rejected', base: '0', quote: '0', averagePrice: '0',
+         fees: {}, reason: 'Insufficient balance.'
+      })
+   }
+
+   loseStop(clientOrderId: string): void {
+      this.stops.delete(clientOrderId)
+   }
+
    #move(asset: string, amount: Big) {
       this.balances.set(asset, (this.balances.get(asset) ?? Big(0)).plus(amount))
    }
@@ -86,7 +147,9 @@ let PortfolioError: typeof import('./portfolio-service').PortfolioError
 let PortfolioRepository: typeof import('../../db/portfolio-repository').default
 
 const exchange = new FakeExchange()
-const venue: Venue = { id: 'bybitDemo', provider: 'bybitDemo', label: 'Fake', exchange: () => exchange }
+const venue: Venue = {
+   id: 'bybitDemo', provider: 'bybitDemo', label: 'Fake', hardStops: true, exchange: () => exchange
+}
 
 const service = () => new PortfolioService(venue, exchange)
 
@@ -282,6 +345,196 @@ describe('profit split into realized and unrealized', () => {
       }
 
       await service().archive({ portfolioId })
+   })
+})
+
+describe('stop orders', () => {
+
+   let portfolioId: number
+
+   const stopOf = (portfolio: { stops: { asset: string, status: string, orderLinkId: string, quantity: string, triggerPrice: string }[] }, asset: string) =>
+      portfolio.stops.find(stop => stop.asset === asset)
+
+   const portfolioOf = async (id: number) =>
+      (await service().overview()).portfolios.find(portfolio => portfolio.id === id)!
+
+   const flooredToLot = (quantity: string) => Big(quantity).round(6, Big.roundDown).toFixed()
+
+   test('arms a stop sized to the holding once the portfolio owns the coin', async () => {
+      const { id } = await service().save({
+         name: 'Stopped', quoteAsset: 'USDT', band: '1',
+         targets: [
+            { asset: 'BTC', weight: '50', stopPrice: '45000.004' },
+            { asset: 'USDT', weight: '50' }
+         ]
+      })
+      portfolioId = id
+
+      await service().deposit({ portfolioId, asset: 'USDT', amount: '1000' })
+      const plan = await service().plan({ portfolioId, kind: 'rebalance' })
+      await finished((await service().execute({ planId: plan.planId })).run.id)
+
+      const { stops } = await service().syncStops({ portfolioId })
+      const holding = (await portfolioOf(portfolioId)).holdings.find(({ asset }) => asset === 'BTC')!
+
+      expect(stops).toHaveLength(1)
+      expect(stops[0]!.asset).toBe('BTC')
+      expect(stops[0]!.quantity).toBe(flooredToLot(holding.quantity))
+      expect(stops[0]!.triggerPrice).toBe('45000')
+      expect(exchange.stops.has(stops[0]!.orderLinkId)).toBe(true)
+   })
+
+   test('refuses a stop price at or above the current price', async () => {
+      const { id } = await service().save({
+         id: portfolioId, name: 'Stopped', quoteAsset: 'USDT', band: '1',
+         targets: [
+            { asset: 'BTC', weight: '50', stopPrice: '60000' },
+            { asset: 'USDT', weight: '50' }
+         ]
+      })
+
+      const { stops, skipped } = await service().syncStops({ portfolioId: id })
+
+      expect(stops).toHaveLength(0)
+      expect(skipped).toEqual([{ asset: 'BTC', reason: 'above-price' }])
+      expect(exchange.stops.size).toBe(0)
+   })
+
+   test('cancels the stop before a run and places it again afterwards', async () => {
+      await service().save({
+         id: portfolioId, name: 'Stopped', quoteAsset: 'USDT', band: '1',
+         targets: [
+            { asset: 'BTC', weight: '50', stopPrice: '45000' },
+            { asset: 'USDT', weight: '50' }
+         ]
+      })
+      await service().syncStops({ portfolioId })
+      const armed = stopOf(await portfolioOf(portfolioId), 'BTC')!
+
+      await service().deposit({ portfolioId, asset: 'USDT', amount: '500' })
+      const plan = await service().plan({ portfolioId, kind: 'rebalance', band: '0' })
+      const done = await finished((await service().execute({ planId: plan.planId })).run.id)
+      expect(done.status).toBe('done')
+
+      const portfolio = await portfolioOf(portfolioId)
+      const replaced = stopOf(portfolio, 'BTC')!
+      const holding = portfolio.holdings.find(({ asset }) => asset === 'BTC')!
+
+      expect(exchange.stops.has(armed.orderLinkId)).toBe(false)
+      expect(replaced.orderLinkId).not.toBe(armed.orderLinkId)
+      expect(replaced.quantity).toBe(flooredToLot(holding.quantity))
+      expect(exchange.stops.get(replaced.orderLinkId)!.quantity).toBe(flooredToLot(holding.quantity))
+   })
+
+   test('places the stop again after a deposit changes the holding', async () => {
+      const before = stopOf(await portfolioOf(portfolioId), 'BTC')!
+
+      await service().deposit({ portfolioId, asset: 'BTC', amount: '0.01' })
+      await service().syncStops({ portfolioId })
+
+      const portfolio = await portfolioOf(portfolioId)
+      const after = stopOf(portfolio, 'BTC')!
+      const holding = portfolio.holdings.find(({ asset }) => asset === 'BTC')!
+
+      expect(after.orderLinkId).not.toBe(before.orderLinkId)
+      expect(after.quantity).toBe(flooredToLot(holding.quantity))
+   })
+
+   test('records a fill, drops the coin from the targets and moves its weight to cash', async () => {
+      const armed = stopOf(await portfolioOf(portfolioId), 'BTC')!
+      exchange.triggerStop(armed.orderLinkId)
+
+      const overview = await service().overview()
+      const portfolio = overview.portfolios.find(({ id }) => id === portfolioId)!
+
+      expect(portfolio.targets).toEqual([{ asset: 'USDT', weight: '100', stopPrice: null }])
+
+      const dust = portfolio.holdings.find(({ asset }) => asset === 'BTC')?.quantity ?? '0'
+      expect(Big(dust).lt('0.000001')).toBe(true)
+      expect(portfolio.stops).toHaveLength(0)
+
+      const fill = overview.stopFills.find(entry => entry.orderLinkId === armed.orderLinkId)!
+      expect(fill.asset).toBe('BTC')
+      expect(fill.quantity).toBe(armed.quantity)
+      expect(Number(fill.proceeds)).toBeGreaterThan(0)
+
+      const { runs } = await service().history({ portfolioId })
+      const stopRun = runs.find(run => run.kind === 'stop')!
+      expect(stopRun.orders[0]!.status).toBe('filled')
+      expect(stopRun.orders[0]!.side).toBe('sell')
+   })
+
+   test('does not record the same fill twice and clears it once acknowledged', async () => {
+      const first = await service().overview()
+      const fill = first.stopFills[0]!
+
+      const again = await service().overview()
+      expect(again.stopFills.map(({ orderLinkId }) => orderLinkId)).toEqual([fill.orderLinkId])
+
+      const { runs } = await service().history({ portfolioId })
+      expect(runs.filter(run => run.kind === 'stop')).toHaveLength(1)
+
+      expect(await service().ackStop({ orderLinkId: fill.orderLinkId })).toEqual({ acknowledged: 1 })
+      expect((await service().overview()).stopFills).toHaveLength(0)
+   })
+
+   test('records a refused stop as failed and leaves the targets alone', async () => {
+      await service().save({
+         id: portfolioId, name: 'Stopped', quoteAsset: 'USDT', band: '1',
+         targets: [
+            { asset: 'BTC', weight: '50', stopPrice: '45000' },
+            { asset: 'USDT', weight: '50' }
+         ]
+      })
+      await service().deposit({ portfolioId, asset: 'BTC', amount: '0.01' })
+      const { stops } = await service().syncStops({ portfolioId })
+      exchange.refuseStop(stops[0]!.orderLinkId)
+
+      const overview = await service().overview()
+      const portfolio = overview.portfolios.find(({ id }) => id === portfolioId)!
+
+      expect(stopOf(portfolio, 'BTC')!.status).toBe('failed')
+      expect(portfolio.targets.map(({ asset }) => asset)).toEqual(['BTC', 'USDT'])
+      expect(overview.stopsSyncing).toBe(false)
+   })
+
+   test('places a stop again when the exchange no longer holds it', async () => {
+      const { stops } = await service().syncStops({ portfolioId })
+      const armed = stops.find(({ asset }) => asset === 'BTC')!
+      exchange.loseStop(armed.orderLinkId)
+
+      const overview = await service().overview()
+      expect(overview.stopFills).toHaveLength(0)
+      expect(overview.stopsSyncing).toBe(true)
+
+      const replaced = (await service().syncStops({ portfolioId })).stops.find(({ asset }) => asset === 'BTC')!
+      expect(replaced.orderLinkId).not.toBe(armed.orderLinkId)
+      expect(exchange.stops.has(replaced.orderLinkId)).toBe(true)
+
+      await service().archive({ portfolioId })
+   })
+
+   test('keeps the stop price but places nothing on a venue without stop orders', async () => {
+      const quiet = new PortfolioService({ ...venue, hardStops: false }, exchange)
+      const { id } = await quiet.save({
+         name: 'No stops', quoteAsset: 'USDT', band: '1',
+         targets: [
+            { asset: 'BTC', weight: '50', stopPrice: '45000' },
+            { asset: 'USDT', weight: '50' }
+         ]
+      })
+
+      await quiet.deposit({ portfolioId: id, asset: 'BTC', amount: '0.01' })
+      const overview = await quiet.overview()
+      const portfolio = overview.portfolios.find(entry => entry.id === id)!
+
+      expect(overview.hardStops).toBe(false)
+      expect(overview.stopsSyncing).toBe(false)
+      expect(portfolio.stops).toHaveLength(0)
+      expect(portfolio.targets.find(({ asset }) => asset === 'BTC')!.stopPrice).toBe('45000')
+      expect(await statusOf(quiet.syncStops({ portfolioId: id }))).toBe(400)
+
+      await quiet.archive({ portfolioId: id })
    })
 })
 

@@ -23,9 +23,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { asLocalTimestamp, asLongDate, asUtcTimestamp } from '../../../utils/format'
 import type { PlanTarget } from '../../components/portfolio/plan-dialog'
+import { asQuantity, asQuoteAmount } from '../../components/portfolio/format'
 import type {
    AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioOverviewResponse,
-   PortfolioSummary
+   PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary
 } from '../../../types/api'
 import type { VenueId } from '../../../types/portfolio'
 
@@ -46,6 +47,8 @@ export default function BybitPortfolios() {
       useMutation<PortfolioOverviewResponse>(`${apiBase}/overview`)
    const { trigger: archive, isMutating: isArchiving } =
       useMutation<PortfolioArchiveResponse, PortfolioArchiveRequest>(`${apiBase}/archive`)
+   const { trigger: acknowledgeStop } =
+      useMutation<PortfolioStopAckResponse, PortfolioStopAckRequest>(`${apiBase}/stops/ack`)
 
    const [editing, setEditing] = useState<{ portfolio: PortfolioSummary | null } | null>(null)
    const [depositing, setDepositing] = useState<PortfolioSummary | null>(null)
@@ -69,6 +72,16 @@ export default function BybitPortfolios() {
 
    const rebalance = (portfolio: PortfolioSummary) =>
       setPlanning({ portfolio, request: { portfolioId: portfolio.id, kind: 'rebalance' } })
+
+   const dismissStopFill = async (orderLinkId: string) => {
+      try {
+         await acknowledgeStop({ orderLinkId })
+         refresh()
+      }
+      catch (reason) {
+         toast.error(typeof reason === 'string' ? reason : 'The stop could not be dismissed.')
+      }
+   }
 
    const venueToggle = (
       <Tabs value={venue} onValueChange={value => setVenue(value as VenueId)}>
@@ -118,6 +131,8 @@ export default function BybitPortfolios() {
    const runPortfolio = portfolios.find(({ id }) => id === overview?.activeRun?.portfolioId)
    const overallocated = overview?.coins.filter(({ overallocated }) => overallocated) ?? []
    const expiresSoon = overview?.key.expiresAt && overview.key.expiresAt - overview.fetchedAt < EXPIRY_WARNING_MS
+   const stopFills = overview?.stopFills ?? []
+   const stoppedPortfolio = (portfolioId: number) => portfolios.find(({ id }) => id === portfolioId)
 
    return (
       <BybitLayout name="Portfolios" trailing={liveStatus}>
@@ -161,6 +176,50 @@ export default function BybitPortfolios() {
                   </AlertDescription>
                </Alert>}
 
+            {stopFills.map(fill =>
+               <Alert key={fill.orderLinkId} variant="destructive">
+                  <AlertTitle>
+                     {fill.asset} was sold by its stop in {fill.portfolioName}
+                  </AlertTitle>
+                  <AlertDescription>
+                     {asQuantity(fill.quantity)} {fill.asset} sold for{' '}
+                     {asQuoteAmount(fill.proceeds, stoppedPortfolio(fill.portfolioId)?.quoteAsset ?? 'USDT')}.
+                     {' '}The coin was dropped from the targets and its weight moved to cash. Rebalance when you
+                     are ready, and add the coin back by hand if you want it again.
+                  </AlertDescription>
+                  <AlertAction>
+                     <div className="flex flex-wrap gap-2">
+                        {stoppedPortfolio(fill.portfolioId) &&
+                           <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() => rebalance(stoppedPortfolio(fill.portfolioId)!)}>
+                              Rebalance now
+                           </Button>}
+                        <Button size="sm" variant="ghost" onClick={() => dismissStopFill(fill.orderLinkId)}>
+                           Dismiss
+                        </Button>
+                     </div>
+                  </AlertAction>
+               </Alert>)}
+
+            {overview && !overview.hardStops &&
+               <Alert>
+                  <AlertDescription>
+                     {label} does not accept stop orders, so stop prices are kept but nothing rests on the
+                     exchange.
+                  </AlertDescription>
+               </Alert>}
+
+            {overview?.stopsSyncing &&
+               <Alert>
+                  <Loader2Icon className="animate-spin" />
+                  <AlertDescription>
+                     The stop orders are being brought in line with the targets. Refresh in a moment to see them.
+                  </AlertDescription>
+               </Alert>}
+
             {overview?.activeRun &&
                <Alert>
                   <Loader2Icon className="animate-spin" />
@@ -188,6 +247,14 @@ export default function BybitPortfolios() {
                   <AlertDescription>
                      No portfolio on this account yet. Create one, deposit coins that are already on {label}, then
                      rebalance to buy the targets.
+                  </AlertDescription>
+               </Alert>}
+
+            {venue === 'bybitDemo' && overview && overview.hardStops && portfolios.some(({ stops }) => stops.length > 0) &&
+               <Alert>
+                  <AlertDescription>
+                     Demo trading drops resting orders after seven days, so a stop only protects a demo
+                     portfolio while the app runs often enough to place it again.
                   </AlertDescription>
                </Alert>}
 

@@ -3,7 +3,9 @@ import type {
    PortfolioHistoryRequest, PortfolioHistoryResponse, PortfolioHolding, PortfolioMarketsResponse,
    PortfolioMovement, PortfolioMovementRequest, PortfolioMovementResponse, PortfolioOverviewResponse,
    PortfolioPlanOrder, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun, PortfolioRunRequest,
-   PortfolioRunResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioSummary, PortfolioTarget
+   PortfolioRunResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioStopAckRequest,
+   PortfolioStopAckResponse, PortfolioStopFill, PortfolioStopState, PortfolioStopSyncRequest,
+   PortfolioStopSyncResponse, PortfolioSummary, PortfolioTarget
 } from '../../types/api'
 import type { VenueId } from '../../types/portfolio'
 
@@ -25,6 +27,7 @@ interface MockPortfolio {
    costs: Record<string, number>
    realized: Record<string, number>
    closedRealized: number
+   stops: PortfolioStopState[]
    deposited?: number
 }
 
@@ -46,6 +49,7 @@ interface VenueState {
    movements: Map<number, PortfolioMovement[]>
    runs: Map<string, MockRun>
    plans: Map<string, MockPlan>
+   stopFills: PortfolioStopFill[]
    nextId: number
 }
 
@@ -57,31 +61,51 @@ function seed(venue: VenueId): VenueState {
       ? [
          {
             id: 1, name: 'Core', quoteAsset: 'USDT', band: '1', createdAt: created,
-            targets: [{ asset: 'BTC', weight: '50' }, { asset: 'ETH', weight: '30' }, { asset: 'USDT', weight: '20' }],
+            targets: [
+               { asset: 'BTC', weight: '50', stopPrice: '58000' },
+               { asset: 'ETH', weight: '30', stopPrice: null },
+               { asset: 'USDT', weight: '20', stopPrice: null }
+            ],
             holdings: { BTC: 0.0712, ETH: 0.84, USDT: 1480 },
             costs: { BTC: 3900, ETH: 2750 },
             realized: { BTC: 820, ETH: 310 },
             closedRealized: 0,
+            stops: [{
+               orderLinkId: 'pf1-stpa1b2c3d4', asset: 'BTC', symbol: 'BTCUSDT', quantity: '0.0712',
+               triggerPrice: '58000', status: 'placed', error: null, placedAt: created + 30 * DAY
+            }],
             deposited: 7000
          },
          {
             id: 2, name: 'Alts', quoteAsset: 'USDT', band: '2', createdAt: created + 5 * DAY,
-            targets: [{ asset: 'SOL', weight: '40' }, { asset: 'SUI', weight: '30' }, { asset: 'ENA', weight: '30' }],
+            targets: [
+               { asset: 'SOL', weight: '40', stopPrice: '120' },
+               { asset: 'SUI', weight: '30', stopPrice: null },
+               { asset: 'ENA', weight: '30', stopPrice: null }
+            ],
             holdings: { SOL: 6.1, SUI: 240, ENA: 1150, USDT: 12.4 },
             costs: { SOL: 980, SUI: 610, ENA: 1010 },
             realized: { SOL: 40 },
             closedRealized: 72.4,
+            stops: [{
+               orderLinkId: 'pf2-stp9f8e7d6c', asset: 'SOL', symbol: 'SOLUSDT', quantity: '6.1',
+               triggerPrice: '120', status: 'placed', error: null, placedAt: created + 32 * DAY
+            }],
             deposited: 2500
          }
       ]
       : [
          {
             id: 1, name: 'Demo core', quoteAsset: 'USDT', band: '1', createdAt: created,
-            targets: [{ asset: 'BTC', weight: '60' }, { asset: 'ETH', weight: '40' }],
+            targets: [
+               { asset: 'BTC', weight: '60', stopPrice: null },
+               { asset: 'ETH', weight: '40', stopPrice: null }
+            ],
             holdings: { USDT: 1000 },
             costs: {},
             realized: {},
             closedRealized: 0,
+            stops: [],
             deposited: 1000
          }
       ]
@@ -99,6 +123,12 @@ function seed(venue: VenueId): VenueState {
       movements,
       runs: new Map(),
       plans: new Map(),
+      stopFills: venue === 'bybit'
+         ? [{
+            orderLinkId: 'pf2-stp5a4b3c2d', portfolioId: 2, portfolioName: 'Alts', asset: 'XRP',
+            quantity: '420', proceeds: '243.6', averagePrice: '0.58', settledAt: Date.now() - 2 * DAY
+         }]
+         : [],
       nextId: 10
    }
 }
@@ -127,6 +157,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       const weight = value !== null && total > 0 ? value / total * 100 : null
       const target = weights.get(asset) ?? 0
       const cost = asset === portfolio.quoteAsset ? undefined : portfolio.costs[asset]
+      const stop = portfolio.stops.find(entry => entry.asset === asset)
       return {
          asset,
          quantity: fixed(quantity),
@@ -137,7 +168,9 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          target: String(target),
          drift: weight === null ? null : fixed(weight - target, 4),
          unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
-         realized: fixed(portfolio.realized[asset] ?? 0)
+         realized: fixed(portfolio.realized[asset] ?? 0),
+         stopPrice: portfolio.targets.find(target => target.asset === asset)?.stopPrice ?? null,
+         stopStatus: stop?.status ?? null
       }
    })
 
@@ -165,7 +198,8 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       closedRealized: fixed(portfolio.closedRealized),
       maxDrift: fixed(maxDrift, 4),
       needsRebalance: total > 0 && maxDrift > Number(portfolio.band),
-      quoteLocked: (state.movements.get(portfolio.id) ?? []).length > 0
+      quoteLocked: (state.movements.get(portfolio.id) ?? []).length > 0,
+      stops: portfolio.stops
    }
 }
 
@@ -214,7 +248,10 @@ function overview(venue: VenueId): PortfolioOverviewResponse {
       unallocatedValue: fixed(coins.reduce((sum, coin) => sum + Math.max(0, coin.valueNum), 0), 2),
       portfolios: state.portfolios.map(portfolio => summarize(state, portfolio)),
       activeRun: activeRun ? { id: activeRun.id, portfolioId: activeRun.portfolioId } : null,
-      reconciled: 0
+      reconciled: 0,
+      hardStops: true,
+      stopsSyncing: false,
+      stopFills: state.stopFills
    }
 }
 
@@ -249,9 +286,40 @@ function save(venue: VenueId, request?: PortfolioSaveRequest): PortfolioSaveResp
    const id = state.nextId++
    state.portfolios.push({
       id, name: request.name, quoteAsset: request.quoteAsset, band: request.band,
-      createdAt: Date.now(), targets: request.targets, holdings: {}, costs: {}, realized: {}, closedRealized: 0
+      createdAt: Date.now(), targets: request.targets, holdings: {}, costs: {}, realized: {},
+      closedRealized: 0, stops: []
    })
    return { id }
+}
+
+function syncStops(venue: VenueId, request?: PortfolioStopSyncRequest): PortfolioStopSyncResponse | Promise<never> {
+
+   const state = stateOf(venue)
+   const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
+   if (!portfolio) return reject('This portfolio does not exist.')
+
+   portfolio.stops = portfolio.targets
+      .filter(({ asset, stopPrice }) => stopPrice !== null && asset !== portfolio.quoteAsset)
+      .map(({ asset, stopPrice }) => ({
+         orderLinkId: portfolio.stops.find(stop => stop.asset === asset)?.orderLinkId
+            ?? `pf${portfolio.id}-stp${Math.random().toString(16).slice(2, 10)}`,
+         asset,
+         symbol: `${asset}${portfolio.quoteAsset}`,
+         quantity: fixed(portfolio.holdings[asset] ?? 0),
+         triggerPrice: stopPrice!,
+         status: 'placed' as const,
+         error: null,
+         placedAt: Date.now()
+      }))
+
+   return { stops: portfolio.stops, skipped: [] }
+}
+
+function ackStop(venue: VenueId, request?: PortfolioStopAckRequest): PortfolioStopAckResponse {
+   const state = stateOf(venue)
+   const before = state.stopFills.length
+   state.stopFills = state.stopFills.filter(({ orderLinkId }) => orderLinkId !== request?.orderLinkId)
+   return { acknowledged: before - state.stopFills.length }
 }
 
 function archive(venue: VenueId, request?: PortfolioArchiveRequest): PortfolioArchiveResponse {
@@ -510,5 +578,7 @@ export const portfolioRoutes: Record<string, (params?: Body) => unknown> = Objec
       [`${base}/plan`, (params?: Body) => plan(venue, arg(params))],
       [`${base}/execute`, (params?: Body) => execute(venue, arg(params))],
       [`${base}/run`, (params?: Body) => run(venue, arg(params))],
+      [`${base}/stops/sync`, (params?: Body) => syncStops(venue, arg(params))],
+      [`${base}/stops/ack`, (params?: Body) => ackStop(venue, arg(params))],
       [`${base}/history`, (params?: Body) => history(venue, arg(params))]
    ]))
