@@ -22,6 +22,7 @@ interface TargetRow {
    key: number
    asset: string
    weight: string
+   stopPrice: string
 }
 
 interface EditorProps {
@@ -40,7 +41,8 @@ interface EditorFormProps {
 }
 
 let nextKey = 0
-const row = (asset = '', weight = ''): TargetRow => ({ key: nextKey++, asset, weight })
+const row = (asset = '', weight = '', stopPrice = ''): TargetRow =>
+   ({ key: nextKey++, asset, weight, stopPrice })
 
 function sumOf(rows: TargetRow[]): Big | null {
    try {
@@ -64,7 +66,7 @@ function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) 
    const [quoteAsset, setQuoteAsset] = useState(portfolio?.quoteAsset ?? 'USDT')
    const [band, setBand] = useState(portfolio?.band ?? '1')
    const [rows, setRows] = useState<TargetRow[]>(() => portfolio
-      ? portfolio.targets.map(({ asset, weight }) => row(asset, weight))
+      ? portfolio.targets.map(({ asset, weight, stopPrice }) => row(asset, weight, stopPrice ?? ''))
       : [row('BTC', '50'), row('ETH', '30'), row('USDT', '20')])
    const [error, setError] = useState<string | null>(null)
 
@@ -95,7 +97,8 @@ function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) 
             name,
             quoteAsset,
             band,
-            targets: rows.filter(({ asset }) => asset).map(({ asset, weight }) => ({ asset, weight }))
+            targets: rows.filter(({ asset }) => asset).map(({ asset, weight, stopPrice }) =>
+               ({ asset, weight, stopPrice: stopPrice.trim() || null }))
          })
          toast.success(portfolio ? `${name} saved.` : `${name} created.`)
          onSaved(id)
@@ -112,6 +115,8 @@ function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) 
             <DialogDescription>
                The weights the portfolio is rebalanced back to. They must add up to exactly 100%.
                Anything held that is not listed here is sold on the next rebalance.
+               A stop price rests a stop order on the exchange that sells the whole holding at market
+               once the price falls to it.
             </DialogDescription>
          </DialogHeader>
 
@@ -134,7 +139,7 @@ function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) 
 
             <div className="space-y-2">
                {rows.map(entry =>
-                  <div key={entry.key} className="grid grid-cols-[1fr_7rem_auto] items-end gap-2">
+                  <div key={entry.key} className="grid grid-cols-[1fr_6rem_7rem_auto] items-end gap-2">
                      <ComboboxField
                         name={`target-asset-${entry.key}`}
                         label="Asset"
@@ -149,6 +154,12 @@ function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) 
                         label="Weight (%)"
                         value={entry.weight}
                         onChange={event => update(entry.key, { weight: event.target.value })} />
+                     <NumericInput
+                        name={`target-stop-${entry.key}`}
+                        label="Stop price"
+                        value={entry.stopPrice}
+                        disabled={entry.asset === quoteAsset}
+                        onChange={event => update(entry.key, { stopPrice: event.target.value })} />
                      <Button
                         size="icon"
                         variant="ghost"
@@ -170,6 +181,12 @@ function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) 
                   </span>
                </div>
             </div>
+
+            <p className="text-xs text-muted-foreground">
+               A stop order sells at market with no slippage cap, so a thin order book can fill it well
+               below the stop price. When it fills, the coin is dropped from the targets and its weight
+               moves to cash.
+            </p>
 
             {portfolio?.quoteLocked &&
                <p className="text-xs text-muted-foreground">

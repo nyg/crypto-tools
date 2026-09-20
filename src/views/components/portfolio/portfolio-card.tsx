@@ -30,6 +30,8 @@ export default function PortfolioCard({
 }: PortfolioCardProps) {
 
    const empty = Number(portfolio.value) === 0
+   const armedStops = portfolio.stops.filter(({ status }) => status === 'placed').length
+   const brokenStops = portfolio.stops.filter(({ status }) => status === 'failed' || status === 'missing')
 
    return (
       <Card>
@@ -39,6 +41,11 @@ export default function PortfolioCard({
                <Badge variant="outline">{portfolio.quoteAsset}</Badge>
                <Badge variant="outline">band ±{asPoints(portfolio.band)} pt</Badge>
                {portfolio.needsRebalance && <Badge variant="destructive">Needs rebalance</Badge>}
+               {armedStops > 0 && <Badge variant="outline">{armedStops} stop{armedStops === 1 ? '' : 's'} armed</Badge>}
+               {brokenStops.length > 0 &&
+                  <Badge variant="destructive" title={brokenStops.map(({ error }) => error).filter(Boolean).join(' ')}>
+                     {brokenStops.map(({ asset }) => asset).join(', ')} stop not on the exchange
+                  </Badge>}
             </CardTitle>
          </CardHeader>
          <CardContent className="space-y-4">

@@ -12,6 +12,7 @@ export interface PlanMarket {
    ask: Big
    baseStep: Big
    quoteStep: Big
+   tickStep: Big
    minQty: Big
    minAmount: Big
    maxQty: Big

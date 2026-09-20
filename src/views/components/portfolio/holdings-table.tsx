@@ -1,12 +1,25 @@
 import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
-   asDrift, asQuantity, asQuoteAmount, asSignedQuoteAmount, asWeight, profitColor, showsAsZeroQuoteAmount
+   asDrift, asQuantity, asQuoteAmount, asSignedQuoteAmount, asWeight, profitColor,
+   showsAsZeroQuoteAmount, stopStatusLabels
 } from './format'
-import type { PortfolioSummary } from '../../../types/api'
+import type { PortfolioHolding, PortfolioSummary } from '../../../types/api'
 
 const ProfitCell = ({ value, quote }: { value: string | null, quote: string }) =>
    <TableCell className={cn('text-right', profitColor(value))}>{asSignedQuoteAmount(value, quote)}</TableCell>
+
+const StopCell = ({ holding }: { holding: PortfolioHolding }) =>
+   <TableCell className="text-right">
+      {holding.stopPrice === null ? '—' : asQuantity(holding.stopPrice)}
+      {holding.stopStatus &&
+         <span className={cn('ml-2 text-xs',
+            holding.stopStatus === 'failed' || holding.stopStatus === 'missing'
+               ? 'text-destructive'
+               : 'text-muted-foreground')}>
+            {stopStatusLabels[holding.stopStatus]}
+         </span>}
+   </TableCell>
 
 export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSummary }) {
 
@@ -19,6 +32,7 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
             <TableRow>
                <TableHead>Asset</TableHead>
                <TableHead className="text-right">Target</TableHead>
+               <TableHead className="text-right">Stop</TableHead>
                <TableHead className="text-right">Current</TableHead>
                <TableHead className="text-right">Drift</TableHead>
                <TableHead className="text-right">Quantity</TableHead>
@@ -40,7 +54,7 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                            {holding.asset}
                            <span className="ml-2 text-xs text-muted-foreground">cash</span>
                         </TableCell>
-                        <TableCell colSpan={5} />
+                        <TableCell colSpan={6} />
                         <TableCell className="text-right">{asQuoteAmount(holding.value, quote)}</TableCell>
                         <TableCell />
                         {realizedShown ? <ProfitCell value={holding.realized} quote={quote} /> : <TableCell />}
@@ -57,6 +71,7 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                         {untargeted && <span className="ml-2 text-xs text-muted-foreground">not a target</span>}
                      </TableCell>
                      <TableCell className="text-right">{asWeight(holding.target)}</TableCell>
+                     <StopCell holding={holding} />
                      <TableCell className="text-right">{asWeight(holding.weight)}</TableCell>
                      <TableCell className={cn('text-right', driftColor)}>
                         {asDrift(holding.drift)}
@@ -75,13 +90,13 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
             })}
             {!showsAsZeroQuoteAmount(portfolio.closedRealized) &&
                <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground">Closed positions</TableCell>
+                  <TableCell colSpan={9} className="text-muted-foreground">Closed positions</TableCell>
                   <ProfitCell value={portfolio.closedRealized} quote={quote} />
                </TableRow>}
          </TableBody>
          <TableFooter>
             <TableRow>
-               <TableCell colSpan={6}>Total</TableCell>
+               <TableCell colSpan={7}>Total</TableCell>
                <TableCell className="text-right">{asQuoteAmount(portfolio.value, quote)}</TableCell>
                <ProfitCell value={portfolio.unrealized} quote={quote} />
                <ProfitCell value={portfolio.realized} quote={quote} />

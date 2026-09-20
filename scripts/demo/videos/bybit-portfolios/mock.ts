@@ -104,7 +104,9 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          target: String(target),
          drift: weight === null ? null : fixed(weight - target, 4),
          unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
-         realized: fixed(portfolio.realized[asset] ?? 0)
+         realized: fixed(portfolio.realized[asset] ?? 0),
+         stopPrice: portfolio.targets.find(target => target.asset === asset)?.stopPrice ?? null,
+         stopStatus: null
       }
    })
 
@@ -132,7 +134,8 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       closedRealized: fixed(portfolio.closedRealized),
       maxDrift: fixed(maxDrift, 4),
       needsRebalance: total > 0 && maxDrift > Number(portfolio.band),
-      quoteLocked: (state.movements.get(portfolio.id) ?? []).length > 0
+      quoteLocked: (state.movements.get(portfolio.id) ?? []).length > 0,
+      stops: []
    }
 }
 
@@ -181,7 +184,10 @@ function overview(venue: VenueId): PortfolioOverviewResponse {
       unallocatedValue: fixed(coins.reduce((sum, coin) => sum + Math.max(0, coin.valueNum), 0), 2),
       portfolios: state.portfolios.map(portfolio => summarize(state, portfolio)),
       activeRun: activeRun ? { id: activeRun.id, portfolioId: activeRun.portfolioId } : null,
-      reconciled: 0
+      reconciled: 0,
+      hardStops: true,
+      stopsSyncing: false,
+      stopFills: []
    }
 }
 
@@ -291,7 +297,7 @@ function marketOf(base: string, quote: string): PlanMarket {
    const last = Big(prices[base] ?? 0)
    return {
       symbol: `${base}${quote}`, base, quote, last, bid: last, ask: last,
-      baseStep: Big(steps[base] ?? '0.0001'), quoteStep: Big('0.01'),
+      baseStep: Big(steps[base] ?? '0.0001'), quoteStep: Big('0.01'), tickStep: Big('0.01'),
       minQty: Big(steps[base] ?? '0.0001'), minAmount: Big(5),
       maxQty: Big(1e12), maxAmount: Big(1e7)
    }

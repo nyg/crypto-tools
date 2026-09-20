@@ -5,20 +5,24 @@ import { HttpRequesterError, messageOf } from '../../errors'
 import { foldHoldings, sameHoldings } from './holdings'
 import { buyFits, buyScale, floorTo, planPortfolio } from './planner'
 import { foldPositions } from './positions'
-import { validateTargets } from './targets'
+import { planStops, stopActions } from './stops'
+import { moveWeightToCash, validateTargets } from './targets'
 import type { PortfolioExchange } from './exchange'
 import type { PlanMarket, PlannedOrder } from './planner'
+import type { LiveStop } from './stops'
+import type { TargetWeight } from './targets'
 import type { Venue } from './venues'
 import type { RequestBody } from '../../routes/with-account'
 import type { OrderDraft } from '../../db/portfolio-repository'
 import type {
-   PortfolioMovementRow, PortfolioOrderRow, PortfolioRow, PortfolioTargetRow
+   PortfolioMovementRow, PortfolioOrderRow, PortfolioRow, PortfolioStopRow, PortfolioTargetRow
 } from '../../../types/db'
 import type {
    AccountCoin, PortfolioArchiveResponse, PortfolioHistoryResponse, PortfolioHolding,
    PortfolioMarketsResponse, PortfolioMovement, PortfolioMovementResponse,
    PortfolioOverviewResponse, PortfolioPlanResponse, PortfolioRun, PortfolioRunResponse,
-   PortfolioSaveResponse, PortfolioSummary
+   PortfolioSaveResponse, PortfolioStopAckResponse, PortfolioStopFill, PortfolioStopState,
+   PortfolioStopSyncResponse, PortfolioSummary
 } from '../../../types/api'
 import type {
    ExchangeAccount, OrderSettlement, RunKind, RunStatus, SpotMarket, SpotPrice, VenueId, WalletCoin
@@ -68,10 +72,13 @@ const SETTLE_ATTEMPTS = 20
 const SETTLE_DELAY_MS = 500
 const FEE_GRACE_ATTEMPTS = 6
 const AMBIGUOUS_CODES = [10000, 10016]
+const STOP_RETRY_MS = 15 * 60 * 1000
 
 const plans = new Map<string, StoredPlan>()
 const busyAccounts = new Set<string>()
 const liveRuns = new Set<string>()
+const stopSyncs = new Set<string>()
+const stopChains = new Map<string, Promise<unknown>>()
 
 const ZERO = Big(0)
 const HUNDRED = Big(100)
@@ -135,6 +142,7 @@ function planMarkets(markets: SpotMarket[], prices: Record<string, SpotPrice>, q
             ask: Big(price?.ask || last),
             baseStep: Big(market.baseStep || 0),
             quoteStep: Big(market.quoteStep || 0),
+            tickStep: Big(market.tickStep || 0),
             minQty: Big(market.minQty || 0),
             minAmount: Big(market.minAmount || 0),
             maxQty: Big(market.maxQty || 0),
@@ -166,6 +174,40 @@ function isRejection(error: unknown): boolean {
 
 const movementView = ({ id, kind, asset, amount, value, orderLinkId, note, createdAt }: PortfolioMovementRow): PortfolioMovement =>
    ({ id, kind, asset, amount, value, orderLinkId, note, createdAt })
+
+const stopView = ({ orderLinkId, asset, symbol, quantity, triggerPrice, status, error, placedAt }: PortfolioStopRow): PortfolioStopState =>
+   ({ orderLinkId, asset, symbol, quantity, triggerPrice, status, error, placedAt })
+
+const isLiveStop = ({ status }: PortfolioStopRow) => status === 'pending' || status === 'placed'
+
+function shownStops(stops: PortfolioStopRow[]): PortfolioStopRow[] {
+
+   const live = stops.filter(isLiveStop)
+   const covered = new Set(live.map(({ asset }) => asset))
+   const broken = new Map<string, PortfolioStopRow>()
+
+   for (const stop of stops) {
+      if (stop.status !== 'failed' && stop.status !== 'missing') continue
+      if (covered.has(stop.asset)) continue
+      const known = broken.get(stop.asset)
+      if (!known || known.updatedAt <= stop.updatedAt) broken.set(stop.asset, stop)
+   }
+
+   return [...live, ...broken.values()]
+}
+
+const liveStopsOf = (stops: PortfolioStopRow[]): LiveStop[] =>
+   stops.map(({ orderLinkId, asset, symbol, quantity, triggerPrice }) =>
+      ({ orderLinkId, asset, symbol, quantity: Big(quantity), triggerPrice: Big(triggerPrice) }))
+
+const targetWeights = (targets: PortfolioTargetRow[]): TargetWeight[] =>
+   targets.map(({ asset, weight, stopPrice }) => ({ asset, weight, stopPrice }))
+
+function serialized<T>(key: string, task: () => Promise<T>): Promise<T> {
+   const next = (stopChains.get(key) ?? Promise.resolve()).catch(() => {}).then(task)
+   stopChains.set(key, next.catch(() => {}))
+   return next
+}
 
 function purgeExpiredPlans(now = Date.now()) {
    for (const [id, plan] of plans) {
@@ -212,18 +254,26 @@ export default class PortfolioService {
 
    async overview(): Promise<PortfolioOverviewResponse> {
 
-      const { account, repository } = await this.#context()
+      const { account, repository, lockKey } = await this.#context()
       const reconciled = await this.#reconcile(repository)
-      const [wallet, prices] = await Promise.all([this.#exchange.wallet(), this.#exchange.prices()])
+      const [wallet, markets, prices] = await Promise.all([
+         this.#exchange.wallet(), this.#exchange.markets(), this.#exchange.prices()])
 
       const holdings = this.#holdings(repository)
       const targets = groupBy(repository.targets(), row => row.portfolioId)
       const movements = groupBy(repository.movements(), row => row.portfolioId)
       const orders = groupBy(repository.orders(), row => row.portfolioId)
+      const stops = groupBy(repository.stops(), row => row.portfolioId)
 
-      const portfolios = repository.portfolios().map(portfolio => this.#summarize(
+      const rows = repository.portfolios()
+      const portfolios = rows.map(portfolio => this.#summarize(
          repository, portfolio, targets.get(portfolio.id) ?? [], holdings.get(portfolio.id) ?? new Map(),
-         movements.get(portfolio.id) ?? [], orders.get(portfolio.id) ?? [], prices))
+         movements.get(portfolio.id) ?? [], orders.get(portfolio.id) ?? [],
+         shownStops(stops.get(portfolio.id) ?? []), prices))
+
+      const drifted = rows.filter(portfolio => this.#stopsDrifted(
+         portfolio, targets.get(portfolio.id) ?? [], holdings.get(portfolio.id) ?? new Map(),
+         stops.get(portfolio.id) ?? [], markets, prices))
 
       const { coins, totalValue, unallocatedValue } = this.#coins(wallet, [...holdings.values()], prices)
       const activeRun = repository.runningRuns().find(run => liveRuns.has(run.id))
@@ -239,19 +289,41 @@ export default class PortfolioService {
          unallocatedValue: decimal(unallocatedValue, 2),
          portfolios,
          activeRun: activeRun ? { id: activeRun.id, portfolioId: activeRun.portfolioId } : null,
-         reconciled
+         reconciled,
+         hardStops: this.#venue.hardStops,
+         stopsSyncing: this.#syncStopsDetached(lockKey, repository, drifted.map(({ id }) => id)),
+         stopFills: this.#stopFills(repository, rows)
       }
+   }
+
+   #stopFills(repository: PortfolioRepository, portfolios: PortfolioRow[]): PortfolioStopFill[] {
+      const names = new Map(portfolios.map(({ id, name }) => [id, name]))
+      return repository.unacknowledgedStops().map(stop => {
+         const order = repository.order(stop.orderLinkId)
+         return {
+            orderLinkId: stop.orderLinkId,
+            portfolioId: stop.portfolioId,
+            portfolioName: names.get(stop.portfolioId) ?? '',
+            asset: stop.asset,
+            quantity: order?.base ?? stop.quantity,
+            proceeds: order?.quote ?? '0',
+            averagePrice: order?.averagePrice ?? stop.triggerPrice,
+            settledAt: stop.settledAt
+         }
+      })
    }
 
    #summarize(
       repository: PortfolioRepository, portfolio: PortfolioRow, targets: PortfolioTargetRow[],
       holdings: Map<string, Big>, movements: PortfolioMovementRow[], orders: PortfolioOrderRow[],
-      prices: Record<string, SpotPrice>
+      stops: PortfolioStopRow[], prices: Record<string, SpotPrice>
    ): PortfolioSummary {
 
       const quote = portfolio.quoteAsset
       const positions = foldPositions(quote, movements, orders)
       const weights = new Map(targets.map(({ asset, weight }) => [asset, Big(weight)]))
+      const stopPrices = new Map(targets.map(({ asset, stopPrice }) => [asset, stopPrice]))
+      const stopStates = new Map(stops.map(stop => [stop.asset, stop]))
       const others = [...holdings.keys()].filter(asset => !weights.has(asset))
       const assets = [...weights.keys(), ...others]
 
@@ -278,7 +350,9 @@ export default class PortfolioService {
             target: target.toFixed(),
             drift: weight ? decimal(weight.minus(target), 4) : null,
             unrealized: position && value ? decimal(value.minus(position.cost)) : null,
-            realized: decimal(realized)
+            realized: decimal(realized),
+            stopPrice: stopPrices.get(asset) ?? null,
+            stopStatus: stopStates.get(asset)?.status ?? null
          }
       })
 
@@ -305,7 +379,7 @@ export default class PortfolioService {
          quoteAsset: quote,
          band: portfolio.band,
          createdAt: portfolio.createdAt,
-         targets: targets.map(({ asset, weight }) => ({ asset, weight })),
+         targets: targetWeights(targets),
          holdings: rows,
          value: decimal(total),
          valueNum: total.toNumber(),
@@ -316,7 +390,8 @@ export default class PortfolioService {
          closedRealized: decimal(realizedTotal.minus(realizedInRows)),
          maxDrift: decimal(maxDrift, 4),
          needsRebalance: total.gt(0) && maxDrift.gt(portfolio.band),
-         quoteLocked: repository.hasActivity(portfolio.id)
+         quoteLocked: repository.hasActivity(portfolio.id),
+         stops: stops.map(stopView)
       }
    }
 
@@ -361,6 +436,146 @@ export default class PortfolioService {
       return { coins, totalValue, unallocatedValue }
    }
 
+   #desiredStops(
+      portfolio: PortfolioRow, targets: PortfolioTargetRow[], holdings: Map<string, Big>,
+      markets: SpotMarket[], prices: Record<string, SpotPrice>
+   ) {
+      const byBase = planMarkets(markets, prices, portfolio.quoteAsset)
+      return planStops(targets
+         .filter(({ asset, stopPrice }) => stopPrice !== null && asset !== portfolio.quoteAsset)
+         .map(({ asset, stopPrice }) => ({
+            asset,
+            stopPrice: Big(stopPrice!),
+            holding: holdings.get(asset) ?? ZERO,
+            market: byBase.get(asset)
+         })))
+   }
+
+   #stopsDrifted(
+      portfolio: PortfolioRow, targets: PortfolioTargetRow[], holdings: Map<string, Big>,
+      stops: PortfolioStopRow[], markets: SpotMarket[], prices: Record<string, SpotPrice>,
+      now = Date.now()
+   ): boolean {
+
+      if (!this.#venue.hardStops) return false
+
+      const cooling = new Set(stops
+         .filter(stop => stop.status === 'failed' && now - stop.updatedAt < STOP_RETRY_MS)
+         .map(({ asset }) => asset))
+
+      const { desired } = this.#desiredStops(portfolio, targets, holdings, markets, prices)
+      const { cancel, place } = stopActions(desired, liveStopsOf(stops.filter(isLiveStop)))
+
+      return cancel.length > 0 || place.some(({ asset }) => !cooling.has(asset))
+   }
+
+   async #syncStops(lockKey: string, repository: PortfolioRepository, portfolioId: number): Promise<PortfolioStopSyncResponse> {
+      return await serialized(lockKey, () => this.#placeStops(repository, portfolioId))
+   }
+
+   async #placeStops(repository: PortfolioRepository, portfolioId: number): Promise<PortfolioStopSyncResponse> {
+
+      const portfolio = repository.portfolio(portfolioId)
+      if (!portfolio || !this.#venue.hardStops) return { stops: [], skipped: [] }
+
+      const [markets, prices] = await Promise.all([this.#exchange.markets(), this.#exchange.prices()])
+      const targets = repository.targets().filter(row => row.portfolioId === portfolioId)
+      const holdings = this.#holdingsOf(repository, portfolioId)
+
+      const { desired, skipped } = this.#desiredStops(portfolio, targets, holdings, markets, prices)
+      const live = repository.stopsOf(portfolioId).filter(isLiveStop)
+      const { cancel, place } = stopActions(desired, liveStopsOf(live))
+
+      for (const stop of cancel) {
+         try {
+            await this.#exchange.cancelStopOrder(stop.symbol, stop.orderLinkId)
+            repository.markStop(stop.orderLinkId, { status: 'cancelled', error: null })
+         }
+         catch (error) {
+            repository.markStop(stop.orderLinkId, { status: 'failed', error: describeError(error) })
+         }
+      }
+
+      for (const stop of place) {
+         const orderLinkId = `pf${portfolioId}-stp${randomUUID().replace(/-/g, '').slice(0, 8)}`
+         const draft = {
+            orderLinkId,
+            portfolioId,
+            asset: stop.asset,
+            symbol: stop.symbol,
+            quantity: stop.quantity.toFixed(),
+            triggerPrice: stop.triggerPrice.toFixed()
+         }
+         try {
+            const orderId = await this.#exchange.placeStopOrder({
+               clientOrderId: orderLinkId,
+               symbol: draft.symbol,
+               quantity: draft.quantity,
+               triggerPrice: draft.triggerPrice
+            })
+            repository.clearStopFailures(portfolioId, stop.asset)
+            repository.insertStop({ ...draft, orderId, status: 'placed' })
+         }
+         catch (error) {
+            repository.clearStopFailures(portfolioId, stop.asset)
+            repository.insertStop({ ...draft, orderId: null, status: 'failed', error: describeError(error) })
+         }
+      }
+
+      return { stops: repository.stopsOf(portfolioId).filter(isLiveStop).map(stopView), skipped }
+   }
+
+   #syncStopsDetached(lockKey: string, repository: PortfolioRepository, portfolioIds: number[]): boolean {
+
+      if (!this.#venue.hardStops || portfolioIds.length === 0) return false
+      if (stopSyncs.has(lockKey) || busyAccounts.has(lockKey)) return stopSyncs.has(lockKey)
+
+      stopSyncs.add(lockKey)
+
+      const sync = async () => {
+         for (const portfolioId of portfolioIds) await this.#syncStops(lockKey, repository, portfolioId)
+      }
+
+      sync()
+         .catch(error => console.error('Could not update the stop orders:', error))
+         .finally(() => stopSyncs.delete(lockKey))
+
+      return true
+   }
+
+   async #cancelStops(lockKey: string, repository: PortfolioRepository, portfolioId: number): Promise<void> {
+      if (!this.#venue.hardStops) return
+      await serialized(lockKey, async () => {
+         for (const stop of repository.stopsOf(portfolioId).filter(isLiveStop)) {
+            await this.#exchange.cancelStopOrder(stop.symbol, stop.orderLinkId)
+            repository.markStop(stop.orderLinkId, { status: 'cancelled', error: null })
+         }
+      })
+   }
+
+   #afterStopFill(repository: PortfolioRepository, stop: PortfolioStopRow): void {
+      const portfolio = repository.portfolio(stop.portfolioId)
+      if (!portfolio) return
+      const targets = targetWeights(repository.targets().filter(row => row.portfolioId === stop.portfolioId))
+      const next = moveWeightToCash(targets, stop.asset, portfolio.quoteAsset)
+      if (next !== targets) repository.replaceTargets(portfolio.id, next)
+   }
+
+   async syncStops(body: RequestBody): Promise<PortfolioStopSyncResponse> {
+      const { repository, lockKey } = await this.#context()
+      if (busyAccounts.has(lockKey)) throw new PortfolioError(409, 'Wait for the running orders to finish first.')
+      const portfolio = this.#requirePortfolio(repository, body.portfolioId)
+      if (!this.#venue.hardStops) {
+         throw new PortfolioError(400, `${this.#venue.label} does not accept stop orders.`)
+      }
+      return await this.#syncStops(lockKey, repository, portfolio.id)
+   }
+
+   async ackStop(body: RequestBody): Promise<PortfolioStopAckResponse> {
+      const { repository } = await this.#context()
+      return { acknowledged: repository.ackStop(String(body.orderLinkId ?? '')) }
+   }
+
    async markets(): Promise<PortfolioMarketsResponse> {
       const markets = await this.#exchange.markets()
       return {
@@ -374,7 +589,7 @@ export default class PortfolioService {
 
    async save(body: RequestBody): Promise<PortfolioSaveResponse> {
 
-      const { repository } = await this.#context()
+      const { repository, lockKey } = await this.#context()
       const id = body.id === undefined || body.id === null ? null : parseId(body.id)
 
       const name = String(body.name ?? '').trim()
@@ -393,7 +608,11 @@ export default class PortfolioService {
 
       const draft = { name, quoteAsset, band: band.toFixed(), targets }
 
-      if (id === null) return { id: repository.createPortfolio(draft) }
+      if (id === null) {
+         const created = repository.createPortfolio(draft)
+         this.#syncStopsDetached(lockKey, repository, [created])
+         return { id: created }
+      }
 
       const existing = this.#requirePortfolio(repository, id)
       if (existing.quoteAsset !== quoteAsset && repository.hasActivity(id)) {
@@ -401,6 +620,7 @@ export default class PortfolioService {
       }
 
       repository.updatePortfolio(id, draft)
+      this.#syncStopsDetached(lockKey, repository, [id])
       return { id }
    }
 
@@ -452,6 +672,7 @@ export default class PortfolioService {
          amount: amount.toFixed(), value: decimal(amount.times(price))
       })
 
+      this.#syncStopsDetached(lockKey, repository, [portfolio.id])
       return { movement: movementView(movement) }
    }
 
@@ -474,6 +695,7 @@ export default class PortfolioService {
          value: decimal(amount.times(price)), note: String(body.note ?? '').trim().slice(0, 200)
       })
 
+      this.#syncStopsDetached(lockKey, repository, [portfolio.id])
       return { movement: movementView(movement) }
    }
 
@@ -610,7 +832,7 @@ export default class PortfolioService {
          liveRuns.add(runId)
          started = true
 
-         this.#run(runId, stored, repository)
+         this.#run(runId, stored, repository, lockKey)
             .catch(error => console.error('Unexpected portfolio run failure:', error))
             .finally(() => {
                liveRuns.delete(runId)
@@ -639,13 +861,15 @@ export default class PortfolioService {
       }
    }
 
-   async #run(runId: string, stored: StoredPlan, repository: PortfolioRepository): Promise<void> {
+   async #run(runId: string, stored: StoredPlan, repository: PortfolioRepository, lockKey: string): Promise<void> {
 
       let status: RunStatus = 'done'
       let withdrawn = ZERO
       let error: string | null = null
 
       try {
+         await this.#cancelStops(lockKey, repository, stored.portfolioId)
+
          const orders = repository.runOrders(runId)
 
          for (const order of orders.filter(({ side }) => side === 'sell')) {
@@ -678,6 +902,12 @@ export default class PortfolioService {
       }
       finally {
          repository.finishRun(runId, status, withdrawn.toFixed(), error)
+         try {
+            await this.#syncStops(lockKey, repository, stored.portfolioId)
+         }
+         catch (caught) {
+            console.error('Could not place the stop orders after the run:', caught)
+         }
       }
    }
 
@@ -818,6 +1048,66 @@ export default class PortfolioService {
          repository.finishRun(run.id, 'interrupted', run.withdrawn,
             'The app stopped before the run finished. Filled orders were recorded; preview again to finish.')
          count++
+      }
+
+      return count + await this.#reconcileStops(repository)
+   }
+
+   async #reconcileStops(repository: PortfolioRepository): Promise<number> {
+
+      const live = repository.liveStops()
+      if (!this.#venue.hardStops || live.length === 0) return 0
+
+      let resting: Set<string>
+      try {
+         resting = new Set((await this.#exchange.openStopOrders()).map(({ clientOrderId }) => clientOrderId))
+      }
+      catch (error) {
+         console.warn('Could not read the resting stop orders', describeError(error))
+         return 0
+      }
+
+      let count = 0
+
+      for (const stop of live) {
+         if (resting.has(stop.orderLinkId)) continue
+
+         try {
+            const settlement = await this.#exchange.settleOrder(stop.orderLinkId)
+            if (settlement?.status === 'open') continue
+
+            if (!settlement) {
+               repository.markStop(stop.orderLinkId, {
+                  status: 'missing', error: `${this.#venue.label} has no record of this stop order.`
+               })
+            }
+            else if (settlement.status === 'rejected') {
+               repository.markStop(stop.orderLinkId, {
+                  status: 'failed',
+                  error: settlement.reason || `${this.#venue.label} could not fill the stop order.`
+               })
+            }
+            else {
+               repository.recordStopFill(stop, {
+                  runId: randomUUID(),
+                  quoteAsset: repository.portfolio(stop.portfolioId)?.quoteAsset ?? VALUATION_ASSET,
+                  outcome: {
+                     orderId: settlement.orderId,
+                     status: settlement.status === 'filled' ? 'filled' : 'partial',
+                     base: settlement.base,
+                     quote: settlement.quote,
+                     averagePrice: settlement.averagePrice,
+                     error: settlement.reason || null
+                  }
+               }, Object.entries(settlement.fees).map(([asset, amount]) => ({ asset, amount })))
+               this.#afterStopFill(repository, stop)
+            }
+
+            count++
+         }
+         catch (error) {
+            console.warn('Could not reconcile stop order', stop.orderLinkId, describeError(error))
+         }
       }
 
       return count

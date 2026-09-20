@@ -33,9 +33,10 @@ interface NumericInputProps {
    onChange: (event: { target: { value: string } }) => void
    label: ReactNode
    className?: string
+   disabled?: boolean
 }
 
-export default function NumericInput({ name, value, onChange, label, className = '' }: NumericInputProps) {
+export default function NumericInput({ name, value, onChange, label, className = '', disabled = false }: NumericInputProps) {
 
    const inputRef = useRef<HTMLInputElement>(null)
 
@@ -91,6 +92,7 @@ export default function NumericInput({ name, value, onChange, label, className =
             name={name}
             value={formattedValue}
             onChange={handleChange}
+            disabled={disabled}
             autoComplete="off"
          />
       </div>

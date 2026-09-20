@@ -187,6 +187,56 @@ const migrations: Migration[] = [
 
       CREATE INDEX portfolio_order_run ON portfolio_order (run_id, seq);
       CREATE INDEX portfolio_order_portfolio ON portfolio_order (portfolio_id);
+   `),
+
+   db => db.exec(`
+      ALTER TABLE portfolio_target ADD COLUMN stop_price TEXT;
+
+      CREATE TABLE portfolio_stop (
+         order_link_id   TEXT    NOT NULL PRIMARY KEY,
+         portfolio_id    INTEGER NOT NULL,
+         asset           TEXT    NOT NULL,
+         symbol          TEXT    NOT NULL,
+         quantity        TEXT    NOT NULL,
+         trigger_price   TEXT    NOT NULL,
+         order_id        TEXT,
+         status          TEXT    NOT NULL,
+         error           TEXT,
+         placed_at       INTEGER NOT NULL,
+         updated_at      INTEGER NOT NULL,
+         settled_at      INTEGER,
+         acknowledged_at INTEGER
+      ) STRICT;
+
+      CREATE INDEX portfolio_stop_portfolio ON portfolio_stop (portfolio_id, asset);
+
+      CREATE UNIQUE INDEX portfolio_stop_live ON portfolio_stop (portfolio_id, asset)
+         WHERE status IN ('pending', 'placed');
+
+      CREATE TABLE portfolio_run_next (
+         id           TEXT    NOT NULL PRIMARY KEY,
+         portfolio_id INTEGER NOT NULL,
+         kind         TEXT    NOT NULL CHECK (kind IN ('rebalance', 'withdraw', 'stop')),
+         status       TEXT    NOT NULL,
+         withdraw     TEXT    NOT NULL,
+         withdrawn    TEXT    NOT NULL DEFAULT '0',
+         reserve      TEXT    NOT NULL,
+         slippage     TEXT    NOT NULL,
+         error        TEXT,
+         started_at   INTEGER NOT NULL,
+         finished_at  INTEGER
+      ) STRICT;
+
+      INSERT INTO portfolio_run_next
+         (id, portfolio_id, kind, status, withdraw, withdrawn, reserve, slippage, error, started_at, finished_at)
+         SELECT id, portfolio_id, kind, status, withdraw, withdrawn, reserve, slippage, error, started_at, finished_at
+         FROM portfolio_run;
+
+      DROP TABLE portfolio_run;
+
+      ALTER TABLE portfolio_run_next RENAME TO portfolio_run;
+
+      CREATE INDEX portfolio_run_portfolio ON portfolio_run (portfolio_id, started_at);
    `)
 ]
 

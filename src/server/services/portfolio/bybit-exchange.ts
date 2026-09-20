@@ -3,7 +3,8 @@ import type { PortfolioExchange } from './exchange'
 import type { Credentials } from '../../../types/credentials'
 import type { BybitEnvironment } from '../../../types/bybit-api'
 import type {
-   ExchangeAccount, OrderRequest, OrderSettlement, SpotMarket, SpotPrice, WalletCoin
+   ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
+   StopOrderRequest, WalletCoin
 } from '../../../types/portfolio'
 
 const ACCOUNT_TTL_MS = 5 * 60 * 1000
@@ -59,5 +60,17 @@ export default class BybitExchange implements PortfolioExchange {
 
    settleOrder(clientOrderId: string): Promise<OrderSettlement | null> {
       return this.#api.fetchSettlement(clientOrderId)
+   }
+
+   placeStopOrder(order: StopOrderRequest): Promise<string> {
+      return this.#api.placeStopOrder(order)
+   }
+
+   cancelStopOrder(symbol: string, clientOrderId: string): Promise<void> {
+      return this.#api.cancelStopOrder(symbol, clientOrderId)
+   }
+
+   openStopOrders(): Promise<OpenStopOrder[]> {
+      return this.#api.fetchOpenStops()
    }
 }
