@@ -1,0 +1,127 @@
+[
+   {
+      "id": "intro",
+      "caption": "Portfolios in Crypto Tools split one Bybit account into several virtual portfolios, each with its own target weights, and trade them back to target with market orders.",
+      "say": "Portfolios, in Crypto Tools, split one Bye bit account into several virtual portfolios, each with its own target weights, and trade them back to target, with market orders."
+   },
+   {
+      "id": "account",
+      "caption": "Right now, 12,000 USDT sits in the account, and no portfolio holds any of it.",
+      "say": "Right now, twelve thousand U S D T sits in the account, and no portfolio holds any of it."
+   },
+   {
+      "id": "create",
+      "caption": "Let's create a portfolio for five altcoins.",
+      "say": "Let's create a portfolio for five alt coins."
+   },
+   {
+      "id": "band",
+      "caption": "It gets a name, and a band: how many percentage points a coin may drift before a rebalance trades it.",
+      "say": "It gets a name, and a band: how many percentage points a coin may drift, before a rebalance trades it."
+   },
+   {
+      "id": "targets",
+      "caption": "Then the coins and their target weights:",
+      "say": "Then, the coins, and their target weights."
+   },
+   {
+      "id": "weights",
+      "caption": "30% SOL, 20% each for NEAR and VVV, and 15% each for PUMP and COOKIE.",
+      "say": "Thirty percent sol. Twenty percent each, for near, and V V V. And fifteen percent each, for pump, and cookie."
+   },
+   {
+      "id": "total",
+      "caption": "The weights must add up to exactly 100%.",
+      "say": "The weights must add up to exactly one hundred percent."
+   },
+   {
+      "id": "created",
+      "caption": "The new portfolio starts out empty.",
+      "say": "The new portfolio starts out empty."
+   },
+   {
+      "id": "deposit",
+      "caption": "A deposit assigns coins that are already on Bybit to the portfolio. Nothing is traded: 5,000 USDT simply moves out of the unallocated balance.",
+      "say": "A deposit assigns coins that are already on Bye bit to the portfolio. Nothing is traded: five thousand U S D T simply moves out of the unallocated balance."
+   },
+   {
+      "id": "all-cash",
+      "caption": "The portfolio is all cash now, far from its targets, so it is flagged for a rebalance.",
+      "say": "The portfolio is all cash now, far from its targets, so it's flagged for a rebalance."
+   },
+   {
+      "id": "preview",
+      "caption": "A rebalance always starts with a preview of the market orders: here, five buys at the current prices.",
+      "say": "A rebalance always starts with a preview of the market orders. Here, five buys, at the current prices."
+   },
+   {
+      "id": "confirm",
+      "caption": "Nothing is sent until you confirm.",
+      "say": "Nothing is sent until you confirm."
+   },
+   {
+      "id": "sending",
+      "caption": "The orders then go out one after the other, and each fill is recorded as it settles.",
+      "say": "The orders then go out one after the other, and each fill is recorded as it settles."
+   },
+   {
+      "id": "on-target",
+      "caption": "The portfolio now matches its targets. Each coin shows its weight, its drift from target, and its profit, unrealized and realized.",
+      "say": "The portfolio now matches its targets. Each coin shows its weight, its drift from target, and its profit, unrealized, and realized."
+   },
+   {
+      "id": "add-cash",
+      "caption": "Adding money later is just another deposit: another 1,000 USDT, held as cash.",
+      "say": "Adding money later is just another deposit. Another thousand U S D T, held as cash."
+   },
+   {
+      "id": "withdraw",
+      "caption": "Withdrawing works the other way round. Say 1,500 USDT.",
+      "say": "Withdrawing works the other way round. Say, fifteen hundred U S D T."
+   },
+   {
+      "id": "withdraw-plan",
+      "caption": "The portfolio's own cash is used first, so only the remaining 500 USDT is raised by selling.",
+      "say": "The portfolio's own cash is used first, so only the remaining five hundred U S D T is raised by selling."
+   },
+   {
+      "id": "withdrawn",
+      "caption": "Once the sells settle, the 1,500 USDT goes back to the unallocated part of the account.",
+      "say": "Once the sells settle, the fifteen hundred U S D T goes back to the unallocated part of the account."
+   },
+   {
+      "id": "later",
+      "caption": "Three weeks later, the market has moved.",
+      "say": "Three weeks later, the market has moved."
+   },
+   {
+      "id": "drift",
+      "caption": "PUMP has rallied, COOKIE has slid, and several coins have drifted outside the band.",
+      "say": "Pump has rallied, cookie has slid, and several coins have drifted outside the band."
+   },
+   {
+      "id": "rebalance-plan",
+      "caption": "The rebalance trims the winners and tops up the laggards. NEAR is still within its band, so it is left alone.",
+      "say": "The rebalance trims the winners, and tops up the laggards. Near is still within its band, so it's left alone."
+   },
+   {
+      "id": "sells-first",
+      "caption": "Sells always go first, so the buys are paid for with the cash they actually raised.",
+      "say": "Sells always go first, so the buys are paid for with the cash they actually raised."
+   },
+   {
+      "id": "realized",
+      "caption": "Back on target, and the gains taken on PUMP and SOL now show as realized profit.",
+      "say": "Back on target. And the gains taken on pump and sol, now show as realized profit."
+   },
+   {
+      "id": "history",
+      "caption": "The history keeps every deposit, withdrawal and order, with its fees.",
+      "say": "The history keeps every deposit, withdrawal, and order, with its fees."
+   },
+   {
+      "id": "outro",
+      "caption": "Want to try it without risking real money? Switch to Bybit demo trading.",
+      "say": "Want to try it without risking real money? Switch to Bye bit demo trading."
+   }
+]

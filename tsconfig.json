@@ -6,6 +6,7 @@
     { "path": "./tsconfig.views.json" },
     { "path": "./tsconfig.electrobun.json" },
     { "path": "./tsconfig.tools.json" },
+    { "path": "./tsconfig.demo.json" },
     { "path": "./tsconfig.tests.json" }
   ],
   "compilerOptions": {
