@@ -20,6 +20,7 @@ export interface StoredSettings {
    version: number
    kraken: StoredProvider & { accountId: string }
    binance: StoredProvider
+   binanceTestnet: StoredProvider
    bybit: StoredProvider
    bybitDemo: StoredProvider
    anthropic: StoredProvider
@@ -42,6 +43,7 @@ export interface MaskedSettings {
    version: number
    kraken: MaskedProvider & { accountId: string }
    binance: MaskedProvider
+   binanceTestnet: MaskedProvider
    bybit: MaskedProvider
    bybitDemo: MaskedProvider
    anthropic: MaskedProvider

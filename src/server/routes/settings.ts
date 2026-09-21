@@ -35,6 +35,7 @@ function maskSettings(
       version: settingsVersion(),
       kraken: { ...mask('kraken'), accountId: krakenAccountId() },
       binance: mask('binance'),
+      binanceTestnet: mask('binanceTestnet'),
       bybit: mask('bybit'),
       bybitDemo: mask('bybitDemo'),
       anthropic: mask('anthropic')

@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import KrakenAPI from '../adapters/kraken-api/adapter'
 import ledgerRoutes from './kraken-ledger'
+import portfolioRoutes from './portfolios'
 import xstockRoutes from './kraken-xstocks'
 import { handleError, withCredentials } from './with-account'
 import type { KrakenOrderBatchParams } from '../../types/kraken-api'
@@ -9,6 +10,7 @@ const app = new Hono()
 
 app.route('/ledger', ledgerRoutes)
 app.route('/xstocks', xstockRoutes)
+app.route('/portfolios', portfolioRoutes('kraken'))
 
 // What the local ledger cannot know: the balance Kraken holds this second, and how
 // much of it an open order has already claimed. The Balances page reads everything

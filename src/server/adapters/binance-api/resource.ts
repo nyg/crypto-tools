@@ -2,16 +2,27 @@ import { httpRequester } from '../http-requester/server-http-requester'
 import { authenticator } from './authenticator'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   BinanceExchangeInfo, BinanceFiatFunding, BinanceKLine, BinanceSpotBalance,
-   BinanceStakingPosition, BinanceTickerPrice
+   BinanceAccount, BinanceBookTicker, BinanceEnvironment, BinanceExchangeInfo, BinanceFiatFunding,
+   BinanceKLine, BinanceOrder, BinanceOrderAck, BinanceOrderParams, BinanceOrderReference,
+   BinanceSpotBalance, BinanceStakingPosition, BinanceTickerPrice, BinanceTrade
 } from '../../../types/binance-api'
 
-const apiUrl = 'https://api.binance.com'
-const urlFor = (endpoint: string) => apiUrl + endpoint
+const hosts: Record<BinanceEnvironment, string> = {
+   mainnet: 'https://api.binance.com',
+   testnet: 'https://testnet.binance.vision'
+}
+
+const urlFor = (endpoint: string, environment: BinanceEnvironment = 'mainnet') => hosts[environment] + endpoint
 
 const exchangeInfoEndpoint = '/api/v3/exchangeInfo'
 const tickerPriceEndpoint = '/api/v3/ticker/price'
+const bookTickerEndpoint = '/api/v3/ticker/bookTicker'
 const klinesEndpoint = '/api/v3/klines' // candlestick data
+
+const accountEndpoint = '/api/v3/account'
+const orderEndpoint = '/api/v3/order'
+const openOrdersEndpoint = '/api/v3/openOrders'
+const myTradesEndpoint = '/api/v3/myTrades'
 
 const userAssetEndpoint = '/sapi/v3/asset/getUserAsset'
 const fiatFundingEndpoint = '/sapi/v1/fiat/orders'
@@ -19,8 +30,18 @@ const stakingPositionEndpoint = '/sapi/v1/staking/position'
 
 /* Public endpoints */
 
-export async function fetchExchangeInfo(): Promise<BinanceExchangeInfo> {
-   return await httpRequester.public<BinanceExchangeInfo>(urlFor(exchangeInfoEndpoint))
+export async function fetchExchangeInfo(
+   environment: BinanceEnvironment = 'mainnet', searchParams: Record<string, unknown> = {}
+): Promise<BinanceExchangeInfo> {
+   return await httpRequester.public<BinanceExchangeInfo>(urlFor(exchangeInfoEndpoint, environment), searchParams)
+}
+
+export async function fetchAllTickerPrices(environment: BinanceEnvironment): Promise<BinanceTickerPrice[]> {
+   return await httpRequester.public<BinanceTickerPrice[]>(urlFor(tickerPriceEndpoint, environment))
+}
+
+export async function fetchBookTickers(environment: BinanceEnvironment): Promise<BinanceBookTicker[]> {
+   return await httpRequester.public<BinanceBookTicker[]>(urlFor(bookTickerEndpoint, environment))
 }
 
 export async function fetchTickerPrice(pairs: string[]): Promise<BinanceTickerPrice[]> {
@@ -93,4 +114,39 @@ export async function fetchStakingPositions(apiCredentials: Credentials): Promis
    while (hasNext)
 
    return positions
+}
+
+/* Spot trading endpoints, on mainnet or the spot testnet */
+
+const tradingRequest = <T>(
+   environment: BinanceEnvironment, apiCredentials: Credentials, endpoint: string,
+   method: string, searchParams: object
+) => httpRequester.private<T>(
+   urlFor(endpoint, environment), authenticator(apiCredentials),
+   { method, searchParams: searchParams as Record<string, unknown> })
+
+export async function fetchAccount(environment: BinanceEnvironment, apiCredentials: Credentials): Promise<BinanceAccount> {
+   return await tradingRequest(environment, apiCredentials, accountEndpoint, 'GET', { omitZeroBalances: true })
+}
+
+export async function createOrder(environment: BinanceEnvironment, apiCredentials: Credentials, order: BinanceOrderParams): Promise<BinanceOrderAck> {
+   return await tradingRequest(environment, apiCredentials, orderEndpoint, 'POST', order)
+}
+
+export async function fetchOrder(environment: BinanceEnvironment, apiCredentials: Credentials, reference: BinanceOrderReference): Promise<BinanceOrder> {
+   return await tradingRequest(environment, apiCredentials, orderEndpoint, 'GET', reference)
+}
+
+export async function cancelOrder(environment: BinanceEnvironment, apiCredentials: Credentials, reference: BinanceOrderReference): Promise<BinanceOrder> {
+   return await tradingRequest(environment, apiCredentials, orderEndpoint, 'DELETE', reference)
+}
+
+export async function fetchOpenOrders(environment: BinanceEnvironment, apiCredentials: Credentials): Promise<BinanceOrder[]> {
+   return await tradingRequest(environment, apiCredentials, openOrdersEndpoint, 'GET', {})
+}
+
+export async function fetchOrderTrades(
+   environment: BinanceEnvironment, apiCredentials: Credentials, { symbol, orderId }: { symbol: string, orderId: number }
+): Promise<BinanceTrade[]> {
+   return await tradingRequest(environment, apiCredentials, myTradesEndpoint, 'GET', { symbol, orderId })
 }

@@ -2,6 +2,19 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import ExternalLink from '../components/lib/external-link'
 
+const portfolioHelp = (exchange: string, practice: ReactNode) =>
+   <>
+      Baskets of coins kept at target weights inside one {exchange} account. Each portfolio
+      owns only what it was given and what its own orders bought, tracked in the
+      database on this machine; whatever no portfolio holds shows as{' '}
+      <b>unallocated</b>, and trades you make on {exchange} yourself never touch a portfolio.
+      Rebalancing and withdrawing preview their orders first and only place spot
+      market orders once you confirm. Profit is split per coin at average cost:{' '}
+      <b>unrealized</b> is what the coins still held are worth above what they cost, and{' '}
+      <b>realized</b> is what sells brought in above that cost, after fees. A coin you
+      deposit counts at its value on the day it came in.{practice}
+   </>
+
 // What each page is and where its data comes from, keyed by route. Kept in one place
 // and out of the pages themselves: the copy is worth having, a banner above every
 // page is not, and whichever surface ends up showing it should have a single list to
@@ -90,19 +103,13 @@ const pageHelp: Record<string, ReactNode> = {
          date each one is released and the products they were subscribed to.
       </>,
 
-   '/bybit/portfolios':
-      <>
-         Baskets of coins kept at target weights inside one Bybit account. Each portfolio
-         owns only what it was given and what its own orders bought, tracked in the
-         database on this machine; whatever no portfolio holds shows as{' '}
-         <b>unallocated</b>, and trades you make on Bybit yourself never touch a portfolio.
-         Rebalancing and withdrawing preview their orders first and only place spot
-         market orders once you confirm. Profit is split per coin at average cost:{' '}
-         <b>unrealized</b> is what the coins still held are worth above what they cost, and{' '}
-         <b>realized</b> is what sells brought in above that cost, after fees. A coin you
-         deposit counts at its value on the day it came in. Switch to <b>Demo</b> to try it
-         with Bybit&apos;s test funds.
-      </>,
+   '/kraken/portfolios': portfolioHelp('Kraken', ''),
+
+   '/binance/portfolios': portfolioHelp('Binance',
+      <> Switch to <b>Testnet</b> to try it with the Binance spot testnet&apos;s test funds.</>),
+
+   '/bybit/portfolios': portfolioHelp('Bybit',
+      <> Switch to <b>Demo</b> to try it with Bybit&apos;s test funds.</>),
 
    '/tools/trade-calculator':
       <>

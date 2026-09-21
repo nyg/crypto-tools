@@ -75,6 +75,10 @@ const mockSettings = (reveal: boolean): MaskedSettings => ({
       hasSecret: true, configured: true, keyConfigured: true,
       accountId: 'mock-account-id'
    },
+   binanceTestnet: {
+      apiKey: reveal ? 'mock-binance-testnet-key' : '*****', apiSecret: '*****', store: 'keychain',
+      hasSecret: true, configured: true, keyConfigured: true
+   },
    bybit: {
       apiKey: reveal ? 'mock-bybit-key' : '*****', apiSecret: '*****', store: 'keychain',
       hasSecret: true, configured: true, keyConfigured: true

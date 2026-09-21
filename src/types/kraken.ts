@@ -1,5 +1,12 @@
+import type { SpotMarket } from './portfolio'
+
 // The domain shapes the Kraken adapter produces, after Kraken's own naming has been
 // normalized away. These are what the routes serve and the views read.
+
+export interface KrakenSpotMarket extends SpotMarket {
+   pair: string
+   altname: string
+}
 
 export interface PairAssets {
    baseAsset: string

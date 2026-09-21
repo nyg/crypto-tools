@@ -43,6 +43,8 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![Kraken xStocks](public/screenshot-kraken-xstocks.png)
 
+**Portfolios** — the same portfolios as on Bybit, in your Kraken spot wallet, with USD, EUR, USDT or USDC as the cash coin. Stops rest on Kraken as `stop-loss` orders. The API key needs Query Funds, Query Open Orders & Trades, Query Closed Orders & Trades, Create & Modify Orders and Cancel/Close Orders, and never Withdraw Funds.
+
 </details>
 
 <details>
@@ -53,6 +55,8 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 **Staking**
 
 ![Binance Staking](public/screenshot-binance-staking.png)
+
+**Portfolios** — the same portfolios as on Bybit, in your Binance spot wallet. Stops rest on Binance as `STOP_LOSS` orders. A Testnet switch runs it against the Binance spot testnet with its own keys and test funds. The API key needs Enable Reading and Enable Spot & Margin Trading, and never Enable Withdrawals. Turn off paying fees with BNB: a portfolio only holds its own coins, and a fee charged in BNB would show up in it as a negative BNB holding.
 
 </details>
 

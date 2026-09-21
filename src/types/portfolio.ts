@@ -1,4 +1,4 @@
-export type VenueId = 'bybit' | 'bybitDemo'
+export type VenueId = 'bybit' | 'bybitDemo' | 'kraken' | 'binance' | 'binanceTestnet'
 
 export type OrderSide = 'buy' | 'sell'
 
@@ -43,6 +43,12 @@ export interface OrderRequest {
    unit: SizeUnit
    amount: string
    maxSlippagePercent: string
+}
+
+export interface OrderLookup {
+   symbol: string
+   clientOrderId: string
+   orderId: string | null
 }
 
 export interface StopOrderRequest {

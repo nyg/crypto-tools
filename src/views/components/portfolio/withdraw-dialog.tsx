@@ -9,12 +9,13 @@ import { asQuoteAmount } from './format'
 import type { PortfolioPlanRequest, PortfolioSummary } from '../../../types/api'
 
 interface WithdrawFormProps {
+   venueLabel: string
    portfolio: PortfolioSummary
    onCancel: () => void
    onPreview: (portfolio: PortfolioSummary, request: PortfolioPlanRequest) => void
 }
 
-function WithdrawForm({ portfolio, onCancel, onPreview }: WithdrawFormProps) {
+function WithdrawForm({ venueLabel, portfolio, onCancel, onPreview }: WithdrawFormProps) {
 
    const [amount, setAmount] = useState('')
    const [all, setAll] = useState(false)
@@ -29,7 +30,7 @@ function WithdrawForm({ portfolio, onCancel, onPreview }: WithdrawFormProps) {
             <DialogDescription>
                Releases {quote} from the portfolio back to the unallocated part of your account.
                Cash is used first ({asQuoteAmount(cash, quote)} available); the rest comes from
-               selling the most overweight assets. Moving the money off Bybit is up to you.
+               selling the most overweight assets. Moving the money off {venueLabel} is up to you.
             </DialogDescription>
          </DialogHeader>
 
@@ -62,18 +63,20 @@ function WithdrawForm({ portfolio, onCancel, onPreview }: WithdrawFormProps) {
 }
 
 interface WithdrawDialogProps {
+   venueLabel: string
    portfolio: PortfolioSummary | null
    onOpenChange: (open: boolean) => void
    onPreview: (portfolio: PortfolioSummary, request: PortfolioPlanRequest) => void
 }
 
-export default function WithdrawDialog({ portfolio, onOpenChange, onPreview }: WithdrawDialogProps) {
+export default function WithdrawDialog({ venueLabel, portfolio, onOpenChange, onPreview }: WithdrawDialogProps) {
    return (
       <Dialog open={portfolio !== null} onOpenChange={onOpenChange}>
          <DialogContent>
             {portfolio &&
                <WithdrawForm
                   key={portfolio.id}
+                  venueLabel={venueLabel}
                   portfolio={portfolio}
                   onCancel={() => onOpenChange(false)}
                   onPreview={onPreview} />}

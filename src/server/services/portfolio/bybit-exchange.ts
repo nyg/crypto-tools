@@ -1,27 +1,22 @@
 import BybitAPI from '../../adapters/bybit-api/adapter'
+import CacheMap from './cache-map'
 import type { PortfolioExchange } from './exchange'
+import type { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type { BybitEnvironment } from '../../../types/bybit-api'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
+   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
    StopOrderRequest, WalletCoin
 } from '../../../types/portfolio'
 
 const ACCOUNT_TTL_MS = 5 * 60 * 1000
 const MARKETS_TTL_MS = 60 * 60 * 1000
+const AMBIGUOUS_CODES = [10000, 10016]
 
-interface Cached<T> { value: Promise<T>, expiresAt: number }
+const accounts = new CacheMap<ExchangeAccount>(ACCOUNT_TTL_MS)
+const markets = new CacheMap<SpotMarket[]>(MARKETS_TTL_MS)
 
-const accounts = new Map<string, Cached<ExchangeAccount>>()
-let markets: Cached<SpotMarket[]> | null = null
-
-function cached<T>(entry: Cached<T> | null | undefined, ttl: number, load: () => Promise<T>): Cached<T> {
-   if (entry && entry.expiresAt > Date.now()) return entry
-   const value = load()
-   const fresh = { value, expiresAt: Date.now() + ttl }
-   value.catch(() => { fresh.expiresAt = 0 })
-   return fresh
-}
+type BybitErrorBody = { retCode?: number, retMsg?: string } | string | undefined
 
 export default class BybitExchange implements PortfolioExchange {
 
@@ -36,9 +31,7 @@ export default class BybitExchange implements PortfolioExchange {
    }
 
    account(): Promise<ExchangeAccount> {
-      const entry = cached(accounts.get(this.#accountKey), ACCOUNT_TTL_MS, () => this.#api.fetchAccount())
-      accounts.set(this.#accountKey, entry)
-      return entry.value
+      return accounts.get(this.#accountKey, () => this.#api.fetchAccount())
    }
 
    wallet(): Promise<WalletCoin[]> {
@@ -46,8 +39,7 @@ export default class BybitExchange implements PortfolioExchange {
    }
 
    markets(): Promise<SpotMarket[]> {
-      markets = cached(markets, MARKETS_TTL_MS, () => this.#api.fetchSpotMarkets())
-      return markets.value
+      return markets.get('mainnet', () => this.#api.fetchSpotMarkets())
    }
 
    prices(): Promise<Record<string, SpotPrice>> {
@@ -58,7 +50,7 @@ export default class BybitExchange implements PortfolioExchange {
       return this.#api.placeMarketOrder(order)
    }
 
-   settleOrder(clientOrderId: string): Promise<OrderSettlement | null> {
+   settleOrder({ clientOrderId }: OrderLookup): Promise<OrderSettlement | null> {
       return this.#api.fetchSettlement(clientOrderId)
    }
 
@@ -66,11 +58,22 @@ export default class BybitExchange implements PortfolioExchange {
       return this.#api.placeStopOrder(order)
    }
 
-   cancelStopOrder(symbol: string, clientOrderId: string): Promise<void> {
+   cancelStopOrder({ symbol, clientOrderId }: OrderLookup): Promise<void> {
       return this.#api.cancelStopOrder(symbol, clientOrderId)
    }
 
    openStopOrders(): Promise<OpenStopOrder[]> {
       return this.#api.fetchOpenStops()
+   }
+
+   describeError(error: HttpRequesterError): string {
+      const body = error.body as BybitErrorBody
+      if (typeof body === 'object' && body?.retMsg) return `${body.retMsg} (${body.retCode})`
+      return String(error.cause)
+   }
+
+   isAmbiguous(error: HttpRequesterError): boolean {
+      const body = error.body as BybitErrorBody
+      return typeof body === 'object' && AMBIGUOUS_CODES.includes(body?.retCode ?? -1)
    }
 }

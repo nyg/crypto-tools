@@ -8,7 +8,7 @@ import type { PortfolioExchange } from './exchange'
 import type PortfolioServiceType from './portfolio-service'
 import type { Venue } from './venues'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
+   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
    StopOrderRequest, WalletCoin
 } from '../../../types/portfolio'
 
@@ -39,6 +39,7 @@ class FakeExchange implements PortfolioExchange {
    readonly stops = new Map<string, FakeStop>()
    rejectNext = false
    rejectStopNext = false
+   stopsLock = false
    accountId = 'uid-1'
 
    async account(): Promise<ExchangeAccount> {
@@ -46,8 +47,16 @@ class FakeExchange implements PortfolioExchange {
    }
 
    async wallet(): Promise<WalletCoin[]> {
-      return [...this.balances].map(([asset, total]) =>
-         ({ asset, total: total.toFixed(), free: total.toFixed(), borrowed: '0' }))
+      return [...this.balances].map(([asset, total]) => {
+         const locked = this.stopsLock ? this.#lockedBy(asset) : Big(0)
+         return { asset, total: total.toFixed(), free: total.minus(locked).toFixed(), borrowed: '0' }
+      })
+   }
+
+   #lockedBy(asset: string): Big {
+      return [...this.stops.values()]
+         .filter(({ symbol }) => symbol === `${asset}USDT`)
+         .reduce((sum, { quantity }) => sum.plus(quantity), Big(0))
    }
 
    async markets(): Promise<SpotMarket[]> {
@@ -67,6 +76,11 @@ class FakeExchange implements PortfolioExchange {
       const base = symbol.replace(/USDT$/, '')
       const price = Big(prices[symbol]!.last)
       const quantity = unit === 'base' ? Big(amount) : Big(amount).div(price).round(6, Big.roundDown)
+
+      const free = (this.balances.get(base) ?? Big(0)).minus(this.stopsLock ? this.#lockedBy(base) : 0)
+      if (side === 'sell' && quantity.gt(free)) {
+         throw new HttpRequesterError(200, { retCode: 170131, retMsg: 'Insufficient balance.' })
+      }
       const value = quantity.times(price)
       const fee = side === 'buy' ? quantity.times('0.001') : value.times('0.001')
       const sign = side === 'buy' ? 1 : -1
@@ -82,7 +96,7 @@ class FakeExchange implements PortfolioExchange {
       return `order-${this.settlements.size}`
    }
 
-   async settleOrder(clientOrderId: string): Promise<OrderSettlement | null> {
+   async settleOrder({ clientOrderId }: OrderLookup): Promise<OrderSettlement | null> {
       return this.settlements.get(clientOrderId) ?? null
    }
 
@@ -96,13 +110,22 @@ class FakeExchange implements PortfolioExchange {
       return orderId
    }
 
-   async cancelStopOrder(_symbol: string, clientOrderId: string): Promise<void> {
+   async cancelStopOrder({ clientOrderId }: OrderLookup): Promise<void> {
       this.stops.delete(clientOrderId)
    }
 
    async openStopOrders(): Promise<OpenStopOrder[]> {
       return [...this.stops].map(([clientOrderId, { orderId, symbol, quantity, triggerPrice }]) =>
          ({ clientOrderId, orderId, symbol, quantity, triggerPrice }))
+   }
+
+   describeError(error: HttpRequesterError): string {
+      const body = error.body as { retCode?: number, retMsg?: string }
+      return `${body.retMsg} (${body.retCode})`
+   }
+
+   isAmbiguous(): boolean {
+      return false
    }
 
    triggerStop(clientOrderId: string): void {
@@ -148,7 +171,8 @@ let PortfolioRepository: typeof import('../../db/portfolio-repository').default
 
 const exchange = new FakeExchange()
 const venue: Venue = {
-   id: 'bybitDemo', provider: 'bybitDemo', label: 'Fake', hardStops: true, exchange: () => exchange
+   id: 'bybitDemo', provider: 'bybitDemo', label: 'Fake', quoteAssets: ['USDT', 'USDC'], valuationAsset: 'USDT',
+   hardStops: true, stopsReserve: false, exchange: () => exchange
 }
 
 const service = () => new PortfolioService(venue, exchange)
@@ -512,6 +536,38 @@ describe('stop orders', () => {
       expect(exchange.stops.has(replaced.orderLinkId)).toBe(true)
 
       await service().archive({ portfolioId })
+   })
+
+   test('sells a coin its own stop has locked on a venue whose stops reserve the balance', async () => {
+      const reserving = new PortfolioService({ ...venue, stopsReserve: true }, exchange)
+      exchange.stopsLock = true
+      try {
+         const { id } = await reserving.save({
+            name: 'Locked', quoteAsset: 'USDT', band: '1',
+            targets: [
+               { asset: 'BTC', weight: '50', stopPrice: '45000' },
+               { asset: 'USDT', weight: '50' }
+            ]
+         })
+         const btc = (await reserving.overview()).coins.find(({ asset }) => asset === 'BTC')!
+         const everything = Big(btc.free).lt(btc.unallocated) ? btc.free : btc.unallocated
+         await reserving.deposit({ portfolioId: id, asset: 'BTC', amount: everything })
+         const { stops } = await reserving.syncStops({ portfolioId: id })
+         expect(stops).toHaveLength(1)
+
+         const plan = await reserving.plan({ portfolioId: id, kind: 'rebalance' })
+         expect(plan.orders.map(({ side, asset }) => `${side} ${asset}`)).toEqual(['sell BTC'])
+         expect(plan.skipped).toEqual([])
+
+         const run = await finished((await reserving.execute({ planId: plan.planId })).run.id)
+         expect(run.orders[0]!.status).toBe('filled')
+         expect(exchange.stops.has(stops[0]!.orderLinkId)).toBe(false)
+
+         await reserving.archive({ portfolioId: id })
+      }
+      finally {
+         exchange.stopsLock = false
+      }
    })
 
    test('keeps the stop price but places nothing on a venue without stop orders', async () => {

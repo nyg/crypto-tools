@@ -19,6 +19,7 @@ const entries = <K extends string, V>(record: Record<K, V>) =>
 export const providers: Record<Provider, ProviderConfig> = {
    kraken: { hasSecret: true, label: 'Kraken' },
    binance: { hasSecret: true, label: 'Binance' },
+   binanceTestnet: { hasSecret: true, label: 'Binance testnet' },
    bybit: { hasSecret: true, label: 'Bybit' },
    bybitDemo: { hasSecret: true, label: 'Bybit demo trading' },
    anthropic: { hasSecret: false, label: 'Anthropic' }
@@ -28,6 +29,7 @@ const defaults = (): StoredSettings => ({
    version: SETTINGS_VERSION,
    kraken: { accountId: '' },
    binance: {},
+   binanceTestnet: {},
    bybit: {},
    bybitDemo: {},
    anthropic: {}
