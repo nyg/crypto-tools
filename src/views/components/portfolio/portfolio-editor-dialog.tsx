@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import useSWR from 'swr'
 import Big from 'big.js'
 import { toast } from 'sonner'
@@ -71,6 +72,7 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
       ? portfolio.targets.map(({ asset, weight, stopPrice }) => row(asset, weight, stopPrice ?? ''))
       : [row('BTC', '50'), row('ETH', '30'), row(defaultQuote, '20')])
    const [error, setError] = useState<string | null>(null)
+   const rowActions = useRef<HTMLDivElement>(null)
 
    const { data: markets, isLoading: isLoadingMarkets } =
       useSWR<PortfolioMarketsResponse>(`${apiBase}/markets`, { revalidateOnFocus: false })
@@ -90,6 +92,11 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
 
    const update = (key: number, changes: Partial<TargetRow>) =>
       setRows(current => current.map(entry => entry.key === key ? { ...entry, ...changes } : entry))
+
+   const addRow = () => {
+      flushSync(() => setRows(current => [...current, row()]))
+      rowActions.current?.scrollIntoView({ block: 'nearest' })
+   }
 
    const submit = async () => {
       setError(null)
@@ -122,7 +129,7 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
             </DialogDescription>
          </DialogHeader>
 
-         <div className="space-y-4">
+         <div className="-mx-6 min-h-0 space-y-4 overflow-y-auto px-6">
             <div className="grid gap-3 sm:grid-cols-[1fr_8rem_8rem]">
                <Input name="portfolio-name" label="Name" value={name} onChange={event => setName(event.target.value)} />
                <SelectField
@@ -141,7 +148,7 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
 
             <div className="space-y-2">
                {rows.map(entry =>
-                  <div key={entry.key} className="grid grid-cols-[1fr_6rem_7rem_auto] items-end gap-2">
+                  <div key={entry.key} className="grid grid-cols-[minmax(0,1fr)_6rem_7rem_auto] items-end gap-2">
                      <ComboboxField
                         name={`target-asset-${entry.key}`}
                         label="Asset"
@@ -171,8 +178,8 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
                      </Button>
                   </div>)}
 
-               <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setRows(current => [...current, row()])}>
+               <div ref={rowActions} className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={addRow}>
                      <PlusIcon /> Add asset
                   </Button>
                   <Button size="sm" variant="ghost" disabled={rows.length === 0} onClick={() => setRows(splitEqually)}>
@@ -215,7 +222,7 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
 export default function PortfolioEditorDialog({ apiBase, quoteAsset, open, portfolio, onOpenChange, onSaved }: EditorProps) {
    return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-         <DialogContent className="sm:max-w-xl">
+         <DialogContent className="flex max-h-[90svh] flex-col sm:max-w-xl">
             {open &&
                <EditorForm
                   key={portfolio?.id ?? 'new'}
