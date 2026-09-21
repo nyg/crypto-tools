@@ -5,13 +5,17 @@ import { normalizeAsset } from './assets'
 import { buildPairIndex, resolvePair } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
 import { fetchTickerSnapshots } from './ticker-stream'
+import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   CancelResult, ExportReport, ExportReportType, ExportRequest, LedgerEntry, LiveBalance,
-   OpenOrder, PairIndex, PairPrices, TokenizedListing, TokenizedVolume, Trade, UsdRates
+   CancelResult, ExportReport, ExportReportType, ExportRequest, KrakenSpotMarket, LedgerEntry,
+   LiveBalance, OpenOrder, PairIndex, PairPrices, TokenizedListing, TokenizedVolume, Trade, UsdRates
 } from '../../../types/kraken'
 import type { TradingPair, TradingPairs } from '../../../types/market'
-import type { KrakenAssets, KrakenOrderBatchParams } from '../../../types/kraken-api'
+import type { KrakenAssets, KrakenOpenOrder, KrakenOrderBatchParams } from '../../../types/kraken-api'
+import type {
+   OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotPrice, StopOrderRequest, WalletCoin
+} from '../../../types/portfolio'
 
 // Amounts are kept as the exact strings Kraken wrote. Reading them through Big and
 // back would rewrite small values in exponential notation (1e-8), which is awkward
@@ -343,6 +347,78 @@ export default class KrakenAPI {
             ticker: asset.altname.replace(/x$/, '')
          }])).values()]
          .sort((a, b) => a.ticker.localeCompare(b.ticker))
+   }
+
+   /* Spot trading for portfolios */
+
+   async fetchSpotMarkets(): Promise<KrakenSpotMarket[]> {
+      return spotMarkets((await resource.fetchAssetPairs()).result)
+   }
+
+   async fetchSpotPrices(markets: KrakenSpotMarket[]): Promise<Record<string, SpotPrice>> {
+      return spotPrices((await resource.fetchTicker([])).result ?? {}, markets)
+   }
+
+   async fetchSpotWallet(): Promise<WalletCoin[]> {
+      return spotWallet((await resource.fetchExtendedBalance(this.#authenticated)).result ?? {})
+   }
+
+   async placeMarketOrder(pair: string, { clientOrderId, side, unit, amount }: OrderRequest): Promise<string> {
+      const response = await resource.addOrder(this.#authenticated, {
+         pair,
+         type: side,
+         ordertype: 'market',
+         volume: amount,
+         cl_ord_id: clientOrderId,
+         oflags: unit === 'quote' ? 'fciq,viqc' : 'fciq'
+      })
+      return response.result.txid[0] ?? ''
+   }
+
+   async placeStopOrder(pair: string, { clientOrderId, quantity, triggerPrice }: StopOrderRequest): Promise<string> {
+      const response = await resource.addOrder(this.#authenticated, {
+         pair,
+         type: 'sell',
+         ordertype: 'stop-loss',
+         volume: quantity,
+         price: triggerPrice,
+         trigger: 'last',
+         cl_ord_id: clientOrderId,
+         oflags: 'fciq'
+      })
+      return response.result.txid[0] ?? ''
+   }
+
+   async cancelOrderIfOpen({ clientOrderId, orderId }: OrderLookup): Promise<void> {
+      try {
+         await resource.cancelOrder(this.#authenticated, orderId ? { txid: orderId } : { cl_ord_id: clientOrderId })
+      }
+      catch (error) {
+         if (!hasKrakenError(error, 'EOrder:Unknown order')) throw error
+      }
+   }
+
+   async fetchOpenStops(markets: KrakenSpotMarket[]): Promise<OpenStopOrder[]> {
+      return openStops((await resource.fetchOpenOrders(this.#authenticated)).result?.open ?? {}, markets)
+   }
+
+   async fetchSettlement(lookup: OrderLookup, quoteAsset: string): Promise<OrderSettlement | null> {
+      const found = lookup.orderId ? await this.#queriedOrder(lookup.orderId) : await this.#orderByClientId(lookup.clientOrderId)
+      return found ? settlementOf(found.txid, found.order, quoteAsset) : null
+   }
+
+   async #queriedOrder(txid: string): Promise<{ txid: string, order: KrakenOpenOrder } | null> {
+      const order = (await resource.queryOrders(this.#authenticated, [txid])).result?.[txid]
+      return order ? { txid, order } : null
+   }
+
+   async #orderByClientId(clientOrderId: string): Promise<{ txid: string, order: KrakenOpenOrder } | null> {
+      const filter = { cl_ord_id: clientOrderId }
+      const open = Object.entries((await resource.fetchOpenOrders(this.#authenticated, filter)).result?.open ?? {})
+      const [txid, order] = open[0]
+         ?? Object.entries((await resource.fetchClosedOrders(this.#authenticated, filter)).result?.closed ?? {})[0]
+         ?? []
+      return txid && order ? { txid, order } : null
    }
 
    /* Export reports — 'ledgers' and 'trades' share this machinery */

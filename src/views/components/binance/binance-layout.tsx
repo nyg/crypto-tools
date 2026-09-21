@@ -6,10 +6,12 @@ import { subNavItems } from '@/lib/tools'
 
 const tabs = subNavItems('Binance')
 
-export default function BinanceLayout({ children, name }: { children: ReactNode, name: string }) {
+export default function BinanceLayout({
+   children, name, trailing
+}: { children: ReactNode, name: string, trailing?: ReactNode }) {
    return (
       <Layout name={`Binance ${name}`}>
-         <SubNav items={tabs} />
+         <SubNav items={tabs} trailing={trailing} />
          {children}
       </Layout>
    )

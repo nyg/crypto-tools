@@ -25,7 +25,8 @@ import type {
    PortfolioStopSyncResponse, PortfolioSummary
 } from '../../../types/api'
 import type {
-   ExchangeAccount, OrderSettlement, RunKind, RunStatus, SpotMarket, SpotPrice, VenueId, WalletCoin
+   ExchangeAccount, OrderLookup, OrderSettlement, RunKind, RunStatus, SpotMarket, SpotPrice, VenueId,
+   WalletCoin
 } from '../../../types/portfolio'
 
 export type PortfolioErrorStatus = 400 | 403 | 404 | 409 | 410
@@ -63,15 +64,11 @@ interface Context {
    lockKey: string
 }
 
-export const QUOTE_ASSETS = ['USDT', 'USDC']
-
-const VALUATION_ASSET = 'USDT'
 const PLAN_TTL_MS = 2 * 60 * 1000
 const DEFAULT_SLIPPAGE = '1'
 const SETTLE_ATTEMPTS = 20
 const SETTLE_DELAY_MS = 500
 const FEE_GRACE_ATTEMPTS = 6
-const AMBIGUOUS_CODES = [10000, 10016]
 const STOP_RETRY_MS = 15 * 60 * 1000
 
 const plans = new Map<string, StoredPlan>()
@@ -157,21 +154,6 @@ function groupBy<T>(rows: T[], key: (row: T) => number): Map<number, T[]> {
    return groups
 }
 
-function describeError(error: unknown): string {
-   if (error instanceof HttpRequesterError) {
-      const body = error.body as { retCode?: number, retMsg?: string } | string
-      if (typeof body === 'object' && body?.retMsg) return `${body.retMsg} (${body.retCode})`
-      return String(error.cause)
-   }
-   return messageOf(error)
-}
-
-function isRejection(error: unknown): boolean {
-   if (!(error instanceof HttpRequesterError) || error.statusCode >= 500) return false
-   const retCode = (error.body as { retCode?: number } | undefined)?.retCode
-   return !AMBIGUOUS_CODES.includes(retCode ?? -1)
-}
-
 const movementView = ({ id, kind, asset, amount, value, orderLinkId, note, createdAt }: PortfolioMovementRow): PortfolioMovement =>
    ({ id, kind, asset, amount, value, orderLinkId, note, createdAt })
 
@@ -179,6 +161,9 @@ const stopView = ({ orderLinkId, asset, symbol, quantity, triggerPrice, status, 
    ({ orderLinkId, asset, symbol, quantity, triggerPrice, status, error, placedAt })
 
 const isLiveStop = ({ status }: PortfolioStopRow) => status === 'pending' || status === 'placed'
+
+const lookupOf = ({ symbol, orderLinkId, orderId }: PortfolioOrderRow | PortfolioStopRow): OrderLookup =>
+   ({ symbol, clientOrderId: orderLinkId, orderId })
 
 function shownStops(stops: PortfolioStopRow[]): PortfolioStopRow[] {
 
@@ -223,6 +208,14 @@ export default class PortfolioService {
    constructor(venue: Venue, exchange: PortfolioExchange) {
       this.#venue = venue
       this.#exchange = exchange
+   }
+
+   #describe(error: unknown): string {
+      return error instanceof HttpRequesterError ? this.#exchange.describeError(error) : messageOf(error)
+   }
+
+   #isRejection(error: unknown): boolean {
+      return error instanceof HttpRequesterError && error.statusCode < 500 && !this.#exchange.isAmbiguous(error)
    }
 
    async #context(): Promise<Context> {
@@ -283,7 +276,7 @@ export default class PortfolioService {
          venue: this.#venue.id,
          accountId: account.accountId,
          key: { canTrade: account.canTrade, expiresAt: account.expiresAt },
-         valuationAsset: VALUATION_ASSET,
+         valuationAsset: this.#venue.valuationAsset,
          coins,
          totalValue: decimal(totalValue, 2),
          unallocatedValue: decimal(unallocatedValue, 2),
@@ -413,7 +406,7 @@ export default class PortfolioService {
          const total = Big(coin?.total || 0)
          const assigned = allocated.get(asset) ?? ZERO
          const unallocated = total.minus(coin?.borrowed || 0).minus(assigned)
-         const price = priceIn(prices, asset, VALUATION_ASSET)
+         const price = priceIn(prices, asset, this.#venue.valuationAsset)
          const value = price ? unallocated.times(price) : null
 
          if (price) totalValue = totalValue.plus(total.times(price))
@@ -485,14 +478,15 @@ export default class PortfolioService {
       const { desired, skipped } = this.#desiredStops(portfolio, targets, holdings, markets, prices)
       const live = repository.stopsOf(portfolioId).filter(isLiveStop)
       const { cancel, place } = stopActions(desired, liveStopsOf(live))
+      const cancelled = new Set(cancel.map(({ orderLinkId }) => orderLinkId))
 
-      for (const stop of cancel) {
+      for (const stop of live.filter(({ orderLinkId }) => cancelled.has(orderLinkId))) {
          try {
-            await this.#exchange.cancelStopOrder(stop.symbol, stop.orderLinkId)
+            await this.#exchange.cancelStopOrder(lookupOf(stop))
             repository.markStop(stop.orderLinkId, { status: 'cancelled', error: null })
          }
          catch (error) {
-            repository.markStop(stop.orderLinkId, { status: 'failed', error: describeError(error) })
+            repository.markStop(stop.orderLinkId, { status: 'failed', error: this.#describe(error) })
          }
       }
 
@@ -518,7 +512,7 @@ export default class PortfolioService {
          }
          catch (error) {
             repository.clearStopFailures(portfolioId, stop.asset)
-            repository.insertStop({ ...draft, orderId: null, status: 'failed', error: describeError(error) })
+            repository.insertStop({ ...draft, orderId: null, status: 'failed', error: this.#describe(error) })
          }
       }
 
@@ -547,7 +541,7 @@ export default class PortfolioService {
       if (!this.#venue.hardStops) return
       await serialized(lockKey, async () => {
          for (const stop of repository.stopsOf(portfolioId).filter(isLiveStop)) {
-            await this.#exchange.cancelStopOrder(stop.symbol, stop.orderLinkId)
+            await this.#exchange.cancelStopOrder(lookupOf(stop))
             repository.markStop(stop.orderLinkId, { status: 'cancelled', error: null })
          }
       })
@@ -578,10 +572,11 @@ export default class PortfolioService {
 
    async markets(): Promise<PortfolioMarketsResponse> {
       const markets = await this.#exchange.markets()
+      const { quoteAssets } = this.#venue
       return {
-         quoteAssets: QUOTE_ASSETS,
+         quoteAssets,
          markets: markets
-            .filter(({ quote }) => QUOTE_ASSETS.includes(quote))
+            .filter(({ quote }) => quoteAssets.includes(quote))
             .map(({ symbol, base, quote }) => ({ symbol, base, quote }))
             .sort((left, right) => left.base.localeCompare(right.base))
       }
@@ -595,8 +590,9 @@ export default class PortfolioService {
       const name = String(body.name ?? '').trim()
       if (!name || name.length > 60) throw new PortfolioError(400, 'Give the portfolio a name of at most 60 characters.')
 
-      const quoteAsset = assetOf(body.quoteAsset || 'USDT')
-      if (!QUOTE_ASSETS.includes(quoteAsset)) throw new PortfolioError(400, `The cash coin must be one of ${QUOTE_ASSETS.join(', ')}.`)
+      const { quoteAssets } = this.#venue
+      const quoteAsset = assetOf(body.quoteAsset || quoteAssets[0])
+      if (!quoteAssets.includes(quoteAsset)) throw new PortfolioError(400, `The cash coin must be one of ${quoteAssets.join(', ')}.`)
 
       const band = parseRange(body.band ?? '1', 'The rebalance band', 0, 50)
 
@@ -721,6 +717,12 @@ export default class PortfolioService {
 
       const byBase = planMarkets(markets, prices, quote)
       const free = new Map(wallet.map(({ asset, free: amount }) => [asset, Big(amount || 0)]))
+
+      if (this.#venue.stopsReserve) {
+         for (const stop of repository.stopsOf(portfolio.id).filter(isLiveStop)) {
+            free.set(stop.asset, (free.get(stop.asset) ?? ZERO).plus(stop.quantity))
+         }
+      }
 
       let plan
       try {
@@ -898,7 +900,7 @@ export default class PortfolioService {
       catch (caught) {
          console.error('Portfolio run failed:', caught)
          status = 'error'
-         error = describeError(caught)
+         error = this.#describe(caught)
       }
       finally {
          repository.finishRun(runId, status, withdrawn.toFixed(), error)
@@ -946,9 +948,10 @@ export default class PortfolioService {
    async #placeAndSettle(repository: PortfolioRepository, order: PortfolioOrderRow, slippage: string): Promise<void> {
 
       let placed = true
+      let orderId: string | null = null
 
       try {
-         const orderId = await this.#exchange.placeOrder({
+         orderId = await this.#exchange.placeOrder({
             clientOrderId: order.orderLinkId,
             symbol: order.symbol,
             side: order.side,
@@ -959,15 +962,15 @@ export default class PortfolioService {
          repository.markOrder(order.orderLinkId, { status: 'placed', orderId })
       }
       catch (error) {
-         if (isRejection(error)) {
-            repository.markOrder(order.orderLinkId, { status: 'rejected', error: describeError(error) })
+         if (this.#isRejection(error)) {
+            repository.markOrder(order.orderLinkId, { status: 'rejected', error: this.#describe(error) })
             return
          }
          placed = false
-         repository.markOrder(order.orderLinkId, { status: 'unknown', error: describeError(error) })
+         repository.markOrder(order.orderLinkId, { status: 'unknown', error: this.#describe(error) })
       }
 
-      await this.#settle(repository, order, placed)
+      await this.#settle(repository, { ...order, orderId }, placed)
    }
 
    async #settle(repository: PortfolioRepository, order: PortfolioOrderRow, placed: boolean): Promise<void> {
@@ -977,10 +980,10 @@ export default class PortfolioService {
 
          let settlement: OrderSettlement | null
          try {
-            settlement = await this.#exchange.settleOrder(order.orderLinkId)
+            settlement = await this.#exchange.settleOrder(lookupOf(order))
          }
          catch (error) {
-            console.warn('Could not check order', order.orderLinkId, describeError(error))
+            console.warn('Could not check order', order.orderLinkId, this.#describe(error))
             continue
          }
 
@@ -1027,7 +1030,7 @@ export default class PortfolioService {
       for (const order of repository.unsettledOrders()) {
          if (liveRuns.has(order.runId)) continue
          try {
-            const settlement = await this.#exchange.settleOrder(order.orderLinkId)
+            const settlement = await this.#exchange.settleOrder(lookupOf(order))
             if (settlement?.status === 'open') continue
 
             if (settlement) this.#record(repository, order, settlement)
@@ -1039,7 +1042,7 @@ export default class PortfolioService {
             count++
          }
          catch (error) {
-            console.warn('Could not reconcile order', order.orderLinkId, describeError(error))
+            console.warn('Could not reconcile order', order.orderLinkId, this.#describe(error))
          }
       }
 
@@ -1063,7 +1066,7 @@ export default class PortfolioService {
          resting = new Set((await this.#exchange.openStopOrders()).map(({ clientOrderId }) => clientOrderId))
       }
       catch (error) {
-         console.warn('Could not read the resting stop orders', describeError(error))
+         console.warn('Could not read the resting stop orders', this.#describe(error))
          return 0
       }
 
@@ -1073,7 +1076,7 @@ export default class PortfolioService {
          if (resting.has(stop.orderLinkId)) continue
 
          try {
-            const settlement = await this.#exchange.settleOrder(stop.orderLinkId)
+            const settlement = await this.#exchange.settleOrder(lookupOf(stop))
             if (settlement?.status === 'open') continue
 
             if (!settlement) {
@@ -1090,7 +1093,7 @@ export default class PortfolioService {
             else {
                repository.recordStopFill(stop, {
                   runId: randomUUID(),
-                  quoteAsset: repository.portfolio(stop.portfolioId)?.quoteAsset ?? VALUATION_ASSET,
+                  quoteAsset: repository.portfolio(stop.portfolioId)?.quoteAsset ?? this.#venue.valuationAsset,
                   outcome: {
                      orderId: settlement.orderId,
                      status: settlement.status === 'filled' ? 'filled' : 'partial',
@@ -1106,7 +1109,7 @@ export default class PortfolioService {
             count++
          }
          catch (error) {
-            console.warn('Could not reconcile stop order', stop.orderLinkId, describeError(error))
+            console.warn('Could not reconcile stop order', stop.orderLinkId, this.#describe(error))
          }
       }
 

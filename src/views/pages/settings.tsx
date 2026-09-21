@@ -30,13 +30,19 @@ const providers: ProviderForm[] = [
    {
       id: 'binance',
       name: 'Binance',
-      description: 'Reads your staking positions and balances. Read-only permissions are enough.',
+      description: 'Reads your staking positions and balances, and places the spot orders that rebalance your portfolios. Read-only is enough without portfolios; they need Spot trading too. Never grant Withdrawals.',
+      hasSecret: true
+   },
+   {
+      id: 'binanceTestnet',
+      name: 'Binance testnet',
+      description: 'Portfolios against the Binance spot testnet and its test funds. Create these keys on testnet.binance.vision; mainnet keys do not work here.',
       hasSecret: true
    },
    {
       id: 'kraken',
       name: 'Kraken',
-      description: 'Syncs your ledger and trade history, and creates orders. The secret is only sent for private calls.',
+      description: 'Syncs your ledger and trade history, creates orders, and rebalances your portfolios. Portfolios also need Create & Modify Orders and Cancel/Close Orders; never grant Withdraw Funds. The secret is only sent for private calls.',
       hasSecret: true
    },
    {

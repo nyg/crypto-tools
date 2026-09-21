@@ -219,7 +219,7 @@ function PlanFlow({ apiBase, venueLabel, live, target, onOpenChange, onFinished 
                      <Alert variant="destructive">
                         <AlertDescription>
                            This API key cannot place spot orders. Give it the Spot trade permission on
-                           Bybit, then preview again.
+                           {' '}{venueLabel}, then preview again.
                         </AlertDescription>
                      </Alert>}
 

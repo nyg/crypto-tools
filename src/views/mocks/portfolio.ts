@@ -10,7 +10,7 @@ import type {
 import type { VenueId } from '../../types/portfolio'
 
 const prices: Record<string, number> = {
-   USDT: 1, USDC: 1, BTC: 64250, ETH: 3120, SOL: 152.4, SUI: 3.18, TAO: 418, ENA: 0.92, DOGE: 0.14, XRP: 0.58
+   USD: 1, EUR: 1.08, USDT: 1, USDC: 1, BTC: 64250, ETH: 3120, SOL: 152.4, SUI: 3.18, TAO: 418, ENA: 0.92, DOGE: 0.14, XRP: 0.58
 }
 
 const FEE_RATE = 0.001
@@ -55,40 +55,55 @@ interface VenueState {
 
 const DAY = 86400000
 
+const STABLECOINS = ['USDT', 'USDC']
+
+const quoteAssets: Record<VenueId, string[]> = {
+   bybit: STABLECOINS,
+   bybitDemo: STABLECOINS,
+   kraken: ['USD', 'EUR', ...STABLECOINS],
+   binance: STABLECOINS,
+   binanceTestnet: STABLECOINS
+}
+
+const cashOf = (venue: VenueId) => quoteAssets[venue][0] ?? 'USDT'
+
+const isLive = (venue: VenueId) => venue !== 'bybitDemo' && venue !== 'binanceTestnet'
+
 function seed(venue: VenueId): VenueState {
    const created = Date.now() - 40 * DAY
-   const portfolios: MockPortfolio[] = venue === 'bybit'
+   const cash = cashOf(venue)
+   const portfolios: MockPortfolio[] = isLive(venue)
       ? [
          {
-            id: 1, name: 'Core', quoteAsset: 'USDT', band: '1', createdAt: created,
+            id: 1, name: 'Core', quoteAsset: cash, band: '1', createdAt: created,
             targets: [
                { asset: 'BTC', weight: '50', stopPrice: '58000' },
                { asset: 'ETH', weight: '30', stopPrice: null },
-               { asset: 'USDT', weight: '20', stopPrice: null }
+               { asset: cash, weight: '20', stopPrice: null }
             ],
-            holdings: { BTC: 0.0712, ETH: 0.84, USDT: 1480 },
+            holdings: { BTC: 0.0712, ETH: 0.84, [cash]: 1480 },
             costs: { BTC: 3900, ETH: 2750 },
             realized: { BTC: 820, ETH: 310 },
             closedRealized: 0,
             stops: [{
-               orderLinkId: 'pf1-stpa1b2c3d4', asset: 'BTC', symbol: 'BTCUSDT', quantity: '0.0712',
+               orderLinkId: 'pf1-stpa1b2c3d4', asset: 'BTC', symbol: `BTC${cash}`, quantity: '0.0712',
                triggerPrice: '58000', status: 'placed', error: null, placedAt: created + 30 * DAY
             }],
             deposited: 7000
          },
          {
-            id: 2, name: 'Alts', quoteAsset: 'USDT', band: '2', createdAt: created + 5 * DAY,
+            id: 2, name: 'Alts', quoteAsset: cash, band: '2', createdAt: created + 5 * DAY,
             targets: [
                { asset: 'SOL', weight: '40', stopPrice: '120' },
                { asset: 'SUI', weight: '30', stopPrice: null },
                { asset: 'ENA', weight: '30', stopPrice: null }
             ],
-            holdings: { SOL: 6.1, SUI: 240, ENA: 1150, USDT: 12.4 },
+            holdings: { SOL: 6.1, SUI: 240, ENA: 1150, [cash]: 12.4 },
             costs: { SOL: 980, SUI: 610, ENA: 1010 },
             realized: { SOL: 40 },
             closedRealized: 72.4,
             stops: [{
-               orderLinkId: 'pf2-stp9f8e7d6c', asset: 'SOL', symbol: 'SOLUSDT', quantity: '6.1',
+               orderLinkId: 'pf2-stp9f8e7d6c', asset: 'SOL', symbol: `SOL${cash}`, quantity: '6.1',
                triggerPrice: '120', status: 'placed', error: null, placedAt: created + 32 * DAY
             }],
             deposited: 2500
@@ -96,12 +111,12 @@ function seed(venue: VenueId): VenueState {
       ]
       : [
          {
-            id: 1, name: 'Demo core', quoteAsset: 'USDT', band: '1', createdAt: created,
+            id: 1, name: 'Demo core', quoteAsset: cash, band: '1', createdAt: created,
             targets: [
                { asset: 'BTC', weight: '60', stopPrice: null },
                { asset: 'ETH', weight: '40', stopPrice: null }
             ],
-            holdings: { USDT: 1000 },
+            holdings: { [cash]: 1000 },
             costs: {},
             realized: {},
             closedRealized: 0,
@@ -111,19 +126,19 @@ function seed(venue: VenueId): VenueState {
       ]
 
    const movements = new Map<number, PortfolioMovement[]>(portfolios.map(portfolio => [portfolio.id, [{
-      id: portfolio.id, kind: 'deposit', asset: 'USDT', amount: String(portfolio.deposited),
+      id: portfolio.id, kind: 'deposit', asset: cash, amount: String(portfolio.deposited),
       value: String(portfolio.deposited), orderLinkId: null, note: '', createdAt: portfolio.createdAt
    }]]))
 
    return {
-      wallet: venue === 'bybit'
-         ? { USDT: 3890.25, BTC: 0.0812, ETH: 0.84, SOL: 6.1, SUI: 240, ENA: 1150, USDC: 250, DOGE: 1200 }
-         : { USDT: 50000, BTC: 1, ETH: 10 },
+      wallet: isLive(venue)
+         ? { [cash]: 3890.25, BTC: 0.0812, ETH: 0.84, SOL: 6.1, SUI: 240, ENA: 1150, USDC: 250, DOGE: 1200 }
+         : { [cash]: 50000, BTC: 1, ETH: 10 },
       portfolios,
       movements,
       runs: new Map(),
       plans: new Map(),
-      stopFills: venue === 'bybit'
+      stopFills: isLive(venue)
          ? [{
             orderLinkId: 'pf2-stp5a4b3c2d', portfolioId: 2, portfolioName: 'Alts', asset: 'XRP',
             quantity: '420', proceeds: '243.6', averagePrice: '0.58', settledAt: Date.now() - 2 * DAY
@@ -240,9 +255,9 @@ function overview(venue: VenueId): PortfolioOverviewResponse {
    return {
       fetchedAt: Date.now(),
       venue,
-      accountId: venue === 'bybit' ? '100200300' : '900800700',
+      accountId: isLive(venue) ? '100200300' : '900800700',
       key: { canTrade: true, expiresAt: venue === 'bybit' ? Date.now() + 9 * DAY : null },
-      valuationAsset: 'USDT',
+      valuationAsset: cashOf(venue),
       coins,
       totalValue: fixed(Object.entries(state.wallet).reduce((sum, [asset, amount]) => sum + amount * (prices[asset] ?? 0), 0), 2),
       unallocatedValue: fixed(coins.reduce((sum, coin) => sum + Math.max(0, coin.valueNum), 0), 2),
@@ -255,14 +270,11 @@ function overview(venue: VenueId): PortfolioOverviewResponse {
    }
 }
 
-const markets = (): PortfolioMarketsResponse => ({
-   quoteAssets: ['USDT', 'USDC'],
+const markets = (venue: VenueId): PortfolioMarketsResponse => ({
+   quoteAssets: quoteAssets[venue],
    markets: Object.keys(prices)
-      .filter(asset => !['USDT', 'USDC'].includes(asset))
-      .flatMap(base => [
-         { symbol: `${base}USDT`, base, quote: 'USDT' },
-         { symbol: `${base}USDC`, base, quote: 'USDC' }
-      ])
+      .filter(asset => !quoteAssets[venue].includes(asset))
+      .flatMap(base => quoteAssets[venue].map(quote => ({ symbol: `${base}${quote}`, base, quote })))
 })
 
 const reject = (message: string) => Promise.reject(message)
@@ -564,13 +576,16 @@ const arg = <T>(params?: Body) => params?.arg as T | undefined
 
 const bases: Record<VenueId, string> = {
    bybit: '/api/bybit/portfolios',
-   bybitDemo: '/api/bybit/demo/portfolios'
+   bybitDemo: '/api/bybit/demo/portfolios',
+   kraken: '/api/kraken/portfolios',
+   binance: '/api/binance/portfolios',
+   binanceTestnet: '/api/binance/testnet/portfolios'
 }
 
 export const portfolioRoutes: Record<string, (params?: Body) => unknown> = Object.fromEntries(
    (Object.entries(bases) as [VenueId, string][]).flatMap(([venue, base]) => [
       [`${base}/overview`, () => overview(venue)],
-      [`${base}/markets`, () => markets()],
+      [`${base}/markets`, () => markets(venue)],
       [`${base}/save`, (params?: Body) => save(venue, arg(params))],
       [`${base}/archive`, (params?: Body) => archive(venue, arg(params))],
       [`${base}/deposit`, (params?: Body) => deposit(venue, arg(params))],

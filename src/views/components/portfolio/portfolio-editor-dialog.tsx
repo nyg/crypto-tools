@@ -27,6 +27,7 @@ interface TargetRow {
 
 interface EditorProps {
    apiBase: string
+   quoteAsset: string
    open: boolean
    portfolio: PortfolioSummary | null
    onOpenChange: (open: boolean) => void
@@ -35,6 +36,7 @@ interface EditorProps {
 
 interface EditorFormProps {
    apiBase: string
+   quoteAsset: string
    portfolio: PortfolioSummary | null
    onCancel: () => void
    onSaved: (id: number) => void
@@ -60,14 +62,14 @@ function splitEqually(rows: TargetRow[]): TargetRow[] {
    return rows.map((entry, index) => ({ ...entry, weight: (index === rows.length - 1 ? last : share).toFixed() }))
 }
 
-function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) {
+function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, onSaved }: EditorFormProps) {
 
    const [name, setName] = useState(portfolio?.name ?? '')
-   const [quoteAsset, setQuoteAsset] = useState(portfolio?.quoteAsset ?? 'USDT')
+   const [quoteAsset, setQuoteAsset] = useState(portfolio?.quoteAsset ?? defaultQuote)
    const [band, setBand] = useState(portfolio?.band ?? '1')
    const [rows, setRows] = useState<TargetRow[]>(() => portfolio
       ? portfolio.targets.map(({ asset, weight, stopPrice }) => row(asset, weight, stopPrice ?? ''))
-      : [row('BTC', '50'), row('ETH', '30'), row('USDT', '20')])
+      : [row('BTC', '50'), row('ETH', '30'), row(defaultQuote, '20')])
    const [error, setError] = useState<string | null>(null)
 
    const { data: markets, isLoading: isLoadingMarkets } =
@@ -75,7 +77,7 @@ function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) 
    const { trigger: save, isMutating: isSaving } =
       useMutation<PortfolioSaveResponse, PortfolioSaveRequest>(`${apiBase}/save`)
 
-   const quoteOptions = (markets?.quoteAssets ?? ['USDT', 'USDC']).map(asset => ({ value: asset, label: asset }))
+   const quoteOptions = (markets?.quoteAssets ?? [defaultQuote]).map(asset => ({ value: asset, label: asset }))
    const assetOptions = [
       { value: quoteAsset, label: `${quoteAsset} (cash)` },
       ...(markets?.markets ?? [])
@@ -210,7 +212,7 @@ function EditorForm({ apiBase, portfolio, onCancel, onSaved }: EditorFormProps) 
    )
 }
 
-export default function PortfolioEditorDialog({ apiBase, open, portfolio, onOpenChange, onSaved }: EditorProps) {
+export default function PortfolioEditorDialog({ apiBase, quoteAsset, open, portfolio, onOpenChange, onSaved }: EditorProps) {
    return (
       <Dialog open={open} onOpenChange={onOpenChange}>
          <DialogContent className="sm:max-w-xl">
@@ -218,6 +220,7 @@ export default function PortfolioEditorDialog({ apiBase, open, portfolio, onOpen
                <EditorForm
                   key={portfolio?.id ?? 'new'}
                   apiBase={apiBase}
+                  quoteAsset={quoteAsset}
                   portfolio={portfolio}
                   onCancel={() => onOpenChange(false)}
                   onSaved={onSaved} />}

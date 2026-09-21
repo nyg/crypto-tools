@@ -1,5 +1,6 @@
+import type { HttpRequesterError } from '../../errors'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
+   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
    StopOrderRequest, WalletCoin
 } from '../../../types/portfolio'
 
@@ -10,8 +11,10 @@ export interface PortfolioExchange {
    markets(): Promise<SpotMarket[]>
    prices(): Promise<Record<string, SpotPrice>>
    placeOrder(order: OrderRequest): Promise<string>
-   settleOrder(clientOrderId: string): Promise<OrderSettlement | null>
+   settleOrder(order: OrderLookup): Promise<OrderSettlement | null>
    placeStopOrder(order: StopOrderRequest): Promise<string>
-   cancelStopOrder(symbol: string, clientOrderId: string): Promise<void>
+   cancelStopOrder(order: OrderLookup): Promise<void>
    openStopOrders(): Promise<OpenStopOrder[]>
+   describeError(error: HttpRequesterError): string
+   isAmbiguous(error: HttpRequesterError): boolean
 }

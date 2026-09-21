@@ -5,9 +5,10 @@ import { authenticator } from './authenticator'
 import type { Credentials } from '../../../types/credentials'
 import type { ExportReportType, ExportRequest } from '../../../types/kraken'
 import type {
-   KrakenAddExportResult, KrakenAddOrderBatchResult, KrakenAssetPairs, KrakenAssets,
-   KrakenCancelResult, KrakenExportStatus, KrakenExtendedBalance, KrakenOpenOrders,
-   KrakenOrderBatchParams, KrakenResponse, KrakenTicker
+   KrakenAddExportResult, KrakenAddOrderBatchResult, KrakenAddOrderParams, KrakenAddOrderResult,
+   KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenExportStatus,
+   KrakenExtendedBalance, KrakenOpenOrders, KrakenOrderBatchParams, KrakenOrderFilter,
+   KrakenOrderReference, KrakenQueriedOrders, KrakenResponse, KrakenTicker
 } from '../../../types/kraken-api'
 
 const apiUrl = 'https://api.kraken.com'
@@ -17,9 +18,12 @@ const assetPairsEndpoint = '/0/public/AssetPairs'
 const assetInfoEndpoint = '/0/public/Assets'
 const tickerEndpoint = '/0/public/Ticker'
 
+const addOrderEndpoint = '/0/private/AddOrder'
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
 const openOrdersEndpoint = '/0/private/OpenOrders'
+const closedOrdersEndpoint = '/0/private/ClosedOrders'
+const queryOrdersEndpoint = '/0/private/QueryOrders'
 const cancelOrderEndpoint = '/0/private/CancelOrder'
 const cancelOrderBatchEndpoint = '/0/private/CancelOrderBatch'
 
@@ -48,7 +52,7 @@ export async function fetchAllAssetPairs(): Promise<KrakenResponse<KrakenAssetPa
 // Kraken takes the pairs as one comma-separated list and answers with a result keyed
 // by its own name for each of them, which is not always the name that was asked for.
 export async function fetchTicker(pairs: string[]): Promise<KrakenResponse<KrakenTicker>> {
-   return await httpRequester.public(urlFor(tickerEndpoint), { pair: pairs.join(',') })
+   return await httpRequester.public(urlFor(tickerEndpoint), pairs.length > 0 ? { pair: pairs.join(',') } : {})
 }
 
 /* Private endpoints */
@@ -82,8 +86,20 @@ export async function fetchExtendedBalance(apiCredentials: Credentials): Promise
 // What is still on the book. The ledger only ever learns about an order once it has
 // filled, so this is the one thing it cannot answer: which of the balance it shows is
 // already spoken for.
-export async function fetchOpenOrders(apiCredentials: Credentials): Promise<KrakenResponse<KrakenOpenOrders>> {
-   return await privateRequest(urlFor(openOrdersEndpoint), apiCredentials)
+export async function fetchOpenOrders(apiCredentials: Credentials, filter: KrakenOrderFilter = {}): Promise<KrakenResponse<KrakenOpenOrders>> {
+   return await privateRequest(urlFor(openOrdersEndpoint), apiCredentials, { bodyParams: filter })
+}
+
+export async function fetchClosedOrders(apiCredentials: Credentials, filter: KrakenOrderFilter): Promise<KrakenResponse<KrakenClosedOrders>> {
+   return await privateRequest(urlFor(closedOrdersEndpoint), apiCredentials, { bodyParams: filter })
+}
+
+export async function queryOrders(apiCredentials: Credentials, txids: string[]): Promise<KrakenResponse<KrakenQueriedOrders>> {
+   return await privateRequest(urlFor(queryOrdersEndpoint), apiCredentials, { bodyParams: { txid: txids.join(',') } })
+}
+
+export async function addOrder(apiCredentials: Credentials, order: KrakenAddOrderParams): Promise<KrakenResponse<KrakenAddOrderResult>> {
+   return await privateRequest(urlFor(addOrderEndpoint), apiCredentials, { bodyParams: order })
 }
 
 /* Export report endpoints, used to fetch the full ledger and trade history in one go */
@@ -147,8 +163,8 @@ export async function createOrderBatch(apiCredentials: Credentials, { pair, dire
    )
 }
 
-export async function cancelOrder(apiCredentials: Credentials, { txid }: { txid: string }): Promise<KrakenResponse<KrakenCancelResult>> {
-   return await privateRequest(urlFor(cancelOrderEndpoint), apiCredentials, { bodyParams: { txid } })
+export async function cancelOrder(apiCredentials: Credentials, reference: KrakenOrderReference): Promise<KrakenResponse<KrakenCancelResult>> {
+   return await privateRequest(urlFor(cancelOrderEndpoint), apiCredentials, { bodyParams: reference })
 }
 
 export async function cancelOrderBatch(apiCredentials: Credentials, { txids }: { txids: string[] }): Promise<KrakenResponse<KrakenCancelResult>> {

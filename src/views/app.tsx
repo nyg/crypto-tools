@@ -4,6 +4,7 @@ import './styles/global.css'
 import { fetcher } from './lib/fetcher'
 import Home from './pages/home'
 import Settings from './pages/settings'
+import BinancePortfolios from './pages/binance/portfolios'
 import BinanceStaking from './pages/binance/staking'
 import BybitPortfolios from './pages/bybit/portfolios'
 import KrakenBalances from './pages/kraken/balances'
@@ -12,6 +13,7 @@ import KrakenFees from './pages/kraken/fees'
 import KrakenLedger from './pages/kraken/ledger'
 import KrakenOpenOrders from './pages/kraken/open-orders'
 import KrakenOrderBatch from './pages/kraken/order-batch'
+import KrakenPortfolios from './pages/kraken/portfolios'
 import KrakenRewards from './pages/kraken/rewards'
 import KrakenXStocks from './pages/kraken/xstocks'
 import TradeCalculator from './pages/tools/trade-calculator'
@@ -29,6 +31,7 @@ export default function App() {
                <Route path="/" element={<Home />} />
                <Route path="/settings" element={<Settings />} />
                <Route path="/binance/staking" element={<BinanceStaking />} />
+               <Route path="/binance/portfolios" element={<BinancePortfolios />} />
                <Route path="/bybit/portfolios" element={<BybitPortfolios />} />
                <Route path="/kraken/balances" element={<KrakenBalances />} />
                <Route path="/kraken/aggregated-trades" element={<KrakenAggregatedTrades />} />
@@ -36,6 +39,7 @@ export default function App() {
                <Route path="/kraken/ledger" element={<KrakenLedger />} />
                <Route path="/kraken/open-orders" element={<KrakenOpenOrders />} />
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
+               <Route path="/kraken/portfolios" element={<KrakenPortfolios />} />
                <Route path="/kraken/rewards" element={<KrakenRewards />} />
                <Route path="/kraken/xstocks" element={<KrakenXStocks />} />
                <Route path="/tools/trade-calculator" element={<TradeCalculator />} />

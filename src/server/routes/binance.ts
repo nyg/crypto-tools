@@ -3,11 +3,15 @@ import Big from 'big.js'
 import BinanceAPI from '../adapters/binance-api/adapter'
 import BinanceGatewayAPI from '../adapters/binance-gateway-api/adapter'
 import RateFinder from '../services/rate-finder'
+import portfolioRoutes from './portfolios'
 import { withCredentials } from './with-account'
 import { HttpRequesterError } from '../errors'
 import type { SpotBalances, StakingBalances, StakingProducts } from '../../types/binance'
 
 const app = new Hono()
+
+app.route('/portfolios', portfolioRoutes('binance'))
+app.route('/testnet/portfolios', portfolioRoutes('binanceTestnet'))
 
 app.post('/aggregate-balance', async (c) => withCredentials(c, 'binance', async ({ credentials }) => {
 

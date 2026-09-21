@@ -1,4 +1,4 @@
-export type Provider = 'kraken' | 'binance' | 'bybit' | 'bybitDemo' | 'anthropic'
+export type Provider = 'kraken' | 'binance' | 'binanceTestnet' | 'bybit' | 'bybitDemo' | 'anthropic'
 
 export interface Credentials {
    apiKey: string

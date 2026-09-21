@@ -16,6 +16,8 @@ import type {
 
 interface DepositFormProps {
    apiBase: string
+   venueLabel: string
+   wallet: string
    portfolio: PortfolioSummary
    coins: AccountCoin[]
    onCancel: () => void
@@ -24,7 +26,7 @@ interface DepositFormProps {
 
 const minOf = (left: string, right: string) => Big(left).lt(right) ? left : right
 
-function DepositForm({ apiBase, portfolio, coins, onCancel, onDeposited }: DepositFormProps) {
+function DepositForm({ apiBase, venueLabel, wallet, portfolio, coins, onCancel, onDeposited }: DepositFormProps) {
 
    const quote = portfolio.quoteAsset
    const depositable = new Set([quote, ...portfolio.targets.map(({ asset }) => asset)])
@@ -58,7 +60,7 @@ function DepositForm({ apiBase, portfolio, coins, onCancel, onDeposited }: Depos
          <DialogHeader>
             <DialogTitle>Deposit into {portfolio.name}</DialogTitle>
             <DialogDescription>
-               Moves {quote}, or a coin this portfolio targets, from the part of your Bybit account
+               Moves {quote}, or a coin this portfolio targets, from the part of your {venueLabel} account
                no portfolio holds into this one. Nothing is traded; rebalance afterwards to put the
                deposit to work.
             </DialogDescription>
@@ -68,7 +70,7 @@ function DepositForm({ apiBase, portfolio, coins, onCancel, onDeposited }: Depos
             ? <Alert>
                <AlertDescription>
                   No {quote} or target coin of this portfolio is free outside your portfolios.
-                  Transfer some into your Bybit unified trading account first.
+                  Transfer some into your {venueLabel} {wallet} first.
                </AlertDescription>
             </Alert>
             : <div className="grid gap-3 sm:grid-cols-2">
@@ -111,13 +113,15 @@ function DepositForm({ apiBase, portfolio, coins, onCancel, onDeposited }: Depos
 
 interface DepositDialogProps {
    apiBase: string
+   venueLabel: string
+   wallet: string
    portfolio: PortfolioSummary | null
    coins: AccountCoin[]
    onOpenChange: (open: boolean) => void
    onDeposited: (portfolio: PortfolioSummary, asset: string, amount: string) => void
 }
 
-export default function DepositDialog({ apiBase, portfolio, coins, onOpenChange, onDeposited }: DepositDialogProps) {
+export default function DepositDialog({ apiBase, venueLabel, wallet, portfolio, coins, onOpenChange, onDeposited }: DepositDialogProps) {
    return (
       <Dialog open={portfolio !== null} onOpenChange={onOpenChange}>
          <DialogContent>
@@ -125,6 +129,8 @@ export default function DepositDialog({ apiBase, portfolio, coins, onOpenChange,
                <DepositForm
                   key={portfolio.id}
                   apiBase={apiBase}
+                  venueLabel={venueLabel}
+                  wallet={wallet}
                   portfolio={portfolio}
                   coins={coins}
                   onCancel={() => onOpenChange(false)}

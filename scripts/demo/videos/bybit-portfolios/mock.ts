@@ -468,7 +468,7 @@ function history(venue: VenueId, request?: PortfolioHistoryRequest): PortfolioHi
 type Body = { arg?: unknown }
 const arg = <T>(params?: Body) => params?.arg as T | undefined
 
-const bases: Record<VenueId, string> = {
+const bases: Partial<Record<VenueId, string>> = {
    bybit: '/api/bybit/portfolios',
    bybitDemo: '/api/bybit/demo/portfolios'
 }

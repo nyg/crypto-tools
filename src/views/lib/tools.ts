@@ -25,6 +25,13 @@ export interface ToolGroup {
    tools: Tool[]
 }
 
+const portfolios = (exchange: string): Tool => ({
+   href: `/${exchange}/portfolios`,
+   title: 'Portfolios',
+   description: 'Keep baskets of coins at their target weights: deposit, withdraw and rebalance with market orders.',
+   icon: PieChartIcon
+})
+
 export const toolGroups: ToolGroup[] = [
    {
       name: 'Kraken',
@@ -76,6 +83,7 @@ export const toolGroups: ToolGroup[] = [
             description: 'Create a series of limit orders for a trading pair in one go.',
             icon: LayersIcon
          },
+         portfolios('kraken'),
          {
             href: '/kraken/xstocks',
             title: 'xStocks',
@@ -92,19 +100,13 @@ export const toolGroups: ToolGroup[] = [
             title: 'Staking',
             description: 'Overview of your staking positions and upcoming redemptions.',
             icon: CoinsIcon
-         }
+         },
+         portfolios('binance')
       ]
    },
    {
       name: 'Bybit',
-      tools: [
-         {
-            href: '/bybit/portfolios',
-            title: 'Portfolios',
-            description: 'Keep baskets of coins at their target weights: deposit, withdraw and rebalance with market orders.',
-            icon: PieChartIcon
-         }
-      ]
+      tools: [portfolios('bybit')]
    },
    {
       name: 'Tools',

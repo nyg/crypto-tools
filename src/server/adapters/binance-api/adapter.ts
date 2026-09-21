@@ -1,18 +1,30 @@
 import Big from 'big.js'
 import * as resource from './resource'
+import {
+   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet
+} from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type { TradingPair, TradingPairs } from '../../../types/market'
 import type {
    Candlestick, FiatDeposit, PairRates, SpotBalances, StakingBalances
 } from '../../../types/binance'
+import type { BinanceEnvironment } from '../../../types/binance-api'
+import type {
+   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
+   StopOrderRequest, WalletCoin
+} from '../../../types/portfolio'
 
+const UNKNOWN_ORDER = -2011
+const NO_SUCH_ORDER = -2013
 
 export default class BinanceAPI {
 
    readonly #credentials: Credentials | undefined
+   readonly #environment: BinanceEnvironment
 
-   constructor(credentials?: Credentials) {
+   constructor(credentials?: Credentials, environment: BinanceEnvironment = 'mainnet') {
       this.#credentials = credentials
+      this.#environment = environment
    }
 
    // Every private call needs credentials; a BinanceAPI built without them is only
@@ -121,5 +133,81 @@ export default class BinanceAPI {
       }
 
       return deposits
+   }
+
+   /* Spot trading for portfolios */
+
+   async fetchSpotMarkets(): Promise<SpotMarket[]> {
+      return spotMarkets(await resource.fetchExchangeInfo(this.#environment, { symbolStatus: 'TRADING' }))
+   }
+
+   async fetchSpotPrices(): Promise<Record<string, SpotPrice>> {
+      const [tickers, books] = await Promise.all([
+         resource.fetchAllTickerPrices(this.#environment), resource.fetchBookTickers(this.#environment)])
+      return spotPrices(tickers, books)
+   }
+
+   async fetchSpotAccount(fallbackId: string): Promise<ExchangeAccount> {
+      return spotAccount(await resource.fetchAccount(this.#environment, this.#authenticated), fallbackId)
+   }
+
+   async fetchSpotWallet(): Promise<WalletCoin[]> {
+      return spotWallet(await resource.fetchAccount(this.#environment, this.#authenticated))
+   }
+
+   async placeMarketOrder({ clientOrderId, symbol, side, unit, amount }: OrderRequest): Promise<string> {
+      const { orderId } = await resource.createOrder(this.#environment, this.#authenticated, {
+         symbol,
+         side: side === 'buy' ? 'BUY' : 'SELL',
+         type: 'MARKET',
+         ...(unit === 'base' ? { quantity: amount } : { quoteOrderQty: amount }),
+         newClientOrderId: clientOrderId,
+         newOrderRespType: 'ACK'
+      })
+      return String(orderId)
+   }
+
+   async placeStopOrder({ clientOrderId, symbol, quantity, triggerPrice }: StopOrderRequest): Promise<string> {
+      const { orderId } = await resource.createOrder(this.#environment, this.#authenticated, {
+         symbol,
+         side: 'SELL',
+         type: 'STOP_LOSS',
+         quantity,
+         stopPrice: triggerPrice,
+         newClientOrderId: clientOrderId,
+         newOrderRespType: 'ACK'
+      })
+      return String(orderId)
+   }
+
+   async cancelOrderIfOpen({ symbol, clientOrderId }: OrderLookup): Promise<void> {
+      try {
+         await resource.cancelOrder(this.#environment, this.#authenticated, { symbol, origClientOrderId: clientOrderId })
+      }
+      catch (error) {
+         if (!hasBinanceCode(error, UNKNOWN_ORDER)) throw error
+      }
+   }
+
+   async fetchOpenStops(): Promise<OpenStopOrder[]> {
+      return openStops(await resource.fetchOpenOrders(this.#environment, this.#authenticated))
+   }
+
+   async fetchSettlement({ symbol, clientOrderId }: OrderLookup): Promise<OrderSettlement | null> {
+
+      let order
+      try {
+         order = await resource.fetchOrder(this.#environment, this.#authenticated, { symbol, origClientOrderId: clientOrderId })
+      }
+      catch (error) {
+         if (hasBinanceCode(error, NO_SUCH_ORDER)) return null
+         throw error
+      }
+
+      const settled = settlementOf(order, [])
+      if (settled.status === 'open' || Big(settled.base).eq(0)) return settled
+
+      const trades = await resource.fetchOrderTrades(this.#environment, this.#authenticated, { symbol, orderId: order.orderId })
+      return settlementOf(order, trades)
    }
 }

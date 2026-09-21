@@ -1,11 +1,27 @@
 // The shapes Binance's REST API and its undocumented earn gateway return.
 
+export type BinanceEnvironment = 'mainnet' | 'testnet'
+
+export interface BinanceSymbolFilter {
+   filterType: string
+   minQty?: string
+   maxQty?: string
+   stepSize?: string
+   tickSize?: string
+   minNotional?: string
+   maxNotional?: string
+}
+
 export interface BinanceSymbol {
    symbol: string
    baseAsset: string
    quoteAsset: string
    baseAssetPrecision: number
    quoteAssetPrecision: number
+   status?: string
+   isSpotTradingAllowed?: boolean
+   orderTypes?: string[]
+   filters?: BinanceSymbolFilter[]
 }
 
 export interface BinanceExchangeInfo {
@@ -17,6 +33,12 @@ export interface BinanceTickerPrice {
    price: string
 }
 
+export interface BinanceBookTicker {
+   symbol: string
+   bidPrice: string
+   askPrice: string
+}
+
 // [openTime, open, high, low, close, baseVolume, closeTime, quoteVolume, tradeCount, …]
 export type BinanceKLine = [
    number, string, string, string, string, string, number, string, number, ...unknown[]
@@ -26,6 +48,60 @@ export interface BinanceSpotBalance {
    asset: string
    free: string
    locked: string
+}
+
+export interface BinanceAccount {
+   uid?: number
+   canTrade: boolean
+   balances: BinanceSpotBalance[]
+}
+
+export type BinanceOrderSide = 'BUY' | 'SELL'
+
+export interface BinanceOrderParams {
+   symbol: string
+   side: BinanceOrderSide
+   type: 'MARKET' | 'STOP_LOSS'
+   quantity?: string
+   quoteOrderQty?: string
+   stopPrice?: string
+   newClientOrderId: string
+   newOrderRespType: 'ACK'
+}
+
+export interface BinanceOrderReference {
+   symbol: string
+   origClientOrderId: string
+}
+
+export interface BinanceOrderAck {
+   symbol: string
+   orderId: number
+   clientOrderId: string
+}
+
+export interface BinanceOrder {
+   symbol: string
+   orderId: number
+   clientOrderId: string
+   status: string
+   type: string
+   side: BinanceOrderSide
+   origQty: string
+   executedQty: string
+   cummulativeQuoteQty: string
+   stopPrice?: string
+}
+
+export interface BinanceTrade {
+   orderId: number
+   commission: string
+   commissionAsset: string
+}
+
+export interface BinanceErrorBody {
+   code: number
+   msg: string
 }
 
 export interface BinanceStakingPosition {

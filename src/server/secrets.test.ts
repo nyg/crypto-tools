@@ -7,7 +7,7 @@ const SECRETS_MODULE = path.join(import.meta.dir, 'secrets.ts')
 const SETTINGS_MODULE = path.join(import.meta.dir, 'settings.ts')
 const ENVIRONMENT_MODULE = path.join(import.meta.dir, 'environment.ts')
 
-const PROVIDERS = ['kraken', 'binance', 'bybit', 'bybitDemo', 'anthropic'] as const
+const PROVIDERS = ['kraken', 'binance', 'binanceTestnet', 'bybit', 'bybitDemo', 'anthropic'] as const
 const FIELDS = ['api-key', 'api-secret'] as const
 
 const CHILD = `

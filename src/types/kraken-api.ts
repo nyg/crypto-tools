@@ -14,6 +14,10 @@ export interface KrakenAssetPair {
    quote: string
    lot_decimals: number
    cost_decimals: number
+   pair_decimals?: number
+   tick_size?: string
+   ordermin?: string
+   costmin?: string
    status?: string
 }
 
@@ -30,6 +34,8 @@ export type KrakenAssets = Record<string, KrakenAsset>
 
 export interface KrakenTickerEntry {
    // [price, whole lot volume, lot volume] — only the last trade price is read here.
+   a?: string[]
+   b?: string[]
    c?: string[]
    v?: string[]
    p?: string[]
@@ -61,10 +67,41 @@ export interface KrakenOpenOrder {
    userref?: number | null
    cl_ord_id?: string | null
    opentm?: number
+   cost?: string
+   fee?: string
+   price?: string
+   reason?: string | null
 }
 
 export interface KrakenOpenOrders {
    open?: Record<string, KrakenOpenOrder>
+}
+
+export interface KrakenClosedOrders {
+   closed?: Record<string, KrakenOpenOrder>
+}
+
+export type KrakenQueriedOrders = Record<string, KrakenOpenOrder>
+
+export interface KrakenOrderFilter {
+   cl_ord_id?: string
+}
+
+export type KrakenOrderReference = { txid: string } | { cl_ord_id: string }
+
+export interface KrakenAddOrderParams {
+   pair: string
+   type: 'buy' | 'sell'
+   ordertype: 'market' | 'stop-loss'
+   volume: string
+   price?: string
+   trigger?: 'last' | 'index'
+   cl_ord_id: string
+   oflags: string
+}
+
+export interface KrakenAddOrderResult {
+   txid: string[]
 }
 
 export interface KrakenCancelResult {
