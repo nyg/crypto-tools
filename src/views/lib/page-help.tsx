@@ -91,7 +91,10 @@ const pageHelp: Record<string, ReactNode> = {
       <>
          Kraken&apos;s tokenized stocks and ETFs. Which listings are stocks and which are ETFs
          comes from a reference list shipped with the app, so it loads instantly and costs
-         nothing. Descriptions are written by Claude only when you ask for them, billed to your
+         nothing. So do the ISINs, the xStock&apos;s own above its underlying&apos;s, and the links
+         to each xStock&apos;s product page and factsheet on{' '}
+         <ExternalLink href="https://assets.backed.fi/products" className="underline">Backed</ExternalLink>,
+         its issuer. Descriptions are written by Claude only when you ask for them, billed to your
          Anthropic account, and cached afterwards.
       </>,
 

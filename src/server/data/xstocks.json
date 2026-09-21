@@ -1,6 +1,6 @@
 {
-   "generatedAt": "2026-08-17",
-   "source": "stockanalysis.com",
+   "generatedAt": "2026-09-21",
+   "source": "stockanalysis.com, nasdaqtrader.com",
    "listings": {
       "AAOI": {
          "name": "Applied Optoelectronics, Inc.",
@@ -34,6 +34,12 @@
       },
       "ADBE": {
          "name": "Adobe Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "AI": {
+         "name": "C3.ai, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -118,6 +124,12 @@
       },
       "BE": {
          "name": "Bloom Energy Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BETR": {
+         "name": "Better Home & Finance Holding Company",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -338,6 +350,12 @@
          "type": "etf",
          "subtype": "bond"
       },
+      "FLNC": {
+         "name": "Fluence Energy, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "FLQM": {
          "name": "Franklin U.S. Mid Cap Multifactor Index ETF",
          "exchange": "",
@@ -438,6 +456,12 @@
          "name": "iShares Core S&P Small Cap ETF",
          "exchange": "",
          "type": "etf",
+         "subtype": ""
+      },
+      "INDI": {
+         "name": "indie Semiconductor, Inc.",
+         "exchange": "",
+         "type": "stock",
          "subtype": ""
       },
       "INTC": {
@@ -578,6 +602,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "METC": {
+         "name": "Ramaco Resources, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MOO": {
          "name": "VanEck Agribusiness ETF",
          "exchange": "",
@@ -586,6 +616,12 @@
       },
       "MRK": {
          "name": "Merck & Co., Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MRNA": {
+         "name": "Moderna, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -686,6 +722,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "PCT": {
+         "name": "PureCycle Technologies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "PEP": {
          "name": "PepsiCo, Inc.",
          "exchange": "",
@@ -744,6 +786,12 @@
          "name": "Invesco QQQ Trust Series I",
          "exchange": "",
          "type": "etf",
+         "subtype": ""
+      },
+      "QUBT": {
+         "name": "Quantum Computing Inc.",
+         "exchange": "",
+         "type": "stock",
          "subtype": ""
       },
       "QURE": {
@@ -1040,14 +1088,32 @@
          "type": "stock",
          "subtype": ""
       },
+      "WGS": {
+         "name": "GeneDx Holdings Corp.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "WMT": {
          "name": "Walmart Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
       },
+      "WRLD": {
+         "name": "World Acceptance Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "WULF": {
          "name": "TeraWulf Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WYFI": {
+         "name": "WhiteFiber, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -1068,6 +1134,12 @@
          "name": "State Street SPDR S&P Oil & Gas Exploration & Production ETF",
          "exchange": "",
          "type": "etf",
+         "subtype": ""
+      },
+      "XRX": {
+         "name": "Xerox Holdings Corporation",
+         "exchange": "",
+         "type": "stock",
          "subtype": ""
       },
       "YLDE": {

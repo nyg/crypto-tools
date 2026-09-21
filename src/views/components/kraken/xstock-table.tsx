@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asNumber, asDollarAmount, asRounded } from '../../../utils/format'
 import SortIcon from '../lib/sort-icon'
+import ExternalLink from '../lib/external-link'
 import type { ReactNode } from 'react'
 import type { VariantProps } from 'class-variance-authority'
 import type { badgeVariants } from '@/components/ui/badge'
@@ -109,6 +110,7 @@ export default function XStockTable({
                   <SortableHead column="name" sort={sort} onSortChange={onSortChange} className="w-[17rem]">
                      Name
                   </SortableHead>
+                  <TableHead className="w-[7.5rem]" title="The xStock's own ISIN, then the underlying's">ISIN</TableHead>
                   <SortableHead column="type" sort={sort} onSortChange={onSortChange} className="w-[6.5rem]">
                      Type
                   </SortableHead>
@@ -131,8 +133,29 @@ export default function XStockTable({
                         {listing.altname}
                      </TableCell>
                      <TableCell className="truncate font-medium" title={listing.ticker}>{listing.ticker}</TableCell>
-                     <TableCell className="truncate" title={listing.name || undefined}>
-                        {listing.name || <span className="text-muted-foreground">—</span>}
+                     <TableCell title={listing.name || undefined}>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                           {!listing.name
+                              ? <span className="text-muted-foreground">—</span>
+                              : listing.productUrl
+                                 ? <ExternalLink href={listing.productUrl} className="truncate">{listing.name}</ExternalLink>
+                                 : <span className="truncate">{listing.name}</span>}
+                           {listing.factsheetUrl &&
+                              <ExternalLink
+                                 href={listing.factsheetUrl}
+                                 title="Factsheet (PDF)"
+                                 className="shrink-0 text-muted-foreground hover:text-foreground">
+                                 <FileTextIcon className="size-3.5" />
+                              </ExternalLink>}
+                        </div>
+                     </TableCell>
+                     <TableCell className="font-mono text-xs">
+                        {listing.isin
+                           ? <>
+                              <div title="xStock ISIN">{listing.isin}</div>
+                              <div className="text-muted-foreground" title="Underlying ISIN">{listing.underlyingIsin}</div>
+                           </>
+                           : <span className="text-muted-foreground">—</span>}
                      </TableCell>
                      <TableCell>
                         <Badge

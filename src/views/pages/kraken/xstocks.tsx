@@ -189,6 +189,8 @@ export default function KrakenXStocks() {
          return listing.ticker.toLowerCase().includes(search)
             || listing.altname.toLowerCase().includes(search)
             || listing.name.toLowerCase().includes(search)
+            || listing.isin.toLowerCase().includes(search)
+            || listing.underlyingIsin.toLowerCase().includes(search)
       })
 
       const direction = sort.direction === 'asc' ? 1 : -1
@@ -382,7 +384,7 @@ export default function KrakenXStocks() {
                               id="search"
                               name="search"
                               className="pl-8"
-                              placeholder="Ticker or name"
+                              placeholder="Ticker, name or ISIN"
                               value={searchInput}
                               onChange={(event) => setSearchInput(event.target.value)} />
                         </div>
