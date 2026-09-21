@@ -28,6 +28,7 @@ export interface PlanInput {
    band: Big
    withdraw: Big | 'all'
    feeRate?: Big
+   buyFeeInQuote?: boolean
 }
 
 export interface PlannedOrder {
@@ -126,6 +127,9 @@ export function buyScale(budget: Big, planned: Big): Big {
    return budget.gte(planned) ? Big(1) : budget.div(planned)
 }
 
+export const netOfBuyFees = (budget: Big, feeRate: Big, feeInQuote: boolean): Big =>
+   feeInQuote ? budget.div(Big(1).plus(feeRate)) : budget
+
 const weightsOf = (values: Map<string, Big>): Map<string, Big> => {
    const total = [...values.values()].reduce((sum, value) => sum.plus(value), ZERO)
    return new Map([...values].map(([asset, value]) => [asset, total.gt(0) ? value.div(total).times(HUNDRED) : ZERO]))
@@ -139,7 +143,7 @@ interface Desired {
 
 export function planPortfolio(input: PlanInput): Plan {
 
-   const { quote, holdings, targets, markets, free, band } = input
+   const { quote, holdings, targets, markets, free, band, buyFeeInQuote = false } = input
    const feeRate = input.feeRate ?? DEFAULT_FEE_RATE
 
    const assets = [...new Set([...holdings.keys(), ...targets.keys()])].filter(asset => asset !== quote)
@@ -242,7 +246,7 @@ export function planPortfolio(input: PlanInput): Plan {
    const spendable = cash.lt(freeCash) ? cash : freeCash
    const budget = spendable.plus(proceeds).minus(reserve)
    const wantedBuys = buys.reduce((sum, { value }) => sum.plus(value), ZERO)
-   const scale = buyScale(budget, wantedBuys)
+   const scale = buyScale(netOfBuyFees(budget, feeRate, buyFeeInQuote), wantedBuys)
 
    for (const { asset, value } of buys) {
       const planned = buyOrders(markets.get(asset)!, value.times(scale))
@@ -263,9 +267,10 @@ export function planPortfolio(input: PlanInput): Plan {
          cashAfter = cashAfter.plus(order.value.times(Big(1).minus(feeRate)))
       }
       else {
-         const bought = order.amount.div(order.price).times(Big(1).minus(feeRate))
+         const received = order.amount.div(order.price)
+         const bought = buyFeeInQuote ? received : received.times(Big(1).minus(feeRate))
          after.set(order.asset, current.plus(bought.times(market.last)))
-         cashAfter = cashAfter.minus(order.amount)
+         cashAfter = cashAfter.minus(buyFeeInQuote ? order.amount.times(Big(1).plus(feeRate)) : order.amount)
       }
    }
 

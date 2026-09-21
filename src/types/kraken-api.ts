@@ -50,6 +50,16 @@ export interface KrakenBalanceEntry {
 
 export type KrakenExtendedBalance = Record<string, KrakenBalanceEntry>
 
+export interface KrakenFeeTier {
+   fee?: string
+}
+
+export interface KrakenTradeVolume {
+   currency?: string
+   volume?: string
+   fees?: Record<string, KrakenFeeTier>
+}
+
 export interface KrakenOrderDescription {
    pair?: string
    type?: string

@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto'
 import PortfolioRepository from '../../db/portfolio-repository'
 import { HttpRequesterError, messageOf } from '../../errors'
 import { foldHoldings, sameHoldings } from './holdings'
-import { buyFits, buyScale, floorTo, planPortfolio } from './planner'
+import { buyFits, buyScale, DEFAULT_FEE_RATE, floorTo, netOfBuyFees, planPortfolio } from './planner'
 import { foldPositions } from './positions'
 import { planStops, stopActions } from './stops'
 import { moveWeightToCash, validateTargets } from './targets'
@@ -51,6 +51,7 @@ interface StoredPlan {
    withdraw: Big
    withdrawAll: boolean
    reserve: Big
+   feeRate: Big
    slippage: string
    orders: PlannedOrder[]
    markets: Map<string, PlanMarket>
@@ -724,9 +725,16 @@ export default class PortfolioService {
          }
       }
 
+      const symbols = [...new Set([...holdings.keys(), ...targets.keys()])]
+         .map(asset => byBase.get(asset)?.symbol)
+         .filter(symbol => symbol !== undefined)
+      const takerFee = await this.#exchange.takerFeeRate?.(symbols)
+      const feeRate = typeof takerFee === 'string' ? Big(takerFee) : DEFAULT_FEE_RATE
+      const buyFeeInQuote = this.#exchange.buyFeeInQuote
+
       let plan
       try {
-         plan = planPortfolio({ quote, holdings, targets, markets: byBase, free, band, withdraw })
+         plan = planPortfolio({ quote, holdings, targets, markets: byBase, free, band, withdraw, feeRate, buyFeeInQuote })
       }
       catch (error) {
          throw new PortfolioError(400, messageOf(error))
@@ -744,6 +752,7 @@ export default class PortfolioService {
          withdraw: plan.withdraw,
          withdrawAll,
          reserve: plan.reserve,
+         feeRate,
          slippage: slippage.toFixed(),
          orders: plan.orders,
          markets: byBase,
@@ -922,7 +931,7 @@ export default class PortfolioService {
       const freeCash = Big(wallet.find(({ asset }) => asset === stored.quote)?.free || 0)
       const budget = minOf(cash, freeCash).minus(stored.reserve)
       const planned = buys.reduce((sum, { requested }) => sum.plus(requested), ZERO)
-      const scale = buyScale(budget, planned)
+      const scale = buyScale(netOfBuyFees(budget, stored.feeRate, this.#exchange.buyFeeInQuote), planned)
 
       for (const order of buys) {
          const market = stored.markets.get(order.baseAsset)!

@@ -21,6 +21,7 @@ type BybitErrorBody = { retCode?: number, retMsg?: string } | string | undefined
 export default class BybitExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
+   readonly buyFeeInQuote = false
 
    readonly #api: BybitAPI
    readonly #accountKey: string

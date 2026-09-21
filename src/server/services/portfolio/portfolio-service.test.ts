@@ -34,6 +34,8 @@ interface FakeStop {
 class FakeExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
+   buyFeeInQuote = false
+   feeRate = '0.001'
    readonly balances = new Map<string, Big>([['USDT', Big(10000)], ['BTC', Big('0.5')]])
    readonly settlements = new Map<string, OrderSettlement>()
    readonly stops = new Map<string, FakeStop>()
@@ -67,6 +69,10 @@ class FakeExchange implements PortfolioExchange {
       return prices
    }
 
+   async takerFeeRate(): Promise<string | null> {
+      return this.feeRate
+   }
+
    async placeOrder({ clientOrderId, symbol, side, unit, amount }: OrderRequest): Promise<string> {
       if (this.rejectNext) {
          this.rejectNext = false
@@ -82,16 +88,17 @@ class FakeExchange implements PortfolioExchange {
          throw new HttpRequesterError(200, { retCode: 170131, retMsg: 'Insufficient balance.' })
       }
       const value = quantity.times(price)
-      const fee = side === 'buy' ? quantity.times('0.001') : value.times('0.001')
+      const feeInBase = side === 'buy' && !this.buyFeeInQuote
+      const fee = feeInBase ? quantity.times(this.feeRate) : value.times(this.feeRate)
       const sign = side === 'buy' ? 1 : -1
 
-      this.#move(base, quantity.times(sign).minus(side === 'buy' ? fee : 0))
-      this.#move('USDT', value.times(-sign).minus(side === 'sell' ? fee : 0))
+      this.#move(base, quantity.times(sign).minus(feeInBase ? fee : 0))
+      this.#move('USDT', value.times(-sign).minus(feeInBase ? 0 : fee))
 
       this.settlements.set(clientOrderId, {
          orderId: `order-${this.settlements.size + 1}`, status: 'filled',
          base: quantity.toFixed(), quote: value.toFixed(), averagePrice: price.toFixed(),
-         fees: { [side === 'buy' ? base : 'USDT']: fee.toFixed() }, reason: ''
+         fees: { [feeInBase ? base : 'USDT']: fee.toFixed() }, reason: ''
       })
       return `order-${this.settlements.size}`
    }
@@ -136,7 +143,7 @@ class FakeExchange implements PortfolioExchange {
       const price = Big(stop.triggerPrice)
       const quantity = Big(stop.quantity)
       const value = quantity.times(price)
-      const fee = value.times('0.001')
+      const fee = value.times(this.feeRate)
 
       this.#move(base, quantity.times(-1))
       this.#move('USDT', value.minus(fee))
@@ -177,9 +184,9 @@ const venue: Venue = {
 
 const service = () => new PortfolioService(venue, exchange)
 
-async function finished(runId: string) {
+async function finished(runId: string, portfolios = service()) {
    for (let attempt = 0; attempt < 100; attempt++) {
-      const { run } = await service().run({ runId })
+      const { run } = await portfolios.run({ runId })
       if (!run.running) return run
       await new Promise(resolve => setTimeout(resolve, 100))
    }
@@ -339,6 +346,35 @@ describe('a withdrawal that fills below the preview price', () => {
       }
 
       await service().archive({ portfolioId })
+   })
+})
+
+describe('a venue that takes the buy fee from the cash', () => {
+
+   test('invests all the cash without spending more than the portfolio holds', async () => {
+      const cashFees = new FakeExchange()
+      cashFees.accountId = 'cash-fees'
+      cashFees.buyFeeInQuote = true
+      cashFees.feeRate = '0.0025'
+      const portfolios = new PortfolioService(venue, cashFees)
+
+      const { id: portfolioId } = await portfolios.save({
+         name: 'All in', quoteAsset: 'USDT', band: '2',
+         targets: [{ asset: 'BTC', weight: '50' }, { asset: 'ETH', weight: '50' }]
+      })
+      await portfolios.deposit({ portfolioId, asset: 'USDT', amount: '300' })
+
+      const plan = await portfolios.plan({ portfolioId, kind: 'rebalance' })
+      expect(plan.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`))
+         .toEqual(['buy BTC 149.62', 'buy ETH 149.62'])
+      expect(plan.shortfall).toBe('0')
+
+      const run = await finished((await portfolios.execute({ planId: plan.planId })).run.id, portfolios)
+      expect(run.status).toBe('done')
+
+      const portfolio = (await portfolios.overview()).portfolios.find(({ id }) => id === portfolioId)!
+      const cash = portfolio.holdings.find(({ asset }) => asset === 'USDT')!
+      expect(cash.quantity).toBe('0.03195')
    })
 })
 

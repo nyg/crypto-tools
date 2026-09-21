@@ -165,6 +165,30 @@ describe('the rebalance planner', () => {
       expect(summary(plan)).toEqual(['buy BTC 250', 'buy ETH 250'])
    })
 
+   test('spends all the cash when the buy fee comes out of the coin bought', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { USDT: '300' },
+         feeRate: Big('0.0025')
+      }))
+
+      expect(summary(plan)).toEqual(['buy BTC 150', 'buy ETH 150'])
+      expect(plan.cashAfter.toFixed()).toBe('0')
+   })
+
+   test('leaves room for the buy fee when it comes out of the cash', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { USDT: '300' },
+         feeRate: Big('0.0025'),
+         buyFeeInQuote: true
+      }))
+
+      expect(summary(plan)).toEqual(['buy BTC 149.62', 'buy ETH 149.62'])
+      expect(plan.cashAfter.toFixed()).toBe('0.0119')
+      expect(plan.shortfall.toFixed()).toBe('0')
+   })
+
    test('prices out an asset with no market as unpriced and never trades it', () => {
       const plan = planPortfolio(input({ holdingsOf: { XYZ: '10', USDT: '100' } }))
 
