@@ -1,0 +1,63 @@
+name: Refresh xStocks
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/refresh-xstocks.ts
+      - .github/workflows/refresh-xstocks.yml
+
+concurrency:
+  group: refresh-xstocks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Refresh reference data
+        run: bun scripts/refresh-xstocks.ts | tee "$RUNNER_TEMP/refresh.log"
+
+      - name: Show changes
+        run: git diff --stat
+
+      - name: Write pull request body
+        if: github.event_name != 'pull_request'
+        run: |
+          {
+            echo "Weekly refresh of the xStocks reference data, by \`scripts/refresh-xstocks.ts\`:"
+            echo
+            echo "- \`src/server/data/xstocks.json\` gains the tickers Kraken listed since the last refresh, typed and named from the Nasdaq Trader symbol directory."
+            echo "- \`src/server/data/xstock-products.json\` is rebuilt from the xStocks API and the assets.backed.fi product list: ISINs, and product pages Backed has published since."
+            echo
+            echo "Check the new names, and give any new leveraged, bond or commodity-trust ETF its subtype in \`subtypeOverrides\`: the symbol directory only says stock or ETF."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/refresh.log"
+            echo '```'
+          } > "$RUNNER_TEMP/body.md"
+
+      - name: Open pull request
+        if: github.event_name != 'pull_request'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          branch: chore/refresh-xstocks
+          delete-branch: true
+          add-paths: |
+            src/server/data/xstocks.json
+            src/server/data/xstock-products.json
+          commit-message: 'chore(xstocks): refresh the reference data'
+          title: 'chore(xstocks): refresh the reference data'
+          body-path: ${{ runner.temp }}/body.md

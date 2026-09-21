@@ -125,8 +125,10 @@ async function fetchXStockAssets(): Promise<Map<string, XStockAsset>> {
 
       const { nodes, page: position } = await response.json() as XStockAssetPage;
       for (const asset of nodes) assets.set(asset.symbol, asset);
-      if (!position.hasNextPage) return assets;
+      if (!position.hasNextPage) break;
    }
+   if (assets.size === 0) throw new Error(`${XSTOCKS_API} listed no xStocks`);
+   return assets;
 }
 
 async function fetchProductSlugs(): Promise<Map<string, string>> {
@@ -146,7 +148,19 @@ async function fetchProductSlugs(): Promise<Map<string, string>> {
 
       query = body.match(/<a href="(\?[^"]+)"[^>]*class="w-pagination-next/)?.[1] ?? "";
    } while (query);
+   if (slugs.size === 0) throw new Error(`Found no products on ${BACKED_PRODUCTS}; has the page changed?`);
    return slugs;
+}
+
+async function writeIfChanged(path: string, content: Omit<Seed, "generatedAt"> | Omit<Products, "generatedAt">): Promise<boolean> {
+   const file = Bun.file(path);
+   if (await file.exists()) {
+      const { generatedAt: _, ...previous } = await file.json() as Seed | Products;
+      if (JSON.stringify(previous) === JSON.stringify(content)) return false;
+   }
+   const generatedAt = new Date().toISOString().slice(0, 10);
+   await Bun.write(path, `${JSON.stringify({ generatedAt, ...content }, null, 3)}\n`);
+   return true;
 }
 
 const refreshAll = process.argv.includes("--all");
@@ -162,6 +176,7 @@ const directory = targets.length ? await fetchSymbolDirectory() : new Map<string
 
 const listings: Record<string, Listing> = refreshAll ? {} : { ...seed.listings };
 const sources = new Set(refreshAll ? [] : seed.source.split(", "));
+const resolved: string[] = [];
 const unresolved: string[] = [];
 
 for (const ticker of targets) {
@@ -170,12 +185,22 @@ for (const ticker of targets) {
       unresolved.push(ticker);
       continue;
    }
+   listings[ticker] = listing;
+   resolved.push(ticker);
+   sources.add("nasdaqtrader.com");
+}
+
+for (const [ticker, listing] of Object.entries(listings)) {
    listings[ticker] = {
       ...listing,
       name: nameOverrides[ticker] ?? listing.name,
-      subtype: subtypeOverrides[ticker] ?? "",
+      subtype: subtypeOverrides[ticker] ?? listing.subtype,
    };
-   sources.add("nasdaqtrader.com");
+}
+
+for (const ticker of resolved) {
+   const { name, type, subtype } = listings[ticker]!;
+   console.log(`Resolved ${ticker}: ${name} (${type}${subtype ? `, ${subtype}` : ""}).`);
 }
 
 for (const ticker of Object.keys(listings)) {
@@ -188,18 +213,12 @@ const sorted = Object.fromEntries(
   Object.entries(listings).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
 );
 
-const output: Seed = {
-   generatedAt: new Date().toISOString().slice(0, 10),
-   source: [...sources].join(", "),
-   listings: sorted,
-};
-
-await Bun.write(SEED_PATH, `${JSON.stringify(output, null, 3)}\n`);
+const listingsChanged = await writeIfChanged(SEED_PATH, { source: [...sources].join(", "), listings: sorted });
 
 const stocks = Object.values(sorted).filter(listing => listing.type === "stock").length;
 const etfs = Object.values(sorted).filter(listing => listing.type === "etf").length;
 
-console.log(`Wrote ${Object.keys(sorted).length} listings to ${SEED_PATH} (${stocks} stocks, ${etfs} ETFs).`);
+console.log(`${Object.keys(sorted).length} listings (${stocks} stocks, ${etfs} ETFs), ${listingsChanged ? "written to" : "unchanged in"} ${SEED_PATH}.`);
 if (unresolved.length) {
    console.log(`Could not resolve, left for the app to classify: ${unresolved.join(", ")}`);
 }
@@ -226,13 +245,9 @@ for (const altname of altnames) {
    };
 }
 
-await Bun.write(PRODUCTS_PATH, `${JSON.stringify({
-   generatedAt: new Date().toISOString().slice(0, 10),
-   source: "api.xstocks.fi, assets.backed.fi",
-   products,
-} satisfies Products, null, 3)}\n`);
+const productsChanged = await writeIfChanged(PRODUCTS_PATH, { source: "api.xstocks.fi, assets.backed.fi", products });
 
-console.log(`Wrote ${Object.keys(products).length} xStock products to ${PRODUCTS_PATH}.`);
+console.log(`${Object.keys(products).length} xStock products, ${productsChanged ? "written to" : "unchanged in"} ${PRODUCTS_PATH}.`);
 if (unissued.length) {
    console.log(`Not issued by Backed, so no ISIN or links: ${unissued.join(", ")}`);
 }
