@@ -1,13 +1,16 @@
 import type * as React from 'react'
 import { Toaster as Sonner } from 'sonner'
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from 'lucide-react'
+import { useTheme } from '@/lib/theme'
 
 const Toaster = ({
    ...props
 }: React.ComponentProps<typeof Sonner>) => {
+   const theme = useTheme()
+
    return (
       <Sonner
-         theme="system"
+         theme={theme}
          className="toaster group"
          icons={{
             success: (

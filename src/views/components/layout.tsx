@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router'
 import AboutDialog from './about-dialog'
 import MenuLink from './lib/menu-link'
 import PageHelpButton from './lib/page-help-button'
+import ThemeToggle from './lib/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { APP_VERSION, SHOW_ABOUT_EVENT } from '@/lib/about-event'
@@ -70,6 +71,7 @@ export default function Layout({ children, name, subNav }: { children: ReactNode
                      {APP_VERSION ? `v${APP_VERSION}` : 'About'}
                      {updateAvailable && <span aria-hidden className="size-1.5 rounded-full bg-primary" />}
                   </Button>
+                  <ThemeToggle />
                   <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                      <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
                         <GithubLogo />

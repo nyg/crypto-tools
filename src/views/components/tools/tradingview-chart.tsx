@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import ExternalLink from '../lib/external-link'
+import { useTheme } from '@/lib/theme'
 
 const SCRIPT_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
 const LOAD_TIMEOUT = 8000
@@ -10,6 +11,7 @@ function TradingViewChart({ symbol }: { symbol: string }) {
    const containerRef = useRef<HTMLDivElement>(null)
    const [failed, setFailed] = useState(false)
    const [activeSymbol, setActiveSymbol] = useState(symbol)
+   const theme = useTheme()
 
    useEffect(() => {
       const timer = setTimeout(() => setActiveSymbol(symbol), SYMBOL_DEBOUNCE)
@@ -38,7 +40,7 @@ function TradingViewChart({ symbol }: { symbol: string }) {
          symbol: activeSymbol,
          interval: '60',
          timezone: 'Etc/UTC',
-         theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+         theme,
          style: '1',
          locale: 'en',
          allow_symbol_change: false,
@@ -54,7 +56,7 @@ function TradingViewChart({ symbol }: { symbol: string }) {
          clearTimeout(timer)
          container.innerHTML = ''
       }
-   }, [activeSymbol])
+   }, [activeSymbol, theme])
 
    if (!activeSymbol) {
       return (
