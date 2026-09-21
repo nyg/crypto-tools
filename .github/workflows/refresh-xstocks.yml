@@ -16,6 +16,10 @@ concurrency:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -25,18 +29,6 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-
-      - name: Diagnose Backed
-        run: |
-          curl -sSL -A "Mozilla/5.0" -o products.html -w 'products %{http_code} %{url_effective} %{size_download}\n' https://assets.backed.fi/products || true
-          grep -c 'products-table-row w-dyn-item' products.html || true
-          grep -o '<title>[^<]*</title>' products.html || true
-          head -c 1500 products.html; echo
-          curl -sSL -A "Mozilla/5.0" -o /dev/null -w 'page %{http_code} %{url_effective} %{size_download}\n' https://assets.backed.fi/products/apple-xstock || true
-          curl -sSL -o /dev/null -w 'factsheet %{http_code} %{size_download}\n' https://documents.backed.fi/backed-assets-factsheet-AAPLx.pdf || true
-          curl -sSL -A "Mozilla/5.0" -o /dev/null -w 'nasdaq %{http_code} %{size_download}\n' https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt || true
-          curl -sSL -o /dev/null -w 'xstocks %{http_code} %{size_download}\n' 'https://api.xstocks.fi/api/v2/public/assets?page=0' || true
-          curl -sS https://ipinfo.io/country || true
 
       - name: Refresh reference data
         run: bun scripts/refresh-xstocks.ts | tee "$RUNNER_TEMP/refresh.log"
@@ -51,7 +43,7 @@ jobs:
             echo "Weekly refresh of the xStocks reference data, by \`scripts/refresh-xstocks.ts\`:"
             echo
             echo "- \`src/server/data/xstocks.json\` gains the tickers Kraken listed since the last refresh, typed and named from the Nasdaq Trader symbol directory."
-            echo "- \`src/server/data/xstock-products.json\` is rebuilt from the xStocks API and the assets.backed.fi product list: ISINs, and product pages Backed has published since."
+            echo "- \`src/server/data/xstock-products.json\` is rebuilt from the xStocks API, which gives the ISINs. assets.backed.fi turns away visitors from the US, where GitHub's runners are, so product pages Backed has published since are only picked up when the script runs from elsewhere."
             echo
             echo "Check the new names, and give any new leveraged, bond or commodity-trust ETF its subtype in \`subtypeOverrides\`: the symbol directory only says stock or ETF."
             echo

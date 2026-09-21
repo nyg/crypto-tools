@@ -131,12 +131,13 @@ async function fetchXStockAssets(): Promise<Map<string, XStockAsset>> {
    return assets;
 }
 
-async function fetchProductSlugs(): Promise<Map<string, string>> {
+async function fetchProductSlugs(): Promise<Map<string, string> | null> {
    const slugs = new Map<string, string>();
    let query = "";
    do {
       const response = await fetch(`${BACKED_PRODUCTS}${query}`, { headers: { "User-Agent": "Mozilla/5.0" } });
       if (!response.ok) throw new Error(`${BACKED_PRODUCTS}${query} answered ${response.status}`);
+      if (new URL(response.url).pathname === "/geoblock") return null;
 
       const body = await response.text();
       const rows = body.split('class="products-table-row w-dyn-item"').slice(1);
@@ -225,6 +226,10 @@ if (unresolved.length) {
 
 const [assets, slugs] = await Promise.all([fetchXStockAssets(), fetchProductSlugs()]);
 
+const productsFile = Bun.file(PRODUCTS_PATH);
+const knownProducts = await productsFile.exists() ? (await productsFile.json() as Products).products : {};
+if (!slugs) console.log(`${BACKED_PRODUCTS} turns this location away, so product pages are kept from the last refresh.`);
+
 const products: Record<string, Product> = {};
 const unissued: string[] = [];
 const unpublished: string[] = [];
@@ -235,7 +240,7 @@ for (const altname of altnames) {
       unissued.push(altname);
       continue;
    }
-   const slug = slugs.get(altname) ?? "";
+   const slug = (slugs ? slugs.get(altname) : knownProducts[tickerOf(altname)]?.slug) ?? "";
    if (!slug) unpublished.push(altname);
    products[tickerOf(altname)] = {
       symbol: asset.symbol,
@@ -252,5 +257,5 @@ if (unissued.length) {
    console.log(`Not issued by Backed, so no ISIN or links: ${unissued.join(", ")}`);
 }
 if (unpublished.length) {
-   console.log(`No product page on assets.backed.fi yet: ${unpublished.join(", ")}`);
+   console.log(`No known product page on assets.backed.fi: ${unpublished.join(", ")}`);
 }
