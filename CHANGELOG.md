@@ -1,6 +1,12 @@
 # Changelog
 
 
+## [0.9.1](https://github.com/nyg/crypto-tools/compare/v0.9.0..v0.9.1) - 2026-09-21
+
+### 🐛 Bug Fixes
+
+- [`893873d`](https://github.com/nyg/crypto-tools/commit/893873db55e27d6a68dc171de8866001b40c7193) *(portfolio)* Keep the editor's Create button on screen with many coins ([#306](https://github.com/nyg/crypto-tools/issues/306))
+
 ## [0.9.0](https://github.com/nyg/crypto-tools/compare/v0.8.0..v0.9.0) - 2026-09-21
 
 ### ⛰️  Features
