@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { APP_VERSION, SHOW_ABOUT_EVENT } from '@/lib/about-event'
 import { rememberTab, sectionHref } from '@/lib/last-tab'
+import { onTitleBarDoubleClick, useFullScreen } from '@/lib/title-bar'
 import { tabPaths } from '@/lib/tools'
 import useLatestRelease from '@/lib/use-latest-release'
 import { cn } from '@/lib/utils'
@@ -31,6 +32,8 @@ export default function Layout({ children, name, subNav }: { children: ReactNode
    const { pathname } = useLocation()
    const [aboutOpen, setAboutOpen] = useState(false)
    const { updateAvailable } = useLatestRelease()
+   const fullScreen = useFullScreen()
+   const insetTitleBar = hasInsetTitleBar && !fullScreen
 
    useEffect(() => {
       document.title = `Crypto Tools — ${name}`
@@ -50,9 +53,11 @@ export default function Layout({ children, name, subNav }: { children: ReactNode
       <div className="flex min-h-svh flex-col">
 
          <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
-            <div className={cn(
-               'flex h-14 w-full items-center gap-4 px-4 sm:gap-6 sm:px-6',
-               hasInsetTitleBar && 'electrobun-webkit-app-region-drag pl-22 sm:pl-22')}>
+            <div
+               className={cn(
+                  'flex h-14 w-full items-center gap-4 px-4 sm:gap-6 sm:px-6',
+                  insetTitleBar && 'electrobun-webkit-app-region-drag pl-22 sm:pl-22')}
+               onDoubleClick={insetTitleBar ? onTitleBarDoubleClick : undefined}>
                <Link
                   to="/"
                   className="electrobun-webkit-app-region-no-drag font-heading text-sm font-semibold tracking-tight whitespace-nowrap">
@@ -87,7 +92,7 @@ export default function Layout({ children, name, subNav }: { children: ReactNode
                   </Button>
                </div>
             </div>
-            {subNav && <div className="px-4 sm:px-6">{subNav}</div>}
+            {subNav && <div className="-mt-2 px-4 sm:px-6">{subNav}</div>}
          </header>
 
          <main className="w-full grow px-4 pt-5 pb-8 sm:px-6">

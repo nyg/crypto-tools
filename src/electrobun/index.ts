@@ -3,6 +3,7 @@ import { ApplicationMenu, BrowserWindow, BuildConfig, Utils } from 'electrobun/m
 import { createApp } from '../server/app'
 import { migrateSecretsToCredentialStore } from '../server/secrets'
 import { systemLocales } from './locale'
+import { handleTitleBarDoubleClick, trackFullScreen } from './title-bar'
 import { resolveInitialWindowState, trackWindowState } from './window-state'
 
 const DEV_API_PORT = Number(process.env.PORT ?? 3001)
@@ -82,6 +83,8 @@ async function main() {
 
    if (hasInsetTitleBar) {
       win.setWindowButtonPosition(TRAFFIC_LIGHTS.x, TRAFFIC_LIGHTS.y)
+      handleTitleBarDoubleClick(win)
+      trackFullScreen(win)
    }
 
    // Open target="_blank" links in the default system browser instead of the WebView.
