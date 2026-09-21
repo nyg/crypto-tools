@@ -39,7 +39,7 @@ async function fetchLatestRelease(): Promise<LatestRelease> {
       throw new Error('the latest release has no tag name')
    }
 
-   return { version, url: release.html_url || RELEASES_URL }
+   return { version, url: release.html_url || RELEASES_URL, checkedAt: new Date().toISOString() }
 }
 
 export default function appRoutes({ desktop = false }: AppRouteOptions = {}) {
@@ -50,7 +50,9 @@ export default function appRoutes({ desktop = false }: AppRouteOptions = {}) {
 
    app.get('/latest-release', async (c) => {
 
-      if (cached && Date.now() < cached.expiresAt) {
+      const refresh = c.req.query('refresh') === '1'
+
+      if (!refresh && cached && Date.now() < cached.expiresAt) {
          return cached.release
             ? c.json(cached.release)
             : c.json({ error: cached.error }, 502)

@@ -1,98 +1,151 @@
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ArrowUpCircleIcon, CheckCircleIcon, CircleAlertIcon, LoaderCircleIcon } from 'lucide-react'
+import {
+   ArrowUpCircleIcon, CheckCircleIcon, CheckIcon, CircleAlertIcon, CopyIcon, RefreshCwIcon, XIcon
+} from 'lucide-react'
 import ExternalLink from './lib/external-link'
 import { APP_VERSION } from '@/lib/about-event'
+import { copyText } from '@/lib/clipboard'
 import useLatestRelease from '@/lib/use-latest-release'
 import useInstallInfo from '@/lib/use-install-info'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import {
-   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
+   Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle
 } from '@/components/ui/dialog'
+import { asLocalTimestamp } from '../../utils/format'
 import type { InstallMethod } from '../../types/api'
 
 const REPOSITORY_URL = 'https://github.com/nyg/crypto-tools'
+const COPIED_FEEDBACK_MS = 1500
 
 // A package manager updates its own installs, so naming the one that matches beats
 // listing both and leaving the reader to work out which applies. A manual or browser
-// install has no command, and gets the download link instead.
-const UPDATE_COMMANDS: Partial<Record<InstallMethod, string>> = {
-   homebrew: 'brew upgrade --cask nyg/tap/crypto-tools',
-   scoop: 'scoop update crypto-tools'
+// install has no command, and gets a download link once a newer version exists.
+const UPDATE_COMMANDS: Partial<Record<InstallMethod, { command: string, manager: string }>> = {
+   homebrew: { command: 'brew upgrade --cask nyg/tap/crypto-tools', manager: 'Homebrew' },
+   scoop: { command: 'scoop update crypto-tools', manager: 'Scoop' }
 }
 
-const Command = ({ children }: { children: ReactNode }) =>
-   <code className="rounded bg-muted px-1 py-0.5 text-xs">{children}</code>
-
 const SectionTitle = ({ children }: { children: ReactNode }) =>
-   <h3 className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+   <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
       {children}
    </h3>
 
-function UpdateStatus() {
+const StatusLine = ({ icon, className, children }: { icon: ReactNode, className?: string, children: ReactNode }) =>
+   <p className={cn('flex items-center gap-2 text-xs [&_svg]:size-3.5 [&_svg]:shrink-0', className)}>
+      {icon}
+      {children}
+   </p>
 
-   const { version, url, updateAvailable, isLoading, error } = useLatestRelease()
+function CopyButton({ value }: { value: string }) {
+
+   const [copied, setCopied] = useState(false)
+
+   useEffect(() => {
+      if (!copied) return
+      const timer = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
+      return () => clearTimeout(timer)
+   }, [copied])
+
+   const label = copied ? 'Copied' : 'Copy'
+
+   return (
+      <Button
+         variant="ghost"
+         size="icon-xs"
+         title={label}
+         aria-label={label}
+         onClick={() => copyText(value).then(setCopied)}>
+         {copied ? <CheckIcon /> : <CopyIcon />}
+      </Button>
+   )
+}
+
+function UpdateStatus({ version, url, updateAvailable, isLoading, error }: ReturnType<typeof useLatestRelease>) {
 
    if (isLoading) {
       return (
-         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <LoaderCircleIcon className="size-4 animate-spin" />
+         <StatusLine icon={<RefreshCwIcon className="animate-spin" />} className="text-muted-foreground">
             Checking for updates…
-         </p>
+         </StatusLine>
       )
    }
 
    if (error || !version) {
       return (
-         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CircleAlertIcon className="size-4" />
+         <StatusLine icon={<CircleAlertIcon />} className="text-muted-foreground">
             Could not check for updates.
-         </p>
+         </StatusLine>
       )
    }
 
    if (!updateAvailable) {
       return (
-         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircleIcon className="size-4" />
+         <StatusLine icon={<CheckCircleIcon />} className="text-muted-foreground">
             Up to date.
-         </p>
+         </StatusLine>
       )
    }
 
    return (
-      <p className="flex items-center gap-2 text-sm">
-         <ArrowUpCircleIcon className="size-4 shrink-0 text-muted-foreground" />
+      <StatusLine icon={<ArrowUpCircleIcon className="text-muted-foreground" />}>
          <span>
             Version {version} is available.{' '}
             <ExternalLink href={url ?? REPOSITORY_URL} className="font-medium underline underline-offset-4">
                Release notes
             </ExternalLink>
          </span>
-      </p>
+      </StatusLine>
    )
 }
 
-function UpdateInstructions() {
+function UpdateSection() {
 
+   const release = useLatestRelease()
    const install = useInstallInfo()
-   const command = install ? UPDATE_COMMANDS[install.method] : undefined
 
-   if (command) {
-      return (
-         <p className="text-sm text-muted-foreground">
-            The app never updates itself. Update it with your package manager
-            — <Command>{command}</Command>.
-         </p>
-      )
-   }
+   const update = install ? UPDATE_COMMANDS[install.method] : undefined
+   const showDownloadLink = install !== null && !update && release.updateAvailable
 
    return (
-      <p className="text-sm text-muted-foreground">
-         The app never updates itself.{' '}
-         <ExternalLink href={`${REPOSITORY_URL}/releases/latest`} className="font-medium underline underline-offset-4">
-            Download the latest release
-         </ExternalLink>
-         {' '}to update it.
-      </p>
+      <section className="space-y-3">
+
+         <div className="flex items-center justify-between gap-2">
+            <SectionTitle>Updates</SectionTitle>
+            <Button variant="outline" size="sm" onClick={release.check} disabled={release.isLoading}>
+               <RefreshCwIcon className={cn(release.isLoading && 'animate-spin')} />
+               Check now
+            </Button>
+         </div>
+
+         <div className="space-y-1">
+            <UpdateStatus {...release} />
+            {release.checkedAt &&
+               <p className="text-xs text-muted-foreground">
+                  Last checked {asLocalTimestamp(new Date(release.checkedAt))}
+               </p>}
+         </div>
+
+         {update &&
+            <div className="space-y-1">
+               <p className="text-xs text-muted-foreground">
+                  The app does not update itself. Update it with {update.manager}:
+               </p>
+               <div className="flex items-center gap-1 rounded bg-muted py-1 pr-1 pl-2">
+                  <code className="flex-1 truncate font-mono text-[0.7rem]">{update.command}</code>
+                  <CopyButton value={update.command} />
+               </div>
+            </div>}
+
+         {showDownloadLink &&
+            <p className="text-xs">
+               <ExternalLink href={release.url ?? `${REPOSITORY_URL}/releases/latest`} className="font-medium underline underline-offset-4">
+                  Download the new version
+               </ExternalLink>
+            </p>}
+
+      </section>
    )
 }
 
@@ -103,35 +156,46 @@ export default function AboutDialog({ open, onOpenChange }: {
 
    return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-         <DialogContent>
+         <DialogContent
+            showCloseButton={false}
+            className="flex max-h-[90vh] flex-col gap-0 overflow-hidden bg-card p-0 text-card-foreground shadow-xl sm:max-w-[460px]">
 
-            <DialogHeader>
-               <DialogTitle>Crypto Tools</DialogTitle>
-               <DialogDescription>
-                  {APP_VERSION ? `Version ${APP_VERSION}` : 'Development build'}
-               </DialogDescription>
-            </DialogHeader>
+            <header className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3">
+               <DialogTitle className="text-sm">About</DialogTitle>
+               <DialogClose asChild>
+                  <Button variant="ghost" size="icon-sm" title="Close" aria-label="Close" className="text-muted-foreground hover:text-foreground">
+                     <XIcon className="size-3.5" />
+                  </Button>
+               </DialogClose>
+            </header>
 
-            <section className="space-y-2">
-               <SectionTitle>Updates</SectionTitle>
-               <UpdateStatus />
-               <UpdateInstructions />
-            </section>
+            <div className="flex-1 space-y-6 overflow-y-auto p-4">
 
-            <section className="space-y-2">
-               <SectionTitle>Project</SectionTitle>
-               <p className="text-sm">
-                  <ExternalLink href={REPOSITORY_URL} className="font-medium underline underline-offset-4">
-                     Source code
-                  </ExternalLink>
-                  <span className="text-muted-foreground"> — MIT licensed.</span>
-               </p>
-               <p className="text-sm">
-                  <ExternalLink href={`${REPOSITORY_URL}/issues`} className="font-medium underline underline-offset-4">
-                     Report an issue
-                  </ExternalLink>
-               </p>
-            </section>
+               <section className="space-y-1">
+                  <h3 className="font-heading text-sm font-semibold">Crypto Tools</h3>
+                  <DialogDescription className="text-xs tabular-nums">
+                     {APP_VERSION ? `Version ${APP_VERSION}` : 'Development build'}
+                  </DialogDescription>
+               </section>
+
+               <UpdateSection />
+
+               <section className="space-y-2">
+                  <SectionTitle>Project</SectionTitle>
+                  <p className="text-xs">
+                     <ExternalLink href={REPOSITORY_URL} className="font-medium underline underline-offset-4">
+                        Source code
+                     </ExternalLink>
+                     <span className="text-muted-foreground"> — MIT licensed.</span>
+                  </p>
+                  <p className="text-xs">
+                     <ExternalLink href={`${REPOSITORY_URL}/issues`} className="font-medium underline underline-offset-4">
+                        Report an issue
+                     </ExternalLink>
+                  </p>
+               </section>
+
+            </div>
 
          </DialogContent>
       </Dialog>
