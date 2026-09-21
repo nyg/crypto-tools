@@ -4,39 +4,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asNumber } from '../../../utils/format'
-import SortIcon from '../lib/sort-icon'
-import type { ReactNode } from 'react'
+import SortableHead from '../lib/sortable-head'
 import type { LedgerEntriesResponse } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
 
 // Kraken records ledger times in UTC; rendering them in the browser's zone would
 // silently shift every entry.
 const asUtcTimestamp = (time: number) => new Date(time).toISOString().replace('T', ' ').slice(0, 19)
-
-function SortableHead({ column, sort, onSortChange, className, children }: {
-   column: string
-   sort: Sort
-   onSortChange: (sort: Sort) => void
-   className?: string
-   children: ReactNode
-}) {
-   const isActive = sort.column === column
-   return (
-      <TableHead className={className}>
-         <button
-            type="button"
-            className={cn('inline-flex items-center gap-1 hover:text-foreground',
-               isActive && 'font-semibold text-foreground')}
-            onClick={() => onSortChange({
-               column,
-               direction: isActive && sort.direction === 'desc' ? 'asc' : 'desc'
-            })}>
-            {children}
-            <SortIcon isActive={isActive} direction={sort.direction} />
-         </button>
-      </TableHead>
-   )
-}
 
 export default function LedgerTable({ entries, sort, onSortChange, onPageChange, onSearchRef }: {
    entries?: LedgerEntriesResponse
@@ -70,7 +44,7 @@ export default function LedgerTable({ entries, sort, onSortChange, onPageChange,
                      <SortableHead column="time" sort={sort} onSortChange={onSortChange}>Time (UTC)</SortableHead>
                      <SortableHead column="type" sort={sort} onSortChange={onSortChange}>Type</SortableHead>
                      <SortableHead column="asset" sort={sort} onSortChange={onSortChange}>Asset</SortableHead>
-                     <SortableHead column="amount" sort={sort} onSortChange={onSortChange} className="text-right">
+                     <SortableHead column="amount" sort={sort} onSortChange={onSortChange} align="right">
                         Amount
                      </SortableHead>
                      <TableHead className="text-right">Fee</TableHead>

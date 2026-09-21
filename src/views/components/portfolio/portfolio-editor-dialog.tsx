@@ -87,6 +87,10 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
          .map(({ base }) => ({ value: base, label: base }))
    ]
 
+   const chosen = new Set(rows.map(({ asset }) => asset))
+   const optionsFor = (asset: string) =>
+      assetOptions.filter(({ value }) => value === asset || !chosen.has(value))
+
    const sum = sumOf(rows)
    const balanced = sum?.eq(100) ?? false
 
@@ -155,7 +159,7 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
                         value={entry.asset}
                         disabled={isLoadingMarkets}
                         onValueChange={asset => update(entry.key, { asset })}
-                        options={assetOptions}
+                        options={optionsFor(entry.asset)}
                         placeholder={isLoadingMarkets ? 'Loading markets…' : 'Choose an asset'}
                         searchPlaceholder="Search assets…" />
                      <NumericInput
@@ -179,7 +183,11 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
                   </div>)}
 
                <div ref={rowActions} className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={addRow}>
+                  <Button
+                     size="sm"
+                     variant="outline"
+                     disabled={!isLoadingMarkets && rows.length >= assetOptions.length}
+                     onClick={addRow}>
                      <PlusIcon /> Add asset
                   </Button>
                   <Button size="sm" variant="ghost" disabled={rows.length === 0} onClick={() => setRows(splitEqually)}>

@@ -31,6 +31,7 @@ export interface PlanTarget {
 interface PlanDialogProps {
    apiBase: string
    venueLabel: string
+   feesNote: string
    live: boolean
    target: PlanTarget | null
    onOpenChange: (open: boolean) => void
@@ -111,7 +112,7 @@ interface PlanFlowProps extends Omit<PlanDialogProps, 'target'> {
    target: PlanTarget
 }
 
-function PlanFlow({ apiBase, venueLabel, live, target, onOpenChange, onFinished }: PlanFlowProps) {
+function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, onFinished }: PlanFlowProps) {
 
    const [band, setBand] = useState(target.request.band ?? target.portfolio.band)
    const [slippage, setSlippage] = useState(target.request.slippage ?? '1')
@@ -214,6 +215,8 @@ function PlanFlow({ apiBase, venueLabel, live, target, onOpenChange, onFinished 
                   {isPlanning && !plan && <Loader2Icon className="size-5 animate-spin text-muted-foreground" />}
 
                   {plan && <PlanPreview plan={plan} />}
+
+                  {plan && hasOrders && <p className="text-xs text-muted-foreground">{feesNote}</p>}
 
                   {plan && hasOrders && !plan.canTrade &&
                      <Alert variant="destructive">

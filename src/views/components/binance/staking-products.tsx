@@ -1,10 +1,15 @@
+import { useState } from 'react'
 import Big from 'big.js'
 import { asAssetAmount, asPercentage } from '../../../utils/format'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import type { AggregateBalanceResponse, StakingProductInfo } from '../../../types/api'
+import SortableHead from '../lib/sortable-head'
+import { sortRows } from '../../lib/sort'
+import type { SortKeys } from '../../lib/sort'
+import type { AggregateBalanceResponse, StakingProduct, StakingProductInfo } from '../../../types/api'
 import type { VariantProps } from 'class-variance-authority'
 import type { badgeVariants } from '@/components/ui/badge'
+import type { Sort } from '../../../types/kraken'
 
 interface Availability {
    variant: VariantProps<typeof badgeVariants>['variant']
@@ -55,15 +60,30 @@ export function availabilityOf(
 }
 
 
+interface ProductRow {
+   asset: string
+   product: StakingProduct
+   held: number
+   availability: Availability
+}
+
+const sortKeys: SortKeys<ProductRow> = {
+   asset: row => row.asset,
+   duration: row => row.product.info.duration,
+   apy: row => Number(row.product.info.apy)
+}
+
 export default function StakingProducts({ data }: { data: AggregateBalanceResponse }) {
 
-   const rows = data.balance.flatMap(({ asset, free, staking }) =>
-      staking.products.map(product => ({
+   const [sort, setSort] = useState<Sort>({})
+
+   const rows = sortRows(data.balance.flatMap(({ asset, free, staking }) =>
+      staking.products.map((product): ProductRow => ({
          asset,
          product,
          held: product.positions.reduce((sum, position) => sum + Number(position.amount), 0),
          availability: availabilityOf(product.info, asset, Big(free))
-      })))
+      }))), sort, sortKeys)
 
    if (rows.length === 0) {
       return <p className="text-sm text-muted-foreground">No staking products offered for these assets.</p>
@@ -74,9 +94,9 @@ export default function StakingProducts({ data }: { data: AggregateBalanceRespon
          <Table>
             <TableHeader>
                <TableRow>
-                  <TableHead>Asset</TableHead>
-                  <TableHead className="text-right">Duration</TableHead>
-                  <TableHead className="text-right">APY</TableHead>
+                  <SortableHead column="asset" sort={sort} onSortChange={setSort}>Asset</SortableHead>
+                  <SortableHead column="duration" align="right" sort={sort} onSortChange={setSort}>Duration</SortableHead>
+                  <SortableHead column="apy" align="right" sort={sort} onSortChange={setSort}>APY</SortableHead>
                   <TableHead className="text-right">Your position</TableHead>
                   <TableHead>Availability</TableHead>
                </TableRow>

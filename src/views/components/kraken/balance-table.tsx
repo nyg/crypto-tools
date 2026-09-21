@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { ChevronDownIcon, ChevronRightIcon, DownloadIcon, Loader2Icon } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,8 +9,7 @@ import { migrationNote } from './asset-migrations'
 import { PLACEMENT_ORDER, isEarning, placementColor, placementDescription, placementLabel, placementOf } from './placement'
 import { asCount } from '../lib/filter-options'
 import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
-import SortIcon from '../lib/sort-icon'
-import type { ReactNode } from 'react'
+import SortableHead from '../lib/sortable-head'
 import type { BalanceFilterValues } from './balance-filters'
 import type { BalanceAsset, BalancePosition, BalanceSummary, BalancesResponse } from '../../../types/api'
 import type { Sort, UsdRates } from '../../../types/kraken'
@@ -53,32 +51,6 @@ function downloadCsv(rows: BalanceRow[]) {
    link.click()
 
    URL.revokeObjectURL(url)
-}
-
-function SortableHead({ column, sort, onSortChange, align, children }: {
-   column: string
-   sort: Sort
-   onSortChange: (sort: Sort) => void
-   align?: 'right'
-   children: ReactNode
-}) {
-   const isActive = sort.column === column
-   return (
-      <TableHead className={align === 'right' ? 'text-right' : undefined}>
-         <button
-            type="button"
-            className={cn('inline-flex w-full items-center gap-1 hover:text-foreground',
-               align === 'right' && 'justify-end',
-               isActive && 'font-semibold text-foreground')}
-            onClick={() => onSortChange({
-               column,
-               direction: isActive && sort.direction === 'desc' ? 'asc' : 'desc'
-            })}>
-            {children}
-            <SortIcon isActive={isActive} direction={sort.direction} />
-         </button>
-      </TableHead>
-   )
 }
 
 function AssetName({ asset }: { asset: string }) {

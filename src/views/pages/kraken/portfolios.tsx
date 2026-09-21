@@ -16,6 +16,7 @@ export default function KrakenPortfolios() {
                live: true,
                quoteAsset: 'USD',
                wallet: 'spot wallet',
+               fees: 'Kraken charges every fee in the cash coin: each order the app places asks for it there.',
                setup: <>Create a Kraken API key with the Query Funds, Query Open Orders & Trades, Query Closed Orders & Trades, Create & Modify Orders and Cancel/Close Orders permissions, and add it in <SettingsLink group="Kraken" /> under Kraken.</>
             }
          ]} />
