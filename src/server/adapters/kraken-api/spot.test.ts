@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { HttpRequesterError } from '../../errors'
-import { hasKrakenError, krakenErrors, openStops, settlementOf, spotMarkets, spotPrices, spotWallet } from './spot'
+import {
+   hasKrakenError, krakenErrors, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFeeRate
+} from './spot'
 import type { KrakenAssetPairs, KrakenOpenOrder } from '../../../types/kraken-api'
 
 const assetPairs: KrakenAssetPairs = {
@@ -102,6 +104,17 @@ describe('a Kraken order settlement', () => {
 
    test('is rejected when nothing filled', () => {
       expect(settlementOf('O1', order({ status: 'expired' }), 'USD')).toMatchObject({ status: 'rejected', reason: 'expired' })
+   })
+})
+
+describe('the Kraken taker fee', () => {
+
+   test('is the highest rate among the pairs asked about, as a fraction', () => {
+      expect(takerFeeRate({ fees: { XZECZUSD: { fee: '0.2500' }, USDCUSD: { fee: '0.1600' } } })).toBe('0.0025')
+   })
+
+   test('is unknown when Kraken reports no pair', () => {
+      expect(takerFeeRate({})).toBeNull()
    })
 })
 

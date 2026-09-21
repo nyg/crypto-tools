@@ -21,6 +21,7 @@ const markets = new CacheMap<SpotMarket[]>(MARKETS_TTL_MS)
 export default class BinanceExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
+   readonly buyFeeInQuote = false
 
    readonly #api: BinanceAPI
    readonly #environment: BinanceEnvironment

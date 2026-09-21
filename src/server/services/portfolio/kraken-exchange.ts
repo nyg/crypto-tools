@@ -20,6 +20,7 @@ const markets = new CacheMap<KrakenSpotMarket[]>(MARKETS_TTL_MS)
 export default class KrakenExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 10
+   readonly buyFeeInQuote = true
 
    readonly #api: KrakenAPI
    readonly #apiKey: string
@@ -43,6 +44,11 @@ export default class KrakenExchange implements PortfolioExchange {
 
    async prices(): Promise<Record<string, SpotPrice>> {
       return this.#api.fetchSpotPrices(await this.#markets())
+   }
+
+   async takerFeeRate(symbols: string[]): Promise<string | null> {
+      const pairs = (await this.#markets()).filter(({ symbol }) => symbols.includes(symbol)).map(({ altname }) => altname)
+      return this.#api.fetchTakerFeeRate(pairs)
    }
 
    async placeOrder(order: OrderRequest): Promise<string> {

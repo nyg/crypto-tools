@@ -5,7 +5,7 @@ import { normalizeAsset } from './assets'
 import { buildPairIndex, resolvePair } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
 import { fetchTickerSnapshots } from './ticker-stream'
-import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet } from './spot'
+import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFeeRate } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type {
    CancelResult, ExportReport, ExportReportType, ExportRequest, KrakenSpotMarket, LedgerEntry,
@@ -361,6 +361,11 @@ export default class KrakenAPI {
 
    async fetchSpotWallet(): Promise<WalletCoin[]> {
       return spotWallet((await resource.fetchExtendedBalance(this.#authenticated)).result ?? {})
+   }
+
+   async fetchTakerFeeRate(pairs: string[]): Promise<string | null> {
+      if (pairs.length === 0) return null
+      return takerFeeRate((await resource.fetchTradeVolume(this.#authenticated, pairs)).result ?? {})
    }
 
    async placeMarketOrder(pair: string, { clientOrderId, side, unit, amount }: OrderRequest): Promise<string> {

@@ -3,7 +3,7 @@ import { normalizeAsset } from './assets'
 import { HttpRequesterError } from '../../errors'
 import type { KrakenSpotMarket } from '../../../types/kraken'
 import type {
-   KrakenAssetPairs, KrakenExtendedBalance, KrakenOpenOrder, KrakenTicker
+   KrakenAssetPairs, KrakenExtendedBalance, KrakenOpenOrder, KrakenTicker, KrakenTradeVolume
 } from '../../../types/kraken-api'
 import type {
    OpenStopOrder, OrderSettlement, SettlementStatus, SpotPrice, WalletCoin
@@ -83,6 +83,12 @@ export function spotWallet(balances: KrakenExtendedBalance): WalletCoin[] {
 
    return [...wallet].map(([asset, { total, free }]) =>
       ({ asset, total: total.toFixed(), free: free.toFixed(), borrowed: '0' }))
+}
+
+export function takerFeeRate({ fees }: KrakenTradeVolume): string | null {
+   const rates = Object.values(fees ?? {}).flatMap(({ fee }) => fee ? [Big(fee).div(100)] : [])
+   if (rates.length === 0) return null
+   return rates.reduce((highest, rate) => rate.gt(highest) ? rate : highest).toFixed()
 }
 
 function settlementStatus({ status, vol_exec }: KrakenOpenOrder): SettlementStatus {
