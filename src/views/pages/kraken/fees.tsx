@@ -8,6 +8,7 @@ import FeeTable from '../../components/kraken/fee-table'
 import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -47,7 +48,7 @@ export default function KrakenFees() {
       return (
          <KrakenLayout name="Fees">
             <CredentialsAlert unreachable={unreachable}>
-               Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to sync your ledger.
             </CredentialsAlert>
          </KrakenLayout>
       )

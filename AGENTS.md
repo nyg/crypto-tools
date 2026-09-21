@@ -40,7 +40,7 @@ Vite proxies all `/api/*` requests to the Hono server during development. In pro
 
 ### Layers
 
-**Pages** (`src/views/pages/`) — React Router route components. Each exchange has its own subdirectory (`binance/`, `kraken/`). `settings.tsx` handles API key management. A page names the response type it expects on each `useSWR`/`useMutation` call, which is what checks it against the route that serves it.
+**Pages** (`src/views/pages/`) — React Router route components. Each exchange has its own subdirectory (`binance/`, `bybit/`, `kraken/`). API keys are managed per exchange: each subdirectory's `settings.tsx` renders `components/settings/settings-page.tsx` with the providers its tabs need, which `src/views/lib/tools.ts` declares beside the tabs themselves (Kraken also carries Anthropic, for xStocks). The header link of each exchange opens the tab last visited in it, remembered by `src/views/lib/last-tab.ts` in `localStorage`. A page names the response type it expects on each `useSWR`/`useMutation` call, which is what checks it against the route that serves it.
 
 **Components** (`src/views/components/`) — exchange-specific components live in `components/binance/` and `components/kraken/`. Custom wrapper components (NumericInput, Checkbox, Select, DateField, etc.) live in `components/lib/` and wrap the shadcn/ui primitives in `components/ui/`. shadcn/ui is configured with `rsc: false`, `tsx: true`, and `radix-nova` style.
 
@@ -75,7 +75,7 @@ The SDK is imported from `electrobun/main` and comes from `.hutch/devkit`, not `
 
 ### Credentials
 
-API keys live in the OS credential store — Keychain on macOS, Credential Manager on Windows, libsecret on Linux — reached through `Bun.secrets` in `src/server/secrets.ts`, the only module that touches it. Read order per secret is environment, then the store, then `settings.json` as a fallback. A store that refuses a write is not an error: the value goes to the 0600 file instead, and the Settings page says so rather than implying otherwise. `src/server/settings.ts` owns that file and knows nothing about the store.
+API keys live in the OS credential store — Keychain on macOS, Credential Manager on Windows, libsecret on Linux — reached through `Bun.secrets` in `src/server/secrets.ts`, the only module that touches it. Read order per secret is environment, then the store, then `settings.json` as a fallback. A store that refuses a write is not an error: the value goes to the 0600 file instead, and the Settings tab says so rather than implying otherwise. `src/server/settings.ts` owns that file and knows nothing about the store.
 
 Environment variables win only where an entry point asks for it. `allowEnvironmentOverrides()` in `src/server/environment.ts` is called by `src/server/index.ts` and deliberately not by `src/electrobun/index.ts`, because a packaged build launched from a terminal inherits whatever the shell exports and runs with `NODE_ENV` unset. A provider id is snake-cased into its variable names, so `bybitDemo` reads `BYBIT_DEMO_API_KEY` and `BYBIT_DEMO_API_SECRET`, and `binanceTestnet` reads `BINANCE_TESTNET_API_KEY` and `BINANCE_TESTNET_API_SECRET`.
 

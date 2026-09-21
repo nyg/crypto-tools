@@ -1,4 +1,3 @@
-import { Link } from 'react-router'
 import useMutation from '../../lib/use-mutation'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import BinanceLayout from '../../components/binance/binance-layout'
@@ -7,6 +6,7 @@ import NextRedemptions from '../../components/binance/next-redemptions'
 import StakingProducts from '../../components/binance/staking-products'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -27,9 +27,7 @@ export default function BinanceStaking() {
          <BinanceLayout name="Staking">
             <CredentialsAlert unreachable={unreachable}>
                Generate an API key and secret on Binance and add them in{' '}
-               <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
-                  Settings
-               </Link>{' '}
+               <SettingsLink group="Binance" />{' '}
                to fetch your staking positions.
             </CredentialsAlert>
          </BinanceLayout>

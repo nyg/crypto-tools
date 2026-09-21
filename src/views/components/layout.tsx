@@ -7,7 +7,8 @@ import PageHelpButton from './lib/page-help-button'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { APP_VERSION, SHOW_ABOUT_EVENT } from '@/lib/about-event'
-import { groupHref, toolPaths } from '@/lib/tools'
+import { rememberTab, sectionHref } from '@/lib/last-tab'
+import { tabPaths } from '@/lib/tools'
 import useLatestRelease from '@/lib/use-latest-release'
 
 
@@ -21,7 +22,7 @@ const GithubLogo = (props: SVGProps<SVGSVGElement>) => (
    </svg>
 )
 
-export default function Layout({ children, name }: { children: ReactNode, name: string }) {
+export default function Layout({ children, name, subNav }: { children: ReactNode, name: string, subNav?: ReactNode }) {
 
    const { pathname } = useLocation()
    const [aboutOpen, setAboutOpen] = useState(false)
@@ -30,6 +31,10 @@ export default function Layout({ children, name }: { children: ReactNode, name: 
    useEffect(() => {
       document.title = `Crypto Tools — ${name}`
    }, [name])
+
+   useEffect(() => {
+      rememberTab(pathname)
+   }, [pathname])
 
    useEffect(() => {
       const open = () => setAboutOpen(true)
@@ -46,16 +51,15 @@ export default function Layout({ children, name }: { children: ReactNode, name: 
                   Crypto Tools
                </Link>
                <nav className="flex items-center gap-3 sm:gap-4">
-                  <MenuLink href={groupHref('Kraken')} isActive={isSection}>Kraken</MenuLink>
-                  <MenuLink href={groupHref('Binance')} isActive={isSection}>Binance</MenuLink>
-                  <MenuLink href={groupHref('Bybit')} isActive={isSection}>Bybit</MenuLink>
-                  <MenuLink href={groupHref('Tools')} isActive={isSection}>Tools</MenuLink>
-                  <MenuLink href="/settings" isActive={isSection}>Settings</MenuLink>
+                  <MenuLink href={sectionHref('Kraken', pathname)} isActive={isSection}>Kraken</MenuLink>
+                  <MenuLink href={sectionHref('Binance', pathname)} isActive={isSection}>Binance</MenuLink>
+                  <MenuLink href={sectionHref('Bybit', pathname)} isActive={isSection}>Bybit</MenuLink>
+                  <MenuLink href={sectionHref('Tools', pathname)} isActive={isSection}>Tools</MenuLink>
                </nav>
                <div className="ml-auto flex items-center gap-1">
                   {/* Only where no sub-nav is carrying it: on a tool page the help sits
                       beside the tabs, next to the page it describes. */}
-                  {!toolPaths.has(pathname) && <PageHelpButton />}
+                  {!tabPaths.has(pathname) && <PageHelpButton />}
                   <Button
                      variant="ghost"
                      size="sm"
@@ -74,6 +78,7 @@ export default function Layout({ children, name }: { children: ReactNode, name: 
                   </Button>
                </div>
             </div>
+            {subNav && <div className="px-4 sm:px-6">{subNav}</div>}
          </header>
 
          <main className="w-full grow px-4 pt-5 pb-8 sm:px-6">

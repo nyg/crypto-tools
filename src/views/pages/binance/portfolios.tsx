@@ -1,5 +1,6 @@
 import BinanceLayout from '../../components/binance/binance-layout'
 import PortfoliosPage from '../../components/portfolio/portfolios-page'
+import SettingsLink from '../../components/lib/settings-link'
 
 export default function BinancePortfolios() {
    return (
@@ -15,7 +16,7 @@ export default function BinancePortfolios() {
                live: true,
                quoteAsset: 'USDT',
                wallet: 'spot wallet',
-               setup: 'Create a Binance API key with Enable Reading and Enable Spot & Margin Trading, and add it in Settings under Binance.'
+               setup: <>Create a Binance API key with Enable Reading and Enable Spot & Margin Trading, and add it in <SettingsLink group="Binance" /> under Binance.</>
             },
             {
                id: 'binanceTestnet',
@@ -25,7 +26,7 @@ export default function BinancePortfolios() {
                live: false,
                quoteAsset: 'USDT',
                wallet: 'testnet account',
-               setup: 'Log in to testnet.binance.vision, generate an HMAC API key there, and add it in Settings under Binance testnet.',
+               setup: <>Log in to testnet.binance.vision, generate an HMAC API key there, and add it in <SettingsLink group="Binance" /> under Binance testnet.</>,
                note: 'The spot testnet is reset about once a month, which wipes its balances and orders. Portfolios recorded before a reset no longer match the account; archive them and start again.'
             }
          ]} />

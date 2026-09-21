@@ -11,6 +11,7 @@ import { defaultFilters } from '../../components/kraken/balance-filters'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import type { AssetRatesResponse, BalanceSummary, BalancesResponse, SyncStatusResponse } from '../../../types/api'
@@ -80,7 +81,7 @@ export default function KrakenBalances() {
       return (
          <KrakenLayout name="Balances">
             <CredentialsAlert unreachable={unreachable}>
-               Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to sync your ledger.
             </CredentialsAlert>
          </KrakenLayout>
       )
@@ -109,7 +110,7 @@ export default function KrakenBalances() {
             {!canCheckLive &&
                <Alert>
                   <AlertDescription>
-                     Add your API secret in Settings to check these balances against Kraken and
+                     Add your API secret in <SettingsLink group="Kraken" /> to check these balances against Kraken and
                      see what your open orders have reserved.
                   </AlertDescription>
                </Alert>}

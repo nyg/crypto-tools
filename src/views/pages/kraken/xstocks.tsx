@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router'
 import useSWR from 'swr'
 import useMutation from '../../lib/use-mutation'
 import { toast } from 'sonner'
@@ -8,6 +7,7 @@ import KrakenLayout from '../../components/kraken/kraken-layout'
 import XStockTable from '../../components/kraken/xstock-table'
 import XStockJobProgress, { describingTickers, isJobRunning, jobCounts, jobVerbs } from '../../components/kraken/xstock-job'
 import Field from '../../components/lib/field'
+import SettingsLink from '../../components/lib/settings-link'
 import NumericInput from '../../components/lib/numeric-input'
 import SelectField from '../../components/lib/select-field'
 import { asCount, ANY } from '../../components/lib/filter-options'
@@ -296,9 +296,7 @@ export default function KrakenXStocks() {
                            <SparklesIcon className="size-3.5" />
                            Classify with Claude
                         </Button>
-                        : <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
-                           Add an Anthropic API key
-                        </Link>}
+                        : <SettingsLink group="Kraken">Add an Anthropic API key</SettingsLink>}
                   </AlertDescription>
                </Alert>}
 
@@ -344,9 +342,7 @@ export default function KrakenXStocks() {
                         <Alert>
                            <AlertDescription>
                               Add an Anthropic API key in{' '}
-                              <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
-                                 Settings
-                              </Link>{' '}
+                              <SettingsLink group="Kraken" />{' '}
                               to generate descriptions. Everything else on this page works without one.
                            </AlertDescription>
                         </Alert>}

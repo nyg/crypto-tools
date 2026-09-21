@@ -10,6 +10,7 @@ import RewardTable from '../../components/kraken/reward-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
 import type { AssetRatesResponse, RewardSummary, SyncStatusResponse } from '../../../types/api'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -54,7 +55,7 @@ export default function KrakenRewards() {
       return (
          <KrakenLayout name="Rewards">
             <CredentialsAlert unreachable={unreachable}>
-               Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to sync your ledger.
             </CredentialsAlert>
          </KrakenLayout>
       )
