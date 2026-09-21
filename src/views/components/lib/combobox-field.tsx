@@ -42,7 +42,7 @@ export default function ComboboxField({
    return (
       <div className={`space-y-1 ${className}`}>
          <Label htmlFor={name} className="pl-2.5 text-xs">{label}</Label>
-         <Popover open={open} onOpenChange={setOpen}>
+         <Popover modal open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                <Button
                   id={name}
