@@ -92,7 +92,7 @@ export default function Layout({ children, name, subNav }: { children: ReactNode
                   </Button>
                </div>
             </div>
-            {subNav && <div className="px-4 sm:px-6">{subNav}</div>}
+            {subNav && <div className="-mt-2 px-4 sm:px-6">{subNav}</div>}
          </header>
 
          <main className="w-full grow px-4 pt-5 pb-8 sm:px-6">
