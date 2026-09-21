@@ -38,6 +38,7 @@ export interface PortfolioVenue {
    live: boolean
    quoteAsset: string
    wallet: string
+   fees: string
    setup: ReactNode
    note?: string
    stopsNote?: string
@@ -323,6 +324,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
          <PlanDialog
             apiBase={apiBase}
             venueLabel={label}
+            feesNote={current.fees}
             live={live}
             target={planning}
             onOpenChange={open => !open && setPlanning(null)}
