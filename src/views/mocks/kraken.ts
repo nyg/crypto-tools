@@ -230,6 +230,22 @@ const mockVolumes: Record<string, [number, number]> = {
    LNG: [242.1, 12.4], STRC: [98.3, 640.1], KRAQ: [10.4, 1204.6]
 }
 
+const mockProducts: Record<string, [string, string, string]> = {
+   AAPL: ['CH1436219187', 'US0378331005', 'apple-xstock'],
+   'BRK.B': ['CH1436219260', 'US0846707026', 'berkshire-hathaway-xstock'],
+   LNG: ['CH1500008870', 'US16411R2085', 'cheniere-energy-xstock'],
+   NVDA: ['CH1436219195', 'US67066G1040', 'nvidia-xstock'],
+   STRC: ['CH1500008482', 'US5949728530', 'strategy-pp-variable-xstock'],
+   TSLA: ['CH1436219252', 'US88160R1014', 'tesla-xstock'],
+   GLD: ['CH1436219740', 'US78463V1070', 'gold-xstock'],
+   SGOV: ['CH1500008805', 'US46436E7186', 'ishares-0-3-month-treasury-bond-etf-xstock'],
+   SPY: ['CH1436219716', 'US78462F1030', 'sp500-xstock'],
+   TQQQ: ['CH1436219757', 'US74347X8314', 'tqqq-xstock'],
+   VOO: ['CH1564487259', 'US9229083632', 'vanguard-s-p-500-xstock'],
+   KRAQ: ['CH1500008524', 'KYG5315G1064', 'kraq-xstock'],
+   JMKE: ['CH1588658554', 'US47668J1025', '']
+}
+
 const xstockListings = (params?: { wordCount?: number }): XStockListingsResponse => {
    const wordCount = params?.wordCount ?? 60
    return {
@@ -237,6 +253,7 @@ const xstockListings = (params?: { wordCount?: number }): XStockListingsResponse
       listings: xstockSeed.map((listing): XStockRow => {
          const classified = mockClassifications.get(listing.ticker)
          const market = mockVolumes[listing.ticker]
+         const [isin = '', underlyingIsin = '', slug = ''] = mockProducts[listing.ticker] ?? []
          return {
             ...listing,
             ...classified,
@@ -244,6 +261,10 @@ const xstockListings = (params?: { wordCount?: number }): XStockListingsResponse
             exchange: '',
             confidence: listing.origin === 'seed' ? 'high' : classified?.confidence ?? '',
             sources: [],
+            isin,
+            underlyingIsin,
+            productUrl: slug ? `https://assets.backed.fi/products/${slug}` : '',
+            factsheetUrl: isin ? `https://documents.backed.fi/backed-assets-factsheet-${listing.ticker}x.pdf` : '',
             last: market?.[0] ?? null,
             volume24h: market?.[1] ?? null,
             volumeUsd24h: market ? market[0] * market[1] : null,

@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import KrakenAPI from '../adapters/kraken-api/adapter'
 import XStockRepository from '../db/xstock-repository'
 import { handleError, withCredentials } from './with-account'
-import { isSeeded, seededListing } from '../services/xstock-reference'
+import { backedProduct, isSeeded, seededListing } from '../services/xstock-reference'
 import { currentJob, requestCancel, startClassify, startDescribe } from '../services/xstock-ai-job'
 import { messageOf } from '../errors'
 import type { TokenizedListing, TokenizedVolume } from '../../types/kraken'
@@ -60,6 +60,7 @@ app.post('/listings', async (c) => {
 
       const rows = listings.map(({ altname, ticker }): XStockRow => {
          const base = seededListing(ticker) ?? stored.get(ticker)
+         const product = backedProduct(ticker)
          const market = volumes.get(altname)
          return {
             altname,
@@ -71,6 +72,10 @@ app.post('/listings', async (c) => {
             confidence: base?.confidence ?? '',
             origin: base?.origin ?? '',
             sources: base?.sources ?? [],
+            isin: product?.isin ?? '',
+            underlyingIsin: product?.underlyingIsin ?? '',
+            productUrl: product?.productUrl ?? '',
+            factsheetUrl: product?.factsheetUrl ?? '',
             last: market?.last ?? null,
             volume24h: market?.volume24h ?? null,
             volumeUsd24h: market?.volumeUsd24h ?? null,

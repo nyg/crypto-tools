@@ -243,6 +243,10 @@ export interface XStockRow {
    confidence: string
    origin: string
    sources: string[]
+   isin: string
+   underlyingIsin: string
+   productUrl: string
+   factsheetUrl: string
    last: number | null
    volume24h: number | null
    volumeUsd24h: number | null

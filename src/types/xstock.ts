@@ -27,6 +27,13 @@ export interface XStockReference {
    sources: string[]
 }
 
+export interface XStockProduct {
+   isin: string
+   underlyingIsin: string
+   productUrl: string
+   factsheetUrl: string
+}
+
 export interface XStockDescription {
    ticker: string
    description: string

@@ -3,7 +3,11 @@
 export {};
 
 const SEED_PATH = "src/server/data/xstocks.json";
-const CONCURRENCY = 6;
+const PRODUCTS_PATH = "src/server/data/xstock-products.json";
+const XSTOCKS_API = "https://api.xstocks.fi/api/v2/public/assets";
+const BACKED_PRODUCTS = "https://assets.backed.fi/products";
+const BACKED_DOCUMENTS = "https://documents.backed.fi";
+const NASDAQ_DIRECTORY = "https://www.nasdaqtrader.com/dynamic/SymDir";
 
 type Listing = {
    name: string;
@@ -16,6 +20,30 @@ type Seed = {
    generatedAt: string;
    source: string;
    listings: Record<string, Listing>;
+};
+
+type Product = {
+   symbol: string;
+   isin: string;
+   underlyingIsin: string;
+   slug: string;
+};
+
+type Products = {
+   generatedAt: string;
+   source: string;
+   products: Record<string, Product>;
+};
+
+type XStockAsset = {
+   symbol: string;
+   isin: string;
+   underlyingIsin: string | null;
+};
+
+type XStockAssetPage = {
+   nodes: XStockAsset[];
+   page: { currentPage: number; hasNextPage: boolean };
 };
 
 const subtypeOverrides: Record<string, string> = {
@@ -43,7 +71,9 @@ const nameOverrides: Record<string, string> = {
    STRC: "Strategy Inc. Variable Rate Series A Perpetual Stretch Preferred Stock",
 };
 
-async function fetchKrakenTickers(): Promise<string[]> {
+const tickerOf = (altname: string) => altname.replace(/x$/, "");
+
+async function fetchKrakenAltnames(): Promise<string[]> {
    const response = await fetch("https://api.kraken.com/0/public/Assets?aclass=tokenized_asset");
    const { error, result } = await response.json() as {
       error: string[];
@@ -57,75 +87,128 @@ async function fetchKrakenTickers(): Promise<string[]> {
       if (asset.status === "enabled" && asset.altname) altnames.add(asset.altname);
    }
 
-   return [...altnames].map(altname => altname.replace(/x$/, "")).sort();
+   return [...altnames].sort();
 }
 
-const htmlEntities: Record<string, string> = {
-   "&amp;": "&",
-   "&lt;": "<",
-   "&gt;": ">",
-   "&quot;": '"',
-   "&apos;": "'",
-   "&#39;": "'",
-};
+const securityClass =
+   /\s+(?:New\s+)?(?:(?:Class|Series) [A-Z]\s+)?(?:Common Stock|Common Shares|Ordinary Shares|American Depositary Shares)\b.*$/i;
 
-const decodeEntities = (value: string) =>
-   value.replace(/&(?:amp|lt|gt|quot|apos|#39);/g, entity => htmlEntities[entity] ?? entity);
+const cleanName = (name: string) => name
+   .replace(/\s+-\s+.*$/, "")
+   .replace(securityClass, "")
+   .replace(/^(.*?),? \(The\)$/, "The $1")
+   .trim();
 
-async function resolve(ticker: string): Promise<Listing | null> {
-   const response = await fetch(`https://stockanalysis.com/stocks/${ticker.toLowerCase()}/`, {
-      headers: { "User-Agent": "Mozilla/5.0" },
-   });
+async function fetchSymbolDirectory(): Promise<Map<string, Listing>> {
+   const directory = new Map<string, Listing>();
+   for (const [file, etfColumn] of [["nasdaqlisted.txt", 6], ["otherlisted.txt", 4]] as const) {
+      const response = await fetch(`${NASDAQ_DIRECTORY}/${file}`);
+      if (!response.ok) throw new Error(`${NASDAQ_DIRECTORY}/${file} answered ${response.status}`);
 
-   if (!response.ok) return null;
+      const [, ...lines] = (await response.text()).trim().split(/\r?\n/);
+      for (const line of lines) {
+         const columns = line.split("|");
+         const [symbol = "", name = ""] = columns;
+         if (!symbol || !name || symbol.startsWith("File Creation Time")) continue;
 
-   const body = await response.text();
-   const type = response.url.includes("/etf/") ? "etf" : response.url.includes("/stocks/") ? "stock" : null;
-   if (!type) return null;
-
-   const heading = body.match(/<h1[^>]*>([^<]*)<\/h1>/);
-   if (!heading) return null;
-
-   const name = decodeEntities(heading[1] ?? "")
-      .replace(/\s*\([^)]*\)\s*$/, "")
-      .trim();
-
-   if (!name) return null;
-
-   return { name, exchange: "", type, subtype: "" };
-}
-
-async function inBatches<T, R>(items: T[], size: number, worker: (item: T) => Promise<R>): Promise<R[]> {
-   const results: R[] = [];
-   for (let index = 0; index < items.length; index += size) {
-      results.push(...await Promise.all(items.slice(index, index + size).map(worker)));
+         const type = columns[etfColumn] === "Y" ? "etf" : "stock";
+         directory.set(symbol, { name: cleanName(name), exchange: "", type, subtype: "" });
+      }
    }
-   return results;
+   return directory;
+}
+
+async function fetchXStockAssets(): Promise<Map<string, XStockAsset>> {
+   const assets = new Map<string, XStockAsset>();
+   for (let page = 0; ; page++) {
+      const response = await fetch(`${XSTOCKS_API}?page=${page}`);
+      if (!response.ok) throw new Error(`xStocks API answered ${response.status} for page ${page}`);
+
+      const { nodes, page: position } = await response.json() as XStockAssetPage;
+      for (const asset of nodes) assets.set(asset.symbol, asset);
+      if (!position.hasNextPage) break;
+   }
+   if (assets.size === 0) throw new Error(`${XSTOCKS_API} listed no xStocks`);
+   return assets;
+}
+
+async function fetchProductSlugs(): Promise<Map<string, string> | null> {
+   const slugs = new Map<string, string>();
+   let query = "";
+   do {
+      const response = await fetch(`${BACKED_PRODUCTS}${query}`, { headers: { "User-Agent": "Mozilla/5.0" } });
+      if (!response.ok) throw new Error(`${BACKED_PRODUCTS}${query} answered ${response.status}`);
+      if (new URL(response.url).pathname === "/geoblock") return null;
+
+      const body = await response.text();
+      const rows = body.split('class="products-table-row w-dyn-item"').slice(1);
+      for (const row of rows) {
+         const slug = row.match(/href="\/products\/([^"]+)"/)?.[1];
+         const symbol = row.match(/data-factsheet-symbol="([^"]+)"/)?.[1];
+         if (slug && symbol) slugs.set(symbol, slug);
+      }
+
+      query = body.match(/<a href="(\?[^"]+)"[^>]*class="w-pagination-next/)?.[1] ?? "";
+   } while (query);
+   if (slugs.size === 0) throw new Error(`Found no products on ${BACKED_PRODUCTS}; has the page changed?`);
+   return slugs;
+}
+
+async function fetchFactsheetSlug(symbol: string): Promise<string> {
+   const response = await fetch(`${BACKED_DOCUMENTS}/backed-assets-factsheet-${symbol}.pdf`);
+   if (!response.ok) return "";
+   return (await response.text()).match(/assets\.backed\.fi\/products\/([a-z0-9-]+)/)?.[1] ?? "";
+}
+
+async function writeIfChanged(path: string, content: Omit<Seed, "generatedAt"> | Omit<Products, "generatedAt">): Promise<boolean> {
+   const file = Bun.file(path);
+   if (await file.exists()) {
+      const { generatedAt: _, ...previous } = await file.json() as Seed | Products;
+      if (JSON.stringify(previous) === JSON.stringify(content)) return false;
+   }
+   const generatedAt = new Date().toISOString().slice(0, 10);
+   await Bun.write(path, `${JSON.stringify({ generatedAt, ...content }, null, 3)}\n`);
+   return true;
 }
 
 const refreshAll = process.argv.includes("--all");
 
 const seed = await Bun.file(SEED_PATH).json() as Seed;
-const tickers = await fetchKrakenTickers();
+const altnames = await fetchKrakenAltnames();
+const tickers = altnames.map(tickerOf);
 const targets = refreshAll ? tickers : tickers.filter(ticker => !seed.listings[ticker]);
 
 console.log(`Kraken lists ${tickers.length} tokenized assets; resolving ${targets.length}.`);
 
-const resolved = await inBatches(targets, CONCURRENCY, async ticker => [ticker, await resolve(ticker)] as const);
+const directory = targets.length ? await fetchSymbolDirectory() : new Map<string, Listing>();
 
 const listings: Record<string, Listing> = refreshAll ? {} : { ...seed.listings };
+const sources = new Set(refreshAll ? [] : seed.source.split(", "));
+const resolved: string[] = [];
 const unresolved: string[] = [];
 
-for (const [ticker, listing] of resolved) {
+for (const ticker of targets) {
+   const listing = directory.get(ticker);
    if (!listing) {
       unresolved.push(ticker);
       continue;
    }
+   listings[ticker] = listing;
+   resolved.push(ticker);
+   sources.add("nasdaqtrader.com");
+}
+
+for (const [ticker, listing] of Object.entries(listings)) {
    listings[ticker] = {
       ...listing,
       name: nameOverrides[ticker] ?? listing.name,
-      subtype: subtypeOverrides[ticker] ?? "",
+      subtype: subtypeOverrides[ticker] ?? listing.subtype,
    };
+}
+
+for (const ticker of resolved) {
+   const { name, type, subtype } = listings[ticker]!;
+   console.log(`Resolved ${ticker}: ${name} (${type}${subtype ? `, ${subtype}` : ""}).`);
 }
 
 for (const ticker of Object.keys(listings)) {
@@ -138,18 +221,65 @@ const sorted = Object.fromEntries(
   Object.entries(listings).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
 );
 
-const output: Seed = {
-   generatedAt: new Date().toISOString().slice(0, 10),
-   source: "stockanalysis.com",
-   listings: sorted,
-};
-
-await Bun.write(SEED_PATH, `${JSON.stringify(output, null, 3)}\n`);
+const listingsChanged = await writeIfChanged(SEED_PATH, { source: [...sources].join(", "), listings: sorted });
 
 const stocks = Object.values(sorted).filter(listing => listing.type === "stock").length;
 const etfs = Object.values(sorted).filter(listing => listing.type === "etf").length;
 
-console.log(`Wrote ${Object.keys(sorted).length} listings to ${SEED_PATH} (${stocks} stocks, ${etfs} ETFs).`);
+console.log(`${Object.keys(sorted).length} listings (${stocks} stocks, ${etfs} ETFs), ${listingsChanged ? "written to" : "unchanged in"} ${SEED_PATH}.`);
 if (unresolved.length) {
    console.log(`Could not resolve, left for the app to classify: ${unresolved.join(", ")}`);
+}
+
+const [assets, slugs] = await Promise.all([fetchXStockAssets(), fetchProductSlugs()]);
+
+const productsFile = Bun.file(PRODUCTS_PATH);
+const knownProducts = await productsFile.exists() ? (await productsFile.json() as Products).products : {};
+if (!slugs) console.log(`${BACKED_PRODUCTS} turns this location away, so product pages come from the last refresh and the factsheets.`);
+
+const products: Record<string, Product> = {};
+const unissued: string[] = [];
+const unlisted: string[] = [];
+const fromFactsheet: string[] = [];
+const withoutPage: string[] = [];
+
+for (const altname of altnames) {
+   const asset = assets.get(altname);
+   if (!asset) {
+      unissued.push(altname);
+      continue;
+   }
+   const listed = slugs?.get(altname);
+   if (slugs && !listed) unlisted.push(altname);
+
+   let slug = listed || knownProducts[tickerOf(altname)]?.slug || "";
+   if (!slug) {
+      slug = await fetchFactsheetSlug(asset.symbol);
+      (slug ? fromFactsheet : withoutPage).push(altname);
+   }
+   products[tickerOf(altname)] = {
+      symbol: asset.symbol,
+      isin: asset.isin,
+      underlyingIsin: asset.underlyingIsin ?? "",
+      slug,
+   };
+}
+
+const productsChanged = await writeIfChanged(PRODUCTS_PATH, {
+   source: "api.xstocks.fi, assets.backed.fi, documents.backed.fi",
+   products,
+});
+
+console.log(`${Object.keys(products).length} xStock products, ${productsChanged ? "written to" : "unchanged in"} ${PRODUCTS_PATH}.`);
+if (unissued.length) {
+   console.log(`Not issued by Backed, so no ISIN or links: ${unissued.join(", ")}`);
+}
+if (unlisted.length) {
+   console.log(`Not listed on assets.backed.fi yet, so their product page may not exist: ${unlisted.join(", ")}`);
+}
+if (fromFactsheet.length) {
+   console.log(`Product page read from the factsheet: ${fromFactsheet.join(", ")}`);
+}
+if (withoutPage.length) {
+   console.log(`No product page found, not even on a factsheet: ${withoutPage.join(", ")}`);
 }
