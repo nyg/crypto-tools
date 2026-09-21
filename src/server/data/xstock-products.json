@@ -1,6 +1,6 @@
 {
    "generatedAt": "2026-09-21",
-   "source": "api.xstocks.fi, assets.backed.fi",
+   "source": "api.xstocks.fi, assets.backed.fi, documents.backed.fi",
    "products": {
       "AAOI": {
          "symbol": "AAOIx",
@@ -42,7 +42,7 @@
          "symbol": "AIx",
          "isin": "CH1588664578",
          "underlyingIsin": "US12468P1049",
-         "slug": ""
+         "slug": "c3-ai-xstock"
       },
       "AMAT": {
          "symbol": "AMATx",
@@ -126,7 +126,7 @@
          "symbol": "BETRx",
          "isin": "CH1588664651",
          "underlyingIsin": "US08774B5084",
-         "slug": ""
+         "slug": "better-home-finance-xstock"
       },
       "BE": {
          "symbol": "BEx",
@@ -354,7 +354,7 @@
          "symbol": "FLNCx",
          "isin": "CH1588664586",
          "underlyingIsin": "US34379V1035",
-         "slug": ""
+         "slug": "fluence-energy-xstock"
       },
       "FLQM": {
          "symbol": "FLQMx",
@@ -462,7 +462,7 @@
          "symbol": "INDIx",
          "isin": "CH1588664628",
          "underlyingIsin": "US45569U1016",
-         "slug": ""
+         "slug": "indie-semiconductor-xstock"
       },
       "INTC": {
          "symbol": "INTCx",
@@ -606,7 +606,7 @@
          "symbol": "METCx",
          "isin": "CH1588664610",
          "underlyingIsin": "US75134P6007",
-         "slug": ""
+         "slug": "ramaco-resources-xstock"
       },
       "MOO": {
          "symbol": "MOOx",
@@ -726,7 +726,7 @@
          "symbol": "PCTx",
          "isin": "CH1588664594",
          "underlyingIsin": "US74623V1035",
-         "slug": ""
+         "slug": "purecycle-technologies-xstock"
       },
       "PEP": {
          "symbol": "PEPx",
@@ -792,7 +792,7 @@
          "symbol": "QUBTx",
          "isin": "CH1588664560",
          "underlyingIsin": "US74766W1080",
-         "slug": ""
+         "slug": "quantum-computing-xstock"
       },
       "QURE": {
          "symbol": "QUREx",
@@ -1092,7 +1092,7 @@
          "symbol": "WGSx",
          "isin": "CH1588664552",
          "underlyingIsin": "US81663L2007",
-         "slug": ""
+         "slug": "genedx-xstock"
       },
       "WMT": {
          "symbol": "WMTx",
@@ -1104,7 +1104,7 @@
          "symbol": "WRLDx",
          "isin": "CH1588664602",
          "underlyingIsin": "US9814191048",
-         "slug": ""
+         "slug": "world-acceptance-xstock"
       },
       "WULF": {
          "symbol": "WULFx",
@@ -1116,7 +1116,7 @@
          "symbol": "WYFIx",
          "isin": "CH1588664636",
          "underlyingIsin": "USG961151036",
-         "slug": ""
+         "slug": "whitefiber-xstock"
       },
       "XLE": {
          "symbol": "XLEx",
@@ -1140,7 +1140,7 @@
          "symbol": "XRXx",
          "isin": "CH1588664644",
          "underlyingIsin": "US98421M1062",
-         "slug": ""
+         "slug": "xerox-xstock"
       },
       "YLDE": {
          "symbol": "YLDEx",

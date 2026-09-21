@@ -43,7 +43,7 @@ jobs:
             echo "Weekly refresh of the xStocks reference data, by \`scripts/refresh-xstocks.ts\`:"
             echo
             echo "- \`src/server/data/xstocks.json\` gains the tickers Kraken listed since the last refresh, typed and named from the Nasdaq Trader symbol directory."
-            echo "- \`src/server/data/xstock-products.json\` is rebuilt from the xStocks API, which gives the ISINs. assets.backed.fi turns away visitors from the US, where GitHub's runners are, so product pages Backed has published since are only picked up when the script runs from elsewhere."
+            echo "- \`src/server/data/xstock-products.json\` is rebuilt from the xStocks API, which gives the ISINs. A new listing's product page comes from the address printed on its factsheet, since assets.backed.fi turns away visitors from the US, where GitHub's runners are. Backed may not have published that page yet."
             echo
             echo "Check the new names, and give any new leveraged, bond or commodity-trust ETF its subtype in \`subtypeOverrides\`: the symbol directory only says stock or ETF."
             echo

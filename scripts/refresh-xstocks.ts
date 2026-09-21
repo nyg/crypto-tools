@@ -6,6 +6,7 @@ const SEED_PATH = "src/server/data/xstocks.json";
 const PRODUCTS_PATH = "src/server/data/xstock-products.json";
 const XSTOCKS_API = "https://api.xstocks.fi/api/v2/public/assets";
 const BACKED_PRODUCTS = "https://assets.backed.fi/products";
+const BACKED_DOCUMENTS = "https://documents.backed.fi";
 const NASDAQ_DIRECTORY = "https://www.nasdaqtrader.com/dynamic/SymDir";
 
 type Listing = {
@@ -153,6 +154,12 @@ async function fetchProductSlugs(): Promise<Map<string, string> | null> {
    return slugs;
 }
 
+async function fetchFactsheetSlug(symbol: string): Promise<string> {
+   const response = await fetch(`${BACKED_DOCUMENTS}/backed-assets-factsheet-${symbol}.pdf`);
+   if (!response.ok) return "";
+   return (await response.text()).match(/assets\.backed\.fi\/products\/([a-z0-9-]+)/)?.[1] ?? "";
+}
+
 async function writeIfChanged(path: string, content: Omit<Seed, "generatedAt"> | Omit<Products, "generatedAt">): Promise<boolean> {
    const file = Bun.file(path);
    if (await file.exists()) {
@@ -228,11 +235,13 @@ const [assets, slugs] = await Promise.all([fetchXStockAssets(), fetchProductSlug
 
 const productsFile = Bun.file(PRODUCTS_PATH);
 const knownProducts = await productsFile.exists() ? (await productsFile.json() as Products).products : {};
-if (!slugs) console.log(`${BACKED_PRODUCTS} turns this location away, so product pages are kept from the last refresh.`);
+if (!slugs) console.log(`${BACKED_PRODUCTS} turns this location away, so product pages come from the last refresh and the factsheets.`);
 
 const products: Record<string, Product> = {};
 const unissued: string[] = [];
-const unpublished: string[] = [];
+const unlisted: string[] = [];
+const fromFactsheet: string[] = [];
+const withoutPage: string[] = [];
 
 for (const altname of altnames) {
    const asset = assets.get(altname);
@@ -240,8 +249,14 @@ for (const altname of altnames) {
       unissued.push(altname);
       continue;
    }
-   const slug = (slugs ? slugs.get(altname) : knownProducts[tickerOf(altname)]?.slug) ?? "";
-   if (!slug) unpublished.push(altname);
+   const listed = slugs?.get(altname);
+   if (slugs && !listed) unlisted.push(altname);
+
+   let slug = listed || knownProducts[tickerOf(altname)]?.slug || "";
+   if (!slug) {
+      slug = await fetchFactsheetSlug(asset.symbol);
+      (slug ? fromFactsheet : withoutPage).push(altname);
+   }
    products[tickerOf(altname)] = {
       symbol: asset.symbol,
       isin: asset.isin,
@@ -250,12 +265,21 @@ for (const altname of altnames) {
    };
 }
 
-const productsChanged = await writeIfChanged(PRODUCTS_PATH, { source: "api.xstocks.fi, assets.backed.fi", products });
+const productsChanged = await writeIfChanged(PRODUCTS_PATH, {
+   source: "api.xstocks.fi, assets.backed.fi, documents.backed.fi",
+   products,
+});
 
 console.log(`${Object.keys(products).length} xStock products, ${productsChanged ? "written to" : "unchanged in"} ${PRODUCTS_PATH}.`);
 if (unissued.length) {
    console.log(`Not issued by Backed, so no ISIN or links: ${unissued.join(", ")}`);
 }
-if (unpublished.length) {
-   console.log(`No known product page on assets.backed.fi: ${unpublished.join(", ")}`);
+if (unlisted.length) {
+   console.log(`Not listed on assets.backed.fi yet, so their product page may not exist: ${unlisted.join(", ")}`);
+}
+if (fromFactsheet.length) {
+   console.log(`Product page read from the factsheet: ${fromFactsheet.join(", ")}`);
+}
+if (withoutPage.length) {
+   console.log(`No product page found, not even on a factsheet: ${withoutPage.join(", ")}`);
 }
