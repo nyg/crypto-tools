@@ -8,6 +8,7 @@ import OrderBatchForm from '../../components/kraken/order-batch-params'
 import OrderBatchTable from '../../components/kraken/order-batch-table'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
 import { messageOf } from '../../lib/errors'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
@@ -123,7 +124,7 @@ export default function KrakenOrderBatch() {
       return (
          <KrakenLayout name="Order Batch">
             <CredentialsAlert unreachable={unreachable}>
-               Generate an API key and secret on Kraken and add them in Settings to create orders.
+               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to create orders.
             </CredentialsAlert>
          </KrakenLayout>
       )

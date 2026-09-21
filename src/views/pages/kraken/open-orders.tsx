@@ -8,6 +8,7 @@ import KrakenLayout from '../../components/kraken/kraken-layout'
 import OpenOrderGroup from '../../components/kraken/open-order-group'
 import CancelOrdersDialog from '../../components/kraken/cancel-orders-dialog'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
 import { useProvider } from '../../lib/use-settings'
 import { asCount } from '../../components/lib/filter-options'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -72,7 +73,7 @@ export default function KrakenOpenOrders() {
       return (
          <KrakenLayout name="Open Orders">
             <CredentialsAlert unreachable={unreachable}>
-               Generate an API key and secret on Kraken and add them in Settings to see and manage your open orders.
+               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to see and manage your open orders.
             </CredentialsAlert>
          </KrakenLayout>
       )

@@ -9,6 +9,7 @@ import AggregateSummary from '../../components/kraken/aggregate-summary'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
 import usePersistentState from '../../lib/use-persistent-state'
 import { asCount } from '../../components/lib/filter-options'
 import { ratesAt } from '../../lib/quote-conversion'
@@ -80,7 +81,7 @@ export default function KrakenAggregatedTrades() {
       return (
          <KrakenLayout name="Aggregated Trades">
             <CredentialsAlert unreachable={unreachable}>
-               Generate an API key and secret on Kraken and add them in Settings to see your trades.
+               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to see your trades.
             </CredentialsAlert>
          </KrakenLayout>
       )

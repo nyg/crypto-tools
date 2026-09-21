@@ -11,6 +11,7 @@ import TradeTable from '../../components/kraken/trade-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
 import usePersistentState from '../../lib/use-persistent-state'
 import { asCount } from '../../components/lib/filter-options'
 import { Card, CardHeader, CardAction, CardContent } from '@/components/ui/card'
@@ -120,7 +121,7 @@ export default function KrakenLedger() {
       return (
          <KrakenLayout name="Ledger">
             <CredentialsAlert unreachable={unreachable}>
-               Generate an API key and secret on Kraken and add them in Settings to sync your ledger.
+               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to sync your ledger.
             </CredentialsAlert>
          </KrakenLayout>
       )

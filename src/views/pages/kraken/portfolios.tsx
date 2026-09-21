@@ -1,5 +1,6 @@
 import KrakenLayout from '../../components/kraken/kraken-layout'
 import PortfoliosPage from '../../components/portfolio/portfolios-page'
+import SettingsLink from '../../components/lib/settings-link'
 
 export default function KrakenPortfolios() {
    return (
@@ -15,7 +16,7 @@ export default function KrakenPortfolios() {
                live: true,
                quoteAsset: 'USD',
                wallet: 'spot wallet',
-               setup: 'Create a Kraken API key with the Query Funds, Query Open Orders & Trades, Query Closed Orders & Trades, Create & Modify Orders and Cancel/Close Orders permissions, and add it in Settings under Kraken.'
+               setup: <>Create a Kraken API key with the Query Funds, Query Open Orders & Trades, Query Closed Orders & Trades, Create & Modify Orders and Cancel/Close Orders permissions, and add it in <SettingsLink group="Kraken" /> under Kraken.</>
             }
          ]} />
    )

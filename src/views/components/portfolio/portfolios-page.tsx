@@ -38,7 +38,7 @@ export interface PortfolioVenue {
    live: boolean
    quoteAsset: string
    wallet: string
-   setup: string
+   setup: ReactNode
    note?: string
    stopsNote?: string
 }
