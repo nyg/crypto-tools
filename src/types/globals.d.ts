@@ -4,6 +4,7 @@ declare global {
    interface Window {
       __API_PORT__?: number
       __LOCALES__?: string[]
+      __INSET_TITLEBAR__?: boolean
    }
 }
 

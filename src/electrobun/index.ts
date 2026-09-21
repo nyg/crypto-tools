@@ -11,6 +11,8 @@ const VIEWS_URL = 'views://main/index.html'
 const ABOUT_ACTION = 'show-about'
 const SHOW_ABOUT_JS = 'window.dispatchEvent(new CustomEvent(\'crypto-tools:show-about\'))'
 const hasApplicationMenu = process.platform !== 'win32'
+const hasInsetTitleBar = process.platform === 'darwin'
+const TRAFFIC_LIGHTS = { x: 20, y: 20 }
 
 type NewWindowOpenEvent = { data?: { detail?: string | { url?: string } } }
 
@@ -63,6 +65,7 @@ async function main() {
    const preload = [
       `window.__API_PORT__ = ${server.port};`,
       locales.length ? `window.__LOCALES__ = ${JSON.stringify(locales)};` : null,
+      hasInsetTitleBar ? 'window.__INSET_TITLEBAR__ = true;' : null,
    ].filter(Boolean).join(' ')
 
    // Created hidden so the geometry is applied before the window is ever drawn; the frame
@@ -74,7 +77,12 @@ async function main() {
       preload,
       frame: initialWindowState.frame,
       hidden: true,
+      titleBarStyle: hasInsetTitleBar ? 'hiddenInset' : 'default',
    })
+
+   if (hasInsetTitleBar) {
+      win.setWindowButtonPosition(TRAFFIC_LIGHTS.x, TRAFFIC_LIGHTS.y)
+   }
 
    // Open target="_blank" links in the default system browser instead of the WebView.
    // The runtime emits 'new-window-open', but BrowserView.on's name union in the SDK
