@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import PageHelpButton from './page-help-button'
@@ -12,9 +13,14 @@ interface SubNavProps {
 export default function SubNav({ items, trailing }: SubNavProps) {
 
    const { pathname } = useLocation()
+   const activeTab = useRef<HTMLAnchorElement>(null)
+
+   useEffect(() => {
+      activeTab.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+   }, [pathname])
 
    return (
-      <div className="mb-6 flex items-end gap-4 border-b border-border">
+      <div className="flex items-end gap-4">
          {/* -ml-3 cancels the first link's px-3 so its label lines up with the page
              heading and the header wordmark, which sit flush against the container. */}
          <nav className="-mb-px -ml-3 flex min-w-0 items-center gap-1 overflow-x-auto">
@@ -22,6 +28,7 @@ export default function SubNav({ items, trailing }: SubNavProps) {
                <Link
                   key={href}
                   to={href}
+                  ref={pathname === href ? activeTab : undefined}
                   aria-current={pathname === href ? 'page' : undefined}
                   className={cn(
                      'inline-flex h-9 items-center border-b-2 border-transparent px-3 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground',

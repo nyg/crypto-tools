@@ -22,7 +22,7 @@ const GithubLogo = (props: SVGProps<SVGSVGElement>) => (
    </svg>
 )
 
-export default function Layout({ children, name }: { children: ReactNode, name: string }) {
+export default function Layout({ children, name, subNav }: { children: ReactNode, name: string, subNav?: ReactNode }) {
 
    const { pathname } = useLocation()
    const [aboutOpen, setAboutOpen] = useState(false)
@@ -78,6 +78,7 @@ export default function Layout({ children, name }: { children: ReactNode, name: 
                   </Button>
                </div>
             </div>
+            {subNav && <div className="px-4 sm:px-6">{subNav}</div>}
          </header>
 
          <main className="w-full grow px-4 pt-5 pb-8 sm:px-6">

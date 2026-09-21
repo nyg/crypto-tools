@@ -18,10 +18,9 @@ export default function KrakenLayout({
    const { pathname } = useLocation()
 
    return (
-      <Layout name={`Kraken ${name}`}>
-         <SubNav
-            items={tabs}
-            trailing={trailing ?? (ledgerBackedPaths.has(pathname) ? <SyncNavStatus /> : null)} />
+      <Layout
+         name={`Kraken ${name}`}
+         subNav={<SubNav items={tabs} trailing={trailing ?? (ledgerBackedPaths.has(pathname) ? <SyncNavStatus /> : null)} />}>
          {children}
       </Layout>
    )

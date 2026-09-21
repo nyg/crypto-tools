@@ -8,8 +8,7 @@ const tabs = subNavItems('Tools')
 
 export default function ToolsLayout({ children, name }: { children: ReactNode, name: string }) {
    return (
-      <Layout name={name}>
-         <SubNav items={tabs} />
+      <Layout name={name} subNav={<SubNav items={tabs} />}>
          {children}
       </Layout>
    )
