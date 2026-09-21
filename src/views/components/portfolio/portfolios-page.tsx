@@ -151,6 +151,13 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
 
             <div className="flex flex-wrap items-center justify-between gap-3">
                {venueToggle}
+               {overview && portfolios.length === 0 &&
+                  <Alert className="min-w-0 flex-1 basis-64">
+                     <AlertDescription>
+                        No portfolio on this account yet. Create one, deposit coins that are already on {label}, then
+                        rebalance to buy the targets.
+                     </AlertDescription>
+                  </Alert>}
                <Button className="ml-auto" disabled={!overview} onClick={() => setEditing({ portfolio: null })}>
                   <PlusIcon /> New portfolio
                </Button>
@@ -252,14 +259,6 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
                      <Button size="sm" variant="outline" onClick={() => setAdjusting(coin)}>Adjust</Button>
                   </AlertAction>
                </Alert>)}
-
-            {overview && portfolios.length === 0 &&
-               <Alert>
-                  <AlertDescription>
-                     No portfolio on this account yet. Create one, deposit coins that are already on {label}, then
-                     rebalance to buy the targets.
-                  </AlertDescription>
-               </Alert>}
 
             {overview && current.note &&
                <Alert>
