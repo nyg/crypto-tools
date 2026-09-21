@@ -96,7 +96,7 @@ export default function LedgerTable({ entries, sort, onSortChange, onPageChange,
                            {entry.baseAsset || entry.asset}
                         </TableCell>
                         <TableCell
-                           className={cn('text-right', entry.amount.startsWith('-') ? 'text-red-600' : 'text-green-600')}>
+                           className={cn('text-right', entry.amount.startsWith('-') ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
                            {entry.amount}
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">{entry.fee}</TableCell>

@@ -4,15 +4,19 @@ import { Link, useLocation } from 'react-router'
 import AboutDialog from './about-dialog'
 import MenuLink from './lib/menu-link'
 import PageHelpButton from './lib/page-help-button'
+import ThemeToggle from './lib/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { APP_VERSION, SHOW_ABOUT_EVENT } from '@/lib/about-event'
 import { rememberTab, sectionHref } from '@/lib/last-tab'
 import { tabPaths } from '@/lib/tools'
 import useLatestRelease from '@/lib/use-latest-release'
+import { cn } from '@/lib/utils'
 
 
 const isSection = (path: string, href: string) => path.split('/')[1] === href.split('/')[1]
+
+const hasInsetTitleBar = window.__INSET_TITLEBAR__ === true
 
 // Lucide has no brand icons, so the GitHub mark is inlined. The explicit width/height
 // matter: without them WKWebView (the Electrobun desktop app) collapses the svg to 0×0.
@@ -46,17 +50,21 @@ export default function Layout({ children, name, subNav }: { children: ReactNode
       <div className="flex min-h-svh flex-col">
 
          <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
-            <div className="flex h-14 w-full items-center gap-4 px-4 sm:gap-6 sm:px-6">
-               <Link to="/" className="font-heading text-sm font-semibold tracking-tight whitespace-nowrap">
+            <div className={cn(
+               'flex h-14 w-full items-center gap-4 px-4 sm:gap-6 sm:px-6',
+               hasInsetTitleBar && 'electrobun-webkit-app-region-drag pl-22 sm:pl-22')}>
+               <Link
+                  to="/"
+                  className="electrobun-webkit-app-region-no-drag font-heading text-sm font-semibold tracking-tight whitespace-nowrap">
                   Crypto Tools
                </Link>
-               <nav className="flex items-center gap-3 sm:gap-4">
+               <nav className="electrobun-webkit-app-region-no-drag flex items-center gap-3 sm:gap-4">
                   <MenuLink href={sectionHref('Kraken', pathname)} isActive={isSection}>Kraken</MenuLink>
                   <MenuLink href={sectionHref('Binance', pathname)} isActive={isSection}>Binance</MenuLink>
                   <MenuLink href={sectionHref('Bybit', pathname)} isActive={isSection}>Bybit</MenuLink>
                   <MenuLink href={sectionHref('Tools', pathname)} isActive={isSection}>Tools</MenuLink>
                </nav>
-               <div className="ml-auto flex items-center gap-1">
+               <div className="electrobun-webkit-app-region-no-drag ml-auto flex items-center gap-1">
                   {/* Only where no sub-nav is carrying it: on a tool page the help sits
                       beside the tabs, next to the page it describes. */}
                   {!tabPaths.has(pathname) && <PageHelpButton />}
@@ -70,6 +78,7 @@ export default function Layout({ children, name, subNav }: { children: ReactNode
                      {APP_VERSION ? `v${APP_VERSION}` : 'About'}
                      {updateAvailable && <span aria-hidden className="size-1.5 rounded-full bg-primary" />}
                   </Button>
+                  <ThemeToggle />
                   <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                      <a href="https://github.com/nyg/crypto-tools" target="_blank" rel="noreferrer">
                         <GithubLogo />
