@@ -1,6 +1,20 @@
 # Changelog
 
 
+## [0.9.0](https://github.com/nyg/crypto-tools/compare/v0.8.0..v0.9.0) - 2026-09-21
+
+### ⛰️  Features
+
+- [`ab9474c`](https://github.com/nyg/crypto-tools/commit/ab9474c6cf1f5ed7025b5bde2ddf0d8953ec044a) *(xstocks)* Backed ISINs, product pages and factsheets, with a weekly reference refresh ([#304](https://github.com/nyg/crypto-tools/issues/304))
+- [`e566de8`](https://github.com/nyg/crypto-tools/commit/e566de8965dc6334d01897b5160a467b333ac5b0) *(theme)* Dark mode that follows the OS, with the header as the macOS title bar ([#303](https://github.com/nyg/crypto-tools/issues/303))
+- [`bcddeeb`](https://github.com/nyg/crypto-tools/commit/bcddeebdb9f41d06c55cb541f2cb14fdc692ceb3) *(about)* Match the qoqa-compta About dialog ([#302](https://github.com/nyg/crypto-tools/issues/302))
+- [`1ff114c`](https://github.com/nyg/crypto-tools/commit/1ff114c1470c3f271ee460e5fbef8aaec2348270) *(nav)* Per-exchange settings, sticky sub-nav and remembered tabs ([#301](https://github.com/nyg/crypto-tools/issues/301))
+- [`31ef5d3`](https://github.com/nyg/crypto-tools/commit/31ef5d3de956277368d0432ef11542400614ae6c) *(portfolios)* Bring portfolios to Kraken and Binance ([#300](https://github.com/nyg/crypto-tools/issues/300))
+
+### 🐛 Bug Fixes
+
+- [`0f371ab`](https://github.com/nyg/crypto-tools/commit/0f371ab80add066e90904cfddd3582259d25fce9) MacOS title bar double-click and full screen, tighter sub-nav ([#305](https://github.com/nyg/crypto-tools/issues/305))
+
 ## [0.8.0](https://github.com/nyg/crypto-tools/compare/v0.7.0..v0.8.0) - 2026-09-21
 
 ### ⛰️  Features
