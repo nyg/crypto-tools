@@ -28,6 +28,7 @@ export interface Page {
 export interface LatestRelease {
    version: string
    url: string
+   checkedAt: string
 }
 
 export type InstallMethod = 'homebrew' | 'scoop' | 'manual' | 'web'

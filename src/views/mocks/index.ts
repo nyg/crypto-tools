@@ -50,7 +50,8 @@ const mockRoutes: Record<string, MockRoute> = {
    ...portfolioRoutes,
    '/api/settings': () => mockSettings(false),
    '/api/settings?reveal=true': () => mockSettings(true),
-   '/api/app/latest-release': () => mockLatestRelease,
+   '/api/app/latest-release': () => mockLatestRelease(),
+   '/api/app/latest-release?refresh=1': () => mockLatestRelease(),
    '/api/app/install': () => mockInstallInfo,
 }
 
@@ -59,10 +60,11 @@ const mockInstallInfo: InstallInfo = {
    method: 'homebrew'
 }
 
-const mockLatestRelease: LatestRelease = {
+const mockLatestRelease = (): LatestRelease => ({
    version: '99.0.0',
-   url: 'https://github.com/nyg/crypto-tools/releases/latest'
-}
+   url: 'https://github.com/nyg/crypto-tools/releases/latest',
+   checkedAt: new Date().toISOString()
+})
 
 const mockSettings = (reveal: boolean): MaskedSettings => ({
    version: 2,

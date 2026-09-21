@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import useSWR from 'swr'
 import { APP_VERSION } from './about-event'
+import { fetcher } from './fetcher'
 import type { LatestRelease } from '../../types/api'
 
 export const LATEST_RELEASE_KEY = '/api/app/latest-release'
+const REFRESH_SERVER_CACHE_KEY = `${LATEST_RELEASE_KEY}?refresh=1`
 
 const segments = (version: string) => {
    const [core = ''] = String(version).split('-')
@@ -24,17 +27,27 @@ export function isNewer(candidate: string | null | undefined, current: string | 
 
 export default function useLatestRelease() {
 
-   const { data, error, isLoading } = useSWR<LatestRelease>(LATEST_RELEASE_KEY, {
+   const [rechecking, setRechecking] = useState(false)
+   const { data, error, isLoading, mutate } = useSWR<LatestRelease>(LATEST_RELEASE_KEY, {
       revalidateOnFocus: false,
       revalidateIfStale: false,
       shouldRetryOnError: false
    })
 
+   const check = async () => {
+      setRechecking(true)
+      await fetcher(REFRESH_SERVER_CACHE_KEY).catch(() => undefined)
+      await mutate()
+      setRechecking(false)
+   }
+
    return {
       version: data?.version ?? null,
       url: data?.url ?? null,
+      checkedAt: error ? null : data?.checkedAt ?? null,
       updateAvailable: isNewer(data?.version, APP_VERSION),
-      isLoading,
-      error
+      isLoading: isLoading || rechecking,
+      error,
+      check
    }
 }
