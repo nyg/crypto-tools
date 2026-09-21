@@ -15,19 +15,19 @@ const portfolioHelp = (exchange: string, practice: ReactNode) =>
       deposit counts at its value on the day it came in.{practice}
    </>
 
+const settingsHelp = (tabs: string) =>
+   <>
+      The keys the {tabs} tabs use, and only those. They are kept on this machine, in your
+      operating system&apos;s credential store wherever one is reachable, never uploaded
+      anywhere, and used only to sign the calls a page makes on your behalf. Removing a key
+      here is enough to cut those tabs off from it.
+   </>
+
 // What each page is and where its data comes from, keyed by route. Kept in one place
 // and out of the pages themselves: the copy is worth having, a banner above every
 // page is not, and whichever surface ends up showing it should have a single list to
 // read from rather than ten paragraphs scattered across the routes.
 const pageHelp: Record<string, ReactNode> = {
-
-   '/settings':
-      <>
-         The keys the other pages use to reach each exchange. They are stored on this machine
-         in the app&apos;s own data folder, beside the ledger database, never uploaded
-         anywhere, and used only to sign the calls a page makes on your behalf. Removing a key
-         here is enough to cut a page off from its exchange.
-      </>,
 
    '/kraken/ledger':
       <>
@@ -110,6 +110,12 @@ const pageHelp: Record<string, ReactNode> = {
 
    '/bybit/portfolios': portfolioHelp('Bybit',
       <> Switch to <b>Demo</b> to try it with Bybit&apos;s test funds.</>),
+
+   '/kraken/settings': settingsHelp('Kraken'),
+
+   '/binance/settings': settingsHelp('Binance'),
+
+   '/bybit/settings': settingsHelp('Bybit'),
 
    '/tools/trade-calculator':
       <>

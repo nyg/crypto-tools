@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Link } from 'react-router'
 import { KeyRoundIcon } from 'lucide-react'
 import Layout from '../components/layout'
@@ -5,6 +6,8 @@ import useSettings from '../lib/use-settings'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toolGroups } from '@/lib/tools'
+
+const settingsLinks = toolGroups.flatMap(({ name, settings }) => settings ? [{ name, href: settings.href }] : [])
 
 export default function Home() {
 
@@ -29,10 +32,14 @@ export default function Home() {
                <Alert>
                   <KeyRoundIcon />
                   <AlertDescription>
-                     No API keys configured yet. Add them in{' '}
-                     <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
-                        Settings
-                     </Link>{' '}
+                     No API keys configured yet. Add them on the Settings tab of{' '}
+                     {settingsLinks.map(({ name, href }, index) =>
+                        <Fragment key={href}>
+                           {index > 0 && (index === settingsLinks.length - 1 ? ' or ' : ', ')}
+                           <Link to={href} className="font-medium text-foreground underline underline-offset-4">
+                              {name}
+                           </Link>
+                        </Fragment>)}{' '}
                      to fetch balances and create orders.
                   </AlertDescription>
                </Alert>}

@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, PieChartIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import type { Provider } from '../../types/credentials'
 
 
 // The single source of truth for navigation: the home dashboard, the per-exchange
@@ -23,6 +24,12 @@ export interface Tool {
 export interface ToolGroup {
    name: string
    tools: Tool[]
+   settings?: GroupSettings
+}
+
+export interface GroupSettings {
+   href: string
+   providers: [Provider, ...Provider[]]
 }
 
 const portfolios = (exchange: string): Tool => ({
@@ -90,7 +97,8 @@ export const toolGroups: ToolGroup[] = [
             description: 'See which tokenized listings are stocks and which are ETFs, with optional AI-written descriptions.',
             icon: SparklesIcon
          }
-      ]
+      ],
+      settings: { href: '/kraken/settings', providers: ['kraken', 'anthropic'] }
    },
    {
       name: 'Binance',
@@ -102,11 +110,13 @@ export const toolGroups: ToolGroup[] = [
             icon: CoinsIcon
          },
          portfolios('binance')
-      ]
+      ],
+      settings: { href: '/binance/settings', providers: ['binance', 'binanceTestnet'] }
    },
    {
       name: 'Bybit',
-      tools: [portfolios('bybit')]
+      tools: [portfolios('bybit')],
+      settings: { href: '/bybit/settings', providers: ['bybit', 'bybitDemo'] }
    },
    {
       name: 'Tools',
@@ -127,15 +137,30 @@ const groupBy = (name: string): ToolGroup => {
    return group
 }
 
-// Where the header menu sends you for an exchange: its first tool.
+const tabsOf = ({ tools, settings }: ToolGroup) => [
+   ...tools.map(({ title, href }) => ({ label: title, href })),
+   ...settings ? [{ label: 'Settings', href: settings.href }] : []
+]
+
+export const groupOfPath = (path: string): ToolGroup | undefined =>
+   toolGroups.find(group => tabsOf(group).some(({ href }) => href === path))
+
+export const tabHrefs = (name: string) => tabsOf(groupBy(name)).map(({ href }) => href)
+
+export const settingsOf = (name: string): GroupSettings => {
+   const { settings } = groupBy(name)
+   if (!settings) throw new Error(`The ${name} tool group has no settings.`)
+   return settings
+}
+
+// Where the header menu sends you for an exchange none of whose tabs was opened yet: its first tool.
 export const groupHref = (name: string): string => {
    const [first] = groupBy(name).tools
    if (!first) throw new Error(`The ${name} tool group has no tools.`)
    return first.href
 }
 
-export const subNavItems = (name: string) =>
-   groupBy(name).tools.map(({ title, href }) => ({ label: title, href }))
+export const subNavItems = (name: string) => tabsOf(groupBy(name))
 
 // The routes whose data comes out of the synced ledger, for the sub-nav to check.
 export const ledgerBackedPaths = new Set(
@@ -145,4 +170,4 @@ export const ledgerBackedPaths = new Set(
 
 // Every route that gets a sub-nav, so that whatever the sub-nav already shows is not
 // shown a second time by the header above it.
-export const toolPaths = new Set(toolGroups.flatMap(group => group.tools).map(tool => tool.href))
+export const tabPaths = new Set(toolGroups.flatMap(tabsOf).map(({ href }) => href))

@@ -7,7 +7,8 @@ import PageHelpButton from './lib/page-help-button'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { APP_VERSION, SHOW_ABOUT_EVENT } from '@/lib/about-event'
-import { groupHref, toolPaths } from '@/lib/tools'
+import { rememberTab, sectionHref } from '@/lib/last-tab'
+import { tabPaths } from '@/lib/tools'
 import useLatestRelease from '@/lib/use-latest-release'
 
 
@@ -32,6 +33,10 @@ export default function Layout({ children, name }: { children: ReactNode, name: 
    }, [name])
 
    useEffect(() => {
+      rememberTab(pathname)
+   }, [pathname])
+
+   useEffect(() => {
       const open = () => setAboutOpen(true)
       window.addEventListener(SHOW_ABOUT_EVENT, open)
       return () => window.removeEventListener(SHOW_ABOUT_EVENT, open)
@@ -46,16 +51,15 @@ export default function Layout({ children, name }: { children: ReactNode, name: 
                   Crypto Tools
                </Link>
                <nav className="flex items-center gap-3 sm:gap-4">
-                  <MenuLink href={groupHref('Kraken')} isActive={isSection}>Kraken</MenuLink>
-                  <MenuLink href={groupHref('Binance')} isActive={isSection}>Binance</MenuLink>
-                  <MenuLink href={groupHref('Bybit')} isActive={isSection}>Bybit</MenuLink>
-                  <MenuLink href={groupHref('Tools')} isActive={isSection}>Tools</MenuLink>
-                  <MenuLink href="/settings" isActive={isSection}>Settings</MenuLink>
+                  <MenuLink href={sectionHref('Kraken', pathname)} isActive={isSection}>Kraken</MenuLink>
+                  <MenuLink href={sectionHref('Binance', pathname)} isActive={isSection}>Binance</MenuLink>
+                  <MenuLink href={sectionHref('Bybit', pathname)} isActive={isSection}>Bybit</MenuLink>
+                  <MenuLink href={sectionHref('Tools', pathname)} isActive={isSection}>Tools</MenuLink>
                </nav>
                <div className="ml-auto flex items-center gap-1">
                   {/* Only where no sub-nav is carrying it: on a tool page the help sits
                       beside the tabs, next to the page it describes. */}
-                  {!toolPaths.has(pathname) && <PageHelpButton />}
+                  {!tabPaths.has(pathname) && <PageHelpButton />}
                   <Button
                      variant="ghost"
                      size="sm"

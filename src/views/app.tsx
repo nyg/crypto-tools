@@ -3,10 +3,11 @@ import { SWRConfig } from 'swr'
 import './styles/global.css'
 import { fetcher } from './lib/fetcher'
 import Home from './pages/home'
-import Settings from './pages/settings'
 import BinancePortfolios from './pages/binance/portfolios'
+import BinanceSettings from './pages/binance/settings'
 import BinanceStaking from './pages/binance/staking'
 import BybitPortfolios from './pages/bybit/portfolios'
+import BybitSettings from './pages/bybit/settings'
 import KrakenBalances from './pages/kraken/balances'
 import KrakenAggregatedTrades from './pages/kraken/aggregated-trades'
 import KrakenFees from './pages/kraken/fees'
@@ -15,6 +16,7 @@ import KrakenOpenOrders from './pages/kraken/open-orders'
 import KrakenOrderBatch from './pages/kraken/order-batch'
 import KrakenPortfolios from './pages/kraken/portfolios'
 import KrakenRewards from './pages/kraken/rewards'
+import KrakenSettings from './pages/kraken/settings'
 import KrakenXStocks from './pages/kraken/xstocks'
 import TradeCalculator from './pages/tools/trade-calculator'
 
@@ -29,10 +31,11 @@ export default function App() {
          <Router>
             <Routes>
                <Route path="/" element={<Home />} />
-               <Route path="/settings" element={<Settings />} />
                <Route path="/binance/staking" element={<BinanceStaking />} />
                <Route path="/binance/portfolios" element={<BinancePortfolios />} />
+               <Route path="/binance/settings" element={<BinanceSettings />} />
                <Route path="/bybit/portfolios" element={<BybitPortfolios />} />
+               <Route path="/bybit/settings" element={<BybitSettings />} />
                <Route path="/kraken/balances" element={<KrakenBalances />} />
                <Route path="/kraken/aggregated-trades" element={<KrakenAggregatedTrades />} />
                <Route path="/kraken/fees" element={<KrakenFees />} />
@@ -41,6 +44,7 @@ export default function App() {
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
                <Route path="/kraken/portfolios" element={<KrakenPortfolios />} />
                <Route path="/kraken/rewards" element={<KrakenRewards />} />
+               <Route path="/kraken/settings" element={<KrakenSettings />} />
                <Route path="/kraken/xstocks" element={<KrakenXStocks />} />
                <Route path="/tools/trade-calculator" element={<TradeCalculator />} />
                <Route path="*" element={<Navigate to="/" replace />} />

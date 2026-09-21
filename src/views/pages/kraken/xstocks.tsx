@@ -296,7 +296,7 @@ export default function KrakenXStocks() {
                            <SparklesIcon className="size-3.5" />
                            Classify with Claude
                         </Button>
-                        : <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
+                        : <Link to="/kraken/settings" className="font-medium text-foreground underline underline-offset-4">
                            Add an Anthropic API key
                         </Link>}
                   </AlertDescription>
@@ -344,7 +344,7 @@ export default function KrakenXStocks() {
                         <Alert>
                            <AlertDescription>
                               Add an Anthropic API key in{' '}
-                              <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
+                              <Link to="/kraken/settings" className="font-medium text-foreground underline underline-offset-4">
                                  Settings
                               </Link>{' '}
                               to generate descriptions. Everything else on this page works without one.

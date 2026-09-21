@@ -1,20 +1,26 @@
 import { useSWRConfig } from 'swr'
-import useMutation from '../lib/use-mutation'
+import useMutation from '../../lib/use-mutation'
 import { toast } from 'sonner'
-import Input from '../components/lib/input'
-import Layout from '../components/layout'
-import useSettings, { SETTINGS_KEY, SETTINGS_REVEAL_KEY } from '../lib/use-settings'
+import Input from '../lib/input'
+import useSettings, { SETTINGS_KEY, SETTINGS_REVEAL_KEY } from '../../lib/use-settings'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import type { FormEvent } from 'react'
-import type { Provider } from '../../types/credentials'
-import type { CredentialStore, MaskedSettings, SecretField, SettingsUpdate } from '../../types/settings'
+import type { ComponentType, FormEvent, ReactNode } from 'react'
+import type { Provider } from '../../../types/credentials'
+import type { CredentialStore, MaskedSettings, SecretField, SettingsUpdate } from '../../../types/settings'
 
 interface ProviderForm {
    id: Provider
    name: string
    description: string
    hasSecret: boolean
+}
+
+export type SettingsLayout = ComponentType<{ children: ReactNode, name: string }>
+
+interface SettingsPageProps {
+   layout: SettingsLayout
+   providers: Provider[]
 }
 
 const storeNotes: Record<CredentialStore, string> = {
@@ -26,7 +32,7 @@ const storeNotes: Record<CredentialStore, string> = {
    none: ''
 }
 
-const providers: ProviderForm[] = [
+const providerForms: ProviderForm[] = [
    {
       id: 'binance',
       name: 'Binance',
@@ -66,7 +72,7 @@ const providers: ProviderForm[] = [
 ]
 
 
-export default function Settings() {
+export default function SettingsPage({ layout: Layout, providers }: SettingsPageProps) {
 
    // The only place that asks for the keys themselves, to prefill the form.
    const { settings, isLoading, mutate } = useSettings(SETTINGS_REVEAL_KEY)
@@ -101,7 +107,7 @@ export default function Settings() {
       <Layout name="Settings">
          <div className="space-y-6">
 
-            {providers.map(provider => {
+            {providerForms.filter(({ id }) => providers.includes(id)).map(provider => {
                const stored = settings?.[provider.id]
                const storeNote = storeNotes[stored?.store ?? 'none']
 

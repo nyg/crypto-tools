@@ -27,7 +27,7 @@ export default function BinanceStaking() {
          <BinanceLayout name="Staking">
             <CredentialsAlert unreachable={unreachable}>
                Generate an API key and secret on Binance and add them in{' '}
-               <Link to="/settings" className="font-medium text-foreground underline underline-offset-4">
+               <Link to="/binance/settings" className="font-medium text-foreground underline underline-offset-4">
                   Settings
                </Link>{' '}
                to fetch your staking positions.
