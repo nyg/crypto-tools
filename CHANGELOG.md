@@ -1,6 +1,19 @@
 # Changelog
 
 
+## [0.8.0](https://github.com/nyg/crypto-tools/compare/v0.7.0..v0.8.0) - 2026-09-21
+
+### ⛰️  Features
+
+- [`5163dab`](https://github.com/nyg/crypto-tools/commit/5163dab74314dcaf343d7551cc1a2e6f16fb55d2) *(bybit)* Stop loss per target coin ([#299](https://github.com/nyg/crypto-tools/issues/299))
+- [`934d23d`](https://github.com/nyg/crypto-tools/commit/934d23d0620980422a5b33076c72b7ab799b7350) *(bybit)* Per-coin profit split and account card tidy-up ([#296](https://github.com/nyg/crypto-tools/issues/296))
+- [`d80acdb`](https://github.com/nyg/crypto-tools/commit/d80acdb1ddb09aee67d7fef8935cb1545ca01252) *(bybit)* Polish the portfolio page ([#295](https://github.com/nyg/crypto-tools/issues/295))
+- [`8e260b7`](https://github.com/nyg/crypto-tools/commit/8e260b769742237b2030f3637720aea6f218248e) *(bybit)* Add portfolio management ([#294](https://github.com/nyg/crypto-tools/issues/294))
+
+### ⚙️ Miscellaneous
+
+- [`6e2ca26`](https://github.com/nyg/crypto-tools/commit/6e2ca2664242dd5c2e4dd7f7ae2b7012bcf6335a) *(demo)* Add a scripted pipeline for narrated feature videos ([#298](https://github.com/nyg/crypto-tools/issues/298))
+
 ## [0.7.0](https://github.com/nyg/crypto-tools/compare/v0.6.0..v0.7.0) - 2026-09-10
 
 ### ⛰️  Features
