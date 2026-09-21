@@ -5,9 +5,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asNumber, asDollarAmount, asRounded } from '../../../utils/format'
-import SortIcon from '../lib/sort-icon'
+import SortableHead from '../lib/sortable-head'
 import ExternalLink from '../lib/external-link'
-import type { ReactNode } from 'react'
 import type { VariantProps } from 'class-variance-authority'
 import type { badgeVariants } from '@/components/ui/badge'
 import type { XStockRow } from '../../../types/api'
@@ -32,33 +31,6 @@ const typeVariants: Record<string, BadgeVariant> = {
 const originLabels: Record<string, string> = {
    seed: 'From the checked-in reference list',
    ai: 'Classified by Claude'
-}
-
-function SortableHead({ column, sort, onSortChange, className, align, children }: {
-   column: string
-   sort: Sort
-   onSortChange: (sort: Sort) => void
-   className?: string
-   align?: 'right'
-   children: ReactNode
-}) {
-   const isActive = sort.column === column
-   return (
-      <TableHead className={className}>
-         <button
-            type="button"
-            className={cn('inline-flex w-full items-center gap-1 hover:text-foreground',
-               align === 'right' && 'justify-end',
-               isActive && 'font-semibold text-foreground')}
-            onClick={() => onSortChange({
-               column,
-               direction: isActive && sort.direction === 'desc' ? 'asc' : 'desc'
-            })}>
-            {children}
-            <SortIcon isActive={isActive} direction={sort.direction} />
-         </button>
-      </TableHead>
-   )
 }
 
 export default function XStockTable({
@@ -120,7 +92,7 @@ export default function XStockTable({
                      sort={sort}
                      onSortChange={onSortChange}
                      align="right"
-                     className="w-[8.5rem] text-right">
+                     className="w-[8.5rem]">
                      24h volume
                   </SortableHead>
                   <TableHead>Description</TableHead>

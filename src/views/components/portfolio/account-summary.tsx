@@ -1,20 +1,31 @@
+import { useState } from 'react'
 import { TriangleAlertIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import Checkbox from '../lib/checkbox'
+import SortableHead from '../lib/sortable-head'
 import usePersistentState from '../../lib/use-persistent-state'
+import { sortRows } from '../../lib/sort'
+import type { SortKeys } from '../../lib/sort'
 import { asQuantity, asQuoteAmount } from './format'
-import type { PortfolioOverviewResponse } from '../../../types/api'
+import type { AccountCoin, PortfolioOverviewResponse } from '../../../types/api'
+import type { Sort } from '../../../types/kraken'
+
+const sortKeys: SortKeys<AccountCoin> = {
+   asset: coin => coin.asset,
+   value: coin => coin.value === null ? null : coin.valueNum
+}
 
 export default function AccountSummary({ overview, label }: { overview: PortfolioOverviewResponse, label: string }) {
 
    const [hideAllocated, setHideAllocated] = usePersistentState('bybit.portfolios.hideAllocated', true)
+   const [sort, setSort] = useState<Sort>({ column: 'value', direction: 'desc' })
 
    const asset = overview.valuationAsset
-   const coins = hideAllocated
+   const coins = sortRows(hideAllocated
       ? overview.coins.filter(coin => Number(coin.unallocated) !== 0)
-      : overview.coins
+      : overview.coins, sort, sortKeys)
 
    return (
       <Card size="sm">
@@ -34,11 +45,13 @@ export default function AccountSummary({ overview, label }: { overview: Portfoli
                : <Table className="tabular-nums">
                   <TableHeader>
                      <TableRow>
-                        <TableHead>Coin</TableHead>
+                        <SortableHead column="asset" sort={sort} onSortChange={setSort}>Coin</SortableHead>
                         <TableHead className="text-right">Wallet</TableHead>
                         <TableHead className="text-right">In portfolios</TableHead>
                         <TableHead className="text-right">Unallocated</TableHead>
-                        <TableHead className="text-right">Unallocated value</TableHead>
+                        <SortableHead column="value" align="right" sort={sort} onSortChange={setSort}>
+                           Unallocated value
+                        </SortableHead>
                      </TableRow>
                   </TableHeader>
                   <TableBody>

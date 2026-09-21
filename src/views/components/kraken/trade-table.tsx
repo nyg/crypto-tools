@@ -1,42 +1,15 @@
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asNumber } from '../../../utils/format'
-import SortIcon from '../lib/sort-icon'
-import type { ReactNode } from 'react'
+import SortableHead from '../lib/sortable-head'
 import type { TradesResponse } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
 
 // Kraken records trade times in UTC; rendering them in the browser's zone would
 // silently shift every trade.
 const asUtcTimestamp = (time: number) => new Date(time).toISOString().replace('T', ' ').slice(0, 19)
-
-function SortableHead({ column, sort, onSortChange, className, children }: {
-   column: string
-   sort: Sort
-   onSortChange: (sort: Sort) => void
-   className?: string
-   children: ReactNode
-}) {
-   const isActive = sort.column === column
-   return (
-      <TableHead className={className}>
-         <button
-            type="button"
-            className={cn('inline-flex items-center gap-1 hover:text-foreground',
-               isActive && 'font-semibold text-foreground')}
-            onClick={() => onSortChange({
-               column,
-               direction: isActive && sort.direction === 'desc' ? 'asc' : 'desc'
-            })}>
-            {children}
-            <SortIcon isActive={isActive} direction={sort.direction} />
-         </button>
-      </TableHead>
-   )
-}
 
 // One row per trade, exactly as the trades export wrote it. Folded into orders and
 // then into runs of buying and selling, they are the Aggregated Trades page; this is
@@ -78,16 +51,16 @@ export default function TradeTable({
                   <SortableHead column="pair" sort={sort} onSortChange={onSortChange}>Pair</SortableHead>
                   <SortableHead column="direction" sort={sort} onSortChange={onSortChange}>Side</SortableHead>
                   <SortableHead column="ordertype" sort={sort} onSortChange={onSortChange}>Type</SortableHead>
-                  <SortableHead column="volume" sort={sort} onSortChange={onSortChange} className="text-right">
+                  <SortableHead column="volume" sort={sort} onSortChange={onSortChange} align="right">
                      Volume
                   </SortableHead>
-                  <SortableHead column="price" sort={sort} onSortChange={onSortChange} className="text-right">
+                  <SortableHead column="price" sort={sort} onSortChange={onSortChange} align="right">
                      Price
                   </SortableHead>
-                  <SortableHead column="cost" sort={sort} onSortChange={onSortChange} className="text-right">
+                  <SortableHead column="cost" sort={sort} onSortChange={onSortChange} align="right">
                      Cost
                   </SortableHead>
-                  <SortableHead column="fee" sort={sort} onSortChange={onSortChange} className="text-right">
+                  <SortableHead column="fee" sort={sort} onSortChange={onSortChange} align="right">
                      Fee
                   </SortableHead>
                   <TableHead>Trade</TableHead>

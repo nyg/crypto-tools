@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { cn } from '@/lib/utils'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asAssetAmount, asNumber, asDollarAmount, asPercentage } from '../../../utils/format'
-import SortIcon from '../lib/sort-icon'
-import type { ReactNode } from 'react'
+import SortableHead from '../lib/sortable-head'
 import type { FeeSummary } from '../../../types/api'
 import type { Sort, UsdRates } from '../../../types/kraken'
 
@@ -17,32 +15,6 @@ interface FeeRow {
 }
 
 const valueOf = (total: number, rate: number | undefined) => rate == null ? null : total * rate
-
-function SortableHead({ column, sort, onSortChange, align, children }: {
-   column: string
-   sort: Sort
-   onSortChange: (sort: Sort) => void
-   align?: 'right'
-   children: ReactNode
-}) {
-   const isActive = sort.column === column
-   return (
-      <TableHead className={align === 'right' ? 'text-right' : undefined}>
-         <button
-            type="button"
-            className={cn('inline-flex w-full items-center gap-1 hover:text-foreground',
-               align === 'right' && 'justify-end',
-               isActive && 'font-semibold text-foreground')}
-            onClick={() => onSortChange({
-               column,
-               direction: isActive && sort.direction === 'desc' ? 'asc' : 'desc'
-            })}>
-            {children}
-            <SortIcon isActive={isActive} direction={sort.direction} />
-         </button>
-      </TableHead>
-   )
-}
 
 function compare(a: FeeRow, b: FeeRow, sort: Sort) {
 

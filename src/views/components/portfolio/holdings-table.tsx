@@ -1,10 +1,15 @@
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
    asDrift, asQuantity, asQuoteAmount, asSignedQuoteAmount, asWeight, profitColor,
    showsAsZeroQuoteAmount, stopStatusLabels
 } from './format'
+import SortableHead from '../lib/sortable-head'
+import { numericKey, sortRows } from '../../lib/sort'
+import type { SortKeys } from '../../lib/sort'
 import type { PortfolioHolding, PortfolioSummary } from '../../../types/api'
+import type { Sort } from '../../../types/kraken'
 
 const ProfitCell = ({ value, quote }: { value: string | null, quote: string }) =>
    <TableCell className={cn('text-right', profitColor(value))}>{asSignedQuoteAmount(value, quote)}</TableCell>
@@ -23,29 +28,45 @@ const StopCell = ({ holding }: { holding: PortfolioHolding }) =>
 
 export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSummary }) {
 
+   const [sort, setSort] = useState<Sort>({})
+
    const band = Number(portfolio.band)
    const quote = portfolio.quoteAsset
+
+   const isCashOnly = (holding: PortfolioHolding) => holding.asset === quote && Number(holding.target) === 0
+   const unlessCashOnly = (key: (holding: PortfolioHolding) => number | null) =>
+      (holding: PortfolioHolding) => isCashOnly(holding) ? null : key(holding)
+
+   const sortKeys: SortKeys<PortfolioHolding> = {
+      asset: holding => holding.asset,
+      target: unlessCashOnly(holding => Number(holding.target)),
+      weight: unlessCashOnly(holding => numericKey(holding.weight)),
+      drift: unlessCashOnly(holding => numericKey(holding.drift)),
+      value: holding => holding.value === null ? null : holding.valueNum,
+      unrealized: unlessCashOnly(holding => numericKey(holding.unrealized)),
+      realized: holding => Number(holding.realized)
+   }
 
    return (
       <Table className="tabular-nums">
          <TableHeader>
             <TableRow>
-               <TableHead>Asset</TableHead>
-               <TableHead className="text-right">Target</TableHead>
+               <SortableHead column="asset" sort={sort} onSortChange={setSort}>Asset</SortableHead>
+               <SortableHead column="target" align="right" sort={sort} onSortChange={setSort}>Target</SortableHead>
                <TableHead className="text-right">Stop</TableHead>
-               <TableHead className="text-right">Current</TableHead>
-               <TableHead className="text-right">Drift</TableHead>
+               <SortableHead column="weight" align="right" sort={sort} onSortChange={setSort}>Current</SortableHead>
+               <SortableHead column="drift" align="right" sort={sort} onSortChange={setSort}>Drift</SortableHead>
                <TableHead className="text-right">Quantity</TableHead>
                <TableHead className="text-right">Price</TableHead>
-               <TableHead className="text-right">Value</TableHead>
-               <TableHead className="text-right">Unrealized</TableHead>
-               <TableHead className="text-right">Realized</TableHead>
+               <SortableHead column="value" align="right" sort={sort} onSortChange={setSort}>Value</SortableHead>
+               <SortableHead column="unrealized" align="right" sort={sort} onSortChange={setSort}>Unrealized</SortableHead>
+               <SortableHead column="realized" align="right" sort={sort} onSortChange={setSort}>Realized</SortableHead>
             </TableRow>
          </TableHeader>
          <TableBody>
-            {portfolio.holdings.map(holding => {
+            {sortRows(portfolio.holdings, sort, sortKeys).map(holding => {
                const untargeted = Number(holding.target) === 0
-               if (untargeted && holding.asset === quote) {
+               if (isCashOnly(holding)) {
                   const realizedShown = !showsAsZeroQuoteAmount(holding.realized)
                   if (showsAsZeroQuoteAmount(holding.quantity) && !realizedShown) return null
                   return (
