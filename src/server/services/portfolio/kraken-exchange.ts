@@ -9,7 +9,7 @@ import type { Credentials } from '../../../types/credentials'
 import type { KrakenSpotMarket } from '../../../types/kraken'
 import type {
    ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, WalletCoin
+   StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const MARKETS_TTL_MS = 60 * 60 * 1000
@@ -46,9 +46,8 @@ export default class KrakenExchange implements PortfolioExchange {
       return this.#api.fetchSpotPrices(await this.#markets())
    }
 
-   async takerFeeRate(symbols: string[]): Promise<string | null> {
-      const pairs = (await this.#markets()).filter(({ symbol }) => symbols.includes(symbol)).map(({ altname }) => altname)
-      return this.#api.fetchTakerFeeRate(pairs)
+   async takerFees(symbols: string[]): Promise<Record<string, TakerFee>> {
+      return this.#api.fetchTakerFees((await this.#markets()).filter(({ symbol }) => symbols.includes(symbol)))
    }
 
    async placeOrder(order: OrderRequest): Promise<string> {

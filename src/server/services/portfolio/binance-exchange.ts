@@ -8,15 +8,17 @@ import type { Credentials } from '../../../types/credentials'
 import type { BinanceEnvironment } from '../../../types/binance-api'
 import type {
    ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, WalletCoin
+   StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const ACCOUNT_TTL_MS = 5 * 60 * 1000
 const MARKETS_TTL_MS = 60 * 60 * 1000
+const FEES_TTL_MS = 10 * 60 * 1000
 const AMBIGUOUS_CODES = [-1006, -1007]
 
 const accounts = new CacheMap<ExchangeAccount>(ACCOUNT_TTL_MS)
 const markets = new CacheMap<SpotMarket[]>(MARKETS_TTL_MS)
+const fees = new CacheMap<TakerFee>(FEES_TTL_MS)
 
 export default class BinanceExchange implements PortfolioExchange {
 
@@ -48,6 +50,12 @@ export default class BinanceExchange implements PortfolioExchange {
 
    prices(): Promise<Record<string, SpotPrice>> {
       return this.#api.fetchSpotPrices()
+   }
+
+   async takerFees(symbols: string[]): Promise<Record<string, TakerFee>> {
+      const rates = await Promise.all(symbols.map(symbol =>
+         fees.get(`${this.#environment}:${this.#apiKey}:${symbol}`, () => this.#api.fetchTakerFee(symbol))))
+      return Object.fromEntries(symbols.map((symbol, index) => [symbol, rates[index]!]))
    }
 
    placeOrder(order: OrderRequest): Promise<string> {

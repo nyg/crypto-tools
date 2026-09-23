@@ -445,9 +445,12 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
          continue
       }
 
+      const fee = delta < 0 || venue === 'kraken'
+         ? { asset: quote, amount: fixed(Math.abs(delta) * FEE_RATE) }
+         : { asset, amount: fixed(delta / price * FEE_RATE) }
       orders.push(delta < 0
-         ? { asset, symbol: `${asset}${quote}`, side: 'sell', unit: 'base', amount: fixed(-delta / price, 6), price: String(price), value: fixed(-delta, 2) }
-         : { asset, symbol: `${asset}${quote}`, side: 'buy', unit: 'quote', amount: fixed(delta, 2), price: String(price), value: fixed(delta, 2) })
+         ? { asset, symbol: `${asset}${quote}`, side: 'sell', unit: 'base', amount: fixed(-delta / price, 6), price: String(price), value: fixed(-delta, 2), fee, feeRate: String(FEE_RATE), feeRateAssumed: false }
+         : { asset, symbol: `${asset}${quote}`, side: 'buy', unit: 'quote', amount: fixed(delta, 2), price: String(price), value: fixed(delta, 2), fee, feeRate: String(FEE_RATE), feeRateAssumed: false })
    }
 
    orders.sort((left, right) => (left.side === right.side ? 0 : left.side === 'sell' ? -1 : 1))

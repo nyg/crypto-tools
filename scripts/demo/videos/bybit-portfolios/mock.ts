@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import { planPortfolio, PlanError } from '../../../../src/server/services/portfolio/planner'
+import { orderFee, planPortfolio, PlanError } from '../../../../src/server/services/portfolio/planner'
 import type { PlanMarket } from '../../../../src/server/services/portfolio/planner'
 import type {
    AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioExecuteRequest,
@@ -336,15 +336,21 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       return reject(error instanceof PlanError ? error.message : String(error))
    }
 
-   const orders: PortfolioPlanOrder[] = result.orders.map(order => ({
-      asset: order.asset,
-      symbol: order.symbol,
-      side: order.side,
-      unit: order.unit,
-      amount: order.amount.toFixed(),
-      price: order.price.toFixed(),
-      value: order.value.toFixed(2)
-   }))
+   const orders: PortfolioPlanOrder[] = result.orders.map(order => {
+      const fee = orderFee(order, quote, Big(FEE_RATE), false)
+      return {
+         asset: order.asset,
+         symbol: order.symbol,
+         side: order.side,
+         unit: order.unit,
+         amount: order.amount.toFixed(),
+         price: order.price.toFixed(),
+         value: order.value.toFixed(2),
+         fee: { asset: fee.asset, amount: fee.amount.round(8).toFixed() },
+         feeRate: String(FEE_RATE),
+         feeRateAssumed: false
+      }
+   })
 
    const planId = `mock-plan-${state.nextId++}`
    state.plans.set(planId, { portfolioId: portfolio.id, orders, withdraw: result.withdraw.toNumber() })

@@ -487,6 +487,9 @@ export interface PortfolioPlanOrder {
    amount: string
    price: string
    value: string
+   fee: FeeAmount
+   feeRate: string
+   feeRateAssumed: boolean
 }
 
 export interface PortfolioPlanSkip {

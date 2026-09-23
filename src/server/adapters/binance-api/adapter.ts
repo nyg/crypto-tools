@@ -1,7 +1,7 @@
 import Big from 'big.js'
 import * as resource from './resource'
 import {
-   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet
+   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, takerFee
 } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type { TradingPair, TradingPairs } from '../../../types/market'
@@ -11,7 +11,7 @@ import type {
 import type { BinanceEnvironment } from '../../../types/binance-api'
 import type {
    ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, WalletCoin
+   StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const UNKNOWN_ORDER = -2011
@@ -149,6 +149,10 @@ export default class BinanceAPI {
 
    async fetchSpotAccount(fallbackId: string): Promise<ExchangeAccount> {
       return spotAccount(await resource.fetchAccount(this.#environment, this.#authenticated), fallbackId)
+   }
+
+   async fetchTakerFee(symbol: string): Promise<TakerFee> {
+      return takerFee(await resource.fetchCommission(this.#environment, this.#authenticated, symbol))
    }
 
    async fetchSpotWallet(): Promise<WalletCoin[]> {

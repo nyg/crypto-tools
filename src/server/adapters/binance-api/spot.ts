@@ -1,11 +1,11 @@
 import Big from 'big.js'
 import { HttpRequesterError } from '../../errors'
 import type {
-   BinanceAccount, BinanceBookTicker, BinanceErrorBody, BinanceExchangeInfo, BinanceOrder,
+   BinanceAccount, BinanceBookTicker, BinanceCommission, BinanceErrorBody, BinanceExchangeInfo, BinanceOrder,
    BinanceSymbol, BinanceTickerPrice, BinanceTrade
 } from '../../../types/binance-api'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderSettlement, SettlementStatus, SpotMarket, SpotPrice, WalletCoin
+   ExchangeAccount, OpenStopOrder, OrderSettlement, SettlementStatus, SpotMarket, SpotPrice, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const OPEN_STATUSES = ['NEW', 'PENDING_NEW', 'PARTIALLY_FILLED', 'PENDING_CANCEL']
@@ -46,6 +46,13 @@ function spotMarket({ symbol, baseAsset, quoteAsset, quoteAssetPrecision, filter
       maxQty: positive(marketLot?.maxQty) ?? decimal(lot?.maxQty),
       maxAmount: decimal(notional?.maxNotional)
    }
+}
+
+export function takerFee({ standardCommission, specialCommission, taxCommission }: BinanceCommission): TakerFee {
+   const tiers = [standardCommission, specialCommission, taxCommission]
+   const rateFor = (side: 'buyer' | 'seller') =>
+      tiers.reduce((sum, tier) => sum.plus(tier?.taker || 0).plus(tier?.[side] || 0), Big(0)).toFixed()
+   return { buy: rateFor('buyer'), sell: rateFor('seller') }
 }
 
 export function spotMarkets({ symbols }: BinanceExchangeInfo): SpotMarket[] {

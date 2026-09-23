@@ -23,6 +23,11 @@ export interface SpotPrice {
    ask: string
 }
 
+export interface TakerFee {
+   buy: string
+   sell: string
+}
+
 export interface WalletCoin {
    asset: string
    total: string

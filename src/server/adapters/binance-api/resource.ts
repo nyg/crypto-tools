@@ -2,7 +2,7 @@ import { httpRequester } from '../http-requester/server-http-requester'
 import { authenticator } from './authenticator'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   BinanceAccount, BinanceBookTicker, BinanceEnvironment, BinanceExchangeInfo, BinanceFiatFunding,
+   BinanceAccount, BinanceBookTicker, BinanceCommission, BinanceEnvironment, BinanceExchangeInfo, BinanceFiatFunding,
    BinanceKLine, BinanceOrder, BinanceOrderAck, BinanceOrderParams, BinanceOrderReference,
    BinanceSpotBalance, BinanceStakingPosition, BinanceTickerPrice, BinanceTrade
 } from '../../../types/binance-api'
@@ -20,6 +20,7 @@ const bookTickerEndpoint = '/api/v3/ticker/bookTicker'
 const klinesEndpoint = '/api/v3/klines' // candlestick data
 
 const accountEndpoint = '/api/v3/account'
+const commissionEndpoint = '/api/v3/account/commission'
 const orderEndpoint = '/api/v3/order'
 const openOrdersEndpoint = '/api/v3/openOrders'
 const myTradesEndpoint = '/api/v3/myTrades'
@@ -127,6 +128,10 @@ const tradingRequest = <T>(
 
 export async function fetchAccount(environment: BinanceEnvironment, apiCredentials: Credentials): Promise<BinanceAccount> {
    return await tradingRequest(environment, apiCredentials, accountEndpoint, 'GET', { omitZeroBalances: true })
+}
+
+export async function fetchCommission(environment: BinanceEnvironment, apiCredentials: Credentials, symbol: string): Promise<BinanceCommission> {
+   return await tradingRequest(environment, apiCredentials, commissionEndpoint, 'GET', { symbol })
 }
 
 export async function createOrder(environment: BinanceEnvironment, apiCredentials: Credentials, order: BinanceOrderParams): Promise<BinanceOrderAck> {

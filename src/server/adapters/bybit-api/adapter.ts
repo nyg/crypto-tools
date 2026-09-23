@@ -1,14 +1,14 @@
 import Big from 'big.js'
 import {
    cancelOrder, createOrder, fetchApiKeyInfo, fetchExecutions, fetchOpenStopOrders,
-   fetchOrderByLinkId, fetchSpotInstruments, fetchSpotTickers, fetchUnifiedWallet
+   fetchOrderByLinkId, fetchSpotFeeRates, fetchSpotInstruments, fetchSpotTickers, fetchUnifiedWallet
 } from './resource'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type { BybitEnvironment, BybitOrder } from '../../../types/bybit-api'
 import type {
    ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SettlementStatus, SpotMarket,
-   SpotPrice, StopOrderRequest, WalletCoin
+   SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const openStatuses = ['New', 'PartiallyFilled', 'Untriggered', 'Created']
@@ -76,6 +76,19 @@ export default class BybitAPI {
          total: walletBalance || '0',
          free: Big(walletBalance || 0).minus(locked || 0).toFixed(),
          borrowed: spotBorrow || '0'
+      }))
+   }
+
+   async fetchTakerFees(symbols: string[]): Promise<Record<string, TakerFee>> {
+      const listed = await fetchSpotFeeRates(this.#environment, this.#authenticated).catch(() => [])
+      const rates = new Map(listed.map(({ symbol, takerFeeRate }) => [symbol, takerFeeRate]))
+      for (const symbol of symbols.filter(symbol => !rates.has(symbol))) {
+         const [entry] = await fetchSpotFeeRates(this.#environment, this.#authenticated, symbol)
+         if (entry?.symbol === symbol) rates.set(symbol, entry.takerFeeRate)
+      }
+      return Object.fromEntries(symbols.flatMap(symbol => {
+         const rate = rates.get(symbol)
+         return rate ? [[symbol, { buy: rate, sell: rate }]] : []
       }))
    }
 
