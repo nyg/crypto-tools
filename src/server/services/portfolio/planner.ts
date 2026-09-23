@@ -178,6 +178,7 @@ export function planPortfolio(input: PlanInput): Plan {
 
    const sells: Desired[] = []
    const buys: Desired[] = []
+   const trimmable: Desired[] = []
 
    if (withdraw.gt(0)) {
       if (cash.lt(withdraw)) {
@@ -212,6 +213,7 @@ export function planPortfolio(input: PlanInput): Plan {
          const absorbsCash = (cashDrift.gt(band) && delta.gt(0)) || (cashDrift.lt(band.neg()) && delta.lt(0))
          if (drift.abs().lte(band) && !absorbsCash) {
             if (!drift.eq(0)) skipped.push({ asset, reason: 'within-band', value: delta.abs() })
+            if (delta.lt(0)) trimmable.push({ asset, value: delta.abs(), all: false })
             continue
          }
 
@@ -222,11 +224,15 @@ export function planPortfolio(input: PlanInput): Plan {
 
    const orders: PlannedOrder[] = []
 
-   for (const { asset, value, all } of sells) {
-      const market = markets.get(asset)!
+   const sellable = (asset: string): Big => {
       const quantity = holdings.get(asset) ?? ZERO
       const available = free.get(asset) ?? ZERO
-      const cap = quantity.lt(available) ? quantity : available
+      return quantity.lt(available) ? quantity : available
+   }
+
+   for (const { asset, value, all } of sells) {
+      const market = markets.get(asset)!
+      const cap = sellable(asset)
 
       if (cap.lte(0)) {
          skipped.push({ asset, reason: 'no-free-balance', value })
@@ -234,24 +240,51 @@ export function planPortfolio(input: PlanInput): Plan {
       }
 
       const sized = withdraw.gt(0) ? ceilTo(value.div(market.bid), market.baseStep) : value.div(market.bid)
-      const wanted = all ? quantity : sized
+      const wanted = all ? holdings.get(asset) ?? ZERO : sized
       const planned = sellOrders(market, wanted.gt(cap) ? cap : wanted)
 
       if (planned.length === 0) skipped.push({ asset, reason: 'below-minimum', value })
       orders.push(...planned)
    }
 
-   const proceeds = orders.reduce((sum, order) => sum.plus(order.value), ZERO).times(Big(1).minus(feeRate))
+   const kept = Big(1).minus(feeRate)
    const freeCash = free.get(quote) ?? ZERO
    const spendable = cash.lt(freeCash) ? cash : freeCash
-   const budget = spendable.plus(proceeds).minus(reserve)
+   const budgetAfter = (planned: PlannedOrder[]) =>
+      spendable.plus(planned.reduce((sum, order) => sum.plus(order.value), ZERO).times(kept)).minus(reserve)
    const wantedBuys = buys.reduce((sum, { value }) => sum.plus(value), ZERO)
+   const buyCost = buyFeeInQuote ? wantedBuys.times(Big(1).plus(feeRate)) : wantedBuys
+   const trimmed = new Set<string>()
+
+   const sellUpTo = (market: PlanMarket, value: Big, cap: Big): PlannedOrder[] => {
+      const quantity = value.div(market.bid)
+      return sellOrders(market, quantity.gt(cap) ? cap : quantity)
+   }
+
+   for (const { asset, value } of trimmable.sort((left, right) => right.value.cmp(left.value))) {
+      const unfunded = wantedBuys.gt(0) ? buyCost.minus(budgetAfter(orders)) : ZERO
+      if (unfunded.lte(0)) break
+
+      const market = markets.get(asset)!
+      const cap = sellable(asset)
+      const needed = unfunded.div(kept)
+      const partial = sellUpTo(market, needed.lt(value) ? needed : value, cap)
+      const planned = partial.length > 0 ? partial : sellUpTo(market, value, cap)
+
+      if (planned.length === 0) continue
+      trimmed.add(asset)
+      orders.push(...planned)
+   }
+
+   const budget = budgetAfter(orders)
    const scale = buyScale(netOfBuyFees(budget, feeRate, buyFeeInQuote), wantedBuys)
 
    for (const { asset, value } of buys) {
-      const planned = buyOrders(markets.get(asset)!, value.times(scale))
+      const market = markets.get(asset)!
+      const planned = buyOrders(market, value.times(scale))
       if (planned.length === 0) {
-         skipped.push({ asset, reason: budget.lte(0) ? 'no-cash' : 'below-minimum', value })
+         const shortOfCash = budget.lte(0) || buyOrders(market, value).length > 0
+         skipped.push({ asset, reason: shortOfCash ? 'no-cash' : 'below-minimum', value })
       }
       orders.push(...planned)
    }
@@ -281,7 +314,7 @@ export function planPortfolio(input: PlanInput): Plan {
       withdraw,
       reserve,
       orders: [...orders.filter(({ side }) => side === 'sell'), ...orders.filter(({ side }) => side === 'buy')],
-      skipped,
+      skipped: skipped.filter(({ asset, reason }) => reason !== 'within-band' || !trimmed.has(asset)),
       before: weightsOf(values),
       after: weightsOf(after),
       cashAfter,

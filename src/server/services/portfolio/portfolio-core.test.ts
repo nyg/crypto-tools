@@ -165,6 +165,50 @@ describe('the rebalance planner', () => {
       expect(summary(plan)).toEqual(['buy BTC 250', 'buy ETH 250'])
    })
 
+   test('trims the overweights within their band, largest first, to fund a buy outside it', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '45', ETH: '45', DOGE: '10' }),
+         holdingsOf: { BTC: '0.0096', ETH: '0.2', USDT: '20' },
+         band: Big(5)
+      }))
+
+      expect(summary(plan)).toEqual(['sell ETH 0.02', 'sell BTC 0.0006', 'buy DOGE 100'])
+      expect(plan.skipped).toEqual([])
+   })
+
+   test('trims only what the buy needs', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '45', ETH: '45', DOGE: '10' }),
+         holdingsOf: { BTC: '0.0098', ETH: '0.176', USDT: '70' },
+         band: Big(8)
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0006', 'buy DOGE 100'])
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['ETH within-band'])
+   })
+
+   test('trims an overweight back to its target when the part the buy needs is below the minimum', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '45', ETH: '45', DOGE: '10' }),
+         holdingsOf: { BTC: '0.0092', ETH: '0.1768', USDT: '98' },
+         band: Big('9.9')
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0002', 'buy DOGE 100'])
+   })
+
+   test('reports a buy the cash cannot fund as short of cash, not below the minimum', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '40', ETH: '40', DOGE: '20' }),
+         holdingsOf: { BTC: '0.0099', ETH: '0.2', USDT: '4' },
+         freeOf: { USDT: '4' },
+         band: Big(10)
+      }))
+
+      expect(plan.orders).toHaveLength(0)
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toContain('DOGE no-cash')
+   })
+
    test('spends all the cash when the buy fee comes out of the coin bought', () => {
       const plan = planPortfolio(input({
          targets: bigMap({ BTC: '50', ETH: '50' }),
