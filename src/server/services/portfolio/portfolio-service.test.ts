@@ -249,6 +249,7 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(usdt.allocated).toBe('1000')
       expect(usdt.unallocated).toBe('9000')
       expect(overview.portfolios[0]!.needsRebalance).toBe(true)
+      expect(overview.portfolios[0]!.lastRebalancedAt).toBeNull()
    })
 
    test('rebalances into the targets through market orders', async () => {
@@ -267,6 +268,7 @@ describe('a portfolio from creation to withdrawal', () => {
       const btc = overview.portfolios[0]!.holdings.find(({ asset }) => asset === 'BTC')!
       expect(btc.quantity).toBe('0.00999')
       expect(overview.portfolios[0]!.needsRebalance).toBe(false)
+      expect(overview.portfolios[0]!.lastRebalancedAt).toBe(done.finishedAt)
    })
 
    test('counts the buy fees as unrealized loss while prices stand still', async () => {
@@ -274,7 +276,9 @@ describe('a portfolio from creation to withdrawal', () => {
       const btc = portfolio.holdings.find(({ asset }) => asset === 'BTC')!
 
       expect(btc.unrealized).toBe('-0.5')
+      expect(btc.unrealizedPercent).toBe('-0.1')
       expect(portfolio.unrealized).toBe('-0.8')
+      expect(portfolio.unrealizedPercent).toBe('-0.1')
       expect(portfolio.realized).toBe('0')
       expect(portfolio.profit).toBe('-0.8')
    })
@@ -306,6 +310,7 @@ describe('a portfolio from creation to withdrawal', () => {
    })
 
    test('records a refused order and finishes the run as partial', async () => {
+      const rebalancedAt = (await service().overview()).portfolios[0]!.lastRebalancedAt
       const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '500' })
       expect(plan.orders.length).toBeGreaterThan(0)
 
@@ -315,6 +320,7 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(run.orders[0]!.status).toBe('rejected')
       expect(run.orders[0]!.error).toContain('Insufficient balance')
       expect(run.status).toBe('partial')
+      expect((await service().overview()).portfolios[0]!.lastRebalancedAt).toBe(rebalancedAt)
    })
 
    test('releases its holdings to unallocated when archived', async () => {

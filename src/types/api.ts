@@ -355,6 +355,7 @@ export interface PortfolioHolding {
    target: string
    drift: string | null
    unrealized: string | null
+   unrealizedPercent: string | null
    realized: string
    stopPrice: string | null
    stopStatus: StopStatus | null
@@ -374,9 +375,11 @@ export interface PortfolioSummary {
    profit: string
    realized: string
    unrealized: string
+   unrealizedPercent: string | null
    closedRealized: string
    maxDrift: string
    needsRebalance: boolean
+   lastRebalancedAt: number | null
    quoteLocked: boolean
    stops: PortfolioStopState[]
 }

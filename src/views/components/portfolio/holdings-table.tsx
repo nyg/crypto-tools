@@ -1,8 +1,7 @@
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
-   asDrift, asQuantity, asQuoteAmount, asSignedQuoteAmount, asWeight, profitColor,
+   asDrift, asQuantity, asQuoteAmount, asSignedPercent, asSignedQuoteAmount, asWeight, profitColor,
    showsAsZeroQuoteAmount, stopStatusLabels
 } from './format'
 import SortableHead from '../lib/sortable-head'
@@ -11,8 +10,11 @@ import type { SortKeys } from '../../lib/sort'
 import type { PortfolioHolding, PortfolioSummary } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
 
-const ProfitCell = ({ value, quote }: { value: string | null, quote: string }) =>
-   <TableCell className={cn('text-right', profitColor(value))}>{asSignedQuoteAmount(value, quote)}</TableCell>
+const ProfitCell = ({ value, percent = null, quote }: { value: string | null, percent?: string | null, quote: string }) =>
+   <TableCell className={cn('text-right', profitColor(value))}>
+      {asSignedQuoteAmount(value, quote)}
+      {percent !== null && <span className="ml-1.5 text-xs">({asSignedPercent(percent)})</span>}
+   </TableCell>
 
 const StopCell = ({ holding }: { holding: PortfolioHolding }) =>
    <TableCell className="text-right">
@@ -26,9 +28,13 @@ const StopCell = ({ holding }: { holding: PortfolioHolding }) =>
          </span>}
    </TableCell>
 
-export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSummary }) {
+interface HoldingsTableProps {
+   portfolio: PortfolioSummary
+   sort: Sort
+   onSortChange: (sort: Sort) => void
+}
 
-   const [sort, setSort] = useState<Sort>({})
+export default function HoldingsTable({ portfolio, sort, onSortChange }: HoldingsTableProps) {
 
    const band = Number(portfolio.band)
    const quote = portfolio.quoteAsset
@@ -51,16 +57,16 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
       <Table className="tabular-nums">
          <TableHeader>
             <TableRow>
-               <SortableHead column="asset" sort={sort} onSortChange={setSort}>Asset</SortableHead>
-               <SortableHead column="target" align="right" sort={sort} onSortChange={setSort}>Target</SortableHead>
+               <SortableHead column="asset" sort={sort} onSortChange={onSortChange}>Asset</SortableHead>
+               <SortableHead column="target" align="right" sort={sort} onSortChange={onSortChange}>Target</SortableHead>
                <TableHead className="text-right">Stop</TableHead>
-               <SortableHead column="weight" align="right" sort={sort} onSortChange={setSort}>Current</SortableHead>
-               <SortableHead column="drift" align="right" sort={sort} onSortChange={setSort}>Drift</SortableHead>
+               <SortableHead column="weight" align="right" sort={sort} onSortChange={onSortChange}>Current</SortableHead>
+               <SortableHead column="drift" align="right" sort={sort} onSortChange={onSortChange}>Drift</SortableHead>
                <TableHead className="text-right">Quantity</TableHead>
                <TableHead className="text-right">Price</TableHead>
-               <SortableHead column="value" align="right" sort={sort} onSortChange={setSort}>Value</SortableHead>
-               <SortableHead column="unrealized" align="right" sort={sort} onSortChange={setSort}>Unrealized</SortableHead>
-               <SortableHead column="realized" align="right" sort={sort} onSortChange={setSort}>Realized</SortableHead>
+               <SortableHead column="value" align="right" sort={sort} onSortChange={onSortChange}>Value</SortableHead>
+               <SortableHead column="unrealized" align="right" sort={sort} onSortChange={onSortChange}>Unrealized</SortableHead>
+               <SortableHead column="realized" align="right" sort={sort} onSortChange={onSortChange}>Realized</SortableHead>
             </TableRow>
          </TableHeader>
          <TableBody>
@@ -104,7 +110,7 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                         {holding.price === null ? 'no price' : asQuantity(holding.price)}
                      </TableCell>
                      <TableCell className="text-right">{asQuoteAmount(holding.value, quote)}</TableCell>
-                     <ProfitCell value={holding.unrealized} quote={quote} />
+                     <ProfitCell value={holding.unrealized} percent={holding.unrealizedPercent} quote={quote} />
                      <ProfitCell value={holding.realized} quote={quote} />
                   </TableRow>
                )
@@ -119,7 +125,7 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
             <TableRow>
                <TableCell colSpan={7}>Total</TableCell>
                <TableCell className="text-right">{asQuoteAmount(portfolio.value, quote)}</TableCell>
-               <ProfitCell value={portfolio.unrealized} quote={quote} />
+               <ProfitCell value={portfolio.unrealized} percent={portfolio.unrealizedPercent} quote={quote} />
                <ProfitCell value={portfolio.realized} quote={quote} />
             </TableRow>
          </TableFooter>

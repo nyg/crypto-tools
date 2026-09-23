@@ -85,6 +85,8 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const decimal = (value: Big, places = 8) => value.round(places).toFixed()
 
+const percentOf = (part: Big, whole: Big) => decimal(part.div(whole).times(HUNDRED), 4)
+
 const minOf = (left: Big, right: Big) => left.lt(right) ? left : right
 
 function parseDecimal(value: unknown, label: string): Big {
@@ -258,12 +260,13 @@ export default class PortfolioService {
       const movements = groupBy(repository.movements(), row => row.portfolioId)
       const orders = groupBy(repository.orders(), row => row.portfolioId)
       const stops = groupBy(repository.stops(), row => row.portfolioId)
+      const lastRebalances = repository.lastRebalances()
 
       const rows = repository.portfolios()
       const portfolios = rows.map(portfolio => this.#summarize(
          repository, portfolio, targets.get(portfolio.id) ?? [], holdings.get(portfolio.id) ?? new Map(),
          movements.get(portfolio.id) ?? [], orders.get(portfolio.id) ?? [],
-         shownStops(stops.get(portfolio.id) ?? []), prices))
+         shownStops(stops.get(portfolio.id) ?? []), prices, lastRebalances.get(portfolio.id) ?? null))
 
       const drifted = rows.filter(portfolio => this.#stopsDrifted(
          portfolio, targets.get(portfolio.id) ?? [], holdings.get(portfolio.id) ?? new Map(),
@@ -310,7 +313,7 @@ export default class PortfolioService {
    #summarize(
       repository: PortfolioRepository, portfolio: PortfolioRow, targets: PortfolioTargetRow[],
       holdings: Map<string, Big>, movements: PortfolioMovementRow[], orders: PortfolioOrderRow[],
-      stops: PortfolioStopRow[], prices: Record<string, SpotPrice>
+      stops: PortfolioStopRow[], prices: Record<string, SpotPrice>, lastRebalancedAt: number | null
    ): PortfolioSummary {
 
       const quote = portfolio.quoteAsset
@@ -329,11 +332,16 @@ export default class PortfolioService {
 
       const total = valued.reduce((sum, { value }) => sum.plus(value ?? ZERO), ZERO)
 
+      let openCost = ZERO
+
       const rows: PortfolioHolding[] = valued.map(({ asset, quantity, price, value }) => {
          const target = weights.get(asset) ?? ZERO
          const weight = value && total.gt(0) ? value.div(total).times(HUNDRED) : null
          const position = asset === quote ? null : positions.coins.get(asset) ?? null
          const realized = asset === quote ? positions.cashRealized : position?.realized ?? ZERO
+         const cost = value && position ? position.cost : null
+         const unrealized = value && cost ? value.minus(cost) : null
+         if (cost) openCost = openCost.plus(cost)
          return {
             asset,
             quantity: quantity.toFixed(),
@@ -343,7 +351,8 @@ export default class PortfolioService {
             weight: weight ? decimal(weight, 4) : null,
             target: target.toFixed(),
             drift: weight ? decimal(weight.minus(target), 4) : null,
-            unrealized: position && value ? decimal(value.minus(position.cost)) : null,
+            unrealized: unrealized ? decimal(unrealized) : null,
+            unrealizedPercent: unrealized && cost?.gt(0) ? percentOf(unrealized, cost) : null,
             realized: decimal(realized),
             stopPrice: stopPrices.get(asset) ?? null,
             stopStatus: stopStates.get(asset)?.status ?? null
@@ -381,9 +390,11 @@ export default class PortfolioService {
          profit: decimal(total.minus(netInvested)),
          realized: decimal(realizedTotal),
          unrealized: decimal(unrealizedTotal),
+         unrealizedPercent: openCost.gt(0) ? percentOf(unrealizedTotal, openCost) : null,
          closedRealized: decimal(realizedTotal.minus(realizedInRows)),
          maxDrift: decimal(maxDrift, 4),
          needsRebalance: total.gt(0) && maxDrift.gt(portfolio.band),
+         lastRebalancedAt,
          quoteLocked: repository.hasActivity(portfolio.id),
          stops: stops.map(stopView)
       }

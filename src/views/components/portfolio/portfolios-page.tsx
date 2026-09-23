@@ -29,6 +29,7 @@ import type {
    PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary
 } from '../../../types/api'
 import type { VenueId } from '../../../types/portfolio'
+import type { Sort } from '../../../types/kraken'
 
 export interface PortfolioVenue {
    id: VenueId
@@ -76,6 +77,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
    const [archiving, setArchiving] = useState<PortfolioSummary | null>(null)
    const [adjusting, setAdjusting] = useState<AccountCoin | null>(null)
    const [watchingRun, setWatchingRun] = useState(false)
+   const [holdingsSort, setHoldingsSort] = usePersistentState<Sort>('portfolios.holdings.sort', {})
 
    const refresh = () => fetchOverview().catch(() => {})
 
@@ -276,6 +278,8 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
                   key={portfolio.id}
                   portfolio={portfolio}
                   busy={busy}
+                  sort={holdingsSort}
+                  onSortChange={setHoldingsSort}
                   onDeposit={() => setDepositing(portfolio)}
                   onWithdraw={() => setWithdrawing(portfolio)}
                   onRebalance={() => rebalance(portfolio)}

@@ -10,6 +10,7 @@ const monthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', m
 const shortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const shortPercentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const signedShortPercentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' })
 const usDollarFormatter = new Intl.NumberFormat(locales, { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const decimalOneFormatter = new Intl.NumberFormat(locales, { style: 'decimal', minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const localTimestampFormatter = new Intl.DateTimeFormat(locales, {
@@ -22,6 +23,13 @@ const roundedFormatter = new Intl.NumberFormat(locales, { maximumFractionDigits:
 
 const dateFormat = (formatter: Intl.DateTimeFormat, date: DateLike) =>
    formatter.format(date).replace('\u00a0', ' ')
+
+const DAY = 86400000
+
+const startOfDay = (date: DateLike) => {
+   const day = new Date(date)
+   return new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime()
+}
 
 export function asDecimal(number: number, decimalCount = 2): string {
    const options: Intl.NumberFormatOptions = { style: 'decimal', minimumFractionDigits: decimalCount, maximumFractionDigits: decimalCount }
@@ -89,6 +97,17 @@ export function asPercentage(number: number): string {
 
 export function asShortPercentage(number: number): string {
    return shortPercentageFormatter.format(number)
+}
+
+export function asSignedShortPercentage(number: number): string {
+   return signedShortPercentageFormatter.format(number)
+}
+
+export function asDaysAgo(timestamp: DateLike, now: DateLike = Date.now()): string {
+   const days = Math.round((startOfDay(now) - startOfDay(timestamp)) / DAY)
+   if (days <= 0) return 'today'
+   if (days === 1) return 'yesterday'
+   return `${countFormatter.format(days)} days ago`
 }
 
 export function asDollarAmount(number: number): string {

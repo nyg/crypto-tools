@@ -8,5 +8,5 @@
       "@/*": ["./src/views/*"]
     }
   },
-  "include": ["src/**/*.test.ts"]
+  "include": ["src/**/*.test.ts", "src/types/globals.d.ts"]
 }
