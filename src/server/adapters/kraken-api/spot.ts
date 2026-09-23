@@ -6,7 +6,7 @@ import type {
    KrakenAssetPairs, KrakenExtendedBalance, KrakenOpenOrder, KrakenTicker, KrakenTradeVolume
 } from '../../../types/kraken-api'
 import type {
-   OpenStopOrder, OrderSettlement, SettlementStatus, SpotPrice, WalletCoin
+   OpenStopOrder, OrderSettlement, SettlementStatus, SpotPrice, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const stepOf = (decimals: number | undefined): string =>
@@ -85,10 +85,14 @@ export function spotWallet(balances: KrakenExtendedBalance): WalletCoin[] {
       ({ asset, total: total.toFixed(), free: free.toFixed(), borrowed: '0' }))
 }
 
-export function takerFeeRate({ fees }: KrakenTradeVolume): string | null {
-   const rates = Object.values(fees ?? {}).flatMap(({ fee }) => fee ? [Big(fee).div(100)] : [])
-   if (rates.length === 0) return null
-   return rates.reduce((highest, rate) => rate.gt(highest) ? rate : highest).toFixed()
+export function takerFees({ fees }: KrakenTradeVolume, markets: KrakenSpotMarket[]): Record<string, TakerFee> {
+   const symbolOf = new Map(markets.flatMap(({ symbol, pair, altname }) => [[pair, symbol], [altname, symbol]]))
+   return Object.fromEntries(Object.entries(fees ?? {}).flatMap(([pair, { fee }]) => {
+      const symbol = symbolOf.get(pair)
+      if (!symbol || !fee) return []
+      const rate = Big(fee).div(100).toFixed()
+      return [[symbol, { buy: rate, sell: rate }]]
+   }))
 }
 
 function settlementStatus({ status, vol_exec }: KrakenOpenOrder): SettlementStatus {

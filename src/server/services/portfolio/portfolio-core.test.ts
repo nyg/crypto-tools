@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import Big from 'big.js'
 import { foldHoldings } from './holdings'
-import { PlanError, planPortfolio, splitAmount } from './planner'
+import { orderFee, PlanError, planPortfolio, splitAmount } from './planner'
 import { foldPositions } from './positions'
 import { planStops, stopActions } from './stops'
 import { moveWeightToCash, TargetError, validateTargets } from './targets'
@@ -163,6 +163,123 @@ describe('the rebalance planner', () => {
       }))
 
       expect(summary(plan)).toEqual(['buy BTC 250', 'buy ETH 250'])
+   })
+
+   test('trims the overweights within their band, largest first, to fund a buy outside it', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '45', ETH: '45', DOGE: '10' }),
+         holdingsOf: { BTC: '0.0096', ETH: '0.2', USDT: '20' },
+         band: Big(5)
+      }))
+
+      expect(summary(plan)).toEqual(['sell ETH 0.02', 'sell BTC 0.0006', 'buy DOGE 100'])
+      expect(plan.skipped).toEqual([])
+   })
+
+   test('trims only what the buy needs', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '45', ETH: '45', DOGE: '10' }),
+         holdingsOf: { BTC: '0.0098', ETH: '0.176', USDT: '70' },
+         band: Big(8)
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0006', 'buy DOGE 100'])
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['ETH within-band'])
+   })
+
+   test('trims an overweight back to its target when the part the buy needs is below the minimum', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '45', ETH: '45', DOGE: '10' }),
+         holdingsOf: { BTC: '0.0092', ETH: '0.1768', USDT: '98' },
+         band: Big('9.9')
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0002', 'buy DOGE 100'])
+   })
+
+   test('sells a little past the target to pay the fees, so the buy reaches its target', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.0022', ETH: '0.036', USDT: '0' },
+         band: Big(2),
+         feeRate: Big('0.0025'),
+         buyFeeInQuote: true
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.000202', 'buy ETH 10'])
+      expect(plan.cashAfter.gte(0)).toBe(true)
+   })
+
+   test('never sells past the band to pay the fees', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.0022', ETH: '0.036', USDT: '0' },
+         band: Big(2),
+         feeRate: Big('0.5')
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.00028', 'buy ETH 7'])
+   })
+
+   test('rounds a buy below the minimum up to it while the coin stays within the band', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.0034', ETH: '0.06', USDT: '0' },
+         markets: new Map([['BTC', market('BTC', '50000')], ['ETH', market('ETH', '2500', { minQty: '0.006' })]]),
+         band: Big(2)
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0003', 'buy ETH 15'])
+   })
+
+   test('leaves a buy below the minimum alone when rounding it up would overshoot the band', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.0034', ETH: '0.06', USDT: '0' },
+         markets: new Map([['BTC', market('BTC', '50000')], ['ETH', market('ETH', '2500', { minQty: '0.006' })]]),
+         band: Big(1)
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0002'])
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['ETH below-minimum'])
+   })
+
+   test('charges each coin its own buy rate', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { USDT: '300' },
+         feeRates: new Map([['BTC', { buy: Big('0.01'), sell: Big('0.01') }], ['ETH', { buy: Big('0.02'), sell: Big('0.02') }]]),
+         buyFeeInQuote: true
+      }))
+
+      expect(summary(plan)).toEqual(['buy BTC 147.78', 'buy ETH 147.78'])
+      expect(plan.cashAfter.toFixed()).toBe('0.0066')
+   })
+
+   test('prices each fee in the coin the exchange charges it in', () => {
+      const plan = planPortfolio(input({ holdingsOf: { BTC: '0.02', USDT: '0' } }))
+      const [sell, buy] = plan.orders
+      const feeOf = (order: typeof sell, inQuote: boolean) => {
+         const fee = orderFee(order!, 'USDT', Big('0.001'), inQuote)
+         return `${fee.amount.toFixed()} ${fee.asset}`
+      }
+
+      expect(summary(plan)).toEqual(['sell BTC 0.01', 'buy ETH 300'])
+      expect(feeOf(sell, false)).toBe('0.5 USDT')
+      expect(feeOf(buy, false)).toBe('0.00012 ETH')
+      expect(feeOf(buy, true)).toBe('0.3 USDT')
+   })
+
+   test('reports a buy the cash cannot fund as short of cash, not below the minimum', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '40', ETH: '40', DOGE: '20' }),
+         holdingsOf: { BTC: '0.0099', ETH: '0.2', USDT: '4' },
+         freeOf: { USDT: '4' },
+         band: Big(10)
+      }))
+
+      expect(plan.orders).toHaveLength(0)
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toContain('DOGE no-cash')
    })
 
    test('spends all the cash when the buy fee comes out of the coin bought', () => {

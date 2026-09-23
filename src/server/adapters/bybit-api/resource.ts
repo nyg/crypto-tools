@@ -3,7 +3,7 @@ import { authenticator } from './authenticator'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   BybitApiKeyInfo, BybitCancelRequest, BybitEnvironment, BybitExecution, BybitOrder,
+   BybitApiKeyInfo, BybitCancelRequest, BybitEnvironment, BybitExecution, BybitFeeRate, BybitOrder,
    BybitOrderCancelled, BybitOrderCreated, BybitOrderRequest, BybitPage, BybitResponse,
    BybitSpotInstrument, BybitSpotTicker, BybitWalletAccount
 } from '../../../types/bybit-api'
@@ -21,6 +21,7 @@ const tickersEndpoint = '/v5/market/tickers'
 
 const walletBalanceEndpoint = '/v5/account/wallet-balance'
 const apiKeyInfoEndpoint = '/v5/user/query-api'
+const feeRateEndpoint = '/v5/account/fee-rate'
 const createOrderEndpoint = '/v5/order/create'
 const cancelOrderEndpoint = '/v5/order/cancel'
 const realtimeOrdersEndpoint = '/v5/order/realtime'
@@ -80,6 +81,14 @@ export async function fetchApiKeyInfo(
    environment: BybitEnvironment, credentials: Credentials
 ): Promise<BybitApiKeyInfo> {
    return await privateRequest<BybitApiKeyInfo>(environment, credentials, apiKeyInfoEndpoint)
+}
+
+export async function fetchSpotFeeRates(
+   environment: BybitEnvironment, credentials: Credentials, symbol?: string
+): Promise<BybitFeeRate[]> {
+   const page = await privateRequest<BybitPage<BybitFeeRate>>(
+      environment, credentials, feeRateEndpoint, { searchParams: { category: 'spot', ...(symbol ? { symbol } : {}) } })
+   return page.list
 }
 
 export async function createOrder(

@@ -6,11 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import HoldingsTable from './holdings-table'
 import { asPoints, asQuoteAmount, asSignedQuoteAmount, profitColor } from './format'
+import { asDaysAgo, asLocalTimestamp } from '../../../utils/format'
 import type { PortfolioSummary } from '../../../types/api'
+import type { Sort } from '../../../types/kraken'
 
 interface PortfolioCardProps {
    portfolio: PortfolioSummary
    busy: boolean
+   sort: Sort
+   onSortChange: (sort: Sort) => void
    onDeposit: () => void
    onWithdraw: () => void
    onRebalance: () => void
@@ -26,7 +30,7 @@ const Stat = ({ label, children, className }: { label: string, children: ReactNo
    </div>
 
 export default function PortfolioCard({
-   portfolio, busy, onDeposit, onWithdraw, onRebalance, onEdit, onHistory, onArchive
+   portfolio, busy, sort, onSortChange, onDeposit, onWithdraw, onRebalance, onEdit, onHistory, onArchive
 }: PortfolioCardProps) {
 
    const empty = Number(portfolio.value) === 0
@@ -40,6 +44,10 @@ export default function PortfolioCard({
                {portfolio.name}
                <Badge variant="outline">{portfolio.quoteAsset}</Badge>
                <Badge variant="outline">band ±{asPoints(portfolio.band)} pt</Badge>
+               {portfolio.lastRebalancedAt !== null &&
+                  <Badge variant="outline" title={asLocalTimestamp(portfolio.lastRebalancedAt)}>
+                     Rebalanced {asDaysAgo(portfolio.lastRebalancedAt)}
+                  </Badge>}
                {portfolio.needsRebalance && <Badge variant="destructive">Needs rebalance</Badge>}
                {armedStops > 0 && <Badge variant="outline">{armedStops} stop{armedStops === 1 ? '' : 's'} armed</Badge>}
                {brokenStops.length > 0 &&
@@ -85,7 +93,8 @@ export default function PortfolioCard({
                   </Button>
                </div>
             </div>
-            {portfolio.holdings.length > 0 && <HoldingsTable portfolio={portfolio} />}
+            {portfolio.holdings.length > 0 &&
+               <HoldingsTable portfolio={portfolio} sort={sort} onSortChange={onSortChange} />}
          </CardContent>
       </Card>
    )

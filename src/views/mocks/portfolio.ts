@@ -29,6 +29,7 @@ interface MockPortfolio {
    closedRealized: number
    stops: PortfolioStopState[]
    deposited?: number
+   rebalancedAt?: number
 }
 
 interface MockPlan {
@@ -85,6 +86,7 @@ function seed(venue: VenueId): VenueState {
             costs: { BTC: 3900, ETH: 2750 },
             realized: { BTC: 820, ETH: 310 },
             closedRealized: 0,
+            rebalancedAt: Date.now() - 3 * DAY,
             stops: [{
                orderLinkId: 'pf1-stpa1b2c3d4', asset: 'BTC', symbol: `BTC${cash}`, quantity: '0.0712',
                triggerPrice: '58000', status: 'placed', error: null, placedAt: created + 30 * DAY
@@ -102,6 +104,7 @@ function seed(venue: VenueId): VenueState {
             costs: { SOL: 980, SUI: 610, ENA: 1010 },
             realized: { SOL: 40 },
             closedRealized: 72.4,
+            rebalancedAt: Date.now() - 12 * DAY,
             stops: [{
                orderLinkId: 'pf2-stp9f8e7d6c', asset: 'SOL', symbol: `SOL${cash}`, quantity: '6.1',
                triggerPrice: '120', status: 'placed', error: null, placedAt: created + 32 * DAY
@@ -183,6 +186,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          target: String(target),
          drift: weight === null ? null : fixed(weight - target, 4),
          unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
+         unrealizedPercent: cost !== undefined && cost > 0 && value !== null ? fixed((value - cost) / cost * 100, 4) : null,
          realized: fixed(portfolio.realized[asset] ?? 0),
          stopPrice: portfolio.targets.find(target => target.asset === asset)?.stopPrice ?? null,
          stopStatus: stop?.status ?? null
@@ -191,6 +195,8 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
 
    const realized = Object.values(portfolio.realized).reduce((sum, amount) => sum + amount, portfolio.closedRealized)
    const unrealized = holdings.reduce((sum, holding) => sum + Number(holding.unrealized ?? 0), 0)
+   const openCost = holdings.reduce((sum, { asset, unrealized }) =>
+      unrealized === null ? sum : sum + (portfolio.costs[asset] ?? 0), 0)
 
    const maxDrift = Math.max(0, ...holdings.map(({ drift }) => Math.abs(Number(drift ?? 0))))
    const netInvested = (state.movements.get(portfolio.id) ?? []).reduce((sum, { kind, value }) =>
@@ -210,9 +216,11 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       profit: fixed(total - netInvested),
       realized: fixed(realized),
       unrealized: fixed(unrealized),
+      unrealizedPercent: openCost > 0 ? fixed(unrealized / openCost * 100, 4) : null,
       closedRealized: fixed(portfolio.closedRealized),
       maxDrift: fixed(maxDrift, 4),
       needsRebalance: total > 0 && maxDrift > Number(portfolio.band),
+      lastRebalancedAt: portfolio.rebalancedAt ?? null,
       quoteLocked: (state.movements.get(portfolio.id) ?? []).length > 0,
       stops: portfolio.stops
    }
@@ -437,9 +445,12 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
          continue
       }
 
+      const fee = delta < 0 || venue === 'kraken'
+         ? { asset: quote, amount: fixed(Math.abs(delta) * FEE_RATE) }
+         : { asset, amount: fixed(delta / price * FEE_RATE) }
       orders.push(delta < 0
-         ? { asset, symbol: `${asset}${quote}`, side: 'sell', unit: 'base', amount: fixed(-delta / price, 6), price: String(price), value: fixed(-delta, 2) }
-         : { asset, symbol: `${asset}${quote}`, side: 'buy', unit: 'quote', amount: fixed(delta, 2), price: String(price), value: fixed(delta, 2) })
+         ? { asset, symbol: `${asset}${quote}`, side: 'sell', unit: 'base', amount: fixed(-delta / price, 6), price: String(price), value: fixed(-delta, 2), fee, feeRate: String(FEE_RATE), feeRateAssumed: false }
+         : { asset, symbol: `${asset}${quote}`, side: 'buy', unit: 'quote', amount: fixed(delta, 2), price: String(price), value: fixed(delta, 2), fee, feeRate: String(FEE_RATE), feeRateAssumed: false })
    }
 
    orders.sort((left, right) => (left.side === right.side ? 0 : left.side === 'sell' ? -1 : 1))
@@ -552,7 +563,9 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
             })
             current.withdrawn = fixed(withdrawn, 2)
          }
-         Object.assign(current, { status: 'done', running: false, finishedAt: Date.now() })
+         const finishedAt = Date.now()
+         Object.assign(current, { status: 'done', running: false, finishedAt })
+         if (current.kind === 'rebalance' && current.orders.length > 0) portfolio.rebalancedAt = finishedAt
       }
    }
 

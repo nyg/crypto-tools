@@ -3,12 +3,12 @@ import { randomUUID } from 'crypto'
 import PortfolioRepository from '../../db/portfolio-repository'
 import { HttpRequesterError, messageOf } from '../../errors'
 import { foldHoldings, sameHoldings } from './holdings'
-import { buyFits, buyScale, DEFAULT_FEE_RATE, floorTo, netOfBuyFees, planPortfolio } from './planner'
+import { buyCost, buyFits, buyScale, DEFAULT_FEE_RATE, feeRateOf, floorTo, orderFee, planPortfolio } from './planner'
 import { foldPositions } from './positions'
 import { planStops, stopActions } from './stops'
 import { moveWeightToCash, validateTargets } from './targets'
 import type { PortfolioExchange } from './exchange'
-import type { PlanMarket, PlannedOrder } from './planner'
+import type { FeeRate, PlanMarket, PlannedOrder } from './planner'
 import type { LiveStop } from './stops'
 import type { TargetWeight } from './targets'
 import type { Venue } from './venues'
@@ -25,8 +25,8 @@ import type {
    PortfolioStopSyncResponse, PortfolioSummary
 } from '../../../types/api'
 import type {
-   ExchangeAccount, OrderLookup, OrderSettlement, RunKind, RunStatus, SpotMarket, SpotPrice, VenueId,
-   WalletCoin
+   ExchangeAccount, OrderLookup, OrderSettlement, RunKind, RunStatus, SpotMarket, SpotPrice, TakerFee,
+   VenueId, WalletCoin
 } from '../../../types/portfolio'
 
 export type PortfolioErrorStatus = 400 | 403 | 404 | 409 | 410
@@ -51,7 +51,7 @@ interface StoredPlan {
    withdraw: Big
    withdrawAll: boolean
    reserve: Big
-   feeRate: Big
+   feeRates: Map<string, FeeRate>
    slippage: string
    orders: PlannedOrder[]
    markets: Map<string, PlanMarket>
@@ -84,6 +84,8 @@ const HUNDRED = Big(100)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 const decimal = (value: Big, places = 8) => value.round(places).toFixed()
+
+const percentOf = (part: Big, whole: Big) => decimal(part.div(whole).times(HUNDRED), 4)
 
 const minOf = (left: Big, right: Big) => left.lt(right) ? left : right
 
@@ -219,6 +221,17 @@ export default class PortfolioService {
       return error instanceof HttpRequesterError && error.statusCode < 500 && !this.#exchange.isAmbiguous(error)
    }
 
+   async #takerFees(symbols: string[]): Promise<Record<string, TakerFee>> {
+      if (!this.#exchange.takerFees || symbols.length === 0) return {}
+      try {
+         return await this.#exchange.takerFees(symbols)
+      }
+      catch (error) {
+         console.warn('Could not read the taker fee rates, assuming the default:', this.#describe(error))
+         return {}
+      }
+   }
+
    async #context(): Promise<Context> {
       const account = await this.#exchange.account()
       return {
@@ -258,12 +271,13 @@ export default class PortfolioService {
       const movements = groupBy(repository.movements(), row => row.portfolioId)
       const orders = groupBy(repository.orders(), row => row.portfolioId)
       const stops = groupBy(repository.stops(), row => row.portfolioId)
+      const lastRebalances = repository.lastRebalances()
 
       const rows = repository.portfolios()
       const portfolios = rows.map(portfolio => this.#summarize(
          repository, portfolio, targets.get(portfolio.id) ?? [], holdings.get(portfolio.id) ?? new Map(),
          movements.get(portfolio.id) ?? [], orders.get(portfolio.id) ?? [],
-         shownStops(stops.get(portfolio.id) ?? []), prices))
+         shownStops(stops.get(portfolio.id) ?? []), prices, lastRebalances.get(portfolio.id) ?? null))
 
       const drifted = rows.filter(portfolio => this.#stopsDrifted(
          portfolio, targets.get(portfolio.id) ?? [], holdings.get(portfolio.id) ?? new Map(),
@@ -310,7 +324,7 @@ export default class PortfolioService {
    #summarize(
       repository: PortfolioRepository, portfolio: PortfolioRow, targets: PortfolioTargetRow[],
       holdings: Map<string, Big>, movements: PortfolioMovementRow[], orders: PortfolioOrderRow[],
-      stops: PortfolioStopRow[], prices: Record<string, SpotPrice>
+      stops: PortfolioStopRow[], prices: Record<string, SpotPrice>, lastRebalancedAt: number | null
    ): PortfolioSummary {
 
       const quote = portfolio.quoteAsset
@@ -329,11 +343,16 @@ export default class PortfolioService {
 
       const total = valued.reduce((sum, { value }) => sum.plus(value ?? ZERO), ZERO)
 
+      let openCost = ZERO
+
       const rows: PortfolioHolding[] = valued.map(({ asset, quantity, price, value }) => {
          const target = weights.get(asset) ?? ZERO
          const weight = value && total.gt(0) ? value.div(total).times(HUNDRED) : null
          const position = asset === quote ? null : positions.coins.get(asset) ?? null
          const realized = asset === quote ? positions.cashRealized : position?.realized ?? ZERO
+         const cost = value && position ? position.cost : null
+         const unrealized = value && cost ? value.minus(cost) : null
+         if (cost) openCost = openCost.plus(cost)
          return {
             asset,
             quantity: quantity.toFixed(),
@@ -343,7 +362,8 @@ export default class PortfolioService {
             weight: weight ? decimal(weight, 4) : null,
             target: target.toFixed(),
             drift: weight ? decimal(weight.minus(target), 4) : null,
-            unrealized: position && value ? decimal(value.minus(position.cost)) : null,
+            unrealized: unrealized ? decimal(unrealized) : null,
+            unrealizedPercent: unrealized && cost?.gt(0) ? percentOf(unrealized, cost) : null,
             realized: decimal(realized),
             stopPrice: stopPrices.get(asset) ?? null,
             stopStatus: stopStates.get(asset)?.status ?? null
@@ -381,9 +401,11 @@ export default class PortfolioService {
          profit: decimal(total.minus(netInvested)),
          realized: decimal(realizedTotal),
          unrealized: decimal(unrealizedTotal),
+         unrealizedPercent: openCost.gt(0) ? percentOf(unrealizedTotal, openCost) : null,
          closedRealized: decimal(realizedTotal.minus(realizedInRows)),
          maxDrift: decimal(maxDrift, 4),
          needsRebalance: total.gt(0) && maxDrift.gt(portfolio.band),
+         lastRebalancedAt,
          quoteLocked: repository.hasActivity(portfolio.id),
          stops: stops.map(stopView)
       }
@@ -728,13 +750,16 @@ export default class PortfolioService {
       const symbols = [...new Set([...holdings.keys(), ...targets.keys()])]
          .map(asset => byBase.get(asset)?.symbol)
          .filter(symbol => symbol !== undefined)
-      const takerFee = await this.#exchange.takerFeeRate?.(symbols)
-      const feeRate = typeof takerFee === 'string' ? Big(takerFee) : DEFAULT_FEE_RATE
+      const takerFees = await this.#takerFees(symbols)
+      const feeRates = new Map([...byBase.values()].flatMap(({ base, symbol }) => {
+         const fee = takerFees[symbol]
+         return fee ? [[base, { buy: Big(fee.buy), sell: Big(fee.sell) }] as const] : []
+      }))
       const buyFeeInQuote = this.#exchange.buyFeeInQuote
 
       let plan
       try {
-         plan = planPortfolio({ quote, holdings, targets, markets: byBase, free, band, withdraw, feeRate, buyFeeInQuote })
+         plan = planPortfolio({ quote, holdings, targets, markets: byBase, free, band, withdraw, feeRates, buyFeeInQuote })
       }
       catch (error) {
          throw new PortfolioError(400, messageOf(error))
@@ -752,7 +777,7 @@ export default class PortfolioService {
          withdraw: plan.withdraw,
          withdrawAll,
          reserve: plan.reserve,
-         feeRate,
+         feeRates,
          slippage: slippage.toFixed(),
          orders: plan.orders,
          markets: byBase,
@@ -772,9 +797,17 @@ export default class PortfolioService {
          slippage: stored.slippage,
          total: decimal(plan.total),
          withdraw: decimal(plan.withdraw),
-         orders: plan.orders.map(({ asset, symbol, side, unit, amount, price, value }) => ({
-            asset, symbol, side, unit, amount: amount.toFixed(), price: price.toFixed(), value: decimal(value)
-         })),
+         orders: plan.orders.map(order => {
+            const { asset, symbol, side, unit, amount, price, value } = order
+            const feeRate = feeRateOf(feeRates, DEFAULT_FEE_RATE, asset, side)
+            const fee = orderFee(order, quote, feeRate, buyFeeInQuote)
+            return {
+               asset, symbol, side, unit, amount: amount.toFixed(), price: price.toFixed(), value: decimal(value),
+               fee: { asset: fee.asset, amount: decimal(fee.amount) },
+               feeRate: feeRate.toFixed(),
+               feeRateAssumed: !feeRates.has(asset)
+            }
+         }),
          skipped: plan.skipped.map(({ asset, reason, value }) => ({ asset, reason, value: decimal(value) })),
          cashAfter: decimal(plan.cashAfter),
          shortfall: decimal(plan.shortfall),
@@ -930,8 +963,9 @@ export default class PortfolioService {
       const wallet = await this.#exchange.wallet()
       const freeCash = Big(wallet.find(({ asset }) => asset === stored.quote)?.free || 0)
       const budget = minOf(cash, freeCash).minus(stored.reserve)
-      const planned = buys.reduce((sum, { requested }) => sum.plus(requested), ZERO)
-      const scale = buyScale(netOfBuyFees(budget, stored.feeRate, this.#exchange.buyFeeInQuote), planned)
+      const cost = buys.reduce((sum, { baseAsset, requested }) => sum.plus(buyCost(
+         Big(requested), feeRateOf(stored.feeRates, DEFAULT_FEE_RATE, baseAsset, 'buy'), this.#exchange.buyFeeInQuote)), ZERO)
+      const scale = buyScale(budget, cost)
 
       for (const order of buys) {
          const market = stored.markets.get(order.baseAsset)!

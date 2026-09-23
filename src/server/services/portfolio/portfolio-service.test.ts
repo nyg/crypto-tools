@@ -9,7 +9,7 @@ import type PortfolioServiceType from './portfolio-service'
 import type { Venue } from './venues'
 import type {
    ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, WalletCoin
+   StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-portfolio-'))
@@ -36,6 +36,7 @@ class FakeExchange implements PortfolioExchange {
    readonly balanceDecimals = 8
    buyFeeInQuote = false
    feeRate = '0.001'
+   reportsFees = true
    readonly balances = new Map<string, Big>([['USDT', Big(10000)], ['BTC', Big('0.5')]])
    readonly settlements = new Map<string, OrderSettlement>()
    readonly stops = new Map<string, FakeStop>()
@@ -69,8 +70,9 @@ class FakeExchange implements PortfolioExchange {
       return prices
    }
 
-   async takerFeeRate(): Promise<string | null> {
-      return this.feeRate
+   async takerFees(symbols: string[]): Promise<Record<string, TakerFee>> {
+      if (!this.reportsFees) return {}
+      return Object.fromEntries(symbols.map(symbol => [symbol, { buy: this.feeRate, sell: this.feeRate }]))
    }
 
    async placeOrder({ clientOrderId, symbol, side, unit, amount }: OrderRequest): Promise<string> {
@@ -249,12 +251,14 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(usdt.allocated).toBe('1000')
       expect(usdt.unallocated).toBe('9000')
       expect(overview.portfolios[0]!.needsRebalance).toBe(true)
+      expect(overview.portfolios[0]!.lastRebalancedAt).toBeNull()
    })
 
    test('rebalances into the targets through market orders', async () => {
       const plan = await service().plan({ portfolioId, kind: 'rebalance' })
       expect(plan.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`))
          .toEqual(['buy BTC 500', 'buy ETH 300'])
+      expect(plan.orders[0]).toMatchObject({ fee: { asset: 'BTC', amount: '0.00001' }, feeRate: '0.001', feeRateAssumed: false })
 
       const { run } = await service().execute({ planId: plan.planId })
       const done = await finished(run.id)
@@ -267,6 +271,7 @@ describe('a portfolio from creation to withdrawal', () => {
       const btc = overview.portfolios[0]!.holdings.find(({ asset }) => asset === 'BTC')!
       expect(btc.quantity).toBe('0.00999')
       expect(overview.portfolios[0]!.needsRebalance).toBe(false)
+      expect(overview.portfolios[0]!.lastRebalancedAt).toBe(done.finishedAt)
    })
 
    test('counts the buy fees as unrealized loss while prices stand still', async () => {
@@ -274,7 +279,9 @@ describe('a portfolio from creation to withdrawal', () => {
       const btc = portfolio.holdings.find(({ asset }) => asset === 'BTC')!
 
       expect(btc.unrealized).toBe('-0.5')
+      expect(btc.unrealizedPercent).toBe('-0.1')
       expect(portfolio.unrealized).toBe('-0.8')
+      expect(portfolio.unrealizedPercent).toBe('-0.1')
       expect(portfolio.realized).toBe('0')
       expect(portfolio.profit).toBe('-0.8')
    })
@@ -306,6 +313,7 @@ describe('a portfolio from creation to withdrawal', () => {
    })
 
    test('records a refused order and finishes the run as partial', async () => {
+      const rebalancedAt = (await service().overview()).portfolios[0]!.lastRebalancedAt
       const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '500' })
       expect(plan.orders.length).toBeGreaterThan(0)
 
@@ -315,6 +323,7 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(run.orders[0]!.status).toBe('rejected')
       expect(run.orders[0]!.error).toContain('Insufficient balance')
       expect(run.status).toBe('partial')
+      expect((await service().overview()).portfolios[0]!.lastRebalancedAt).toBe(rebalancedAt)
    })
 
    test('releases its holdings to unallocated when archived', async () => {
@@ -367,6 +376,7 @@ describe('a venue that takes the buy fee from the cash', () => {
       const plan = await portfolios.plan({ portfolioId, kind: 'rebalance' })
       expect(plan.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`))
          .toEqual(['buy BTC 149.62', 'buy ETH 149.62'])
+      expect(plan.orders[0]).toMatchObject({ fee: { asset: 'USDT', amount: '0.37405' }, feeRate: '0.0025' })
       expect(plan.shortfall).toBe('0')
 
       const run = await finished((await portfolios.execute({ planId: plan.planId })).run.id, portfolios)
@@ -375,6 +385,24 @@ describe('a venue that takes the buy fee from the cash', () => {
       const portfolio = (await portfolios.overview()).portfolios.find(({ id }) => id === portfolioId)!
       const cash = portfolio.holdings.find(({ asset }) => asset === 'USDT')!
       expect(cash.quantity).toBe('0.03195')
+   })
+})
+
+describe('an exchange that reports no fee rate', () => {
+
+   test('previews the orders at the standard taker rate and says it assumed it', async () => {
+      const silent = new FakeExchange()
+      silent.accountId = 'silent-fees'
+      silent.reportsFees = false
+      const portfolios = new PortfolioService(venue, silent)
+
+      const { id: portfolioId } = await portfolios.save({
+         name: 'Assumed', quoteAsset: 'USDT', band: '2', targets: [{ asset: 'BTC', weight: '100' }]
+      })
+      await portfolios.deposit({ portfolioId, asset: 'USDT', amount: '100' })
+
+      const plan = await portfolios.plan({ portfolioId, kind: 'rebalance' })
+      expect(plan.orders[0]).toMatchObject({ fee: { asset: 'BTC', amount: '0.000002' }, feeRate: '0.001', feeRateAssumed: true })
    })
 })
 

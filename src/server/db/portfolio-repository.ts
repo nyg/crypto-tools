@@ -294,6 +294,15 @@ export default class PortfolioRepository {
          ORDER BY started_at DESC LIMIT ?`).all(portfolioId, ...this.#scope, limit)
    }
 
+   lastRebalances(): Map<number, number> {
+      const rows = this.#db.query<{ portfolioId: number, finishedAt: number }, Params>(`
+         SELECT portfolio_id AS portfolioId, MAX(finished_at) AS finishedAt FROM portfolio_run AS run
+         WHERE kind = 'rebalance' AND finished_at IS NOT NULL AND ${activePortfolio}
+            AND EXISTS (SELECT 1 FROM portfolio_order WHERE run_id = run.id AND CAST(cum_base AS REAL) > 0)
+         GROUP BY portfolio_id`).all(...this.#scope)
+      return new Map(rows.map(({ portfolioId, finishedAt }) => [portfolioId, finishedAt]))
+   }
+
    runningRuns(): PortfolioRunRow[] {
       return this.#db.query<PortfolioRunRow, Params>(`
          SELECT ${runColumns} FROM portfolio_run

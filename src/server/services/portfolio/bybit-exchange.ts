@@ -6,7 +6,7 @@ import type { Credentials } from '../../../types/credentials'
 import type { BybitEnvironment } from '../../../types/bybit-api'
 import type {
    ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, WalletCoin
+   StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const ACCOUNT_TTL_MS = 5 * 60 * 1000
@@ -45,6 +45,10 @@ export default class BybitExchange implements PortfolioExchange {
 
    prices(): Promise<Record<string, SpotPrice>> {
       return this.#api.fetchSpotPrices()
+   }
+
+   takerFees(symbols: string[]): Promise<Record<string, TakerFee>> {
+      return this.#api.fetchTakerFees(symbols)
    }
 
    placeOrder(order: OrderRequest): Promise<string> {

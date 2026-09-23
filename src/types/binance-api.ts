@@ -74,6 +74,20 @@ export interface BinanceOrderReference {
    origClientOrderId: string
 }
 
+export interface BinanceCommissionRates {
+   maker?: string
+   taker?: string
+   buyer?: string
+   seller?: string
+}
+
+export interface BinanceCommission {
+   symbol: string
+   standardCommission?: BinanceCommissionRates
+   specialCommission?: BinanceCommissionRates
+   taxCommission?: BinanceCommissionRates
+}
+
 export interface BinanceOrderAck {
    symbol: string
    orderId: number

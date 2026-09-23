@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import { planPortfolio, PlanError } from '../../../../src/server/services/portfolio/planner'
+import { orderFee, planPortfolio, PlanError } from '../../../../src/server/services/portfolio/planner'
 import type { PlanMarket } from '../../../../src/server/services/portfolio/planner'
 import type {
    AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioExecuteRequest,
@@ -35,6 +35,7 @@ interface MockPortfolio {
    costs: Record<string, number>
    realized: Record<string, number>
    closedRealized: number
+   rebalancedAt?: number
 }
 
 interface MockPlan {
@@ -104,6 +105,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          target: String(target),
          drift: weight === null ? null : fixed(weight - target, 4),
          unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
+         unrealizedPercent: cost !== undefined && cost > 0 && value !== null ? fixed((value - cost) / cost * 100, 4) : null,
          realized: fixed(portfolio.realized[asset] ?? 0),
          stopPrice: portfolio.targets.find(target => target.asset === asset)?.stopPrice ?? null,
          stopStatus: null
@@ -112,6 +114,8 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
 
    const realized = Object.values(portfolio.realized).reduce((sum, amount) => sum + amount, portfolio.closedRealized)
    const unrealized = holdings.reduce((sum, holding) => sum + Number(holding.unrealized ?? 0), 0)
+   const openCost = holdings.reduce((sum, { asset, unrealized }) =>
+      unrealized === null ? sum : sum + (portfolio.costs[asset] ?? 0), 0)
 
    const maxDrift = Math.max(0, ...holdings.map(({ drift }) => Math.abs(Number(drift ?? 0))))
    const netInvested = (state.movements.get(portfolio.id) ?? []).reduce((sum, { kind, value }) =>
@@ -131,9 +135,11 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       profit: fixed(total - netInvested),
       realized: fixed(realized),
       unrealized: fixed(unrealized),
+      unrealizedPercent: openCost > 0 ? fixed(unrealized / openCost * 100, 4) : null,
       closedRealized: fixed(portfolio.closedRealized),
       maxDrift: fixed(maxDrift, 4),
       needsRebalance: total > 0 && maxDrift > Number(portfolio.band),
+      lastRebalancedAt: portfolio.rebalancedAt ?? null,
       quoteLocked: (state.movements.get(portfolio.id) ?? []).length > 0,
       stops: []
    }
@@ -330,15 +336,21 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       return reject(error instanceof PlanError ? error.message : String(error))
    }
 
-   const orders: PortfolioPlanOrder[] = result.orders.map(order => ({
-      asset: order.asset,
-      symbol: order.symbol,
-      side: order.side,
-      unit: order.unit,
-      amount: order.amount.toFixed(),
-      price: order.price.toFixed(),
-      value: order.value.toFixed(2)
-   }))
+   const orders: PortfolioPlanOrder[] = result.orders.map(order => {
+      const fee = orderFee(order, quote, Big(FEE_RATE), false)
+      return {
+         asset: order.asset,
+         symbol: order.symbol,
+         side: order.side,
+         unit: order.unit,
+         amount: order.amount.toFixed(),
+         price: order.price.toFixed(),
+         value: order.value.toFixed(2),
+         fee: { asset: fee.asset, amount: fee.amount.round(8).toFixed() },
+         feeRate: String(FEE_RATE),
+         feeRateAssumed: false
+      }
+   })
 
    const planId = `mock-plan-${state.nextId++}`
    state.plans.set(planId, { portfolioId: portfolio.id, orders, withdraw: result.withdraw.toNumber() })
@@ -446,7 +458,9 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
             })
             current.withdrawn = fixed(withdrawn, 2)
          }
-         Object.assign(current, { status: 'done', running: false, finishedAt: now() })
+         const finishedAt = now()
+         Object.assign(current, { status: 'done', running: false, finishedAt })
+         if (current.kind === 'rebalance' && current.orders.length > 0) portfolio.rebalancedAt = finishedAt
       }
    }
 

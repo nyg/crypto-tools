@@ -50,6 +50,12 @@ export interface BybitWalletAccount {
    coin: BybitWalletCoin[]
 }
 
+export interface BybitFeeRate {
+   symbol: string
+   takerFeeRate: string
+   makerFeeRate: string
+}
+
 export interface BybitApiKeyInfo {
    readOnly: number
    permissions: Record<string, string[]>

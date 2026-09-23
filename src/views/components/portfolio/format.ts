@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import { asAssetAmount, asDecimal, asShortPercentage } from '../../../utils/format'
+import { asAssetAmount, asDecimal, asShortPercentage, asSignedShortPercentage } from '../../../utils/format'
 import type {
    RunKind, RunOrderStatus, RunStatus, SkipReason, StopSkipReason, StopStatus
 } from '../../../types/portfolio'
@@ -24,6 +24,8 @@ export const profitColor = (value: string | null) =>
 export const asWeight = (value: string | null | undefined) =>
    value === null || value === undefined ? '—' : asShortPercentage(Number(value) / 100)
 
+export const asSignedPercent = (value: string) => asSignedShortPercentage(Number(value) / 100)
+
 export const asPoints = (value: string) => asDecimal(Number(value), POINT_DECIMALS)
 
 export const asDrift = (value: string | null | undefined) =>
@@ -39,7 +41,7 @@ export const skipReasons: Record<SkipReason, string> = {
    'no-market': 'no market against the cash coin',
    'unpriced': 'no price right now',
    'no-free-balance': 'nothing free in the wallet to sell',
-   'no-cash': 'no cash left to buy with'
+   'no-cash': 'not enough cash to buy with'
 }
 
 export const orderStatusLabels: Record<RunOrderStatus, string> = {

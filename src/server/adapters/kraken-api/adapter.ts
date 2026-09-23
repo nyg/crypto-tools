@@ -5,7 +5,7 @@ import { normalizeAsset } from './assets'
 import { buildPairIndex, resolvePair } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
 import { fetchTickerSnapshots } from './ticker-stream'
-import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFeeRate } from './spot'
+import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFees } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type {
    CancelResult, ExportReport, ExportReportType, ExportRequest, KrakenSpotMarket, LedgerEntry,
@@ -14,7 +14,7 @@ import type {
 import type { TradingPair, TradingPairs } from '../../../types/market'
 import type { KrakenAssets, KrakenOpenOrder, KrakenOrderBatchParams } from '../../../types/kraken-api'
 import type {
-   OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotPrice, StopOrderRequest, WalletCoin
+   OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 // Amounts are kept as the exact strings Kraken wrote. Reading them through Big and
@@ -363,9 +363,10 @@ export default class KrakenAPI {
       return spotWallet((await resource.fetchExtendedBalance(this.#authenticated)).result ?? {})
    }
 
-   async fetchTakerFeeRate(pairs: string[]): Promise<string | null> {
-      if (pairs.length === 0) return null
-      return takerFeeRate((await resource.fetchTradeVolume(this.#authenticated, pairs)).result ?? {})
+   async fetchTakerFees(markets: KrakenSpotMarket[]): Promise<Record<string, TakerFee>> {
+      if (markets.length === 0) return {}
+      const volume = await resource.fetchTradeVolume(this.#authenticated, markets.map(({ altname }) => altname))
+      return takerFees(volume.result ?? {}, markets)
    }
 
    async placeMarketOrder(pair: string, { clientOrderId, side, unit, amount }: OrderRequest): Promise<string> {

@@ -18,6 +18,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { asCount } from '../lib/filter-options'
 import { asQuantity, asQuoteAmount, runStatusLabels, skipReasons } from './format'
+import { asPercentage } from '../../../utils/format'
 import type {
    PortfolioExecuteRequest, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun,
    PortfolioRunResponse, PortfolioSummary
@@ -65,6 +66,7 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                      <TableHead className="text-right">Size</TableHead>
                      <TableHead className="text-right">Price now</TableHead>
                      <TableHead className="text-right">About</TableHead>
+                     <TableHead className="text-right">Fee</TableHead>
                   </TableRow>
                </TableHeader>
                <TableBody>
@@ -76,6 +78,16 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">{asQuantity(order.price)}</TableCell>
                         <TableCell className="text-right">{asQuoteAmount(order.value, quote)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                           {asQuantity(order.fee.amount)} {order.fee.asset}
+                           <span
+                              className="ml-1.5 text-xs"
+                              title={order.feeRateAssumed
+                                 ? 'The exchange did not report a rate for this pair, so this assumes its standard taker fee.'
+                                 : 'Your taker fee rate on this pair, as the exchange reports it.'}>
+                              {order.feeRateAssumed ? '~' : ''}{asPercentage(Number(order.feeRate))}
+                           </span>
+                        </TableCell>
                      </TableRow>)}
                </TableBody>
             </Table>

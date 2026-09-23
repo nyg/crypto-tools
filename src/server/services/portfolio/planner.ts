@@ -28,7 +28,13 @@ export interface PlanInput {
    band: Big
    withdraw: Big | 'all'
    feeRate?: Big
+   feeRates?: Map<string, FeeRate>
    buyFeeInQuote?: boolean
+}
+
+export interface FeeRate {
+   buy: Big
+   sell: Big
 }
 
 export interface PlannedOrder {
@@ -39,6 +45,11 @@ export interface PlannedOrder {
    amount: Big
    price: Big
    value: Big
+}
+
+export interface OrderFee {
+   asset: string
+   amount: Big
 }
 
 export interface SkippedAsset {
@@ -94,6 +105,11 @@ export const sellFits = (market: PlanMarket, qty: Big): boolean =>
 export const buyFits = (market: PlanMarket, amount: Big): boolean =>
    amount.gt(0) && amount.gte(market.minAmount) && amount.div(market.ask).gte(market.minQty)
 
+export function minimumBuy(market: PlanMarket): Big {
+   const byQty = market.minQty.times(market.ask)
+   return ceilTo(byQty.gt(market.minAmount) ? byQty : market.minAmount, market.quoteStep)
+}
+
 export function sellOrders(market: PlanMarket, qty: Big): PlannedOrder[] {
    return splitAmount(floorTo(qty, market.baseStep), market.maxQty, market.baseStep)
       .filter(chunk => sellFits(market, chunk))
@@ -122,13 +138,21 @@ export function buyOrders(market: PlanMarket, amount: Big): PlannedOrder[] {
       }))
 }
 
+export const orderFee = (order: PlannedOrder, quote: string, feeRate: Big, buyFeeInQuote: boolean): OrderFee =>
+   order.side === 'buy' && !buyFeeInQuote
+      ? { asset: order.asset, amount: order.amount.div(order.price).times(feeRate) }
+      : { asset: quote, amount: order.value.times(feeRate) }
+
 export function buyScale(budget: Big, planned: Big): Big {
    if (budget.lte(0)) return ZERO
    return budget.gte(planned) ? Big(1) : budget.div(planned)
 }
 
-export const netOfBuyFees = (budget: Big, feeRate: Big, feeInQuote: boolean): Big =>
-   feeInQuote ? budget.div(Big(1).plus(feeRate)) : budget
+export const feeRateOf = (rates: Map<string, FeeRate> | undefined, fallback: Big, asset: string, side: OrderSide): Big =>
+   rates?.get(asset)?.[side] ?? fallback
+
+export const buyCost = (amount: Big, feeRate: Big, feeInQuote: boolean): Big =>
+   feeInQuote ? amount.times(Big(1).plus(feeRate)) : amount
 
 const weightsOf = (values: Map<string, Big>): Map<string, Big> => {
    const total = [...values.values()].reduce((sum, value) => sum.plus(value), ZERO)
@@ -143,8 +167,10 @@ interface Desired {
 
 export function planPortfolio(input: PlanInput): Plan {
 
-   const { quote, holdings, targets, markets, free, band, buyFeeInQuote = false } = input
-   const feeRate = input.feeRate ?? DEFAULT_FEE_RATE
+   const { quote, holdings, targets, markets, free, band, feeRates, buyFeeInQuote = false } = input
+   const fallbackRate = input.feeRate ?? DEFAULT_FEE_RATE
+   const rateOf = (asset: string, side: OrderSide) => feeRateOf(feeRates, fallbackRate, asset, side)
+   const keptOf = (asset: string) => Big(1).minus(rateOf(asset, 'sell'))
 
    const assets = [...new Set([...holdings.keys(), ...targets.keys()])].filter(asset => asset !== quote)
    const cash = holdings.get(quote) ?? ZERO
@@ -173,11 +199,14 @@ export function planPortfolio(input: PlanInput): Plan {
 
    const investable = total.minus(withdraw)
    const targetValue = (asset: string) => (targets.get(asset) ?? ZERO).div(HUNDRED).times(investable)
+   const bandEdge = (asset: string, side: 1 | -1) =>
+      (targets.get(asset) ?? ZERO).plus(band.times(side)).div(HUNDRED).times(total)
    const reserve = targetValue(quote).plus(withdraw)
    const priced = assets.filter(asset => values.has(asset))
 
    const sells: Desired[] = []
    const buys: Desired[] = []
+   const trimmable: Desired[] = []
 
    if (withdraw.gt(0)) {
       if (cash.lt(withdraw)) {
@@ -188,7 +217,7 @@ export function planPortfolio(input: PlanInput): Plan {
          const needed = reserve.minus(cash)
          const share = overTotal.gt(0) ? needed.div(overTotal) : ZERO
          for (const { asset, value } of over) {
-            const gross = value.times(share).div(Big(1).minus(feeRate))
+            const gross = value.times(share).div(keptOf(asset))
             const worth = values.get(asset)!
             sells.push({ asset, value: gross.gt(worth) ? worth : gross, all: gross.gte(worth) })
          }
@@ -212,21 +241,31 @@ export function planPortfolio(input: PlanInput): Plan {
          const absorbsCash = (cashDrift.gt(band) && delta.gt(0)) || (cashDrift.lt(band.neg()) && delta.lt(0))
          if (drift.abs().lte(band) && !absorbsCash) {
             if (!drift.eq(0)) skipped.push({ asset, reason: 'within-band', value: delta.abs() })
+            if (delta.lt(0)) trimmable.push({ asset, value: delta.abs(), all: false })
             continue
          }
 
          if (delta.lt(0)) sells.push({ asset, value: delta.abs(), all: false })
-         else if (delta.gt(0)) buys.push({ asset, value: delta, all: false })
+         else if (delta.gt(0)) {
+            const minimum = minimumBuy(markets.get(asset)!)
+            const liftable = delta.lt(minimum) && value.plus(minimum).lte(bandEdge(asset, 1))
+            buys.push({ asset, value: liftable ? minimum : delta, all: false })
+         }
       }
    }
 
-   const orders: PlannedOrder[] = []
+   const sold = new Map<string, PlannedOrder[]>()
+   const wholly = new Set<string>()
+
+   const sellable = (asset: string): Big => {
+      const quantity = holdings.get(asset) ?? ZERO
+      const available = free.get(asset) ?? ZERO
+      return quantity.lt(available) ? quantity : available
+   }
 
    for (const { asset, value, all } of sells) {
       const market = markets.get(asset)!
-      const quantity = holdings.get(asset) ?? ZERO
-      const available = free.get(asset) ?? ZERO
-      const cap = quantity.lt(available) ? quantity : available
+      const cap = sellable(asset)
 
       if (cap.lte(0)) {
          skipped.push({ asset, reason: 'no-free-balance', value })
@@ -234,24 +273,73 @@ export function planPortfolio(input: PlanInput): Plan {
       }
 
       const sized = withdraw.gt(0) ? ceilTo(value.div(market.bid), market.baseStep) : value.div(market.bid)
-      const wanted = all ? quantity : sized
+      const wanted = all ? holdings.get(asset) ?? ZERO : sized
       const planned = sellOrders(market, wanted.gt(cap) ? cap : wanted)
 
       if (planned.length === 0) skipped.push({ asset, reason: 'below-minimum', value })
-      orders.push(...planned)
+      else sold.set(asset, planned)
+      if (all) wholly.add(asset)
    }
 
-   const proceeds = orders.reduce((sum, order) => sum.plus(order.value), ZERO).times(Big(1).minus(feeRate))
    const freeCash = free.get(quote) ?? ZERO
    const spendable = cash.lt(freeCash) ? cash : freeCash
-   const budget = spendable.plus(proceeds).minus(reserve)
-   const wantedBuys = buys.reduce((sum, { value }) => sum.plus(value), ZERO)
-   const scale = buyScale(netOfBuyFees(budget, feeRate, buyFeeInQuote), wantedBuys)
+   const valueOf = (planned: PlannedOrder[]) => planned.reduce((sum, order) => sum.plus(order.value), ZERO)
+   const budgetAfter = (planned: PlannedOrder[]) => spendable
+      .plus(planned.reduce((sum, order) => sum.plus(order.value.times(keptOf(order.asset))), ZERO))
+      .minus(reserve)
+   const costOfBuys = buys.reduce((sum, { asset, value }) =>
+      sum.plus(buyCost(value, rateOf(asset, 'buy'), buyFeeInQuote)), ZERO)
+   const unfunded = () => buys.length > 0 ? costOfBuys.minus(budgetAfter([...sold.values()].flat())) : ZERO
+   const trimmed = new Set<string>()
+
+   const sellUpTo = (market: PlanMarket, value: Big, cap: Big, round = floorTo): PlannedOrder[] => {
+      const quantity = round(value.div(market.bid), market.baseStep)
+      return sellOrders(market, quantity.gt(cap) ? cap : quantity)
+   }
+
+   for (const { asset, value } of trimmable.sort((left, right) => right.value.cmp(left.value))) {
+      const missing = unfunded()
+      if (missing.lte(0)) break
+
+      const market = markets.get(asset)!
+      const cap = sellable(asset)
+      const needed = missing.div(keptOf(asset))
+      const partial = sellUpTo(market, needed.lt(value) ? needed : value, cap)
+      const planned = partial.length > 0 ? partial : sellUpTo(market, value, cap)
+
+      if (planned.length === 0) continue
+      trimmed.add(asset)
+      sold.set(asset, planned)
+   }
+
+   const largestFirst = [...sold].sort(([, left], [, right]) => valueOf(right).cmp(valueOf(left)))
+
+   for (const [asset, planned] of largestFirst) {
+      const missing = unfunded()
+      if (missing.lte(0)) break
+      if (wholly.has(asset)) continue
+
+      const current = valueOf(planned)
+      const limit = values.get(asset)!.minus(bandEdge(asset, -1))
+      const wanted = current.plus(missing.div(keptOf(asset)))
+      const reach = wanted.lt(limit) ? wanted : limit
+      if (reach.lte(current)) continue
+
+      const larger = sellUpTo(markets.get(asset)!, reach, sellable(asset), ceilTo)
+      if (valueOf(larger).gt(current)) sold.set(asset, larger)
+   }
+
+   const orders = [...sold.values()].flat()
+
+   const budget = budgetAfter(orders)
+   const scale = buyScale(budget, costOfBuys)
 
    for (const { asset, value } of buys) {
-      const planned = buyOrders(markets.get(asset)!, value.times(scale))
+      const market = markets.get(asset)!
+      const planned = buyOrders(market, value.times(scale))
       if (planned.length === 0) {
-         skipped.push({ asset, reason: budget.lte(0) ? 'no-cash' : 'below-minimum', value })
+         const shortOfCash = budget.lte(0) || buyOrders(market, value).length > 0
+         skipped.push({ asset, reason: shortOfCash ? 'no-cash' : 'below-minimum', value })
       }
       orders.push(...planned)
    }
@@ -264,13 +352,14 @@ export function planPortfolio(input: PlanInput): Plan {
       const current = after.get(order.asset) ?? ZERO
       if (order.side === 'sell') {
          after.set(order.asset, current.minus(order.amount.times(market.last)))
-         cashAfter = cashAfter.plus(order.value.times(Big(1).minus(feeRate)))
+         cashAfter = cashAfter.plus(order.value.times(keptOf(order.asset)))
       }
       else {
+         const rate = rateOf(order.asset, 'buy')
          const received = order.amount.div(order.price)
-         const bought = buyFeeInQuote ? received : received.times(Big(1).minus(feeRate))
+         const bought = buyFeeInQuote ? received : received.times(Big(1).minus(rate))
          after.set(order.asset, current.plus(bought.times(market.last)))
-         cashAfter = cashAfter.minus(buyFeeInQuote ? order.amount.times(Big(1).plus(feeRate)) : order.amount)
+         cashAfter = cashAfter.minus(buyCost(order.amount, rate, buyFeeInQuote))
       }
    }
 
@@ -281,7 +370,7 @@ export function planPortfolio(input: PlanInput): Plan {
       withdraw,
       reserve,
       orders: [...orders.filter(({ side }) => side === 'sell'), ...orders.filter(({ side }) => side === 'buy')],
-      skipped,
+      skipped: skipped.filter(({ asset, reason }) => reason !== 'within-band' || !trimmed.has(asset)),
       before: weightsOf(values),
       after: weightsOf(after),
       cashAfter,
