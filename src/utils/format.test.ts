@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { asDaysAgo } from './format'
+import { asDaysAgo, asExactDecimal } from './format'
 
 describe('asDaysAgo', () => {
 
@@ -18,5 +18,24 @@ describe('asDaysAgo', () => {
 
    test('treats a time later today as today', () => {
       expect(asDaysAgo(new Date(2026, 8, 23, 20, 0), now)).toBe('today')
+   })
+})
+
+describe('asExactDecimal', () => {
+
+   test('groups the whole part and keeps every decimal Kraken wrote', () => {
+      expect(asExactDecimal('1234567.0012300000')).toBe('1,234,567.0012300000')
+      expect(asExactDecimal('-25000.50')).toBe('-25,000.50')
+      expect(asExactDecimal('0.00000001')).toBe('0.00000001')
+      expect(asExactDecimal('1500')).toBe('1,500')
+   })
+
+   test('keeps digits beyond what a double can hold', () => {
+      expect(asExactDecimal('98765432109876543.21')).toBe('98,765,432,109,876,543.21')
+   })
+
+   test('returns anything that is not a plain decimal unchanged', () => {
+      expect(asExactDecimal('')).toBe('')
+      expect(asExactDecimal('1e-8')).toBe('1e-8')
    })
 })

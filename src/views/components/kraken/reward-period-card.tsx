@@ -2,17 +2,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent }
 import { Table, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import SelectField from '../lib/select-field'
 import usePersistentState from '../../lib/use-persistent-state'
-import { RewardCell, valueOf } from './reward-table'
-import { asDollarAmount, asUtcLongDate } from '../../../utils/format'
+import { valueOf } from './reward-table'
+import { asAssetAmount, asDollarAmount, asUtcLongDate } from '../../../utils/format'
 import type { RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
 
 const periods = [
-   { value: 'week', label: 'Weekly' },
-   { value: 'month', label: 'Monthly' }
+   { value: 'week', label: 'Last week' },
+   { value: 'month', label: 'Last month' }
 ]
-
-const titles: Record<string, string> = { week: 'Last week', month: 'Last month' }
 
 
 export default function RewardPeriodCard({ rewards, rates }: {
@@ -44,18 +42,18 @@ export default function RewardPeriodCard({ rewards, rates }: {
    return (
       <Card>
          <CardHeader>
-            <CardTitle>{titles[period]}</CardTitle>
+            <CardTitle>Recent rewards</CardTitle>
             <CardDescription className="text-xs">{range}</CardDescription>
             <CardAction>
                <SelectField
                   name="reward-period"
-                  className="w-28"
+                  className="w-32"
                   value={period}
                   onValueChange={setPeriod}
                   options={periods} />
             </CardAction>
          </CardHeader>
-         <CardContent>
+         <CardContent className="flex min-h-0 flex-1 flex-col">
 
             {rows.length === 0
                ? <p className="text-sm text-muted-foreground">
@@ -63,20 +61,29 @@ export default function RewardPeriodCard({ rewards, rates }: {
                      ? `No rewards paid between ${asUtcLongDate(selected.from)} and ${asUtcLongDate(selected.to)}.`
                      : 'No rewards to show. Sync your ledger on the Ledger tab first.'}
                </p>
-               : <div className="space-y-3">
-                  <div className="scroll-shadows max-h-[232px] overflow-y-auto pr-3">
+               : <div className="flex min-h-0 flex-1 flex-col gap-3">
+                  <div className="scroll-shadows max-h-[232px] overflow-y-auto pr-3 md:max-h-none md:min-h-0 md:flex-1 md:basis-0">
                      <Table className="tabular-nums">
                         <TableBody>
-                           {rows.map(row =>
-                              <TableRow key={row.asset}>
-                                 <TableCell className="font-medium">{row.asset}</TableCell>
-                                 <RewardCell amount={row.total} rate={rateFor(row.asset)} />
-                              </TableRow>)}
+                           {rows.map(row => {
+                              const value = valueOf(row.total, rateFor(row.asset))
+                              return (
+                                 <TableRow key={row.asset}>
+                                    <TableCell className="font-medium">{row.asset}</TableCell>
+                                    <TableCell className="text-right text-xs text-muted-foreground">
+                                       {asAssetAmount(row.total)}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium">
+                                       {value == null ? '—' : asDollarAmount(value)}
+                                    </TableCell>
+                                 </TableRow>
+                              )
+                           })}
                         </TableBody>
                      </Table>
                   </div>
                   <div
-                     className="flex items-center justify-between border-t border-border pt-3 pl-2 pr-5 text-sm tabular-nums"
+                     className="flex items-center justify-between pl-2 pr-5 text-sm tabular-nums"
                      title={valued.length < rows.length
                         ? `${rows.length - valued.length} asset(s) have no USD pair and are not counted`
                         : undefined}>

@@ -3,11 +3,31 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import ComboboxField from '../lib/combobox-field'
-import { asAssetAmount, asCompact, asDollarAmount, asRounded } from '../../../utils/format'
-import type { RewardSummary } from '../../../types/api'
+import SelectField from '../lib/select-field'
+import usePersistentState from '../../lib/use-persistent-state'
+import {
+   asAssetAmount, asCompact, asDollarAmount, asRounded,
+   asUtcLongDate, asUtcMonthYearDate, asUtcShortDate, asUtcShortMonthYearDate
+} from '../../../utils/format'
+import type { RewardAsset, RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
 
 const EVERYTHING = 'ALL'
+
+type Granularity = 'year' | 'month' | 'week'
+
+interface Series {
+   buckets: number[]
+   amountOf: (asset: RewardAsset, bucket: number) => number | undefined
+   tick: (bucket: number) => string
+   label: (bucket: number) => string
+}
+
+const granularities = [
+   { value: 'year', label: 'Yearly' },
+   { value: 'month', label: 'Monthly' },
+   { value: 'week', label: 'Weekly' }
+]
 
 // Ticks stay short where the values do not: a dollar total wants no decimals, an
 // amount of BTC still has to show that it is not zero.
@@ -19,6 +39,34 @@ const asAxisTick = (value: number) => {
    return Number(value.toPrecision(2)).toString()
 }
 
+function seriesOf(rewards: RewardSummary | undefined, granularity: Granularity): Series {
+
+   if (granularity === 'week') {
+      return {
+         buckets: rewards?.weeks ?? [],
+         amountOf: (asset, bucket) => asset.byWeek[bucket],
+         tick: asUtcShortDate,
+         label: bucket => `Week of ${asUtcLongDate(bucket)}`
+      }
+   }
+
+   if (granularity === 'month') {
+      return {
+         buckets: rewards?.months ?? [],
+         amountOf: (asset, bucket) => asset.byMonth[bucket],
+         tick: asUtcShortMonthYearDate,
+         label: asUtcMonthYearDate
+      }
+   }
+
+   return {
+      buckets: rewards?.years ?? [],
+      amountOf: (asset, bucket) => asset.byYear[bucket],
+      tick: String,
+      label: String
+   }
+}
+
 
 export default function RewardHistoryCard({ rewards, rates }: {
    rewards?: RewardSummary
@@ -26,9 +74,10 @@ export default function RewardHistoryCard({ rewards, rates }: {
 }) {
 
    const [asset, setAsset] = useState(EVERYTHING)
+   const [granularity, setGranularity] = usePersistentState<Granularity>('kraken.rewards.granularity', 'year')
 
-   const years = rewards?.years ?? []
    const assets = rewards?.assets ?? []
+   const series = seriesOf(rewards, granularity)
 
    // Falls back to the total whenever the chosen asset is not in the data, so the card
    // never goes blank on a re-sync that dropped it.
@@ -39,14 +88,14 @@ export default function RewardHistoryCard({ rewards, rates }: {
    // single asset is charted in its own amount — mixing them would make both unreadable.
    const priced = rates ?? {}
 
-   const data = years.map(year => ({
-      year: String(year),
+   const data = series.buckets.map(bucket => ({
+      bucket,
       value: isTotal
          ? assets.reduce((sum, row) => {
             const rate = priced[row.asset]
-            return sum + (rate != null ? (row.byYear[year] ?? 0) * rate : 0)
+            return sum + (rate != null ? (series.amountOf(row, bucket) ?? 0) * rate : 0)
          }, 0)
-         : selected!.byYear[year] ?? 0
+         : series.amountOf(selected!, bucket) ?? 0
    }))
 
    const format = (value: number) => isTotal ? asDollarAmount(value) : `${asAssetAmount(value)} ${asset}`
@@ -60,7 +109,13 @@ export default function RewardHistoryCard({ rewards, rates }: {
       <Card>
          <CardHeader>
             <CardTitle>Over time</CardTitle>
-            <CardAction>
+            <CardAction className="flex flex-col gap-2 @lg/card-header:flex-row">
+               <SelectField
+                  name="reward-history-granularity"
+                  className="w-44"
+                  value={granularity}
+                  onValueChange={value => setGranularity(value as Granularity)}
+                  options={granularities} />
                {/* Searchable: an account can hold dozens of rewarded assets, and
                    scrolling a plain select past them is slower than typing three letters. */}
                <ComboboxField
@@ -76,7 +131,7 @@ export default function RewardHistoryCard({ rewards, rates }: {
          </CardHeader>
          <CardContent>
 
-            {data.length === 0
+            {assets.length === 0 || data.length === 0
                ? <p className="text-sm text-muted-foreground">
                   No rewards to chart. Sync your ledger on the Ledger tab first.
                </p>
@@ -85,12 +140,21 @@ export default function RewardHistoryCard({ rewards, rates }: {
                   className="h-[260px] w-full">
                   <BarChart data={data} margin={{ top: 8, right: 8 }}>
                      <CartesianGrid vertical={false} />
-                     <XAxis dataKey="year" tickLine={false} axisLine={false} tickMargin={8} />
+                     <XAxis
+                        dataKey="bucket"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        minTickGap={16}
+                        tickFormatter={series.tick} />
                      <YAxis tickLine={false} axisLine={false} tickMargin={8} width={64} tickFormatter={asAxisTick} />
                      <ChartTooltip content={
                         <ChartTooltipContent
                            hideIndicator
-                           labelFormatter={(_, payload) => String(payload?.[0]?.payload?.year ?? '')}
+                           labelFormatter={(_, payload) => {
+                              const bucket = payload?.[0]?.payload?.bucket
+                              return typeof bucket === 'number' ? series.label(bucket) : ''
+                           }}
                            formatter={(value) =>
                               <span className="font-mono font-medium tabular-nums text-foreground">
                                  {format(Number(value))}

@@ -58,6 +58,12 @@ export interface RewardRow {
    last: number
 }
 
+export interface RewardBucketRow {
+   asset: string
+   start: number
+   total: number
+}
+
 export interface RewardPeriodRow {
    asset: string
    total: number

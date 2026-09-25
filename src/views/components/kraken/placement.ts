@@ -9,12 +9,12 @@ interface PlacementInfo {
 }
 
 export const SPOT = 'spot'
-export const OPT_IN = 'opt-in-rewards'
+export const AUTO_EARN = 'auto-earn'
 export const OTHER = 'other'
 
 // The running order every legend, chart and badge sorts by: idle first, then the
 // rewards products roughly by how hard the coins are to get back out.
-export const PLACEMENT_ORDER: Placement[] = [SPOT, OPT_IN, 'earn-flexible', 'earn-bonded', 'earn-locked', OTHER]
+export const PLACEMENT_ORDER: Placement[] = [SPOT, AUTO_EARN, 'earn-flexible', 'earn-bonded', 'earn-locked', OTHER]
 
 const placements: Record<string, PlacementInfo> = {
    [SPOT]: {
@@ -22,8 +22,8 @@ const placements: Record<string, PlacementInfo> = {
       description: 'Sitting in your spot wallet, not allocated to any Earn strategy.',
       earning: false
    },
-   [OPT_IN]: {
-      label: 'Opt-In Rewards',
+   [AUTO_EARN]: {
+      label: 'Auto Earn',
       description: 'Allocated to a flexible Earn strategy that pays it where it lies, so the balance stays in your spot wallet and available to trade.',
       earning: true
    },
@@ -50,7 +50,7 @@ const placements: Record<string, PlacementInfo> = {
 }
 
 const lockTypes: Record<string, Placement> = {
-   flex: OPT_IN,
+   flex: AUTO_EARN,
    instant: 'earn-flexible',
    bonded: 'earn-bonded',
    timed: 'earn-locked'

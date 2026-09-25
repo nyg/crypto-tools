@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import useMutation from '../../lib/use-mutation'
 import { toast } from 'sonner'
-import { formatDistanceToNow } from 'date-fns'
 import Big from 'big.js'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import KrakenLayout from '../../components/kraken/kraken-layout'
@@ -9,6 +8,7 @@ import OpenOrderGroup from '../../components/kraken/open-order-group'
 import CancelOrdersDialog from '../../components/kraken/cancel-orders-dialog'
 import CredentialsAlert from '../../components/lib/credentials-alert'
 import SettingsLink from '../../components/lib/settings-link'
+import TimeAgo from '../../components/lib/time-ago'
 import { useProvider } from '../../lib/use-settings'
 import { asCount } from '../../components/lib/filter-options'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -107,7 +107,7 @@ export default function KrakenOpenOrders() {
       <div className="flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
          {data?.fetchedAt &&
             <span title={`${asLocalTimestamp(data.fetchedAt)} · ${asUtcTimestamp(data.fetchedAt)} UTC`}>
-               Last fetched from Kraken: {formatDistanceToNow(data.fetchedAt)} ago
+               Last fetched from Kraken: <TimeAgo time={data.fetchedAt} />
             </span>}
          <Button
             variant="ghost"
