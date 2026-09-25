@@ -105,28 +105,33 @@ export default class LedgerRepository {
 
       const insert = this.#db.prepare<void, NamedParams>(upsertStatement)
 
-      this.#db.transaction(() => {
-         for (const entry of entries) {
-            insert.run({
-               $accountId: this.#accountId,
-               $entryKey: entryKeyFor(entry),
-               $txid: entry.txid,
-               $refid: entry.refid,
-               $time: entry.time,
-               $type: entry.type,
-               $subtype: entry.subtype,
-               $aclass: entry.aclass,
-               $asset: entry.asset,
-               $baseAsset: entry.baseAsset,
-               $wallet: entry.wallet,
-               $amount: entry.amount,
-               $fee: entry.fee,
-               $balance: entry.balance,
-               $amountNum: Number(entry.amount),
-               $syncedAt: syncedAt
-            })
-         }
-      })()
+      try {
+         this.#db.transaction(() => {
+            for (const entry of entries) {
+               insert.run({
+                  $accountId: this.#accountId,
+                  $entryKey: entryKeyFor(entry),
+                  $txid: entry.txid,
+                  $refid: entry.refid,
+                  $time: entry.time,
+                  $type: entry.type,
+                  $subtype: entry.subtype,
+                  $aclass: entry.aclass,
+                  $asset: entry.asset,
+                  $baseAsset: entry.baseAsset,
+                  $wallet: entry.wallet,
+                  $amount: entry.amount,
+                  $fee: entry.fee,
+                  $balance: entry.balance,
+                  $amountNum: Number(entry.amount),
+                  $syncedAt: syncedAt
+               })
+            }
+         })()
+      }
+      finally {
+         insert.finalize()
+      }
    }
 
    countEntries(): number {
