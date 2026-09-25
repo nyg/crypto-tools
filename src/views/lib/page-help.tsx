@@ -39,12 +39,10 @@ const pageHelp: Record<string, ReactNode> = {
 
    '/kraken/balances':
       <>
-         What you hold, rebuilt from the local database the Ledger tab fills, and
-         grouped by <b>where each coin actually sits</b> — your spot wallet, or one
-         of Kraken&apos;s Earn strategies. Coins left in spot that are still being
-         paid are marked <b>Opt-In Rewards</b>, since they keep earning without
-         leaving the wallet they can be traded from. Totals are checked against
-         Kraken live, which also says how much an open order has already reserved.
+         What you hold on Kraken, read live and grouped by <b>where each coin
+         sits</b> — your spot wallet, or one of Kraken&apos;s Earn strategies. Spot
+         coins in <b>Auto Earn</b> keep earning without leaving the wallet they trade
+         from. Totals are checked against the ledger the Ledger tab stores.
       </>,
 
    '/kraken/rewards':

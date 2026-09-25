@@ -8,11 +8,9 @@ import type { RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
 
 const periods = [
-   { value: 'week', label: 'Weekly' },
-   { value: 'month', label: 'Monthly' }
+   { value: 'week', label: 'Last week' },
+   { value: 'month', label: 'Last month' }
 ]
-
-const titles: Record<string, string> = { week: 'Last week', month: 'Last month' }
 
 
 export default function RewardPeriodCard({ rewards, rates }: {
@@ -44,12 +42,12 @@ export default function RewardPeriodCard({ rewards, rates }: {
    return (
       <Card>
          <CardHeader>
-            <CardTitle>{titles[period]}</CardTitle>
+            <CardTitle>Recent rewards</CardTitle>
             <CardDescription className="text-xs">{range}</CardDescription>
             <CardAction>
                <SelectField
                   name="reward-period"
-                  className="w-28"
+                  className="w-32"
                   value={period}
                   onValueChange={setPeriod}
                   options={periods} />

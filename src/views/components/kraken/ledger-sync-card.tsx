@@ -119,12 +119,9 @@ export default function LedgerSyncCard({
             </div>
 
             <p className="text-xs text-muted-foreground">
-               <b>Sync</b> fetches everything since the last row it holds, as two exports: your
-               ledger, then your trade history. Each export is deleted from Kraken as soon as its
-               rows are stored. <b>Full resync</b> re-reads your whole history and refreshes rows
-               Kraken has amended since — it never deletes anything. <b>Clear data</b> empties the
-               entries and the trades behind the Aggregated Trades page, leaving the database
-               itself in place.
+               <b>Sync</b> downloads your ledger and trades since the last stored row.{' '}
+               <b>Full resync</b> re-reads your whole history and updates amended rows.{' '}
+               <b>Clear data</b> deletes the stored entries and trades.
             </p>
 
             {/* A failure the steps already carry is not repeated here; this is for the
