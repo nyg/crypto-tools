@@ -53,7 +53,7 @@ export default function RewardPeriodCard({ rewards, rates }: {
                   options={periods} />
             </CardAction>
          </CardHeader>
-         <CardContent>
+         <CardContent className="flex min-h-0 flex-1 flex-col">
 
             {rows.length === 0
                ? <p className="text-sm text-muted-foreground">
@@ -61,8 +61,8 @@ export default function RewardPeriodCard({ rewards, rates }: {
                      ? `No rewards paid between ${asUtcLongDate(selected.from)} and ${asUtcLongDate(selected.to)}.`
                      : 'No rewards to show. Sync your ledger on the Ledger tab first.'}
                </p>
-               : <div className="space-y-3">
-                  <div className="scroll-shadows max-h-[232px] overflow-y-auto pr-3">
+               : <div className="flex min-h-0 flex-1 flex-col gap-3">
+                  <div className="scroll-shadows max-h-[232px] overflow-y-auto pr-3 md:max-h-none md:min-h-0 md:flex-1 md:basis-0">
                      <Table className="tabular-nums">
                         <TableBody>
                            {rows.map(row => {
