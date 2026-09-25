@@ -1,9 +1,9 @@
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import Field from '../lib/field'
+import TimeAgo from '../lib/time-ago'
 import { asCount } from '../lib/filter-options'
 import { asDollarAmount, asNumber, asPercentage } from '../../../utils/format'
 import { isEarning, placementOf } from './placement'
@@ -120,9 +120,9 @@ export default function BalanceSummaryCard({
                   {isLoadingLive ? 'Reading balances from Kraken…'
                      : liveError ? 'Could not reach Kraken.'
                         : !live ? 'Not read from Kraken yet.'
-                           : !drifted ? `Read from Kraken ${formatDistanceToNow(live.fetchedAt)} ago.`
+                           : !drifted ? <>Read from Kraken <TimeAgo time={live.fetchedAt} />.</>
                               : drifted.length === 0
-                                 ? `Read from Kraken ${formatDistanceToNow(live.fetchedAt)} ago, and the stored ledger matches it.`
+                                 ? <>Read from Kraken <TimeAgo time={live.fetchedAt} />, and the stored ledger matches it.</>
                                  : `${asCount(drifted.length, 'asset')} ${drifted.length === 1 ? 'differs' : 'differ'} from the stored ledger — sync it to catch up: ${drifted.slice(0, 3).map(entry => entry.asset).join(', ')}${drifted.length > 3 ? '…' : ''}`}
                </span>
 

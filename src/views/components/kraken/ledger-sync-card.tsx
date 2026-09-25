@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
 import { Loader2Icon, RefreshCwIcon, Trash2Icon } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import Field from '../lib/field'
+import TimeAgo from '../lib/time-ago'
 import SyncSteps from './sync-steps'
 import { asCount } from '../lib/filter-options'
 import { SyncStatusBadge, phaseLabel } from './sync-status'
@@ -63,7 +63,7 @@ export default function LedgerSyncCard({
                   label="Last sync"
                   title={state?.lastSyncedAt ? new Date(state.lastSyncedAt).toISOString() : undefined}>
                   {state?.lastSyncedAt
-                     ? `${formatDistanceToNow(state.lastSyncedAt)} ago`
+                     ? <TimeAgo time={state.lastSyncedAt} />
                      : 'Never'}
                </Field>
                {/* One field rather than two: the split between them is what the step

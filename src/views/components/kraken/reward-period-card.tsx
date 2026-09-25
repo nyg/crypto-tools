@@ -2,8 +2,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent }
 import { Table, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import SelectField from '../lib/select-field'
 import usePersistentState from '../../lib/use-persistent-state'
-import { RewardCell, valueOf } from './reward-table'
-import { asDollarAmount, asUtcLongDate } from '../../../utils/format'
+import { valueOf } from './reward-table'
+import { asAssetAmount, asDollarAmount, asUtcLongDate } from '../../../utils/format'
 import type { RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
 
@@ -65,11 +65,20 @@ export default function RewardPeriodCard({ rewards, rates }: {
                   <div className="scroll-shadows max-h-[232px] overflow-y-auto pr-3">
                      <Table className="tabular-nums">
                         <TableBody>
-                           {rows.map(row =>
-                              <TableRow key={row.asset}>
-                                 <TableCell className="font-medium">{row.asset}</TableCell>
-                                 <RewardCell amount={row.total} rate={rateFor(row.asset)} />
-                              </TableRow>)}
+                           {rows.map(row => {
+                              const value = valueOf(row.total, rateFor(row.asset))
+                              return (
+                                 <TableRow key={row.asset}>
+                                    <TableCell className="font-medium">{row.asset}</TableCell>
+                                    <TableCell className="text-right text-xs text-muted-foreground">
+                                       {asAssetAmount(row.total)}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium">
+                                       {value == null ? '—' : asDollarAmount(value)}
+                                    </TableCell>
+                                 </TableRow>
+                              )
+                           })}
                         </TableBody>
                      </Table>
                   </div>

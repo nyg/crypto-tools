@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { toast } from 'sonner'
-import { formatDistanceToNow } from 'date-fns'
 import { Loader2Icon, PlusIcon, RefreshCwIcon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
 import usePersistentState from '../../lib/use-persistent-state'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../lib/credentials-alert'
+import TimeAgo from '../lib/time-ago'
 import AccountSummary from './account-summary'
 import AdjustDialog from './adjust-dialog'
 import ArchiveDialog from './archive-dialog'
@@ -114,7 +114,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
       <div className="flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
          {overview?.fetchedAt &&
             <span title={`${asLocalTimestamp(overview.fetchedAt)} · ${asUtcTimestamp(overview.fetchedAt)} UTC`}>
-               Last fetched from {label}: {formatDistanceToNow(overview.fetchedAt)} ago
+               Last fetched from {label}: <TimeAgo time={overview.fetchedAt} />
             </span>}
          <Button
             variant="ghost"

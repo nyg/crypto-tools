@@ -1,8 +1,8 @@
 import { Link } from 'react-router'
 import useSWR from 'swr'
-import { formatDistanceToNow } from 'date-fns'
 import { Loader2Icon } from 'lucide-react'
 import { isJobRunning } from './sync-status'
+import TimeAgo from '../lib/time-ago'
 import { useProvider } from '../../lib/use-settings'
 import type { SyncStatusResponse } from '../../../types/api'
 
@@ -31,7 +31,7 @@ export default function SyncNavStatus() {
                <Loader2Icon className="size-3.5 animate-spin" />
                Syncing…
             </>
-            : `Last sync: ${lastSyncedAt ? `${formatDistanceToNow(lastSyncedAt)} ago` : 'never'}`}
+            : <>Last sync: {lastSyncedAt ? <TimeAgo time={lastSyncedAt} /> : 'never'}</>}
       </Link>
    )
 }
