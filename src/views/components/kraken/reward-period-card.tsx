@@ -83,7 +83,7 @@ export default function RewardPeriodCard({ rewards, rates }: {
                      </Table>
                   </div>
                   <div
-                     className="flex items-center justify-between border-t border-border pt-3 pl-2 pr-5 text-sm tabular-nums"
+                     className="flex items-center justify-between pl-2 pr-5 text-sm tabular-nums"
                      title={valued.length < rows.length
                         ? `${rows.length - valued.length} asset(s) have no USD pair and are not counted`
                         : undefined}>

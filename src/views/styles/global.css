@@ -167,8 +167,8 @@
     --scroll-shadow: oklch(0 0 0 / 0.14);
 
     background:
-        linear-gradient(var(--card) 30%, transparent) center top,
-        linear-gradient(transparent, var(--card) 70%) center bottom,
+        linear-gradient(var(--card) 40%, transparent) center top,
+        linear-gradient(transparent, var(--card) 60%) center bottom,
         radial-gradient(farthest-side at 50% 0, var(--scroll-shadow), transparent) center top,
         radial-gradient(farthest-side at 50% 100%, var(--scroll-shadow), transparent) center bottom;
     background-repeat: no-repeat;
