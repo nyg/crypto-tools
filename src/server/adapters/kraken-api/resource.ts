@@ -6,9 +6,10 @@ import type { Credentials } from '../../../types/credentials'
 import type { ExportReportType, ExportRequest } from '../../../types/kraken'
 import type {
    KrakenAddExportResult, KrakenAddOrderBatchResult, KrakenAddOrderParams, KrakenAddOrderResult,
-   KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenExportStatus,
-   KrakenExtendedBalance, KrakenOpenOrders, KrakenOrderBatchParams, KrakenOrderFilter,
-   KrakenOrderReference, KrakenQueriedOrders, KrakenResponse, KrakenTicker, KrakenTradeVolume
+   KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenEarnAllocations,
+   KrakenEarnStrategies, KrakenExportStatus, KrakenExtendedBalance, KrakenOpenOrders,
+   KrakenOrderBatchParams, KrakenOrderFilter, KrakenOrderReference, KrakenQueriedOrders,
+   KrakenResponse, KrakenTicker, KrakenTradeVolume
 } from '../../../types/kraken-api'
 
 const apiUrl = 'https://api.kraken.com'
@@ -27,6 +28,8 @@ const queryOrdersEndpoint = '/0/private/QueryOrders'
 const cancelOrderEndpoint = '/0/private/CancelOrder'
 const cancelOrderBatchEndpoint = '/0/private/CancelOrderBatch'
 const tradeVolumeEndpoint = '/0/private/TradeVolume'
+const earnAllocationsEndpoint = '/0/private/Earn/Allocations'
+const earnStrategiesEndpoint = '/0/private/Earn/Strategies'
 
 const addExportEndpoint = '/0/private/AddExport'
 const exportStatusEndpoint = '/0/private/ExportStatus'
@@ -101,6 +104,15 @@ export async function queryOrders(apiCredentials: Credentials, txids: string[]):
 
 export async function fetchTradeVolume(apiCredentials: Credentials, pairs: string[]): Promise<KrakenResponse<KrakenTradeVolume>> {
    return await privateRequest(urlFor(tradeVolumeEndpoint), apiCredentials, { bodyParams: { pair: pairs.join(',') } })
+}
+
+export async function fetchEarnAllocations(apiCredentials: Credentials): Promise<KrakenResponse<KrakenEarnAllocations>> {
+   return await privateRequest(
+      urlFor(earnAllocationsEndpoint), apiCredentials, { bodyParams: { hide_zero_allocations: true } })
+}
+
+export async function fetchEarnStrategies(apiCredentials: Credentials): Promise<KrakenResponse<KrakenEarnStrategies>> {
+   return await privateRequest(urlFor(earnStrategiesEndpoint), apiCredentials)
 }
 
 export async function addOrder(apiCredentials: Credentials, order: KrakenAddOrderParams): Promise<KrakenResponse<KrakenAddOrderResult>> {

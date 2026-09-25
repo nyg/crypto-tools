@@ -5,6 +5,7 @@ import { normalizeAsset } from './assets'
 import { buildPairIndex, resolvePair } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
 import { fetchTickerSnapshots } from './ticker-stream'
+import { earnPositions } from './earn'
 import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFees } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type {
@@ -115,26 +116,11 @@ export default class KrakenAPI {
    }
 
    // The total Kraken holds per asset, and how much of it is reserved by open orders.
-   //
-   // Deliberately not split by placement, even though BalanceEx does key earn positions
-   // separately and does so accurately — checked against a real response, its suffixed
-   // balances match the ledger's per-wallet amounts to the last digit. Two reasons the
-   // breakdown is still read from the ledger:
-   //
-   //  - The suffix does not name the wallet, and the names it does carry are Kraken's
-   //    product vocabulary rather than the one its own Earn screen shows: .S is
-   //    "staked" but sits in the bonded wallet, .M is "opt-in rewards" but is the
-   //    flexible one, .B is "new yield-bearing products" but is the locked one. The
-   //    letters are also not stable — a position keyed XBT.F in mid-2025 is XBT.M now.
-   //  - An opted-in holding has no suffix at all. Kraken pays those rewards onto the spot
-   //    balance, so an asset earning that way is indistinguishable here from one that
-   //    is doing nothing. The ledger's reward entries are the only way to tell.
-   //
-   // This answers "how much, in total, and how much of it is spoken for"; where each
-   // coin sits is the ledger's question.
    async fetchLiveBalances(): Promise<LiveBalance[]> {
 
       const response = await resource.fetchExtendedBalance(this.#authenticated)
+      const allocations = await resource.fetchEarnAllocations(this.#authenticated)
+      const strategies = await resource.fetchEarnStrategies(this.#authenticated)
 
       const totals = new Map<string, { total: Big, hold: Big }>()
 
@@ -151,13 +137,19 @@ export default class KrakenAPI {
          totals.set(normalizedAsset, { total: total.total.add(held), hold: total.hold.add(hold) })
       }
 
+      const positions = earnPositions(
+         new Map([...totals].map(([asset, { total }]) => [asset, total])),
+         allocations.result?.items ?? [],
+         strategies.result?.items ?? [])
+
       return [...totals.entries()]
          .map(([asset, { total, hold }]) => ({
             asset,
             total: total.toFixed(),
             totalNum: Number(total),
             hold: hold.toFixed(),
-            holdNum: Number(hold)
+            holdNum: Number(hold),
+            positions: positions.get(asset) ?? []
          }))
          .toSorted((a, b) => a.asset.localeCompare(b.asset))
    }

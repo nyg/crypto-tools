@@ -14,6 +14,7 @@ import CredentialsAlert from '../../components/lib/credentials-alert'
 import SettingsLink from '../../components/lib/settings-link'
 import usePersistentState from '../../lib/use-persistent-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { messageOf } from '@/lib/errors'
 import type { AssetRatesResponse, BalanceSummary, BalancesResponse, SyncStatusResponse } from '../../../types/api'
 
 const BALANCES_KEY = '/api/kraken/ledger/balances'
@@ -28,8 +29,8 @@ export default function KrakenBalances() {
    const wasRunningRef = useRef(false)
    const { mutate } = useSWRConfig()
 
-   // A sync is started on the Ledger page but rewrites the balances read here, so the
-   // run is followed and the summary revalidated when it lands.
+   // A sync is started on the Ledger page but rewrites the ledger totals checked here,
+   // so the run is followed and the totals revalidated when it lands.
    useSWR<SyncStatusResponse>(
       configured ? '/api/kraken/ledger/sync/status' : null,
       {
@@ -43,45 +44,43 @@ export default function KrakenBalances() {
          }
       })
 
-   const { data: balances, error, isLoading } = useSWR<BalanceSummary>(
+   const { data: ledger, error } = useSWR<BalanceSummary>(
       configured ? BALANCES_KEY : null,
       { keepPreviousData: true })
 
-   // Asked for separately, and only once the assets are known, so the table renders
-   // from the local database straight away and a failed rate lookup costs the amounts
-   // nothing.
-   const assets = (balances?.assets ?? []).map(asset => asset.asset)
+   // What Kraken says right now: every balance, where each part of it is allocated, and
+   // the open orders holding part of it. It stays a mutation because it is the one call
+   // here that reaches the exchange, and reaching it should be an action rather than
+   // something a revalidation can repeat. Triggered on mount rather than left to a
+   // button, so the page is complete without being asked twice.
+   const { data: live, error: liveError, trigger, isMutating } =
+      useMutation<BalancesResponse>('/api/kraken/balances')
+
+   const checkLive = () => trigger().catch(() => {})
+
+   // Asked for separately, and only once the assets are known, so a failed rate lookup
+   // costs the amounts nothing.
+   const assets = (live?.assets ?? []).map(asset => asset.asset)
    const { data: rateData, isLoading: isLoadingRates } = useSWR<AssetRatesResponse>(
       assets.length > 0 ? ['/api/kraken/asset-rates', { assets }] : null,
       { keepPreviousData: true })
 
-   // What Kraken says right now: the totals to check the stored ledger against, and the
-   // open orders holding part of it. It stays a mutation because it is the one call here
-   // that reaches the exchange, and reaching it should be an action rather than something
-   // a revalidation can repeat. Triggered on mount rather than left to a button, so the
-   // page is complete without being asked twice.
-   const { data: live, error: liveError, trigger, isMutating } =
-      useMutation<BalancesResponse>('/api/kraken/balances')
-
-   const canCheckLive = configured
-   const checkLive = () => trigger().catch(() => {})
-
-   // Guarded because StrictMode runs this twice in development, and each run costs two
+   // Guarded because StrictMode runs this twice in development, and each run costs four
    // private calls against Kraken's rate limit. The button below is unaffected: it
    // calls checkLive directly.
    const hasCheckedRef = useRef(false)
 
    useEffect(() => {
-      if (!canCheckLive || hasCheckedRef.current) return
+      if (!configured || hasCheckedRef.current) return
       hasCheckedRef.current = true
       checkLive()
-   }, [canCheckLive])
+   }, [configured])
 
    if (!isLoadingSettings && (unreachable || !configured)) {
       return (
          <KrakenLayout name="Balances">
             <CredentialsAlert unreachable={unreachable}>
-               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to sync your ledger.
+               Generate an API key and secret on Kraken and add them in <SettingsLink group="Kraken" /> to see your balances.
             </CredentialsAlert>
          </KrakenLayout>
       )
@@ -96,47 +95,42 @@ export default function KrakenBalances() {
                   <AlertDescription>{error}</AlertDescription>
                </Alert>}
 
-            {balances?.entries === 0 &&
+            {liveError &&
+               <Alert variant="destructive">
+                  <AlertDescription>Could not read your balances from Kraken: {messageOf(liveError)}</AlertDescription>
+               </Alert>}
+
+            {ledger?.entries === 0 &&
                <Alert>
                   <AlertDescription>
-                     No ledger stored yet. Sync it on the{' '}
+                     No ledger stored yet, so these balances are not checked against it. Sync it on the{' '}
                      <Link to="/kraken/ledger" className="font-medium text-foreground underline underline-offset-4">
                         Ledger
                      </Link>{' '}
-                     tab first, then come back.
-                  </AlertDescription>
-               </Alert>}
-
-            {!canCheckLive &&
-               <Alert>
-                  <AlertDescription>
-                     Add your API secret in <SettingsLink group="Kraken" /> to check these balances against Kraken and
-                     see what your open orders have reserved.
+                     tab.
                   </AlertDescription>
                </Alert>}
 
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                <BalanceSummaryCard
-                  balances={balances}
+                  ledger={ledger}
                   rates={rateData?.rates}
                   live={live}
                   liveError={liveError}
-                  isLoading={isLoading}
                   isLoadingRates={isLoadingRates}
                   isLoadingLive={isMutating}
                   onRefreshLive={checkLive} />
-               <BalancePlacementCard balances={balances} rates={rateData?.rates} />
-               <BalanceChartCard balances={balances} rates={rateData?.rates} />
+               <BalancePlacementCard assets={live?.assets} rates={rateData?.rates} />
+               <BalanceChartCard assets={live?.assets} rates={rateData?.rates} />
             </div>
 
             <BalanceTable
-               balances={balances}
+               assets={live?.assets}
                rates={rateData?.rates}
-               live={live}
                filters={filters}
                onFiltersChange={setFilters}
                onReset={() => setFilters(defaultFilters)}
-               isLoading={isLoading} />
+               isLoading={isMutating} />
 
          </div>
       </KrakenLayout>

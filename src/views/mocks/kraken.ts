@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import { ledgerBalances } from './kraken-ledger'
+import { ledgerBalances, walletBalances } from './kraken-ledger'
 import type {
    AssetRatesResponse, BalancesResponse, OpenOrdersResponse,
    XStockJobResponse, XStockListingsResponse, XStockRow, XStockStartResponse
@@ -7,7 +7,7 @@ import type {
 import type { XStockClassification, XStockListingType } from '../../types/xstock'
 import type { KrakenOrderBatchParams } from '../../types/kraken-api'
 import type { TradingPairs } from '../../types/market'
-import type { CancelResult, OpenOrder } from '../../types/kraken'
+import type { CancelResult, LivePosition, OpenOrder } from '../../types/kraken'
 import type { XStockJob, XStockJobKind, XStockStep } from '../../types/jobs'
 
 // The mocked job carries a tick counter the real one has no use for: it is what drives
@@ -44,25 +44,70 @@ function orderBatch(params?: { ordersParams?: KrakenOrderBatchParams }) {
    })
 }
 
-// What BalanceEx and OpenOrders answer, which is what the Balances page asks Kraken
-// for on top of the ledger. Built from the ledger fixture so the two agree, except for
-// BTC — deliberately out of step, so the "the stored ledger is behind" path is visible
-// in mocked mode without having to break a sync.
+const OPT_IN_WINDOW = 45 * 86400000
+
+type MockStrategy = Pick<LivePosition, 'lockType' | 'yieldSource' | 'unbondingDays'>
+
+const strategies: Record<string, MockStrategy> = {
+   'spot / main': { lockType: 'flex', yieldSource: 'opt_in_rewards', unbondingDays: null },
+   'earn / flexible': { lockType: 'instant', yieldSource: 'opt_in_rewards', unbondingDays: null },
+   'earn / liquid': { lockType: 'instant', yieldSource: 'staking', unbondingDays: null },
+   'earn / bonded': { lockType: 'bonded', yieldSource: 'staking', unbondingDays: 3 },
+   'earn / locked': { lockType: 'timed', yieldSource: 'staking', unbondingDays: null }
+}
+
+const aprs: Record<string, number> = { USD: 0.0425, BTC: 0.001, ETH: 0.025, SOL: 0.0466, ADA: 0.0261, DOT: 0.0309 }
+
+function mockPosition(asset: string, amount: number, wallet?: string): LivePosition {
+
+   const strategy = wallet === undefined ? undefined : strategies[wallet]
+   const apr = strategy ? aprs[asset] ?? 0.001 : null
+
+   return {
+      strategyId: strategy ? `ES${asset}-${wallet!.replace(/\W+/g, '')}`.toUpperCase() : null,
+      lockType: strategy?.lockType ?? '',
+      yieldSource: strategy?.yieldSource ?? '',
+      amount: amount.toFixed(8),
+      amountNum: amount,
+      bonding: '0',
+      unbonding: strategy?.lockType === 'bonded' ? (amount / 10).toFixed(8) : '0',
+      aprLow: apr,
+      aprHigh: apr,
+      unbondingDays: strategy?.unbondingDays ?? null
+   }
+}
+
+// What BalanceEx, Earn/Allocations, Earn/Strategies and OpenOrders answer together. Built
+// from the ledger fixture so the two agree, except for BTC — deliberately out of step, so
+// the "the stored ledger is behind" path is visible in mocked mode without having to
+// break a sync.
 const balances = (): BalancesResponse => {
 
-   const ledger = ledgerBalances()
+   const now = Date.now()
+   const wallets = walletBalances()
    const holds: Record<string, number> = { BTC: 0.05, ADA: 400 }
 
    return {
-      fetchedAt: Date.now(),
-      assets: ledger.assets.map(asset => {
+      fetchedAt: now,
+      assets: ledgerBalances().assets.map(asset => {
+
          const total = asset.totalNum + (asset.asset === 'BTC' ? 0.017 : 0)
+
+         const allocated = wallets
+            .filter(position => position.asset === asset.asset && strategies[position.wallet])
+            .filter(position => position.wallet !== 'spot / main'
+               || (position.lastRewardAt !== null && now - position.lastRewardAt <= OPT_IN_WINDOW))
+            .map(position => mockPosition(asset.asset, position.amount, position.wallet))
+
+         const idle = Number(allocated.reduce((rest, position) => rest - position.amountNum, total).toFixed(8))
+
          return {
             asset: asset.asset,
             total: total.toFixed(8),
             totalNum: total,
             hold: (holds[asset.asset] ?? 0).toFixed(8),
-            holdNum: holds[asset.asset] ?? 0
+            holdNum: holds[asset.asset] ?? 0,
+            positions: idle > 0 ? [mockPosition(asset.asset, idle), ...allocated] : allocated
          }
       }),
       openOrders: [

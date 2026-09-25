@@ -7,9 +7,8 @@ import Field from '../lib/field'
 import { asCount } from '../lib/filter-options'
 import { asDollarAmount, asNumber, asPercentage } from '../../../utils/format'
 import { isEarning, placementOf } from './placement'
-import type { BalanceAsset, BalanceSummary, BalancesResponse } from '../../../types/api'
-import type { UsdRates } from '../../../types/kraken'
-import { messageOf } from '@/lib/errors'
+import type { BalanceSummary, BalancesResponse } from '../../../types/api'
+import type { LiveBalance, UsdRates } from '../../../types/kraken'
 
 // Kraken and the ledger agree to far more digits than this; the tolerance is relative
 // so that it means the same thing for a fraction of a bitcoin and for 300 million PEPE.
@@ -18,11 +17,11 @@ const TOLERANCE = 1e-6
 // Which assets the stored ledger no longer agrees with Kraken about. Anything here
 // means the ledger is behind — the sync is incremental and the page cannot tell on its
 // own that something happened after the last one.
-export function compareToLive(assets: BalanceAsset[] | undefined, live: BalancesResponse | undefined) {
+export function compareToLive(ledgerSummary: BalanceSummary | undefined, live: BalancesResponse | undefined) {
 
-   if (!live?.assets) return null
+   if (!live?.assets || !ledgerSummary?.entries) return null
 
-   const ledger = new Map((assets ?? []).map(asset => [asset.asset, asset.totalNum]))
+   const ledger = new Map(ledgerSummary.assets.map(asset => [asset.asset, asset.totalNum]))
    const remote = new Map(live.assets.map(asset => [asset.asset, asset.totalNum]))
 
    return [...new Set([...ledger.keys(), ...remote.keys()])]
@@ -36,21 +35,21 @@ export function compareToLive(assets: BalanceAsset[] | undefined, live: Balances
 
 
 export default function BalanceSummaryCard({
-   balances, rates, live, liveError, isLoading, isLoadingRates, isLoadingLive, onRefreshLive
+   ledger, rates, live, liveError, isLoadingRates, isLoadingLive, onRefreshLive
 }: {
-   balances?: BalanceSummary
+   ledger?: BalanceSummary
    rates?: UsdRates
    live?: BalancesResponse
    liveError?: unknown
-   isLoading?: boolean
    isLoadingRates?: boolean
    isLoadingLive?: boolean
    onRefreshLive: () => void
 }) {
 
-   const assets = balances?.assets ?? []
+   const assets = live?.assets ?? []
+   const positions = assets.reduce((count, asset) => count + asset.positions.length, 0)
    const priced = rates ?? {}
-   const valueOf = (asset: BalanceAsset) => {
+   const valueOf = (asset: LiveBalance) => {
       const rate = priced[asset.asset]
       return rate == null ? null : asset.totalNum * rate
    }
@@ -64,20 +63,20 @@ export default function BalanceSummaryCard({
       .filter(position => isEarning(placementOf(position)))
       .reduce((value, position) => value + position.amountNum * (priced[asset.asset] ?? 0), 0), 0)
 
-   const holdValue = (live?.assets ?? [])
+   const holdValue = assets
       .filter(asset => priced[asset.asset] != null)
       .reduce((sum, asset) => sum + asset.holdNum * (priced[asset.asset] ?? 0), 0)
 
-   const drifted = compareToLive(assets, live)
+   const drifted = compareToLive(ledger, live)
 
    return (
       <Card>
          <CardHeader>
             <CardTitle>Portfolio</CardTitle>
             <CardAction>
-               {isLoading
+               {isLoadingLive
                   ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-                  : <Badge variant="outline">{asCount(balances?.positions ?? 0, 'position')}</Badge>}
+                  : <Badge variant="outline">{asCount(positions, 'position')}</Badge>}
             </CardAction>
          </CardHeader>
          <CardContent className="space-y-4">
@@ -108,7 +107,7 @@ export default function BalanceSummaryCard({
                </Field>
                <Field
                   label="In open orders"
-                  title="Reserved by orders still on the book, read from Kraken — the ledger only learns about an order once it fills.">
+                  title="Reserved by orders still on the book.">
                   {isLoadingLive
                      ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
                      : live ? asDollarAmount(holdValue) : '—'}
@@ -118,12 +117,13 @@ export default function BalanceSummaryCard({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border pt-3 text-xs">
 
                <span className="text-muted-foreground">
-                  {isLoadingLive ? 'Checking against Kraken…'
-                     : liveError ? `Could not reach Kraken: ${messageOf(liveError)}`
-                        : !live || !drifted ? 'Not checked against Kraken.'
-                           : drifted.length === 0
-                              ? `Matches Kraken exactly, checked ${formatDistanceToNow(live.fetchedAt)} ago.`
-                              : `${asCount(drifted.length, 'asset')} ${drifted.length === 1 ? 'differs' : 'differ'} from Kraken — sync the ledger to catch up: ${drifted.slice(0, 3).map(entry => entry.asset).join(', ')}${drifted.length > 3 ? '…' : ''}`}
+                  {isLoadingLive ? 'Reading balances from Kraken…'
+                     : liveError ? 'Could not reach Kraken.'
+                        : !live ? 'Not read from Kraken yet.'
+                           : !drifted ? `Read from Kraken ${formatDistanceToNow(live.fetchedAt)} ago.`
+                              : drifted.length === 0
+                                 ? `Read from Kraken ${formatDistanceToNow(live.fetchedAt)} ago, and the stored ledger matches it.`
+                                 : `${asCount(drifted.length, 'asset')} ${drifted.length === 1 ? 'differs' : 'differ'} from the stored ledger — sync it to catch up: ${drifted.slice(0, 3).map(entry => entry.asset).join(', ')}${drifted.length > 3 ? '…' : ''}`}
                </span>
 
                <Button
@@ -133,7 +133,7 @@ export default function BalanceSummaryCard({
                   disabled={isLoadingLive}
                   onClick={onRefreshLive}>
                   <RefreshCwIcon className="size-3.5" />
-                  Check Kraken
+                  Refresh
                </Button>
 
             </div>

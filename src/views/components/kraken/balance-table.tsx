@@ -6,19 +6,18 @@ import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import BalanceFilters, { EARNING, dustLimit } from './balance-filters'
 import { migrationNote } from './asset-migrations'
-import { PLACEMENT_ORDER, isEarning, placementColor, placementDescription, placementLabel, placementOf } from './placement'
+import { PLACEMENT_ORDER, SPOT, isEarning, placementColor, placementDescription, placementLabel, placementOf } from './placement'
 import { asCount } from '../lib/filter-options'
-import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
+import { asAssetAmount, asDollarAmount, asNumber, asPercentage } from '../../../utils/format'
 import SortableHead from '../lib/sortable-head'
 import type { BalanceFilterValues } from './balance-filters'
-import type { BalanceAsset, BalancePosition, BalanceSummary, BalancesResponse } from '../../../types/api'
-import type { Sort, UsdRates } from '../../../types/kraken'
+import type { LiveBalance, LivePosition, Sort, UsdRates } from '../../../types/kraken'
 
 // One table row: an asset folded down to the positions the filters left, with the
 // amount, the exact string behind it, and what it is worth.
 interface BalanceRow {
    asset: string
-   positions: BalancePosition[]
+   positions: LivePosition[]
    amount: number
    exact: string
    rate: number | null
@@ -32,10 +31,27 @@ interface BalanceRow {
 const valueOf = (amount: number | null | undefined, rate: number | null): number | null =>
    rate == null ? null : (amount ?? 0) * rate
 
-// The names Kraken gave a position while it was staked the old way — DOT.S, ETH2.S,
-// USD.M. They are the reason a holding can read as one asset on Kraken and another
-// here, so they are shown; the plain ticker alongside them says nothing.
-const suffixedNames = (position: BalancePosition) => position.rawAssets.filter(name => name.includes('.'))
+const positionKey = (position: LivePosition) => position.strategyId ?? SPOT
+
+const onePerPlacement = (positions: LivePosition[]) =>
+   positions.filter((position, index) =>
+      positions.findIndex(other => placementOf(other) === placementOf(position)) === index)
+
+function aprOf({ aprLow, aprHigh }: LivePosition): string | null {
+   if (aprLow === null) return null
+   if (aprHigh === null || aprHigh === aprLow) return `${asPercentage(aprLow)} APR`
+   return `${asPercentage(aprLow)}–${asPercentage(aprHigh)} APR`
+}
+
+function positionDetails(position: LivePosition, asset: string): string {
+   const bonding = Number(position.bonding)
+   const unbonding = Number(position.unbonding)
+   return [
+      position.unbondingDays ? `${asNumber(position.unbondingDays)}-day unbonding` : null,
+      bonding > 0 ? `${asAssetAmount(bonding)} ${asset} bonding` : null,
+      unbonding > 0 ? `${asAssetAmount(unbonding)} ${asset} unbonding` : null
+   ].filter(Boolean).join(' · ')
+}
 
 // Asset and amount, semicolon-separated like the export this page used to serve from
 // the server. The amount is the exact string the ledger stores rather than the rounded,
@@ -69,7 +85,7 @@ function AssetName({ asset }: { asset: string }) {
 // The badge carries the colour its slice has in the ring above, so a row can be read
 // against the chart without a legend, and its title spells out what the placement
 // actually means — which is the part Kraken never says.
-function PlacementBadge({ position }: { position: BalancePosition }) {
+function PlacementBadge({ position }: { position: LivePosition }) {
 
    const key = placementOf(position)
 
@@ -88,11 +104,10 @@ function PlacementBadge({ position }: { position: BalancePosition }) {
 
 
 export default function BalanceTable({
-   balances, rates, live, filters, onFiltersChange, onReset, isLoading
+   assets = [], rates, filters, onFiltersChange, onReset, isLoading
 }: {
-   balances?: BalanceSummary
+   assets?: LiveBalance[]
    rates?: UsdRates
-   live?: BalancesResponse
    filters: BalanceFilterValues
    onFiltersChange: (filters: BalanceFilterValues) => void
    onReset: () => void
@@ -104,10 +119,7 @@ export default function BalanceTable({
    const [sort, setSort] = useState<Sort>({ column: 'value', direction: 'desc' })
    const [expanded, setExpanded] = useState(() => new Set<string>())
 
-   const assets = balances?.assets ?? []
    const rateFor = (asset: string) => rates?.[asset] ?? null
-
-   const holds = new Map((live?.assets ?? []).map(asset => [asset.asset, asset.holdNum]))
 
    // Share is of the whole portfolio, not of what the filters left behind: an asset
    // does not become a bigger part of the holdings because the others were hidden.
@@ -134,7 +146,7 @@ export default function BalanceTable({
                : positions.length === 1 ? (positions[0]?.amount ?? String(amount)) : String(amount),
             rate: rateFor(asset.asset),
             value: valueOf(amount, rateFor(asset.asset)),
-            hold: holds.get(asset.asset) ?? null
+            hold: asset.holdNum
          }
       })
       .filter(row => row.positions.length > 0)
@@ -205,7 +217,7 @@ export default function BalanceTable({
 
             {assets.length === 0
                ? <p className="text-sm text-muted-foreground">
-                  Nothing held in the stored ledger.
+                  {isLoading ? 'Reading balances from Kraken…' : 'Nothing held on Kraken.'}
                </p>
                : sorted.length === 0
                   ? <p className="text-sm text-muted-foreground">
@@ -250,8 +262,8 @@ export default function BalanceTable({
                                     </TableCell>
                                     <TableCell>
                                        <div className="flex flex-wrap gap-1">
-                                          {row.positions.map(position =>
-                                             <PlacementBadge key={position.wallet} position={position} />)}
+                                          {onePerPlacement(row.positions).map(position =>
+                                             <PlacementBadge key={positionKey(position)} position={position} />)}
                                        </div>
                                     </TableCell>
                                     <TableCell className="text-right" title={`${row.exact} ${row.asset}`}>
@@ -272,15 +284,12 @@ export default function BalanceTable({
                                  </TableRow>,
 
                                  ...(isExpanded ? row.positions.map(position =>
-                                    <TableRow key={`${row.asset} ${position.wallet}`} className="text-muted-foreground">
+                                    <TableRow key={`${row.asset} ${positionKey(position)}`} className="text-muted-foreground">
                                        <TableCell />
                                        <TableCell className="pl-6 text-xs">
                                           {placementLabel(placementOf(position), position)}
-                                          {/* Only the suffixed names, which are the retired staking ones:
-                                              a DOT.S line is why an old position reads as one asset on
-                                              Kraken and another here. */}
-                                          {suffixedNames(position).length > 0 &&
-                                             <span className="ml-2 font-mono">{suffixedNames(position).join(' · ')}</span>}
+                                          {aprOf(position) &&
+                                             <span className="ml-2">{aprOf(position)}</span>}
                                        </TableCell>
                                        <TableCell className="text-right" title={`${position.amount} ${row.asset}`}>
                                           {asAssetAmount(position.amountNum)}
@@ -292,9 +301,7 @@ export default function BalanceTable({
                                              : asDollarAmount(position.amountNum * row.rate)}
                                        </TableCell>
                                        <TableCell colSpan={2} className="text-right text-xs">
-                                          {isEarning(placementOf(position)) && position.lastRewardAt
-                                             ? `last paid ${new Date(position.lastRewardAt).toISOString().slice(0, 10)}`
-                                             : ''}
+                                          {positionDetails(position, row.asset)}
                                        </TableCell>
                                     </TableRow>) : [])
                               ]
@@ -321,7 +328,7 @@ export default function BalanceTable({
    )
 }
 
-function matchesPlacement(position: BalancePosition, placement: string) {
+function matchesPlacement(position: LivePosition, placement: string) {
 
    if (!placement) return true
 
@@ -331,7 +338,7 @@ function matchesPlacement(position: BalancePosition, placement: string) {
 
 // Only the placements this account actually uses: offering "Earn · Bonded" to someone
 // who has never bonded anything is a filter that can only ever empty the table.
-function placementOptions(assets: BalanceAsset[]) {
+function placementOptions(assets: LiveBalance[]) {
 
    const seen = new Map<string, { value: string, label: string }>()
 

@@ -3,8 +3,7 @@ import Donut from './donut'
 import { migrationOf } from './asset-migrations'
 import { placementColor, placementLabel, placementOf } from './placement'
 import type { Slice } from './donut'
-import type { BalanceAsset, BalanceSummary } from '../../../types/api'
-import type { UsdRates } from '../../../types/kraken'
+import type { LiveBalance, UsdRates } from '../../../types/kraken'
 
 // A ring segment plus how many positions it stands for, which the card counts but the
 // chart has no use for.
@@ -14,7 +13,7 @@ type PlacementSlice = Slice & { positions: number }
 // Kraken has no USD pair for cannot be added to the others and are counted apart, so
 // that the ring never quietly omits a holding without saying so — and the assets they
 // are in are named, because "left out" is only actionable if you know what was.
-export function placementTotals(assets: BalanceAsset[] | undefined, rates: UsdRates | undefined) {
+export function placementTotals(assets: LiveBalance[] | undefined, rates: UsdRates | undefined) {
 
    const totals = new Map<string, PlacementSlice>()
    const unvaluedAssets = new Set<string>()
@@ -44,12 +43,12 @@ export function placementTotals(assets: BalanceAsset[] | undefined, rates: UsdRa
 }
 
 
-export default function BalancePlacementCard({ balances, rates }: {
-   balances?: BalanceSummary
+export default function BalancePlacementCard({ assets, rates }: {
+   assets?: LiveBalance[]
    rates?: UsdRates
 }) {
 
-   const { slices, unvalued, unvaluedAssets } = placementTotals(balances?.assets, rates)
+   const { slices, unvalued, unvaluedAssets } = placementTotals(assets, rates)
 
    return (
       <Card>
