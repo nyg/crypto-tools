@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asNumber } from '../../../utils/format'
+import { asExactDecimal, asNumber } from '../../../utils/format'
 import SortableHead from '../lib/sortable-head'
 import type { LedgerEntriesResponse } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
@@ -71,11 +71,11 @@ export default function LedgerTable({ entries, sort, onSortChange, onPageChange,
                         </TableCell>
                         <TableCell
                            className={cn('text-right', entry.amount.startsWith('-') ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
-                           {entry.amount}
+                           {asExactDecimal(entry.amount)}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground">{entry.fee}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{asExactDecimal(entry.fee)}</TableCell>
                         <TableCell className="text-right text-muted-foreground">
-                           {entry.balance || '—'}
+                           {entry.balance ? asExactDecimal(entry.balance) : '—'}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{entry.wallet || '—'}</TableCell>
                         <TableCell>

@@ -8,7 +8,7 @@ import BalanceFilters, { EARNING, dustLimit } from './balance-filters'
 import { migrationNote } from './asset-migrations'
 import { PLACEMENT_ORDER, SPOT, isEarning, placementColor, placementDescription, placementLabel, placementOf } from './placement'
 import { asCount } from '../lib/filter-options'
-import { asAssetAmount, asDollarAmount, asNumber, asPercentage } from '../../../utils/format'
+import { asAssetAmount, asDollarAmount, asNumber, asPercentage, asShortPercentage } from '../../../utils/format'
 import SortableHead from '../lib/sortable-head'
 import type { BalanceFilterValues } from './balance-filters'
 import type { LiveBalance, LivePosition, Sort, UsdRates } from '../../../types/kraken'
@@ -276,7 +276,7 @@ export default function BalanceTable({
                                        {row.value == null ? '—' : asDollarAmount(row.value)}
                                     </TableCell>
                                     <TableCell className="text-right text-muted-foreground">
-                                       {row.value == null || portfolioValue <= 0 ? '—' : asPercentage(row.value / portfolioValue)}
+                                       {row.value == null || portfolioValue <= 0 ? '—' : asShortPercentage(row.value / portfolioValue)}
                                     </TableCell>
                                     <TableCell className="text-right text-muted-foreground">
                                        {row.hold ? asAssetAmount(row.hold) : '—'}
@@ -312,7 +312,7 @@ export default function BalanceTable({
                               <TableCell colSpan={4}>Total</TableCell>
                               <TableCell className="text-right">{asDollarAmount(shownValue)}</TableCell>
                               <TableCell className="text-right">
-                                 {portfolioValue > 0 ? asPercentage(shownValue / portfolioValue) : '—'}
+                                 {portfolioValue > 0 ? asShortPercentage(shownValue / portfolioValue) : '—'}
                               </TableCell>
                               {/* Left blank on purpose: the column holds amounts of
                                   different coins, which cannot be added up. What they
@@ -352,5 +352,5 @@ function placementOptions(assets: LiveBalance[]) {
    const named = [...seen.values()].toSorted((a, b) => a.label.localeCompare(b.label))
    const earns = [...seen.keys()].some(isEarning)
 
-   return earns ? [{ value: EARNING, label: 'Any rewards' }, ...named] : named
+   return earns ? [{ value: EARNING, label: 'Any Earn strategy' }, ...named] : named
 }

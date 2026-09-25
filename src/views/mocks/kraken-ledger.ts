@@ -50,6 +50,32 @@ function lastCompletePeriods(now = Date.now()) {
    }
 }
 
+const MONTHS_CHARTED = 12
+const WEEKS_CHARTED = 52
+
+const monthOfTime = (time: number) => {
+   const date = new Date(time)
+   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)
+}
+
+const weekOfTime = (time: number) => {
+   const date = new Date(time)
+   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) - ((date.getUTCDay() + 6) % 7) * DAY
+}
+
+function chartedBuckets(now = Date.now()) {
+
+   const thisMonth = new Date(monthOfTime(now))
+   const thisWeek = weekOfTime(now)
+
+   return {
+      months: Array.from({ length: MONTHS_CHARTED }, (_, index) =>
+         Date.UTC(thisMonth.getUTCFullYear(), thisMonth.getUTCMonth() - MONTHS_CHARTED + 1 + index, 1)),
+      weeks: Array.from({ length: WEEKS_CHARTED }, (_, index) =>
+         thisWeek - (WEEKS_CHARTED - 1 - index) * 7 * DAY)
+   }
+}
+
 const assets = [
    { asset: 'XXBT', baseAsset: 'BTC' },
    { asset: 'XETH', baseAsset: 'ETH' },
@@ -442,15 +468,24 @@ export function ledgerRewards(): RewardSummary {
       ['staking', 'earn'].includes(entry.type) && !excludedSubtypes.includes(entry.subtype))
 
    const assets = new Map<string, RewardAsset>()
+   const { months, weeks } = chartedBuckets()
 
    for (const entry of rewards) {
       const year = new Date(entry.time).getUTCFullYear()
       const amount = Number(entry.amount) - Number(entry.fee)
 
       const asset = assets.get(entry.baseAsset)
-         ?? { asset: entry.baseAsset, total: 0, entries: 0, first: entry.time, last: entry.time, byYear: {} }
+         ?? { asset: entry.baseAsset, total: 0, entries: 0, first: entry.time, last: entry.time, byYear: {}, byMonth: {}, byWeek: {} }
 
       asset.byYear[year] = (asset.byYear[year] ?? 0) + amount
+      if (entry.time >= (months[0] ?? 0)) {
+         const month = monthOfTime(entry.time)
+         asset.byMonth[month] = (asset.byMonth[month] ?? 0) + amount
+      }
+      if (entry.time >= (weeks[0] ?? 0)) {
+         const week = weekOfTime(entry.time)
+         asset.byWeek[week] = (asset.byWeek[week] ?? 0) + amount
+      }
       asset.total += amount
       asset.entries += 1
       asset.first = Math.min(asset.first, entry.time)
@@ -480,6 +515,8 @@ export function ledgerRewards(): RewardSummary {
 
    return {
       years,
+      months,
+      weeks,
       periods,
       assets: [...assets.values()].toSorted((a, b) => a.asset.localeCompare(b.asset)),
       entries: rewards.length,

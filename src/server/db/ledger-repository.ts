@@ -4,12 +4,12 @@ import { getDatabase } from './database'
 import { entryKeyFor } from './entry-key'
 import type {
    BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
-   FeeTypeRow, LedgerEntryRow, OtherAccountRow, RewardPeriodRow, RewardRow, SyncStateRow,
+   FeeTypeRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
    SyncStateUpdate, TimeRangeRow, ValueRow
 } from '../../types/db'
 import type {
    BalanceSummary, ClearResponse, FeeSummary,
-   LedgerEntriesResponse, LedgerFiltersResponse, RewardSummary
+   LedgerEntriesResponse, LedgerFiltersResponse, RewardAsset, RewardSummary
 } from '../../types/api'
 import type { LedgerEntry, LedgerFilters, Sort } from '../../types/kraken'
 
@@ -51,6 +51,29 @@ function lastCompletePeriods(now = Date.now()) {
       week: { from: thisWeek - 7 * DAY, to: thisWeek - 1 },
       month: { from: Date.UTC(year, month - 1, 1), to: thisMonth - 1 }
    }
+}
+
+const MONTHS_CHARTED = 12
+const WEEKS_CHARTED = 52
+
+function chartedBuckets(now = Date.now()) {
+
+   const today = new Date(now)
+   const [year, month, day] = [today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()]
+
+   const thisWeek = Date.UTC(year, month, day) - ((today.getUTCDay() + 6) % 7) * DAY
+
+   return {
+      months: Array.from({ length: MONTHS_CHARTED },
+         (_, index) => Date.UTC(year, month - MONTHS_CHARTED + 1 + index, 1)),
+      weeks: Array.from({ length: WEEKS_CHARTED },
+         (_, index) => thisWeek - (WEEKS_CHARTED - 1 - index) * 7 * DAY)
+   }
+}
+
+const bucketModifiers = {
+   month: ['start of month'],
+   week: ['start of day', 'weekday 0', '-6 days']
 }
 
 const upsertStatement = `
@@ -194,7 +217,7 @@ export default class LedgerRepository {
    // One row per asset and year, reshaped into the pivot the page draws. Amounts are
    // net of the fee, like every other total here, and the year is taken in UTC to match
    // the timestamps Kraken writes.
-   rewardSummary(): RewardSummary {
+   rewardSummary(now = Date.now()): RewardSummary {
 
       const rows = this.#db.query<RewardRow, Params>(`
          SELECT base_asset AS asset,
@@ -207,11 +230,11 @@ export default class LedgerRepository {
          GROUP BY asset, year
          ORDER BY asset, year`).all(this.#accountId)
 
-      const assets = new Map()
+      const assets = new Map<string, RewardAsset>()
 
       for (const row of rows) {
          const asset = assets.get(row.asset)
-            ?? { asset: row.asset, total: 0, entries: 0, first: row.first, last: row.last, byYear: {} }
+            ?? { asset: row.asset, total: 0, entries: 0, first: row.first, last: row.last, byYear: {}, byMonth: {}, byWeek: {} }
 
          asset.byYear[row.year] = (asset.byYear[row.year] ?? 0) + row.total
          asset.total += row.total
@@ -223,6 +246,26 @@ export default class LedgerRepository {
 
       const years = [...new Set(rows.map(row => row.year))].toSorted((a, b) => a - b)
 
+      const { months, weeks } = chartedBuckets(now)
+
+      const bucketQuery = (modifiers: string[]) => this.#db.query<RewardBucketRow, Params>(`
+         SELECT base_asset AS asset,
+                CAST(strftime('%s', time / 1000, 'unixepoch', ${modifiers.map(modifier => `'${modifier}'`).join(', ')}) AS INTEGER) * 1000 AS start,
+                SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total
+         FROM ledger_entry
+         WHERE account_id = ? AND ${isReward} AND time >= ?
+         GROUP BY asset, start`)
+
+      for (const row of bucketQuery(bucketModifiers.month).all(this.#accountId, months[0] ?? 0)) {
+         const asset = assets.get(row.asset)
+         if (asset) asset.byMonth[row.start] = row.total
+      }
+
+      for (const row of bucketQuery(bucketModifiers.week).all(this.#accountId, weeks[0] ?? 0)) {
+         const asset = assets.get(row.asset)
+         if (asset) asset.byWeek[row.start] = row.total
+      }
+
       const periodQuery = this.#db.query<RewardPeriodRow, Params>(`
          SELECT base_asset AS asset,
                 SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total,
@@ -232,12 +275,14 @@ export default class LedgerRepository {
          GROUP BY asset
          ORDER BY asset`)
 
-      const periods = Object.fromEntries(Object.entries(lastCompletePeriods())
+      const periods = Object.fromEntries(Object.entries(lastCompletePeriods(now))
          .map(([name, { from, to }]) =>
             [name, { from, to, assets: periodQuery.all(this.#accountId, from, to) }]))
 
       return {
          years,
+         months,
+         weeks,
          periods,
          assets: [...assets.values()],
          entries: rows.reduce((count, row) => count + row.entries, 0),

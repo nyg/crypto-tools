@@ -104,6 +104,8 @@ export interface RewardAsset {
    first: number
    last: number
    byYear: Record<number, number>
+   byMonth: Record<number, number>
+   byWeek: Record<number, number>
 }
 
 export interface RewardPeriod {
@@ -114,6 +116,8 @@ export interface RewardPeriod {
 
 export interface RewardSummary {
    years: number[]
+   months: number[]
+   weeks: number[]
    periods: Record<string, RewardPeriod>
    assets: RewardAsset[]
    entries: number

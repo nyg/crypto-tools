@@ -8,6 +8,9 @@ const longDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', mo
 const utcLongDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
 const monthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long' })
 const shortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short' })
+const utcShortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+const utcMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long', timeZone: 'UTC' })
+const utcShortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short', timeZone: 'UTC' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const shortPercentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const signedShortPercentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' })
@@ -20,6 +23,7 @@ const localTimestampFormatter = new Intl.DateTimeFormat(locales, {
 const countFormatter = new Intl.NumberFormat(locales)
 const compactFormatter = new Intl.NumberFormat(locales, { notation: 'compact', maximumFractionDigits: 1 })
 const roundedFormatter = new Intl.NumberFormat(locales, { maximumFractionDigits: 1 })
+const decimalSeparator = countFormatter.formatToParts(1.5).find(part => part.type === 'decimal')?.value ?? '.'
 
 const dateFormat = (formatter: Intl.DateTimeFormat, date: DateLike) =>
    formatter.format(date).replace('\u00a0', ' ')
@@ -43,6 +47,13 @@ export function asAssetAmount(number: number): string {
    if (magnitude >= 1) return asDecimal(number, 2)
    if (magnitude >= 0.01) return asDecimal(number, 4)
    return asDecimal(number, 8)
+}
+
+export function asExactDecimal(value: string): string {
+   const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value)
+   if (!match) return value
+   const [, sign = '', integer = '0', fraction] = match
+   return `${sign}${countFormatter.format(BigInt(integer))}${fraction === undefined ? '' : `${decimalSeparator}${fraction}`}`
 }
 
 export function asDecimalOne(number: number): string {
@@ -79,6 +90,18 @@ export function asMonthYearDate(timestamp: DateLike): string {
 
 export function asShortMonthYearDate(timestamp: DateLike): string {
    return dateFormat(shortMonthDateFormatter, timestamp)
+}
+
+export function asUtcShortDate(timestamp: DateLike): string {
+   return dateFormat(utcShortDateFormatter, timestamp)
+}
+
+export function asUtcMonthYearDate(timestamp: DateLike): string {
+   return dateFormat(utcMonthDateFormatter, timestamp)
+}
+
+export function asUtcShortMonthYearDate(timestamp: DateLike): string {
+   return dateFormat(utcShortMonthDateFormatter, timestamp)
 }
 
 // Kraken records trade times in UTC; rendering them in the browser's zone would
