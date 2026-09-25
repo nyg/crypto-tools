@@ -50,6 +50,44 @@ export interface KrakenBalanceEntry {
 
 export type KrakenExtendedBalance = Record<string, KrakenBalanceEntry>
 
+export interface KrakenEarnAmount {
+   native: string
+   converted: string
+}
+
+export interface KrakenEarnAllocation {
+   strategy_id: string
+   native_asset: string
+   amount_allocated: {
+      total: KrakenEarnAmount
+      bonding?: KrakenEarnAmount
+      unbonding?: KrakenEarnAmount
+      exit_queue?: KrakenEarnAmount
+      pending?: KrakenEarnAmount
+   }
+}
+
+export interface KrakenEarnAllocations {
+   items: KrakenEarnAllocation[]
+}
+
+export interface KrakenEarnStrategy {
+   id: string
+   asset: string
+   lock_type: {
+      type: string
+      bonding_period?: number
+      unbonding_period?: number
+      payout_frequency?: number
+   }
+   yield_source?: { type: string }
+   apr_estimate?: { low: string, high: string } | null
+}
+
+export interface KrakenEarnStrategies {
+   items: KrakenEarnStrategy[]
+}
+
 export interface KrakenFeeTier {
    fee?: string
 }

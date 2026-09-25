@@ -1,6 +1,6 @@
 import { tradeCount, orderCount, allTradeCount, clearTrades, restoreTrades } from './kraken-trades'
 import type {
-   BalanceAsset, BalancePosition, BalanceSummary, ClearResponse, FeeSummary,
+   BalanceAsset, BalanceSummary, ClearResponse, FeeSummary,
    LedgerEntriesResponse, LedgerFiltersResponse, RewardAsset, RewardSummary,
    SyncCancelResponse, SyncStartResponse, SyncStatusResponse
 } from '../../types/api'
@@ -64,8 +64,8 @@ function buildEntries() {
    const entries: MockEntry[] = []
    let time = Date.now() - 1250 * DAY
 
-   // Wallets are spelled the way Kraken spells them in the export, because the Balances
-   // page reads the placement of a holding out of exactly this string.
+   // Wallets are spelled the way Kraken spells them in the export, because the mocked
+   // Balances page derives the placement of a holding from exactly this string.
    const push = (entry: Partial<MockEntry>) =>
       entries.push({
          aclass: 'currency', balance: '', fee: '0.00000000', subtype: '', wallet: 'spot / main', ...entry
@@ -488,87 +488,55 @@ export function ledgerRewards(): RewardSummary {
    }
 }
 
-// Mirrors LedgerRepository.balanceSummary: the same fold of amount - fee per asset and
-// wallet, over the same fixture, so that clearing and re-syncing empties and refills
-// the Balances page the way it does every other one.
-export function ledgerBalances(): BalanceSummary {
+export interface MockWalletBalance {
+   asset: string
+   wallet: string
+   amount: number
+   lastRewardAt: number | null
+}
+
+export function walletBalances(): MockWalletBalance[] {
 
    const excludedSubtypes = ['allocation', 'deallocation', 'autoallocation', 'migration']
-
-   interface MockPosition {
-      asset: string
-      wallet: string
-      amount: number
-      rawAssets: Set<string>
-      entries: number
-      first: number
-      last: number
-      lastRewardAt: number | null
-      rewardEntries: number
-   }
-
-   const positions = new Map<string, MockPosition>()
+   const positions = new Map<string, MockWalletBalance>()
 
    for (const entry of entries) {
 
       const key = `${entry.baseAsset} ${entry.wallet}`
       const position = positions.get(key)
-         ?? {
-            asset: entry.baseAsset, wallet: entry.wallet, amount: 0, rawAssets: new Set(),
-            entries: 0, first: entry.time, last: entry.time, lastRewardAt: null, rewardEntries: 0
-         }
+         ?? { asset: entry.baseAsset, wallet: entry.wallet, amount: 0, lastRewardAt: null }
 
       position.amount += Number(entry.amount) - Number(entry.fee)
-      position.rawAssets.add(entry.asset)
-      position.entries += 1
-      position.first = Math.min(position.first, entry.time)
-      position.last = Math.max(position.last, entry.time)
 
       if (['staking', 'earn'].includes(entry.type) && !excludedSubtypes.includes(entry.subtype)) {
          position.lastRewardAt = Math.max(position.lastRewardAt ?? 0, entry.time)
-         position.rewardEntries += 1
       }
 
       positions.set(key, position)
    }
 
-   const assets = new Map<string, { asset: string, total: number, positions: BalancePosition[] }>()
+   return [...positions.values()]
+      .map(position => ({ ...position, amount: Number(position.amount.toFixed(8)) }))
+      .filter(position => position.amount !== 0)
+}
 
-   for (const position of positions.values()) {
+// Mirrors LedgerRepository.balanceSummary: the same fold of amount - fee per asset,
+// over the same fixture.
+export function ledgerBalances(): BalanceSummary {
 
-      // Rounded to the precision Kraken writes: the fixture adds floats, and a total of
-      // -3e-17 would otherwise pass for a holding.
-      const amount = Number(position.amount.toFixed(8))
-      if (amount === 0) continue
+   const totals = new Map<string, number>()
 
-      const asset = assets.get(position.asset)
-         ?? { asset: position.asset, total: 0, positions: [] as BalancePosition[] }
-
-      asset.total += amount
-      asset.positions.push({
-         wallet: position.wallet,
-         amount: amount.toFixed(8),
-         amountNum: amount,
-         rawAssets: [...position.rawAssets].toSorted(),
-         entries: position.entries,
-         first: position.first,
-         last: position.last,
-         lastRewardAt: position.lastRewardAt,
-         rewardEntries: position.rewardEntries
-      })
-      assets.set(position.asset, asset)
+   for (const { asset, amount } of walletBalances()) {
+      totals.set(asset, (totals.get(asset) ?? 0) + amount)
    }
 
-   const held = [...assets.values()]
-
    return {
-      assets: held.map((asset): BalanceAsset => ({
-         asset: asset.asset,
-         total: asset.total.toFixed(8),
-         totalNum: asset.total,
-         positions: asset.positions.toSorted((a, b) => b.amountNum - a.amountNum)
-      })),
-      positions: held.reduce((count, asset) => count + asset.positions.length, 0),
+      assets: [...totals]
+         .map(([asset, total]): BalanceAsset => {
+            const rounded = Number(total.toFixed(8))
+            return { asset, total: rounded.toFixed(8), totalNum: rounded }
+         })
+         .filter(asset => asset.totalNum !== 0),
       entries: entries.length,
       first: entries.length > 0 ? entries[0]!.time : null,
       last: entries.length > 0 ? entries.at(-1)!.time : null

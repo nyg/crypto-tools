@@ -1,17 +1,16 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Donut, { foldSlices } from './donut'
-import type { BalanceSummary } from '../../../types/api'
-import type { UsdRates } from '../../../types/kraken'
+import type { LiveBalance, UsdRates } from '../../../types/kraken'
 
 
-export default function BalanceChartCard({ balances, rates }: {
-   balances?: BalanceSummary
+export default function BalanceChartCard({ assets, rates }: {
+   assets?: LiveBalance[]
    rates?: UsdRates
 }) {
 
    const priced = rates ?? {}
 
-   const slices = foldSlices((balances?.assets ?? [])
+   const slices = foldSlices((assets ?? [])
       .filter(asset => priced[asset.asset] != null)
       .map(asset => ({
          key: asset.asset,

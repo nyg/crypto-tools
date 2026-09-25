@@ -121,28 +121,14 @@ export interface RewardSummary {
    last: number | null
 }
 
-export interface BalancePosition {
-   wallet: string
-   amount: string
-   amountNum: number
-   rawAssets: string[]
-   entries: number
-   first: number | null
-   last: number | null
-   lastRewardAt: number | null
-   rewardEntries: number
-}
-
 export interface BalanceAsset {
    asset: string
    total: string
    totalNum: number
-   positions: BalancePosition[]
 }
 
 export interface BalanceSummary {
    assets: BalanceAsset[]
-   positions: number
    entries: number
    first: number | null
    last: number | null

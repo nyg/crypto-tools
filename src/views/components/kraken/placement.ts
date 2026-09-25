@@ -1,21 +1,4 @@
-// Where a holding actually sits, worked out from the wallet Kraken wrote each ledger
-// entry to. This is the whole point of reading balances from the ledger rather than
-// from BalanceEx: the API keys earn positions under suffixes whose letters it renames
-// (a position keyed XBT.F in mid-2025 is XBT.M now) and whose names belong to its API
-// documentation rather than to its Earn screen — .M is "opt-in rewards" but is the
-// flexible position, .B is "new yield-bearing products" but is the locked one. The
-// export writes the wallet in the words the site itself uses.
-//
-// The one case the wallet alone does not settle is Opt-In Rewards. Kraken used to move
-// opted-in coins into the earn wallet and write an "autoallocation" transfer pair for
-// it; since late 2025 it leaves them in the spot wallet and simply pays the rewards
-// there, with no suffix and no transfer to show for it. So a spot position that is
-// still being paid is earning, and a spot position that is not is idle.
-
-// How recently a spot position must have been paid to count as opted in. Rewards land
-// daily to weekly depending on the asset, so this is generous enough to survive a
-// missed payout and short enough that an asset opted out months ago drops off.
-const OPT_IN_WINDOW_DAYS = 45
+import type { LivePosition } from '../../../types/kraken'
 
 export type Placement = string
 
@@ -31,73 +14,55 @@ export const OTHER = 'other'
 
 // The running order every legend, chart and badge sorts by: idle first, then the
 // rewards products roughly by how hard the coins are to get back out.
-export const PLACEMENT_ORDER: Placement[] = [SPOT, OPT_IN, 'earn-flexible', 'earn-liquid', 'earn-bonded', 'earn-locked', OTHER]
+export const PLACEMENT_ORDER: Placement[] = [SPOT, OPT_IN, 'earn-flexible', 'earn-bonded', 'earn-locked', OTHER]
 
 const placements: Record<string, PlacementInfo> = {
    [SPOT]: {
       label: 'Spot',
-      description: 'Sitting in your spot wallet, not earning rewards.',
+      description: 'Sitting in your spot wallet, not allocated to any Earn strategy.',
       earning: false
    },
    [OPT_IN]: {
       label: 'Opt-In Rewards',
-      description: 'Staying in your spot wallet and still being paid — Kraken pays opted-in assets where they lie, so the balance stays available to trade.',
+      description: 'Allocated to a flexible Earn strategy that pays it where it lies, so the balance stays in your spot wallet and available to trade.',
       earning: true
    },
    'earn-flexible': {
       label: 'Earn · Flexible',
-      description: 'Allocated to a flexible Earn strategy, which can be unstaked at any time.',
-      earning: true
-   },
-   'earn-liquid': {
-      label: 'Earn · Liquid',
-      description: 'Allocated to a liquid Earn strategy, held as a wrapped token.',
+      description: 'Allocated to an Earn strategy with no bonding or unbonding period, so it can be taken back out at any time.',
       earning: true
    },
    'earn-bonded': {
       label: 'Earn · Bonded',
-      description: 'Allocated to a bonded Earn strategy, with a bonding and unbonding period before the coins are available again.',
+      description: 'Allocated to a bonded Earn strategy, which has to unbond before the coins are available again.',
       earning: true
    },
    'earn-locked': {
       label: 'Earn · Locked',
-      description: 'Allocated to a locked Earn strategy for a fixed term.',
+      description: 'Allocated to a timed Earn strategy for a fixed term.',
       earning: true
    },
    [OTHER]: {
       label: 'Other',
-      description: 'A wallet this page does not have a name for yet.',
-      earning: false
+      description: 'Allocated to an Earn strategy of a kind this page does not have a name for yet.',
+      earning: true
    }
 }
 
-const wallets: Record<string, Placement> = {
-   'spot / main': SPOT,
-   'earn / flexible': 'earn-flexible',
-   'earn / liquid': 'earn-liquid',
-   'earn / bonded': 'earn-bonded',
-   'earn / locked': 'earn-locked'
+const lockTypes: Record<string, Placement> = {
+   flex: OPT_IN,
+   instant: 'earn-flexible',
+   bonded: 'earn-bonded',
+   timed: 'earn-locked'
 }
 
-export function placementOf(
-   position: { wallet?: string, lastRewardAt?: number | null } | undefined,
-   now = Date.now()
-): Placement {
+export const placementOf = (position: LivePosition): Placement =>
+   position.strategyId === null ? SPOT : lockTypes[position.lockType] ?? OTHER
 
-   const key = wallets[position?.wallet ?? ''] ?? OTHER
-
-   if (key !== SPOT) return key
-
-   const paidWithinWindow = position?.lastRewardAt != null
-      && now - position.lastRewardAt <= OPT_IN_WINDOW_DAYS * 86400000
-
-   return paidWithinWindow ? OPT_IN : SPOT
-}
-
-// Unknown wallets keep their raw name rather than all collapsing into one "Other"
-// badge: if Kraken adds a sixth wallet, it should be visible that it did.
-export function placementLabel(key: Placement, position?: { wallet?: string }): string {
-   return key === OTHER ? (position?.wallet || 'Unknown') : (placements[key]?.label ?? key)
+// Unknown lock types keep their raw name rather than all collapsing into one "Other"
+// badge: if Kraken adds a fifth one, it should be visible that it did.
+export function placementLabel(key: Placement, position?: LivePosition): string {
+   return key === OTHER ? (position?.lockType || 'Unknown') : (placements[key]?.label ?? key)
 }
 
 export const placementDescription = (key: Placement): string => placements[key]?.description ?? ''

@@ -3,12 +3,12 @@ import type { Database, SQLQueryBindings } from 'bun:sqlite'
 import { getDatabase } from './database'
 import { entryKeyFor } from './entry-key'
 import type {
-   BalanceAmountRow, BalanceCountRow, BalanceRewardRow, CountRow, FeeAssetRow, FeeMonthRow,
+   BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
    FeeTypeRow, LedgerEntryRow, OtherAccountRow, RewardPeriodRow, RewardRow, SyncStateRow,
    SyncStateUpdate, TimeRangeRow, ValueRow
 } from '../../types/db'
 import type {
-   BalancePosition, BalanceSummary, ClearResponse, FeeSummary,
+   BalanceSummary, ClearResponse, FeeSummary,
    LedgerEntriesResponse, LedgerFiltersResponse, RewardSummary
 } from '../../types/api'
 import type { LedgerEntry, LedgerFilters, Sort } from '../../types/kraken'
@@ -246,7 +246,7 @@ export default class LedgerRepository {
       }
    }
 
-   // What is held right now, per asset and per wallet, rebuilt from the entries
+   // What is held right now, per asset, rebuilt from the entries
    // themselves rather than read off Kraken's running balance column: that column is
    // only ever a snapshot of the last row written for a wallet, and says nothing about
    // an asset whose most recent entry was somewhere else.
@@ -259,84 +259,22 @@ export default class LedgerRepository {
    balanceSummary(): BalanceSummary {
 
       const amounts = this.#db.query<BalanceAmountRow, Params>(`
-         SELECT base_asset AS baseAsset, wallet, asset AS rawAsset, amount, fee
+         SELECT base_asset AS baseAsset, amount, fee
          FROM ledger_entry WHERE account_id = ?`).all(this.#accountId)
 
-      const positions = new Map<string, Position>()
-      const keyFor = (row: { baseAsset: string, wallet: string }) => `${row.baseAsset} ${row.wallet}`
+      const totals = new Map<string, Big>()
 
       for (const row of amounts) {
-         const position = positions.get(keyFor(row))
-            ?? { asset: row.baseAsset, wallet: row.wallet, amount: Big(0), rawAssets: new Set() }
-
-         position.amount = position.amount.plus(row.amount || 0).minus(row.fee || 0)
-         position.rawAssets.add(row.rawAsset)
-         positions.set(keyFor(row), position)
-      }
-
-      // Counted separately from the fold: the row count and the first and last time an
-      // asset moved are what SQLite is good at, and neither needs exact arithmetic.
-      for (const row of this.#db.query<BalanceCountRow, Params>(`
-         SELECT base_asset AS baseAsset, wallet, COUNT(*) AS entries,
-                MIN(time) AS first, MAX(time) AS last
-         FROM ledger_entry WHERE account_id = ?
-         GROUP BY base_asset, wallet`).all(this.#accountId)) {
-         const position = positions.get(keyFor(row))
-         if (position) Object.assign(position, { entries: row.entries, first: row.first, last: row.last })
-      }
-
-      // When a wallet last paid out. Kraken now pays Auto Earn rewards straight into
-      // the spot wallet instead of moving the coins, so this is the only thing that
-      // tells a spot position that earns from one that just sits there.
-      for (const row of this.#db.query<BalanceRewardRow, Params>(`
-         SELECT base_asset AS baseAsset, wallet, MAX(time) AS lastRewardAt,
-                COUNT(*) AS rewardEntries
-         FROM ledger_entry
-         WHERE account_id = ? AND ${isReward}
-         GROUP BY base_asset, wallet`).all(this.#accountId)) {
-         const position = positions.get(keyFor(row))
-         if (position) Object.assign(position, { lastRewardAt: row.lastRewardAt, rewardEntries: row.rewardEntries })
-      }
-
-      const assets = new Map<string, { asset: string, total: Big, positions: BalancePosition[] }>()
-
-      for (const position of positions.values()) {
-
-         // An exactly zero position is one that was closed, not a dust holding: the
-         // coins left, and listing it would bury the assets that are still held.
-         if (position.amount.eq(0)) continue
-
-         const asset = assets.get(position.asset)
-            ?? { asset: position.asset, total: Big(0), positions: [] as BalancePosition[] }
-
-         asset.total = asset.total.plus(position.amount)
-         asset.positions.push({
-            wallet: position.wallet,
-            amount: position.amount.toFixed(),
-            amountNum: Number(position.amount),
-            // Sorted so that the plain ticker leads and a legacy staking name (DOT.S)
-            // reads as the footnote it is.
-            rawAssets: [...position.rawAssets].toSorted(),
-            entries: position.entries ?? 0,
-            first: position.first ?? null,
-            last: position.last ?? null,
-            lastRewardAt: position.lastRewardAt ?? null,
-            rewardEntries: position.rewardEntries ?? 0
-         })
-         assets.set(position.asset, asset)
+         const total = totals.get(row.baseAsset) ?? Big(0)
+         totals.set(row.baseAsset, total.plus(row.amount || 0).minus(row.fee || 0))
       }
 
       const range = this.entryTimeRange()
-      const held = [...assets.values()]
 
       return {
-         assets: held.map(asset => ({
-            asset: asset.asset,
-            total: asset.total.toFixed(),
-            totalNum: Number(asset.total),
-            positions: asset.positions.toSorted((a, b) => b.amountNum - a.amountNum)
-         })),
-         positions: held.reduce((count, asset) => count + asset.positions.length, 0),
+         assets: [...totals]
+            .filter(([, total]) => !total.eq(0))
+            .map(([asset, total]) => ({ asset, total: total.toFixed(), totalNum: Number(total) })),
          entries: amounts.length,
          first: range.first,
          last: range.last
@@ -418,20 +356,6 @@ export default class LedgerRepository {
          FROM sync_state s
          WHERE s.account_id <> ?`).all(this.#accountId)
    }
-}
-
-// The fold that rebuilds a balance from the entries themselves, before the exact
-// amounts are turned back into the strings the page reads.
-interface Position {
-   asset: string
-   wallet: string
-   amount: Big
-   rawAssets: Set<string>
-   entries?: number
-   first?: number
-   last?: number
-   lastRewardAt?: number
-   rewardEntries?: number
 }
 
 interface EntriesQuery {

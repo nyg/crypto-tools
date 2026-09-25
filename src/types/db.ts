@@ -66,25 +66,8 @@ export interface RewardPeriodRow {
 
 export interface BalanceAmountRow {
    baseAsset: string
-   wallet: string
-   rawAsset: string
    amount: string
    fee: string
-}
-
-export interface BalanceCountRow {
-   baseAsset: string
-   wallet: string
-   entries: number
-   first: number
-   last: number
-}
-
-export interface BalanceRewardRow {
-   baseAsset: string
-   wallet: string
-   lastRewardAt: number
-   rewardEntries: number
 }
 
 export interface SyncStateRow {
