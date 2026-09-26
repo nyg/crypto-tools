@@ -25,7 +25,7 @@ export default function KrakenRewards() {
 
    const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
 
-   const [valuation, setValuation] = usePersistentState<Valuation>('kraken.rewards.valuation', 'received', reviveValuation)
+   const [valuation, setValuation] = usePersistentState<Valuation>('kraken.rewards.valuation', 'today', reviveValuation)
 
    const wasRunningRef = useRef(false)
    const { mutate } = useSWRConfig()
@@ -87,8 +87,8 @@ export default function KrakenRewards() {
                   </AlertDescription>
                </Alert>}
 
-            <div className="flex flex-wrap items-center justify-end gap-3">
-               <span className="text-sm text-muted-foreground">USD value</span>
+            <div className="flex flex-wrap items-center gap-3">
+               <span className="text-sm text-muted-foreground">USD valuation</span>
                <Tabs value={valuation} onValueChange={value => setValuation(value as Valuation)}>
                   <TabsList>
                      <TabsTrigger value="received">When received</TabsTrigger>
