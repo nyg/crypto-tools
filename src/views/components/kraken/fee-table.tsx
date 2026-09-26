@@ -3,20 +3,10 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { asAssetAmount, asNumber, asDollarAmount, asPercentage } from '../../../utils/format'
 import SortableHead from '../lib/sortable-head'
 import type { FeeSummary } from '../../../types/api'
-import type { Sort, UsdRates } from '../../../types/kraken'
+import type { FeeAssetRow } from '../../../types/db'
+import type { Sort } from '../../../types/kraken'
 
-// A fee row with the USD value worked out, which is null for an asset Kraken has no
-// USD pair for and is what the table sorts and shares by.
-interface FeeRow {
-   asset: string
-   total: number
-   entries: number
-   value: number | null
-}
-
-const valueOf = (total: number, rate: number | undefined) => rate == null ? null : total * rate
-
-function compare(a: FeeRow, b: FeeRow, sort: Sort) {
+function compare(a: FeeAssetRow, b: FeeAssetRow, sort: Sort) {
 
    const factor = sort.direction === 'asc' ? 1 : -1
 
@@ -32,15 +22,15 @@ function compare(a: FeeRow, b: FeeRow, sort: Sort) {
 }
 
 
-export default function FeeTable({ fees, rates }: { fees?: FeeSummary, rates?: UsdRates }) {
+export default function FeeTable({ fees }: { fees?: FeeSummary }) {
 
    const [sort, setSort] = useState<Sort>({ column: 'value', direction: 'desc' })
 
-   const assets = (fees?.assets ?? [])
-      .map(asset => ({ ...asset, value: valueOf(asset.total, rates?.[asset.asset]) }))
-      .toSorted((a, b) => compare(a, b, sort))
+   const assets = (fees?.assets ?? []).toSorted((a, b) => compare(a, b, sort))
 
    const totalValue = assets.reduce((sum, asset) => sum + (asset.value ?? 0), 0)
+
+   const unvaluedAssets = assets.filter(asset => asset.unvalued > 0).map(asset => asset.asset)
 
    if (assets.length === 0) {
       return (
@@ -51,38 +41,61 @@ export default function FeeTable({ fees, rates }: { fees?: FeeSummary, rates?: U
    }
 
    return (
-      <div className="overflow-x-auto">
-         <Table className="tabular-nums">
-            <TableHeader>
-               <TableRow>
-                  <SortableHead column="asset" sort={sort} onSortChange={setSort}>Asset</SortableHead>
-                  <SortableHead column="entries" sort={sort} onSortChange={setSort} align="right">Fees</SortableHead>
-                  <SortableHead column="total" sort={sort} onSortChange={setSort} align="right">Total fees</SortableHead>
-                  <SortableHead column="value" sort={sort} onSortChange={setSort} align="right">Total fees (USD)</SortableHead>
-                  <TableHead className="text-right">Share</TableHead>
-               </TableRow>
-            </TableHeader>
-            <TableBody>
-               {assets.map(asset =>
-                  <TableRow key={asset.asset}>
-                     <TableCell className="font-medium">{asset.asset}</TableCell>
-                     <TableCell className="text-right text-muted-foreground">
-                        {asNumber(asset.entries)}
-                     </TableCell>
-                     <TableCell className="text-right font-medium">
-                        {asAssetAmount(asset.total)}
-                     </TableCell>
-                     <TableCell className="text-right font-medium">
-                        {asset.value == null ? '—' : asDollarAmount(asset.value)}
-                     </TableCell>
-                     <TableCell className="text-right text-muted-foreground">
-                        {asset.value == null || totalValue === 0
-                           ? '—'
-                           : asPercentage(asset.value / totalValue)}
-                     </TableCell>
-                  </TableRow>)}
-            </TableBody>
-         </Table>
+      <div className="space-y-3">
+         <div className="overflow-x-auto">
+            <Table className="tabular-nums">
+               <TableHeader>
+                  <TableRow>
+                     <SortableHead column="asset" sort={sort} onSortChange={setSort}>Asset</SortableHead>
+                     <SortableHead column="entries" sort={sort} onSortChange={setSort} align="right">Fees</SortableHead>
+                     <SortableHead column="total" sort={sort} onSortChange={setSort} align="right">Total fees</SortableHead>
+                     <SortableHead column="value" sort={sort} onSortChange={setSort} align="right">
+                        <span title="At the USD rate of the day each fee was charged">Cost (USD)</span>
+                     </SortableHead>
+                     <TableHead className="text-right">Share</TableHead>
+                  </TableRow>
+               </TableHeader>
+               <TableBody>
+                  {assets.map(asset =>
+                     <TableRow key={asset.asset}>
+                        <TableCell className="font-medium">{asset.asset}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                           {asNumber(asset.entries)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                           {asAssetAmount(asset.total)}
+                        </TableCell>
+                        <TableCell
+                           className="text-right font-medium"
+                           title={asset.value != null && asset.unvalued > 0
+                              ? `${asAssetAmount(asset.unvalued)} ${asset.asset} left out, with no USD rate for the day it was charged`
+                              : undefined}>
+                           {asset.value == null
+                              ? '—'
+                              : <>{asset.unvalued > 0 && <span className="text-muted-foreground">≥ </span>}{asDollarAmount(asset.value)}</>}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                           {asset.value == null || totalValue === 0
+                              ? '—'
+                              : asPercentage(asset.value / totalValue)}
+                        </TableCell>
+                     </TableRow>)}
+               </TableBody>
+            </Table>
+         </div>
+
+         <p className="text-xs text-muted-foreground">
+            Each fee is valued in USD <b>on the day it was charged</b>: Kraken&apos;s daily average price
+            for the last two years, its weekly average before that, and the ECB reference rate for
+            fiat. Fees with no USD price for their day are shown without a value and left out of the
+            share.
+            {fees?.ratesPending
+               ? <> Fetching the USD rates of the days that do not have one yet…</>
+               : unvaluedAssets.length > 0 &&
+                  <> Some of the days {unvaluedAssets.join(', ')} was charged on have no USD rate: Kraken
+                     did not quote the asset in USD yet, or the rate could not be fetched. The next
+                     ledger sync tries again.</>}
+         </p>
       </div>
    )
 }

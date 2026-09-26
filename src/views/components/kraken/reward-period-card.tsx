@@ -2,10 +2,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent }
 import { Table, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import SelectField from '../lib/select-field'
 import usePersistentState from '../../lib/use-persistent-state'
-import { valueOf } from './reward-table'
+import { ValuationTag, usdOf } from './reward-valuation'
 import { asAssetAmount, asDollarAmount, asUtcLongDate } from '../../../utils/format'
 import type { RewardSummary } from '../../../types/api'
+import type { RewardPeriodRow } from '../../../types/db'
 import type { UsdRates } from '../../../types/kraken'
+import type { Valuation } from './reward-valuation'
 
 const periods = [
    { value: 'week', label: 'Last week' },
@@ -13,9 +15,10 @@ const periods = [
 ]
 
 
-export default function RewardPeriodCard({ rewards, rates }: {
+export default function RewardPeriodCard({ rewards, rates, valuation }: {
    rewards?: RewardSummary
    rates?: UsdRates
+   valuation: Valuation
 }) {
 
    const [period, setPeriod] = usePersistentState('kraken.rewards.period', 'month')
@@ -23,8 +26,11 @@ export default function RewardPeriodCard({ rewards, rates }: {
    const selected = rewards?.periods?.[period] ?? null
    const rateFor = (asset: string) => rates?.[asset] ?? null
 
+   const valueOf = (row: RewardPeriodRow) =>
+      usdOf({ amount: row.total, value: row.value, unvalued: row.unvalued }, rateFor(row.asset), valuation).value
+
    const rows = (selected?.assets ?? []).toSorted((a, b) => {
-      const [left, right] = [valueOf(a.total, rateFor(a.asset)), valueOf(b.total, rateFor(b.asset))]
+      const [left, right] = [valueOf(a), valueOf(b)]
       if (left == null && right == null) return a.asset.localeCompare(b.asset)
       if (left == null) return 1
       if (right == null) return -1
@@ -32,8 +38,8 @@ export default function RewardPeriodCard({ rewards, rates }: {
       return right - left
    })
 
-   const valued = rows.filter(row => rateFor(row.asset) != null)
-   const total = valued.reduce((sum, row) => sum + (valueOf(row.total, rateFor(row.asset)) ?? 0), 0)
+   const valued = rows.filter(row => valueOf(row) != null)
+   const total = valued.reduce((sum, row) => sum + (valueOf(row) ?? 0), 0)
 
    const range = selected
       ? `${asUtcLongDate(selected.from)} – ${asUtcLongDate(selected.to)}`
@@ -42,7 +48,7 @@ export default function RewardPeriodCard({ rewards, rates }: {
    return (
       <Card>
          <CardHeader>
-            <CardTitle>Recent rewards</CardTitle>
+            <CardTitle>Recent rewards<ValuationTag valuation={valuation} /></CardTitle>
             <CardDescription className="text-xs">{range}</CardDescription>
             <CardAction>
                <SelectField
@@ -66,7 +72,7 @@ export default function RewardPeriodCard({ rewards, rates }: {
                      <Table className="tabular-nums">
                         <TableBody>
                            {rows.map(row => {
-                              const value = valueOf(row.total, rateFor(row.asset))
+                              const value = valueOf(row)
                               return (
                                  <TableRow key={row.asset}>
                                     <TableCell className="font-medium">{row.asset}</TableCell>
@@ -85,7 +91,7 @@ export default function RewardPeriodCard({ rewards, rates }: {
                   <div
                      className="flex items-center justify-between pl-2 pr-5 text-sm tabular-nums"
                      title={valued.length < rows.length
-                        ? `${rows.length - valued.length} asset(s) have no USD pair and are not counted`
+                        ? `${rows.length - valued.length} asset(s) have no USD value and are not counted`
                         : undefined}>
                      <span>Total</span>
                      <span className="font-medium">{asDollarAmount(total)}</span>

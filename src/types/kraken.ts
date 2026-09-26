@@ -65,6 +65,11 @@ export type PairPrices = Record<string, number>
 
 export type UsdRates = Record<string, number>
 
+export interface UsdPair {
+   altname: string
+   inverse: boolean
+}
+
 export interface CancelResult {
    count: number
 }

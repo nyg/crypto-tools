@@ -4,7 +4,7 @@
 
 import type {
    FeeAssetRow, FeeMonthRow, FeeTypeRow, LedgerEntryRow, MarketRow,
-   OtherAccountRow, RewardPeriodRow, SyncStateRow, TradeListRow
+   OtherAccountRow, RewardPeriodRow, SyncStateRow, TradeListRow, UsdValue
 } from './db'
 import type { JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
@@ -90,22 +90,30 @@ export interface LedgerFiltersResponse {
    wallets: string[]
 }
 
-export interface FeeSummary {
+export interface RatesPending {
+   ratesPending?: boolean
+}
+
+export interface FeeSummary extends RatesPending {
    assets: FeeAssetRow[]
    byType: FeeTypeRow[]
    byMonth: FeeMonthRow[]
    entries: number
 }
 
+export interface RewardAmount extends UsdValue {
+   amount: number
+}
+
 export interface RewardAsset {
    asset: string
-   total: number
+   total: RewardAmount
    entries: number
    first: number
    last: number
-   byYear: Record<number, number>
-   byMonth: Record<number, number>
-   byWeek: Record<number, number>
+   byYear: Record<number, RewardAmount>
+   byMonth: Record<number, RewardAmount>
+   byWeek: Record<number, RewardAmount>
 }
 
 export interface RewardPeriod {
@@ -114,7 +122,7 @@ export interface RewardPeriod {
    assets: RewardPeriodRow[]
 }
 
-export interface RewardSummary {
+export interface RewardSummary extends RatesPending {
    years: number[]
    months: number[]
    weeks: number[]

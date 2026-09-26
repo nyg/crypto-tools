@@ -1,10 +1,12 @@
 import KrakenAPI from '../adapters/kraken-api/adapter'
 import LedgerRepository from '../db/ledger-repository'
 import TradeRepository from '../db/trade-repository'
+import RateRepository from '../db/rate-repository'
+import { backfillUsdRates } from './usd-rate-backfill'
 import { messageOf } from '../errors'
 import type { Credentials } from '../../types/credentials'
 import type { ExportReportType } from '../../types/kraken'
-import type { StartedJob, SyncJob, SyncMode, SyncStep, SyncStepPhase } from '../../types/jobs'
+import type { StartedJob, SyncJob, SyncMode, SyncStep, SyncStepKind, SyncStepPhase } from '../../types/jobs'
 
 // One pass of a single export: what to ask Kraken for, how to read the rows back out
 // and how to store them. The two reports differ only in these four.
@@ -84,7 +86,7 @@ export function startSync(accountId: string, credentials: Credentials, mode: Syn
       startedAt: Date.now(),
       updatedAt: Date.now(),
       finishedAt: null,
-      steps: reports.map(newStep),
+      steps: [...reports.map(newStep), newStep('rates')],
       error: null,
       cancelRequested: false
    }
@@ -102,7 +104,7 @@ export function startSync(accountId: string, credentials: Credentials, mode: Syn
 
 // Kept in the order the run walks them, so the page renders them in that order
 // without having to know which report comes first.
-function newStep(report: ExportReportType): SyncStep {
+function newStep(report: SyncStepKind): SyncStep {
    return {
       report,
       phase: 'pending',
@@ -121,7 +123,7 @@ function newStep(report: ExportReportType): SyncStep {
    }
 }
 
-const stepFor = (job: SyncJob, report: ExportReportType) => job.steps.find(step => step.report === report)!
+const stepFor = (job: SyncJob, report: SyncStepKind) => job.steps.find(step => step.report === report)!
 
 // The step Kraken is working on: started, not finished. There is at most one.
 const activeStep = (job: SyncJob) => job.steps.find(step =>
@@ -184,6 +186,9 @@ async function runSync(job: SyncJob, credentials: Credentials) {
       finishTradeState(repository, tradeRepository, job.startedAt)
 
       finishSyncState(repository)
+
+      await runRates(job, repository)
+
       setPhase(job, 'done')
    }
    catch (error) {
@@ -244,7 +249,7 @@ async function runReport<Row>(
    repository.writeSyncState({ lastReportId: reportId })
 
    setStepPhase(job, step, 'waiting')
-   await waitForReport(job, krakenAPI, step)
+   await waitForReport(job, krakenAPI, step, report)
 
    setStepPhase(job, step, 'downloading')
    const { rows, skipped } = await read(reportId)
@@ -265,6 +270,48 @@ async function runReport<Row>(
    step.finishedAt = Date.now()
    setStepPhase(job, step, 'done')
    console.log(`Kraken ${report} sync stored ${rows.length} rows`)
+}
+
+async function runRates(job: SyncJob, repository: LedgerRepository) {
+
+   const step = stepFor(job, 'rates')
+   const rateRepository = new RateRepository()
+   const before = rateRepository.countRates()
+   const failures: string[] = []
+
+   step.startedAt = Date.now()
+   setStepPhase(job, step, 'requesting')
+
+   try {
+      await backfillUsdRates(repository.valuedAssetRanges(), {
+         checkCancelled: () => throwIfCancelled(job),
+         onFetching: () => setStepPhase(job, step, 'downloading'),
+         onStored: (received) => {
+            step.counts.parsed += received
+            step.counts.stored += received
+            job.updatedAt = Date.now()
+         },
+         onSkipped: (_asset, error) => {
+            step.counts.skipped++
+            if (error) failures.push(error)
+            job.updatedAt = Date.now()
+         }
+      })
+
+      step.counts.inserted = rateRepository.countRates() - before
+      step.counts.updated = step.counts.stored - step.counts.inserted
+      step.error = failures.length > 0 ? failures.join('; ') : null
+      step.finishedAt = Date.now()
+      setStepPhase(job, step, 'done')
+   }
+   catch (error) {
+      if (job.phase === 'cancelled') throw error
+
+      step.error = messageOf(error)
+      step.finishedAt = Date.now()
+      setStepPhase(job, step, 'error')
+      console.error('USD rate backfill failed:', step.error)
+   }
 }
 
 function throwIfCancelled(job: SyncJob) {
@@ -299,7 +346,7 @@ function incrementalStart(repository: LedgerRepository, tradeRepository: TradeRe
    return Math.max(0, Math.min(...watermark) - OVERLAP_MS)
 }
 
-async function waitForReport(job: SyncJob, krakenAPI: KrakenAPI, step: SyncStep) {
+async function waitForReport(job: SyncJob, krakenAPI: KrakenAPI, step: SyncStep, report: ExportReportType) {
 
    const deadline = Date.now() + MAX_WAIT_MS
 
@@ -315,7 +362,7 @@ async function waitForReport(job: SyncJob, krakenAPI: KrakenAPI, step: SyncStep)
       // One call covers every report of this type, so there is no need to poll per
       // id — but it must be this type: Kraken lists one type per call, and asking
       // for the wrong one would simply never find the report.
-      const entries = await krakenAPI.fetchExportReports(step.report)
+      const entries = await krakenAPI.fetchExportReports(report)
       const entry = entries.find(candidate => candidate.id === step.reportId)
 
       if (entry) {
@@ -324,7 +371,7 @@ async function waitForReport(job: SyncJob, krakenAPI: KrakenAPI, step: SyncStep)
       }
    }
 
-   throw new Error(`Kraken did not finish preparing the ${step.report} export within 10 minutes.`)
+   throw new Error(`Kraken did not finish preparing the ${report} export within 10 minutes.`)
 }
 
 async function storeRows<Row>(

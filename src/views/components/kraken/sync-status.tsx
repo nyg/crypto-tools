@@ -1,7 +1,6 @@
 import { Badge } from '@/components/ui/badge'
-import type { SyncJob, SyncStep } from '../../../types/jobs'
+import type { SyncJob, SyncStep, SyncStepKind } from '../../../types/jobs'
 import type { SyncState } from '../../../types/api'
-import type { ExportReportType } from '../../../types/kraken'
 
 const terminalPhases: string[] = ['done', 'error', 'cancelled']
 
@@ -17,8 +16,8 @@ export const isStepRunning = (step: SyncStep | null | undefined): boolean =>
 
 // What each report is called on screen. The server names them the way Kraken's API
 // does, which is not what the rest of the app calls them.
-export const reportLabels: Record<ExportReportType, string> = {
-   ledgers: 'Ledger entries', trades: 'Trades'
+export const reportLabels: Record<SyncStepKind, string> = {
+   ledgers: 'Ledger entries', trades: 'Trades', rates: 'USD rates'
 }
 
 const stepLabels: Record<string, string> = {
@@ -35,8 +34,14 @@ const stepLabels: Record<string, string> = {
    error: 'Failed'
 }
 
+const rateStepLabels: Record<string, string> = {
+   requesting: 'Checking stored rates…',
+   downloading: 'Fetching daily USD rates…'
+}
+
 export const stepLabel = (step: SyncStep | null | undefined): string =>
-   stepLabels[step?.phase ?? ''] ?? 'Syncing…'
+   (step?.report === 'rates' ? rateStepLabels[step.phase] : undefined)
+      ?? stepLabels[step?.phase ?? ''] ?? 'Syncing…'
 
 export const runningStep = (job: SyncJob | null | undefined): SyncStep | null =>
    job?.steps?.find(isStepRunning) ?? null

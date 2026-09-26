@@ -35,7 +35,12 @@ export interface LedgerEntryRow {
    balance: string
 }
 
-export interface FeeAssetRow {
+export interface UsdValue {
+   value: number | null
+   unvalued: number
+}
+
+export interface FeeAssetRow extends UsdValue {
    asset: string
    total: number
    entries: number
@@ -49,7 +54,7 @@ export interface FeeMonthRow extends FeeTypeRow {
    month: string
 }
 
-export interface RewardRow {
+export interface RewardRow extends UsdValue {
    asset: string
    year: number
    total: number
@@ -58,16 +63,31 @@ export interface RewardRow {
    last: number
 }
 
-export interface RewardBucketRow {
+export interface RewardBucketRow extends UsdValue {
    asset: string
    start: number
    total: number
 }
 
-export interface RewardPeriodRow {
+export interface RewardPeriodRow extends UsdValue {
    asset: string
    total: number
    entries: number
+}
+
+export type UsdRateSource = 'kraken-daily' | 'kraken-weekly' | 'ecb' | 'binance-daily'
+
+export interface UsdRateRow {
+   asset: string
+   day: number
+   rate: number
+   source: UsdRateSource
+}
+
+export interface AssetRangeRow {
+   asset: string
+   first: number
+   last: number
 }
 
 export interface BalanceAmountRow {

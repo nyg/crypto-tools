@@ -18,8 +18,10 @@ export interface SyncCounts {
    skipped: number
 }
 
+export type SyncStepKind = ExportReportType | 'rates'
+
 export interface SyncStep {
-   report: ExportReportType
+   report: SyncStepKind
    phase: SyncStepPhase
    reportId: string | null
    reportStatus: string | null

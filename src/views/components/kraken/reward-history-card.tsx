@@ -5,12 +5,14 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import ComboboxField from '../lib/combobox-field'
 import SelectField from '../lib/select-field'
 import usePersistentState from '../../lib/use-persistent-state'
+import { ValuationTag, usdOf } from './reward-valuation'
 import {
    asAssetAmount, asCompact, asDollarAmount, asRounded,
    asUtcLongDate, asUtcMonthYearDate, asUtcShortDate, asUtcShortMonthYearDate
 } from '../../../utils/format'
-import type { RewardAsset, RewardSummary } from '../../../types/api'
+import type { RewardAmount, RewardAsset, RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
+import type { Valuation } from './reward-valuation'
 
 const EVERYTHING = 'ALL'
 
@@ -18,7 +20,7 @@ type Granularity = 'year' | 'month' | 'week'
 
 interface Series {
    buckets: number[]
-   amountOf: (asset: RewardAsset, bucket: number) => number | undefined
+   amountOf: (asset: RewardAsset, bucket: number) => RewardAmount | undefined
    tick: (bucket: number) => string
    label: (bucket: number) => string
 }
@@ -68,9 +70,10 @@ function seriesOf(rewards: RewardSummary | undefined, granularity: Granularity):
 }
 
 
-export default function RewardHistoryCard({ rewards, rates }: {
+export default function RewardHistoryCard({ rewards, rates, valuation }: {
    rewards?: RewardSummary
    rates?: UsdRates
+   valuation: Valuation
 }) {
 
    const [asset, setAsset] = useState(EVERYTHING)
@@ -86,16 +89,12 @@ export default function RewardHistoryCard({ rewards, rates }: {
 
    // Every asset on one axis only works in a common unit, so the total is in USD and a
    // single asset is charted in its own amount — mixing them would make both unreadable.
-   const priced = rates ?? {}
-
    const data = series.buckets.map(bucket => ({
       bucket,
       value: isTotal
-         ? assets.reduce((sum, row) => {
-            const rate = priced[row.asset]
-            return sum + (rate != null ? (series.amountOf(row, bucket) ?? 0) * rate : 0)
-         }, 0)
-         : series.amountOf(selected!, bucket) ?? 0
+         ? assets.reduce((sum, row) =>
+            sum + (usdOf(series.amountOf(row, bucket), rates?.[row.asset], valuation).value ?? 0), 0)
+         : series.amountOf(selected!, bucket)?.amount ?? 0
    }))
 
    const format = (value: number) => isTotal ? asDollarAmount(value) : `${asAssetAmount(value)} ${asset}`
@@ -108,7 +107,7 @@ export default function RewardHistoryCard({ rewards, rates }: {
    return (
       <Card>
          <CardHeader>
-            <CardTitle>Over time</CardTitle>
+            <CardTitle>Over time{isTotal && <ValuationTag valuation={valuation} />}</CardTitle>
             <CardAction className="flex flex-col gap-2 @lg/card-header:flex-row">
                <SelectField
                   name="reward-history-granularity"
