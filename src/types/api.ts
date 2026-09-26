@@ -90,7 +90,11 @@ export interface LedgerFiltersResponse {
    wallets: string[]
 }
 
-export interface FeeSummary {
+export interface RatesPending {
+   ratesPending?: boolean
+}
+
+export interface FeeSummary extends RatesPending {
    assets: FeeAssetRow[]
    byType: FeeTypeRow[]
    byMonth: FeeMonthRow[]
@@ -118,7 +122,7 @@ export interface RewardPeriod {
    assets: RewardPeriodRow[]
 }
 
-export interface RewardSummary {
+export interface RewardSummary extends RatesPending {
    years: number[]
    months: number[]
    weeks: number[]

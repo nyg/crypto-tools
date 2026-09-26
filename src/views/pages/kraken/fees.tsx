@@ -34,7 +34,7 @@ export default function KrakenFees() {
 
    const { data: fees, error, isLoading } = useSWR<FeeSummary>(
       configured ? ['/api/kraken/ledger/fees', { accountId, filters }] : null,
-      { keepPreviousData: true })
+      { keepPreviousData: true, refreshInterval: latest => latest?.ratesPending ? 2000 : 0 })
 
    const { data: filterOptions } = useSWR<LedgerFiltersResponse>(
       configured ? '/api/kraken/ledger/filters' : null)

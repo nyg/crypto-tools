@@ -47,7 +47,7 @@ export default function KrakenRewards() {
 
    const { data: rewards, error, isLoading } = useSWR<RewardSummary>(
       configured ? REWARDS_KEY : null,
-      { keepPreviousData: true })
+      { keepPreviousData: true, refreshInterval: latest => latest?.ratesPending ? 2000 : 0 })
 
    // Asked for separately, and only once the assets are known, so the table renders
    // from the local database straight away and a failed rate lookup costs the amounts

@@ -206,11 +206,16 @@ export default function RewardTable({ rewards, rates, valuation }: {
                   left out of the totals.
                </p>}
 
-            {valuation === 'received' && unvaluedAssets.length > 0 &&
+            {valuation === 'received' && rewards?.ratesPending &&
                <p className="text-xs text-muted-foreground">
-                  No USD rate is stored for some of the days {unvaluedAssets.join(', ')} paid out on.
-                  A sync of the ledger fetches the rates it does not have yet; days before Kraken
-                  quoted an asset in USD stay without a value.
+                  Fetching the USD rates of the days that do not have one yet…
+               </p>}
+
+            {valuation === 'received' && !rewards?.ratesPending && unvaluedAssets.length > 0 &&
+               <p className="text-xs text-muted-foreground">
+                  Some of the days {unvaluedAssets.join(', ')} paid out on have no USD rate: Kraken did
+                  not quote the asset in USD yet, or the rate could not be fetched. The next ledger
+                  sync tries again.
                </p>}
          </CardContent>
       </Card>

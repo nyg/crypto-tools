@@ -73,10 +73,54 @@ export function planRateFetch(ranges: AssetRangeRow[], coverage: Map<string, Ass
    }
 }
 
+export function planFor(ranges: AssetRangeRow[], today = dayOf(Date.now())): RatePlan {
+   return planRateFetch(ranges, new RateRepository().coverage(ranges.map(range => range.asset)), today)
+}
+
+const isEmpty = (plan: RatePlan) => plan.kraken.length === 0 && !plan.ecb
+
 export async function backfillUsdRates(ranges: AssetRangeRow[], progress: BackfillProgress, today = dayOf(Date.now())): Promise<void> {
+   await fetchPlannedRates(planFor(ranges, today), progress, today)
+}
+
+const quietProgress: BackfillProgress = {
+   checkCancelled: () => {},
+   onFetching: () => {},
+   onStored: () => {},
+   onSkipped: (asset, error) => {
+      if (error) console.warn('No USD rates for', asset, error)
+   }
+}
+
+const refreshes = new Map<string, Promise<void>>()
+const refreshed = new Set<string>()
+
+export function refreshUsdRates(accountId: string, ranges: () => AssetRangeRow[]): boolean {
+
+   if (refreshes.has(accountId)) return true
+   if (refreshed.has(accountId)) return false
+
+   const today = dayOf(Date.now())
+   const plan = planFor(ranges(), today)
+
+   if (isEmpty(plan)) {
+      refreshed.add(accountId)
+      return false
+   }
+
+   refreshes.set(accountId, fetchPlannedRates(plan, quietProgress, today)
+      .catch(error => console.warn('USD rate refresh failed:', messageOf(error)))
+      .finally(() => {
+         refreshes.delete(accountId)
+         refreshed.add(accountId)
+      }))
+
+   return true
+}
+
+async function fetchPlannedRates(plan: RatePlan, progress: BackfillProgress, today: number): Promise<void> {
 
    const repository = new RateRepository()
-   const plan = planRateFetch(ranges, repository.coverage(ranges.map(range => range.asset)), today)
 
    if (plan.ecb) {
       progress.checkCancelled()

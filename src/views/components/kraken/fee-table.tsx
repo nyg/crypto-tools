@@ -89,9 +89,12 @@ export default function FeeTable({ fees }: { fees?: FeeSummary }) {
             for the last two years, its weekly average before that, and the ECB reference rate for
             fiat. Fees with no USD price for their day are shown without a value and left out of the
             share.
-            {unvaluedAssets.length > 0 &&
-               <> No USD rate is stored for some of the days {unvaluedAssets.join(', ')} was charged on;
-                  a sync of the ledger fetches the rates it does not have yet.</>}
+            {fees?.ratesPending
+               ? <> Fetching the USD rates of the days that do not have one yet…</>
+               : unvaluedAssets.length > 0 &&
+                  <> Some of the days {unvaluedAssets.join(', ')} was charged on have no USD rate: Kraken
+                     did not quote the asset in USD yet, or the rate could not be fetched. The next
+                     ledger sync tries again.</>}
          </p>
       </div>
    )
