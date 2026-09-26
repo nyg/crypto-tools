@@ -1,5 +1,6 @@
 import Big from 'big.js'
 import * as resource from './resource'
+import { usdRatesFromKLines } from './klines'
 import {
    hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, takerFee
 } from './spot'
@@ -9,6 +10,7 @@ import type {
    Candlestick, FiatDeposit, PairRates, SpotBalances, StakingBalances
 } from '../../../types/binance'
 import type { BinanceEnvironment } from '../../../types/binance-api'
+import type { UsdRateRow } from '../../../types/db'
 import type {
    ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
    StopOrderRequest, TakerFee, WalletCoin
@@ -16,6 +18,10 @@ import type {
 
 const UNKNOWN_ORDER = -2011
 const NO_SUCH_ORDER = -2013
+
+const DAY_MS = 86400000
+
+const KLINE_LIMIT = 1000
 
 export default class BinanceAPI {
 
@@ -61,6 +67,28 @@ export default class BinanceAPI {
          rates[ticker.symbol] = Big(ticker.price)
          return rates
       }, {})
+   }
+
+   async fetchUsdRateHistory({ asset, symbol, from, to, today }: {
+      asset: string
+      symbol: string
+      from: number
+      to: number
+      today: number
+   }): Promise<UsdRateRow[]> {
+
+      const rows: UsdRateRow[] = []
+      let startTime = from
+
+      while (startTime <= to) {
+         const klines = await resource.fetchKLines(symbol, '1d', startTime, to + DAY_MS - 1, KLINE_LIMIT)
+         rows.push(...usdRatesFromKLines({ asset, klines, today }))
+         const last = klines.at(-1)?.[0]
+         if (klines.length < KLINE_LIMIT || last === undefined) break
+         startTime = last + DAY_MS
+      }
+
+      return rows
    }
 
    async fetchCandlestickData(

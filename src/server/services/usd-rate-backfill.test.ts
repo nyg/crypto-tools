@@ -14,7 +14,7 @@ describe('planRateFetch', () => {
 
       const plan = planRateFetch([range('DOT', Date.UTC(2021, 0, 5, 10), Date.UTC(2026, 8, 20, 10))], new Map(), today)
 
-      expect(plan).toEqual({ kraken: [{ asset: 'DOT', since: 0, weekly: true }], ecb: null })
+      expect(plan).toEqual({ kraken: [{ asset: 'DOT', since: 0, weekly: true }], ecb: null, legacy: [] })
    })
 
    test('asks only for the days after the last stored one', () => {
@@ -36,7 +36,7 @@ describe('planRateFetch', () => {
          coverageOf(range('DOT', Date.UTC(2025, 0, 1), Date.UTC(2026, 8, 20))),
          today)
 
-      expect(plan).toEqual({ kraken: [], ecb: null })
+      expect(plan).toEqual({ kraken: [], ecb: null, legacy: [] })
    })
 
    test('leaves entries from today until the day is over', () => {
@@ -65,7 +65,23 @@ describe('planRateFetch', () => {
 
       expect(plan).toEqual({
          kraken: [],
-         ecb: { assets: ['EUR', 'CHF'], from: Date.UTC(2018, 1, 1), to: Date.UTC(2026, 8, 1) }
+         ecb: { assets: ['EUR', 'CHF'], from: Date.UTC(2018, 1, 1), to: Date.UTC(2026, 8, 1) },
+         legacy: []
       })
+   })
+
+   test('falls back to MATIC for the POL days before Kraken quoted POL, until they are stored', () => {
+
+      const ranges = [range('POL', Date.UTC(2023, 5, 13, 9), Date.UTC(2026, 8, 20))]
+
+      const before = planRateFetch(ranges, coverageOf(range('POL', Date.UTC(2023, 11, 21), Date.UTC(2026, 8, 24))), today)
+
+      expect(before.legacy).toEqual([
+         { asset: 'POL', symbol: 'MATICUSDT', from: Date.UTC(2023, 5, 13), to: Date.UTC(2026, 8, 20) }
+      ])
+
+      const after = planRateFetch(ranges, coverageOf(range('POL', Date.UTC(2023, 5, 13), Date.UTC(2026, 8, 24))), today)
+
+      expect(after).toEqual({ kraken: [], ecb: null, legacy: [] })
    })
 })

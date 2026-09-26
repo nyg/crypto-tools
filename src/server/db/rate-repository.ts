@@ -5,11 +5,16 @@ import type { AssetRangeRow, CountRow, UsdRateRow } from '../../types/db'
 type Params = SQLQueryBindings[]
 type NamedParams = Record<string, string | number | bigint | boolean | null>
 
-const upsertStatement = `
+const insertStatement = `
    INSERT INTO asset_usd_rate (asset, day, rate, source)
-   VALUES ($asset, $day, $rate, $source)
+   VALUES ($asset, $day, $rate, $source)`
+
+const upsertStatement = `${insertStatement}
    ON CONFLICT (asset, day) DO UPDATE SET
       rate = excluded.rate, source = excluded.source`
+
+const insertMissingStatement = `${insertStatement}
+   ON CONFLICT (asset, day) DO NOTHING`
 
 export default class RateRepository {
 
@@ -20,8 +25,16 @@ export default class RateRepository {
    }
 
    upsertRates(rows: UsdRateRow[]): number {
+      return this.#write(upsertStatement, rows)
+   }
 
-      const insert = this.#db.prepare<void, NamedParams>(upsertStatement)
+   insertMissingRates(rows: UsdRateRow[]): number {
+      return this.#write(insertMissingStatement, rows)
+   }
+
+   #write(statement: string, rows: UsdRateRow[]): number {
+
+      const insert = this.#db.prepare<void, NamedParams>(statement)
 
       try {
          this.#db.transaction(() => {

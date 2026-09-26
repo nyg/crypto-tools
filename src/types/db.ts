@@ -75,7 +75,7 @@ export interface RewardPeriodRow extends UsdValue {
    entries: number
 }
 
-export type UsdRateSource = 'kraken-daily' | 'kraken-weekly' | 'ecb'
+export type UsdRateSource = 'kraken-daily' | 'kraken-weekly' | 'ecb' | 'binance-daily'
 
 export interface UsdRateRow {
    asset: string
