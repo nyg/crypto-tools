@@ -16,7 +16,7 @@ import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/componen
 import { asNumber } from '../../../utils/format'
 import type { Granularity } from '../../components/kraken/fee-chart'
 import type { LedgerFilterValues } from '../../components/kraken/ledger-filters'
-import type { AssetRatesResponse, FeeSummary, LedgerFiltersResponse } from '../../../types/api'
+import type { FeeSummary, LedgerFiltersResponse } from '../../../types/api'
 
 const isUnfiltered = (filters: LedgerFilterValues) =>
    (Object.keys(defaultFilters) as (keyof LedgerFilterValues)[])
@@ -40,9 +40,6 @@ export default function KrakenFees() {
       configured ? '/api/kraken/ledger/filters' : null)
 
    const assetOptions = (fees?.assets ?? []).map(row => row.asset)
-   const { data: rateData } = useSWR<AssetRatesResponse>(
-      assetOptions.length > 0 ? ['/api/kraken/asset-rates', { assets: assetOptions }] : null,
-      { keepPreviousData: true })
 
    if (!isLoadingSettings && (unreachable || !configured)) {
       return (
@@ -127,7 +124,7 @@ export default function KrakenFees() {
                   </div>
 
                   <div className="border-t border-border pt-6">
-                     <FeeTable fees={fees} rates={rateData?.rates} />
+                     <FeeTable fees={fees} />
                   </div>
 
                </CardContent>

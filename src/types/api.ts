@@ -4,7 +4,7 @@
 
 import type {
    FeeAssetRow, FeeMonthRow, FeeTypeRow, LedgerEntryRow, MarketRow,
-   OtherAccountRow, RewardPeriodRow, SyncStateRow, TradeListRow
+   OtherAccountRow, RewardPeriodRow, SyncStateRow, TradeListRow, UsdValue
 } from './db'
 import type { JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
@@ -97,15 +97,19 @@ export interface FeeSummary {
    entries: number
 }
 
+export interface RewardAmount extends UsdValue {
+   amount: number
+}
+
 export interface RewardAsset {
    asset: string
-   total: number
+   total: RewardAmount
    entries: number
    first: number
    last: number
-   byYear: Record<number, number>
-   byMonth: Record<number, number>
-   byWeek: Record<number, number>
+   byYear: Record<number, RewardAmount>
+   byMonth: Record<number, RewardAmount>
+   byWeek: Record<number, RewardAmount>
 }
 
 export interface RewardPeriod {

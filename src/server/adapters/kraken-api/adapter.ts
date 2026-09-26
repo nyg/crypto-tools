@@ -2,18 +2,20 @@ import Big from 'big.js'
 import { unzipSync } from 'fflate'
 import * as resource from './resource'
 import { normalizeAsset } from './assets'
-import { buildPairIndex, resolvePair } from './pairs'
+import { buildPairIndex, resolvePair, usdPairsFor } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
 import { fetchTickerSnapshots } from './ticker-stream'
 import { earnPositions } from './earn'
+import { DAILY_INTERVAL, WEEKLY_INTERVAL, candlesOf, usdRatesFromCandles } from './ohlc'
 import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFees } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type {
    CancelResult, ExportReport, ExportReportType, ExportRequest, KrakenSpotMarket, LedgerEntry,
-   LiveBalance, OpenOrder, PairIndex, PairPrices, TokenizedListing, TokenizedVolume, Trade, UsdRates
+   LiveBalance, OpenOrder, PairIndex, PairPrices, TokenizedListing, TokenizedVolume, Trade, UsdPair, UsdRates
 } from '../../../types/kraken'
+import type { UsdRateRow } from '../../../types/db'
 import type { TradingPair, TradingPairs } from '../../../types/market'
-import type { KrakenAssets, KrakenOpenOrder, KrakenOrderBatchParams } from '../../../types/kraken-api'
+import type { KrakenAssets, KrakenOhlcCandle, KrakenOpenOrder, KrakenOrderBatchParams } from '../../../types/kraken-api'
 import type {
    OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
@@ -38,6 +40,8 @@ const asOptionalDecimalString = (value: string | undefined): string => {
    return decimalPattern.test(trimmed) ? trimmed : ''
 }
 
+const PUBLIC_CALL_GAP_MS = 1100
+
 const chunked = <T>(items: T[], size: number): T[][] => {
    const chunks: T[][] = []
    for (let i = 0; i < items.length; i += size) {
@@ -50,6 +54,7 @@ export default class KrakenAPI {
 
    readonly #credentials: Credentials | undefined
    #sharedPairIndex: Promise<PairIndex> | null = null
+   #lastPublicCallAt = 0
 
    constructor(credentials?: Credentials) {
       this.#credentials = credentials
@@ -251,42 +256,13 @@ export default class KrakenAPI {
 
       const assetPairs = (await resource.fetchAllAssetPairs()).result
       const pairIndex = buildPairIndex(assetPairs)
+      const pairs = usdPairsFor(assetPairs, wanted)
 
-      const tradeable = Object.values(assetPairs ?? {}).filter(pair => {
-         // Darkpool pairs (XBT/USD.d) quote the same asset but trade separately, and
-         // an offline pair has no meaningful last trade.
-         if (!pair.altname || pair.altname.includes('.')) return false
-         return !pair.status || pair.status === 'online'
-      })
-
-      // Matched exactly rather than through normalizeAsset, which strips the digit
-      // off Kraken's USD1 stablecoin and would let the thin ETHUSD1 book stand in
-      // for ETHUSD.
-      const isUsd = (asset: string) => ['USD', 'ZUSD'].includes(asset)
-
-      const altnames = new Map<string, string>()
-
-      for (const pair of tradeable) {
-         if (!isUsd(pair.quote)) continue
-         const baseAsset = normalizeAsset(pair.base)
-         if (wanted.has(baseAsset) && !altnames.has(baseAsset)) {
-            altnames.set(baseAsset, pair.altname)
-         }
-      }
-
-      for (const pair of tradeable) {
-         if (!isUsd(pair.base)) continue
-         const quoteAsset = normalizeAsset(pair.quote)
-         if (wanted.has(quoteAsset) && !altnames.has(quoteAsset)) {
-            altnames.set(quoteAsset, pair.altname)
-         }
-      }
-
-      if (altnames.size === 0) return rates
+      if (pairs.size === 0) return rates
 
       // Assets Kraken has no USD pair for are left out rather than valued at zero, so
       // the page can tell "not traded here" apart from "worth nothing".
-      const ticker = (await resource.fetchTicker([...altnames.values()])).result ?? {}
+      const ticker = (await resource.fetchTicker([...pairs.values()].map(pair => pair.altname))).result ?? {}
       for (const [name, entry] of Object.entries(ticker)) {
          const { baseAsset, quoteAsset } = resolvePair(name, pairIndex)
          const price = Number(entry?.c?.[0])
@@ -297,6 +273,38 @@ export default class KrakenAPI {
       }
 
       return rates
+   }
+
+   async fetchUsdPairs(assets: string[]): Promise<Map<string, UsdPair>> {
+      await this.#pacePublicCall()
+      return usdPairsFor((await resource.fetchAllAssetPairs()).result, new Set(assets))
+   }
+
+   async fetchUsdRateHistory({ asset, pair, since, weekly, today }: {
+      asset: string
+      pair: UsdPair
+      since: number
+      weekly: boolean
+      today: number
+   }): Promise<UsdRateRow[]> {
+
+      await this.#pacePublicCall()
+      const daily = candlesOf((await resource.fetchOhlc(pair.altname, DAILY_INTERVAL,
+         since > 0 ? Math.floor(since / 1000) : undefined)).result)
+
+      let weeklyCandles: KrakenOhlcCandle[] = []
+      if (weekly) {
+         await this.#pacePublicCall()
+         weeklyCandles = candlesOf((await resource.fetchOhlc(pair.altname, WEEKLY_INTERVAL)).result)
+      }
+
+      return usdRatesFromCandles({ asset, daily, weekly: weeklyCandles, inverse: pair.inverse, today })
+   }
+
+   async #pacePublicCall(): Promise<void> {
+      const wait = this.#lastPublicCallAt + PUBLIC_CALL_GAP_MS - Date.now()
+      if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait))
+      this.#lastPublicCallAt = Date.now()
    }
 
    async fetchAssets(type?: string): Promise<KrakenAssets> {

@@ -237,6 +237,16 @@ const migrations: Migration[] = [
       ALTER TABLE portfolio_run_next RENAME TO portfolio_run;
 
       CREATE INDEX portfolio_run_portfolio ON portfolio_run (portfolio_id, started_at);
+   `),
+
+   db => db.exec(`
+      CREATE TABLE asset_usd_rate (
+         asset  TEXT    NOT NULL,
+         day    INTEGER NOT NULL,
+         rate   REAL    NOT NULL,
+         source TEXT    NOT NULL CHECK (source IN ('kraken-daily', 'kraken-weekly', 'ecb')),
+         PRIMARY KEY (asset, day)
+      ) STRICT;
    `)
 ]
 

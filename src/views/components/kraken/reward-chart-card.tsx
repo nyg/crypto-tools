@@ -1,29 +1,31 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Donut, { foldSlices } from './donut'
+import { ValuationTag, usdOf } from './reward-valuation'
 import type { RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
+import type { Valuation } from './reward-valuation'
 
 
-export default function RewardChartCard({ rewards, rates }: {
+export default function RewardChartCard({ rewards, rates, valuation }: {
    rewards?: RewardSummary
    rates?: UsdRates
+   valuation: Valuation
 }) {
 
-   const priced = rates ?? {}
-
    const slices = foldSlices((rewards?.assets ?? [])
-      .filter(asset => priced[asset.asset] != null)
-      .map(asset => ({
+      .map(asset => ({ asset, value: usdOf(asset.total, rates?.[asset.asset], valuation).value }))
+      .filter((slice): slice is typeof slice & { value: number } => slice.value != null)
+      .map(({ asset, value }) => ({
          key: asset.asset,
          label: asset.asset,
-         value: asset.total * (priced[asset.asset] ?? 0),
-         amount: asset.total
+         value,
+         amount: asset.total.amount
       })))
 
    return (
       <Card>
          <CardHeader>
-            <CardTitle>Share of rewards</CardTitle>
+            <CardTitle>Share of rewards<ValuationTag valuation={valuation} /></CardTitle>
          </CardHeader>
          <CardContent className="space-y-3">
             <Donut

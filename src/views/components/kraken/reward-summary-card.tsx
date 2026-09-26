@@ -17,7 +17,10 @@ export default function RewardSummaryCard({ rewards, rates, isLoading, isLoading
 
    const priced = rates ?? {}
    const valued = assets.filter(asset => priced[asset.asset] != null)
-   const totalValue = valued.reduce((sum, asset) => sum + asset.total * (priced[asset.asset] ?? 0), 0)
+   const totalValue = valued.reduce((sum, asset) => sum + asset.total.amount * (priced[asset.asset] ?? 0), 0)
+
+   const partlyReceived = assets.filter(asset => asset.total.unvalued > 0)
+   const receivedValue = assets.reduce((sum, asset) => sum + (asset.total.value ?? 0), 0)
 
    return (
       <Card>
@@ -31,6 +34,13 @@ export default function RewardSummaryCard({ rewards, rates, isLoading, isLoading
          <CardContent>
             <div className="grid grid-cols-1 gap-y-4">
                <Field label="Assets rewarded">{asNumber(assets.length)}</Field>
+               <Field
+                  label="Value when received"
+                  title={partlyReceived.length > 0
+                     ? `${partlyReceived.length} asset(s) have rewards with no USD rate for their day, and those are not counted`
+                     : undefined}>
+                  {rewards ? asDollarAmount(receivedValue) : '—'}
+               </Field>
                <Field
                   label="Worth today"
                   title={valued.length < assets.length

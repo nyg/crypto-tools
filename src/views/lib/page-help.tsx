@@ -34,7 +34,9 @@ const pageHelp: Record<string, ReactNode> = {
          Downloads two exports from Kraken — your complete ledger and your trade history —
          and keeps both in a database on this machine, so the other tools can use them
          without querying the API again. Kraken prepares each export in the background, so
-         a first sync can take several minutes. Nothing is uploaded anywhere.
+         a first sync can take several minutes. Each sync then fetches the daily USD rates
+         the Rewards and Fees tabs value your history at: Kraken&apos;s own prices, and the
+         ECB&apos;s reference rates from Frankfurter for fiat. Nothing is uploaded anywhere.
       </>,
 
    '/kraken/balances':
@@ -49,8 +51,9 @@ const pageHelp: Record<string, ReactNode> = {
       <>
          Everything Kraken has paid you for staking and earning, per asset and per
          year, read from the local database the Ledger tab fills. Moving coins in and
-         out of an earn position is not income and is left out. Each amount is valued
-         at today&apos;s market price, so the USD figures move with the market.
+         out of an earn position is not income and is left out. The switch above the
+         cards values every reward either <b>when received</b>, at the USD rate of the
+         day it was paid, or <b>today</b>, at the current market price.
       </>,
 
    '/kraken/fees':
@@ -58,7 +61,8 @@ const pageHelp: Record<string, ReactNode> = {
          Everything Kraken has charged you since the account was opened — mostly trade
          fees, but also withdrawal fees and anything else the ledger records — read from
          the local database the Ledger tab fills. Fees are totalled in the asset they were
-         charged in, and converted at today&apos;s rate for the USD column and the share.
+         charged in, and each one is converted at the USD rate of the day it was charged
+         for the cost column and the share.
       </>,
 
    '/kraken/aggregated-trades':

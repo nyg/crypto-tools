@@ -8,11 +8,15 @@ import RewardHistoryCard from '../../components/kraken/reward-history-card'
 import RewardPeriodCard from '../../components/kraken/reward-period-card'
 import RewardTable from '../../components/kraken/reward-table'
 import { isJobRunning } from '../../components/kraken/sync-status'
+import { reviveValuation } from '../../components/kraken/reward-valuation'
 import { useProvider } from '../../lib/use-settings'
+import usePersistentState from '../../lib/use-persistent-state'
 import CredentialsAlert from '../../components/lib/credentials-alert'
 import SettingsLink from '../../components/lib/settings-link'
 import type { AssetRatesResponse, RewardSummary, SyncStatusResponse } from '../../../types/api'
+import type { Valuation } from '../../components/kraken/reward-valuation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const REWARDS_KEY = '/api/kraken/ledger/rewards'
 
@@ -20,6 +24,8 @@ const REWARDS_KEY = '/api/kraken/ledger/rewards'
 export default function KrakenRewards() {
 
    const { configured, unreachable, isLoading: isLoadingSettings } = useProvider('kraken')
+
+   const [valuation, setValuation] = usePersistentState<Valuation>('kraken.rewards.valuation', 'received', reviveValuation)
 
    const wasRunningRef = useRef(false)
    const { mutate } = useSWRConfig()
@@ -81,18 +87,28 @@ export default function KrakenRewards() {
                   </AlertDescription>
                </Alert>}
 
+            <div className="flex flex-wrap items-center justify-end gap-3">
+               <span className="text-sm text-muted-foreground">USD value</span>
+               <Tabs value={valuation} onValueChange={value => setValuation(value as Valuation)}>
+                  <TabsList>
+                     <TabsTrigger value="received">When received</TabsTrigger>
+                     <TabsTrigger value="today">Today</TabsTrigger>
+                  </TabsList>
+               </Tabs>
+            </div>
+
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-[minmax(14rem,max-content)_repeat(3,minmax(0,1fr))]">
                <RewardSummaryCard
                   rewards={rewards}
                   rates={rateData?.rates}
                   isLoading={isLoading}
                   isLoadingRates={isLoadingRates} />
-               <RewardChartCard rewards={rewards} rates={rateData?.rates} />
-               <RewardHistoryCard rewards={rewards} rates={rateData?.rates} />
-               <RewardPeriodCard rewards={rewards} rates={rateData?.rates} />
+               <RewardChartCard rewards={rewards} rates={rateData?.rates} valuation={valuation} />
+               <RewardHistoryCard rewards={rewards} rates={rateData?.rates} valuation={valuation} />
+               <RewardPeriodCard rewards={rewards} rates={rateData?.rates} valuation={valuation} />
             </div>
 
-            <RewardTable rewards={rewards} rates={rateData?.rates} />
+            <RewardTable rewards={rewards} rates={rateData?.rates} valuation={valuation} />
 
          </div>
       </KrakenLayout>

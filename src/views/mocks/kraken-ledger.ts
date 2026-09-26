@@ -1,10 +1,11 @@
 import { tradeCount, orderCount, allTradeCount, clearTrades, restoreTrades } from './kraken-trades'
+import { mockUsdRateOn } from './usd-rates'
 import type {
    BalanceAsset, BalanceSummary, ClearResponse, FeeSummary,
-   LedgerEntriesResponse, LedgerFiltersResponse, RewardAsset, RewardSummary,
+   LedgerEntriesResponse, LedgerFiltersResponse, RewardAmount, RewardAsset, RewardSummary,
    SyncCancelResponse, SyncStartResponse, SyncStatusResponse
 } from '../../types/api'
-import type { LedgerEntryRow, SyncStateRow } from '../../types/db'
+import type { LedgerEntryRow, RewardPeriodRow, SyncStateRow } from '../../types/db'
 import type { SyncJob, SyncMode, SyncStep, SyncStepPhase } from '../../types/jobs'
 import type { ExportReportType, LedgerFilters, Sort } from '../../types/kraken'
 
@@ -233,13 +234,31 @@ const stepSchedule: [number, SyncStepPhase, string | null][] = [
 ]
 
 const STEP_MS = 10500
-const SYNC_MS = 2 * STEP_MS
+const RATE_STEP_MS = 3000
+const RATE_DAYS = 412
+const SYNC_MS = 2 * STEP_MS + RATE_STEP_MS
 
 const reportIds: Record<ExportReportType, string> = {
    ledgers: 'TCWJRA-2JBAB-DHZE7X', trades: 'TCWJRA-9KLMN-QRSTU'
 }
 
 let job: MockJobSeed | null = null
+
+function valuedAmount(asset: string, time: number, amount: number): RewardAmount {
+   const rate = mockUsdRateOn(asset, time)
+   return rate === null
+      ? { amount, value: null, unvalued: amount }
+      : { amount, value: amount * rate, unvalued: 0 }
+}
+
+function addAmount(total: RewardAmount | undefined, amount: RewardAmount): RewardAmount {
+   if (!total) return amount
+   return {
+      amount: total.amount + amount.amount,
+      value: total.value === null && amount.value === null ? null : (total.value ?? 0) + (amount.value ?? 0),
+      unvalued: total.unvalued + amount.unvalued
+   }
+}
 
 // The step's own view of the run: `offset` is when its turn starts, so everything
 // before that reads as pending and everything after as finished.
@@ -285,12 +304,37 @@ function stepAt(
    }
 }
 
+function rateStepAt(elapsed: number, offset: number, mode: SyncMode): SyncStep {
+
+   const local = elapsed - offset
+   const phase: SyncStepPhase = local < 0 ? 'pending' : local < 800 ? 'requesting' : local < RATE_STEP_MS ? 'downloading' : 'done'
+   const received = phase === 'done' ? RATE_DAYS : phase === 'downloading' ? Math.round(RATE_DAYS * (local - 800) / (RATE_STEP_MS - 800)) : 0
+   const inserted = phase === 'done' ? (mode === 'full' ? 0 : 2) : 0
+
+   return {
+      report: 'rates',
+      phase,
+      reportId: null,
+      reportStatus: null,
+      reportRemoved: false,
+      requestedFrom: null,
+      startedAt: local >= 0 ? job!.startedAt + offset : null,
+      finishedAt: phase === 'done' ? job!.startedAt + offset + RATE_STEP_MS : null,
+      pollCount: 0,
+      counts: { parsed: received, stored: received, inserted, updated: received - inserted, skipped: 0 },
+      error: null
+   }
+}
+
 function currentJob(): SyncJob | null {
    if (!job) return null
 
    const elapsed = Date.now() - job.startedAt
-   const steps = (['ledgers', 'trades'] as ExportReportType[])
-      .map((report, index) => stepAt(report, elapsed, index * STEP_MS, job!.mode))
+   const steps = [
+      ...(['ledgers', 'trades'] as ExportReportType[])
+         .map((report, index) => stepAt(report, elapsed, index * STEP_MS, job!.mode)),
+      rateStepAt(elapsed, 2 * STEP_MS, job.mode)
+   ]
 
    if (job.cancelRequested) {
       return {
@@ -425,13 +469,13 @@ export function ledgerFees(body: { filters?: LedgerFilters } = {}): FeeSummary {
    const charged = applyFilters(body.filters).filter(entry => Number(entry.fee) !== 0)
 
    const group = (keyOf: (entry: MockEntry) => string) => {
-      const groups = new Map<string, { total: number, entries: number }>()
+      const groups = new Map<string, { total: number, entries: number, value: number | null, unvalued: number }>()
       for (const entry of charged) {
          const key = keyOf(entry)
-         const group = groups.get(key) ?? { total: 0, entries: 0 }
-         group.total += Number(entry.fee)
-         group.entries += 1
-         groups.set(key, group)
+         const group = groups.get(key)
+         const fee = addAmount(group && { amount: group.total, value: group.value, unvalued: group.unvalued },
+            valuedAmount(entry.baseAsset, entry.time, Number(entry.fee)))
+         groups.set(key, { total: fee.amount, entries: (group?.entries ?? 0) + 1, value: fee.value, unvalued: fee.unvalued })
       }
       return groups
    }
@@ -445,14 +489,14 @@ export function ledgerFees(body: { filters?: LedgerFilters } = {}): FeeSummary {
    const byType = [...group(entry => `${entry.baseAsset}|${entry.type}`)]
       .map(([key, group]) => {
          const [asset = '', type = ''] = key.split('|')
-         return { asset, type, total: group.total, entries: group.entries }
+         return { asset, type, ...group }
       })
       .toSorted((a, b) => b.entries - a.entries)
 
    const byMonth = [...group(entry => `${monthOf(entry)}|${entry.baseAsset}|${entry.type}`)]
       .map(([key, group]) => {
          const [month = '', asset = '', type = ''] = key.split('|')
-         return { month, asset, type, total: group.total, entries: group.entries }
+         return { month, asset, type, ...group }
       })
       .toSorted((a, b) => a.month.localeCompare(b.month))
 
@@ -472,21 +516,21 @@ export function ledgerRewards(): RewardSummary {
 
    for (const entry of rewards) {
       const year = new Date(entry.time).getUTCFullYear()
-      const amount = Number(entry.amount) - Number(entry.fee)
+      const amount = valuedAmount(entry.baseAsset, entry.time, Number(entry.amount) - Number(entry.fee))
 
-      const asset = assets.get(entry.baseAsset)
-         ?? { asset: entry.baseAsset, total: 0, entries: 0, first: entry.time, last: entry.time, byYear: {}, byMonth: {}, byWeek: {} }
+      const asset: RewardAsset = assets.get(entry.baseAsset)
+         ?? { asset: entry.baseAsset, total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first: entry.time, last: entry.time, byYear: {}, byMonth: {}, byWeek: {} }
 
-      asset.byYear[year] = (asset.byYear[year] ?? 0) + amount
+      asset.byYear[year] = addAmount(asset.byYear[year], amount)
       if (entry.time >= (months[0] ?? 0)) {
          const month = monthOfTime(entry.time)
-         asset.byMonth[month] = (asset.byMonth[month] ?? 0) + amount
+         asset.byMonth[month] = addAmount(asset.byMonth[month], amount)
       }
       if (entry.time >= (weeks[0] ?? 0)) {
          const week = weekOfTime(entry.time)
-         asset.byWeek[week] = (asset.byWeek[week] ?? 0) + amount
+         asset.byWeek[week] = addAmount(asset.byWeek[week], amount)
       }
-      asset.total += amount
+      asset.total = addAmount(asset.total, amount)
       asset.entries += 1
       asset.first = Math.min(asset.first, entry.time)
       asset.last = Math.max(asset.last, entry.time)
@@ -498,13 +542,19 @@ export function ledgerRewards(): RewardSummary {
 
    const periodAssets = (from: number, to: number) => {
 
-      const totals = new Map<string, { asset: string, total: number, entries: number }>()
+      const totals = new Map<string, RewardPeriodRow>()
 
       for (const entry of rewards.filter(entry => entry.time >= from && entry.time <= to)) {
-         const total = totals.get(entry.baseAsset) ?? { asset: entry.baseAsset, total: 0, entries: 0 }
-         total.total += Number(entry.amount) - Number(entry.fee)
-         total.entries += 1
-         totals.set(entry.baseAsset, total)
+         const total = totals.get(entry.baseAsset)
+         const amount = addAmount(total && { amount: total.total, value: total.value, unvalued: total.unvalued },
+            valuedAmount(entry.baseAsset, entry.time, Number(entry.amount) - Number(entry.fee)))
+         totals.set(entry.baseAsset, {
+            asset: entry.baseAsset,
+            total: amount.amount,
+            entries: (total?.entries ?? 0) + 1,
+            value: amount.value,
+            unvalued: amount.unvalued
+         })
       }
 
       return [...totals.values()].toSorted((a, b) => a.asset.localeCompare(b.asset))

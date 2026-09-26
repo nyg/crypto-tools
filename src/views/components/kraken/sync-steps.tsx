@@ -103,7 +103,7 @@ function StepCounts({ step, running }: { step: Step, running: boolean }) {
    return (
       <span>
          {asNumber(parsed)} read · {asNumber(inserted)} new
-         {skipped > 0 && <> · {asNumber(skipped)} skipped</>}
+         {skipped > 0 && <> · {asNumber(skipped)} {step.report === 'rates' ? 'unpriced' : 'skipped'}</>}
       </span>
    )
 }

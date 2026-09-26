@@ -1,6 +1,6 @@
 import { normalizeAsset } from './assets'
 import type { KrakenAssetPairs } from '../../../types/kraken-api'
-import type { PairAssets, PairIndex, ResolvedPair } from '../../../types/kraken'
+import type { PairAssets, PairIndex, ResolvedPair, UsdPair } from '../../../types/kraken'
 
 // The trades export writes the pair the way it was spelled at the time of the trade,
 // which is not consistently any one of the three names AssetPairs returns: old rows
@@ -65,4 +65,39 @@ export function resolvePair(pair: string | undefined, index: PairIndex | undefin
    if (!assets) return { baseAsset: '', quoteAsset: '', pairKey: name }
 
    return { ...assets, pairKey: `${assets.baseAsset}/${assets.quoteAsset}` }
+}
+
+// Matched exactly rather than through normalizeAsset, which strips the digit
+// off Kraken's USD1 stablecoin and would let the thin ETHUSD1 book stand in
+// for ETHUSD.
+const isUsd = (asset: string) => ['USD', 'ZUSD'].includes(asset)
+
+export function usdPairsFor(assetPairs: KrakenAssetPairs | undefined, wanted: Set<string>): Map<string, UsdPair> {
+
+   const tradeable = Object.values(assetPairs ?? {}).filter(pair => {
+      // Darkpool pairs (XBT/USD.d) quote the same asset but trade separately, and
+      // an offline pair has no meaningful last trade.
+      if (!pair.altname || pair.altname.includes('.')) return false
+      return !pair.status || pair.status === 'online'
+   })
+
+   const pairs = new Map<string, UsdPair>()
+
+   for (const pair of tradeable) {
+      if (!isUsd(pair.quote)) continue
+      const baseAsset = normalizeAsset(pair.base)
+      if (wanted.has(baseAsset) && !pairs.has(baseAsset)) {
+         pairs.set(baseAsset, { altname: pair.altname, inverse: false })
+      }
+   }
+
+   for (const pair of tradeable) {
+      if (!isUsd(pair.base)) continue
+      const quoteAsset = normalizeAsset(pair.quote)
+      if (wanted.has(quoteAsset) && !pairs.has(quoteAsset)) {
+         pairs.set(quoteAsset, { altname: pair.altname, inverse: true })
+      }
+   }
+
+   return pairs
 }

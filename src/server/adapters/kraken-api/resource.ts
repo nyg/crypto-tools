@@ -8,7 +8,7 @@ import type {
    KrakenAddExportResult, KrakenAddOrderBatchResult, KrakenAddOrderParams, KrakenAddOrderResult,
    KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenEarnAllocations,
    KrakenEarnStrategies, KrakenExportStatus, KrakenExtendedBalance, KrakenOpenOrders,
-   KrakenOrderBatchParams, KrakenOrderFilter, KrakenOrderReference, KrakenQueriedOrders,
+   KrakenOhlc, KrakenOrderBatchParams, KrakenOrderFilter, KrakenOrderReference, KrakenQueriedOrders,
    KrakenResponse, KrakenTicker, KrakenTradeVolume
 } from '../../../types/kraken-api'
 
@@ -18,6 +18,7 @@ const urlFor = (endpoint: string) => apiUrl + endpoint
 const assetPairsEndpoint = '/0/public/AssetPairs'
 const assetInfoEndpoint = '/0/public/Assets'
 const tickerEndpoint = '/0/public/Ticker'
+const ohlcEndpoint = '/0/public/OHLC'
 
 const addOrderEndpoint = '/0/private/AddOrder'
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
@@ -57,6 +58,10 @@ export async function fetchAllAssetPairs(): Promise<KrakenResponse<KrakenAssetPa
 // by its own name for each of them, which is not always the name that was asked for.
 export async function fetchTicker(pairs: string[]): Promise<KrakenResponse<KrakenTicker>> {
    return await httpRequester.public(urlFor(tickerEndpoint), pairs.length > 0 ? { pair: pairs.join(',') } : {})
+}
+
+export async function fetchOhlc(pair: string, interval: number, since?: number): Promise<KrakenResponse<KrakenOhlc>> {
+   return await httpRequester.public(urlFor(ohlcEndpoint), since === undefined ? { pair, interval } : { pair, interval, since })
 }
 
 /* Private endpoints */

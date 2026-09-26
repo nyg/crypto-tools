@@ -43,6 +43,10 @@ export interface KrakenTickerEntry {
 
 export type KrakenTicker = Record<string, KrakenTickerEntry>
 
+export type KrakenOhlcCandle = [number, string, string, string, string, string, string, number]
+
+export type KrakenOhlc = Record<string, KrakenOhlcCandle[] | number>
+
 export interface KrakenBalanceEntry {
    balance?: string
    hold_trade?: string

@@ -3,13 +3,13 @@ import type { Database, SQLQueryBindings } from 'bun:sqlite'
 import { getDatabase } from './database'
 import { entryKeyFor } from './entry-key'
 import type {
-   BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
+   AssetRangeRow, BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
    FeeTypeRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
-   SyncStateUpdate, TimeRangeRow, ValueRow
+   SyncStateUpdate, TimeRangeRow, UsdValue, ValueRow
 } from '../../types/db'
 import type {
    BalanceSummary, ClearResponse, FeeSummary,
-   LedgerEntriesResponse, LedgerFiltersResponse, RewardAsset, RewardSummary
+   LedgerEntriesResponse, LedgerFiltersResponse, RewardAmount, RewardAsset, RewardSummary
 } from '../../types/api'
 import type { LedgerEntry, LedgerFilters, Sort } from '../../types/kraken'
 
@@ -38,6 +38,29 @@ const isReward = `type IN ('staking', 'earn')
    AND subtype NOT IN ('allocation', 'deallocation', 'autoallocation', 'migration')`
 
 const DAY = 86400000
+
+const usdRateJoin = `LEFT JOIN asset_usd_rate r ON r.asset = e.base_asset AND r.day = e.time - e.time % ${DAY}`
+
+const usdRate = '(CASE WHEN e.base_asset = \'USD\' THEN 1.0 ELSE r.rate END)'
+
+const usdValueOf = (amount: string) =>
+   `SUM((${amount}) * ${usdRate}) AS value, TOTAL(CASE WHEN ${usdRate} IS NULL THEN ${amount} ELSE 0 END) AS unvalued`
+
+const rewardNet = 'CAST(e.amount AS REAL) - CAST(e.fee AS REAL)'
+
+const feeAmount = 'CAST(e.fee AS REAL)'
+
+const rewardAmountOf = (row: UsdValue & { total: number }): RewardAmount =>
+   ({ amount: row.total, value: row.value, unvalued: row.unvalued })
+
+function addRewardAmount(total: RewardAmount | undefined, row: RewardAmount): RewardAmount {
+   if (!total) return row
+   return {
+      amount: total.amount + row.amount,
+      value: total.value === null && row.value === null ? null : (total.value ?? 0) + (row.value ?? 0),
+      unvalued: total.unvalued + row.unvalued
+   }
+}
 
 function lastCompletePeriods(now = Date.now()) {
 
@@ -185,17 +208,19 @@ export default class LedgerRepository {
       const params = built.params
 
       const assets = this.#db.query<FeeAssetRow, Params>(`
-         SELECT base_asset AS asset, SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
-         FROM ledger_entry
+         SELECT e.base_asset AS asset, SUM(${feeAmount}) AS total, COUNT(*) AS entries,
+                ${usdValueOf(feeAmount)}
+         FROM ledger_entry e ${usdRateJoin}
          WHERE ${where}
-         GROUP BY base_asset
-         ORDER BY entries DESC, asset`).all(...params)
+         GROUP BY e.base_asset
+         ORDER BY entries DESC, e.base_asset`).all(...params)
 
       const byType = this.#db.query<FeeTypeRow, Params>(`
-         SELECT base_asset AS asset, type, SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
-         FROM ledger_entry
+         SELECT e.base_asset AS asset, e.type AS type, SUM(${feeAmount}) AS total, COUNT(*) AS entries,
+                ${usdValueOf(feeAmount)}
+         FROM ledger_entry e ${usdRateJoin}
          WHERE ${where}
-         GROUP BY base_asset, type
+         GROUP BY e.base_asset, e.type
          ORDER BY entries DESC`).all(...params)
 
       // Months are the finest bucket returned; quarters and years are rolled up from
@@ -203,12 +228,13 @@ export default class LedgerRepository {
       // time is in milliseconds, and integer division by 1000 gives the seconds
       // strftime expects; 'unixepoch' keeps the bucket in UTC like every other date here.
       const byMonth = this.#db.query<FeeMonthRow, Params>(`
-         SELECT strftime('%Y-%m', time / 1000, 'unixepoch') AS month,
-                base_asset AS asset, type,
-                SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
-         FROM ledger_entry
+         SELECT strftime('%Y-%m', e.time / 1000, 'unixepoch') AS month,
+                e.base_asset AS asset, e.type AS type,
+                SUM(${feeAmount}) AS total, COUNT(*) AS entries,
+                ${usdValueOf(feeAmount)}
+         FROM ledger_entry e ${usdRateJoin}
          WHERE ${where}
-         GROUP BY month, base_asset, type
+         GROUP BY month, e.base_asset, e.type
          ORDER BY month`).all(...params)
 
       return {
@@ -225,24 +251,26 @@ export default class LedgerRepository {
    rewardSummary(now = Date.now()): RewardSummary {
 
       const rows = this.#db.query<RewardRow, Params>(`
-         SELECT base_asset AS asset,
-                CAST(strftime('%Y', time / 1000, 'unixepoch') AS INTEGER) AS year,
-                SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total,
+         SELECT e.base_asset AS asset,
+                CAST(strftime('%Y', e.time / 1000, 'unixepoch') AS INTEGER) AS year,
+                SUM(${rewardNet}) AS total,
                 COUNT(*) AS entries,
-                MIN(time) AS first, MAX(time) AS last
-         FROM ledger_entry
+                MIN(e.time) AS first, MAX(e.time) AS last,
+                ${usdValueOf(rewardNet)}
+         FROM ledger_entry e ${usdRateJoin}
          WHERE account_id = ? AND ${isReward}
-         GROUP BY asset, year
-         ORDER BY asset, year`).all(this.#accountId)
+         GROUP BY e.base_asset, year
+         ORDER BY e.base_asset, year`).all(this.#accountId)
 
       const assets = new Map<string, RewardAsset>()
 
       for (const row of rows) {
          const asset = assets.get(row.asset)
-            ?? { asset: row.asset, total: 0, entries: 0, first: row.first, last: row.last, byYear: {}, byMonth: {}, byWeek: {} }
+            ?? { asset: row.asset, total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first: row.first, last: row.last, byYear: {}, byMonth: {}, byWeek: {} }
 
-         asset.byYear[row.year] = (asset.byYear[row.year] ?? 0) + row.total
-         asset.total += row.total
+         const amount = rewardAmountOf(row)
+         asset.byYear[row.year] = addRewardAmount(asset.byYear[row.year], amount)
+         asset.total = addRewardAmount(asset.total, amount)
          asset.entries += row.entries
          asset.first = Math.min(asset.first, row.first)
          asset.last = Math.max(asset.last, row.last)
@@ -254,31 +282,33 @@ export default class LedgerRepository {
       const { months, weeks } = chartedBuckets(now)
 
       const bucketQuery = (modifiers: string[]) => this.#db.query<RewardBucketRow, Params>(`
-         SELECT base_asset AS asset,
-                CAST(strftime('%s', time / 1000, 'unixepoch', ${modifiers.map(modifier => `'${modifier}'`).join(', ')}) AS INTEGER) * 1000 AS start,
-                SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total
-         FROM ledger_entry
-         WHERE account_id = ? AND ${isReward} AND time >= ?
-         GROUP BY asset, start`)
+         SELECT e.base_asset AS asset,
+                CAST(strftime('%s', e.time / 1000, 'unixepoch', ${modifiers.map(modifier => `'${modifier}'`).join(', ')}) AS INTEGER) * 1000 AS start,
+                SUM(${rewardNet}) AS total,
+                ${usdValueOf(rewardNet)}
+         FROM ledger_entry e ${usdRateJoin}
+         WHERE account_id = ? AND ${isReward} AND e.time >= ?
+         GROUP BY e.base_asset, start`)
 
       for (const row of bucketQuery(bucketModifiers.month).all(this.#accountId, months[0] ?? 0)) {
          const asset = assets.get(row.asset)
-         if (asset) asset.byMonth[row.start] = row.total
+         if (asset) asset.byMonth[row.start] = rewardAmountOf(row)
       }
 
       for (const row of bucketQuery(bucketModifiers.week).all(this.#accountId, weeks[0] ?? 0)) {
          const asset = assets.get(row.asset)
-         if (asset) asset.byWeek[row.start] = row.total
+         if (asset) asset.byWeek[row.start] = rewardAmountOf(row)
       }
 
       const periodQuery = this.#db.query<RewardPeriodRow, Params>(`
-         SELECT base_asset AS asset,
-                SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total,
-                COUNT(*) AS entries
-         FROM ledger_entry
-         WHERE account_id = ? AND ${isReward} AND time >= ? AND time <= ?
-         GROUP BY asset
-         ORDER BY asset`)
+         SELECT e.base_asset AS asset,
+                SUM(${rewardNet}) AS total,
+                COUNT(*) AS entries,
+                ${usdValueOf(rewardNet)}
+         FROM ledger_entry e ${usdRateJoin}
+         WHERE account_id = ? AND ${isReward} AND e.time >= ? AND e.time <= ?
+         GROUP BY e.base_asset
+         ORDER BY e.base_asset`)
 
       const periods = Object.fromEntries(Object.entries(lastCompletePeriods(now))
          .map(([name, { from, to }]) =>
@@ -294,6 +324,14 @@ export default class LedgerRepository {
          first: rows.length > 0 ? Math.min(...rows.map(row => row.first)) : null,
          last: rows.length > 0 ? Math.max(...rows.map(row => row.last)) : null
       }
+   }
+
+   valuedAssetRanges(): AssetRangeRow[] {
+      return this.#db.query<AssetRangeRow, Params>(`
+         SELECT base_asset AS asset, MIN(time) AS first, MAX(time) AS last
+         FROM ledger_entry
+         WHERE account_id = ? AND (${nonZeroFee} OR (${isReward}))
+         GROUP BY base_asset`).all(this.#accountId)
    }
 
    // What is held right now, per asset, rebuilt from the entries
