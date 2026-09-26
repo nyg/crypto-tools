@@ -91,8 +91,8 @@ export default function KrakenRewards() {
                <span className="text-sm text-muted-foreground">USD valuation</span>
                <Tabs value={valuation} onValueChange={value => setValuation(value as Valuation)}>
                   <TabsList>
-                     <TabsTrigger value="received">When received</TabsTrigger>
                      <TabsTrigger value="today">Today</TabsTrigger>
+                     <TabsTrigger value="received">When received</TabsTrigger>
                   </TabsList>
                </Tabs>
             </div>
