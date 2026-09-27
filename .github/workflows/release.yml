@@ -299,7 +299,7 @@ jobs:
 
           Scoop is a package manager for Windows, similar to Homebrew for macOS and Linux. Use this install method if your company policy restricts manual installs.
 
-          To install Scoop, open PowerShell and run:
+          To install it, open PowerShell and run:
 
           ```powershell
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
