@@ -316,6 +316,7 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
 
    const quote = portfolio.quoteAsset
    const band = request.band ?? portfolio.band
+   const mode = request.kind === 'withdraw' ? 'full' : request.mode ?? 'full'
    const assets = [...new Set([...portfolio.targets.map(({ asset }) => asset), ...Object.keys(portfolio.holdings)])]
    const coins = coinsOf(state)
 
@@ -329,7 +330,9 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
          free: new Map(coins.map(coin => [coin.asset, Big(coin.free)])),
          band: Big(band),
          withdraw: request.kind === 'withdraw' ? (request.all ? 'all' : Big(request.amount ?? '0')) : Big(0),
-         feeRate: Big(FEE_RATE)
+         feeRate: Big(FEE_RATE),
+         mode,
+         exclude: new Set(request.exclude ?? [])
       })
    }
    catch (error) {
@@ -360,6 +363,7 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       portfolioId: portfolio.id,
       venue,
       kind: request.kind,
+      mode,
       quoteAsset: quote,
       expiresAt: Date.now() + 120000,
       band: String(band),

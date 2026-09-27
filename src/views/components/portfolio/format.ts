@@ -41,7 +41,10 @@ export const skipReasons: Record<SkipReason, string> = {
    'no-market': 'no market against the cash coin',
    'unpriced': 'no price right now',
    'no-free-balance': 'nothing free in the wallet to sell',
-   'no-cash': 'not enough cash to buy with'
+   'no-cash': 'not enough cash to buy with',
+   'excluded': 'left out of this plan',
+   'no-sells': 'this rebalance only buys',
+   'no-buys': 'this rebalance only sells'
 }
 
 export const orderStatusLabels: Record<RunOrderStatus, string> = {

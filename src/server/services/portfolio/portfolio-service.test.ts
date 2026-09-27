@@ -254,6 +254,21 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(overview.portfolios[0]!.lastRebalancedAt).toBeNull()
    })
 
+   test('previews a rebalance that only sells, or leaves a coin out, without placing anything', async () => {
+      const trim = await service().plan({ portfolioId, kind: 'rebalance', mode: 'trim' })
+      expect(trim.mode).toBe('trim')
+      expect(trim.orders).toHaveLength(0)
+      expect(trim.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['BTC no-buys', 'ETH no-buys'])
+
+      const withoutEth = await service().plan({ portfolioId, kind: 'rebalance', exclude: ['eth'] })
+      expect(withoutEth.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`)).toEqual(['buy BTC 500'])
+      expect(withoutEth.skipped).toContainEqual({ asset: 'ETH', reason: 'excluded', value: '300' })
+   })
+
+   test('refuses a way to rebalance it does not know', async () => {
+      expect(await statusOf(service().plan({ portfolioId, kind: 'rebalance', mode: 'sideways' }))).toBe(400)
+   })
+
    test('rebalances into the targets through market orders', async () => {
       const plan = await service().plan({ portfolioId, kind: 'rebalance' })
       expect(plan.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`))
