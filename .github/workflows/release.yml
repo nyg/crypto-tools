@@ -297,18 +297,20 @@ jobs:
 
           ### [Scoop](https://scoop.sh)
 
-          For power users:
-
-          ```powershell
-          scoop install git
-          scoop bucket add nyg https://github.com/nyg/scoop-bucket
-          scoop install crypto-tools
-          ```
+          For power users or if your company policy restricts manual installs.
 
           If you don't have Scoop at all, you can install it with:
 
           ```powershell
           irm get.scoop.sh | iex
+          ```
+
+          Then install the app:
+
+          ```powershell
+          scoop install git
+          scoop bucket add nyg https://github.com/nyg/scoop-bucket
+          scoop install crypto-tools
           ```
           EOF
 

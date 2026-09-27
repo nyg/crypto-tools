@@ -91,18 +91,20 @@ brew install --cask nyg/tap/crypto-tools
 
 **Manual** — download [`crypto-tools-…-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs to `%LOCALAPPDATA%` (`C:\Users\<you>\AppData\Local` — no admin rights needed). The app is not code-signed, so the SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway** (no admin rights needed, but company policy may block it, in which case Scoop is recommended).
 
-**[Scoop](https://scoop.sh)** — for power users:
-
-```powershell
-scoop install git
-scoop bucket add nyg https://github.com/nyg/scoop-bucket
-scoop install crypto-tools
-```
+**[Scoop](https://scoop.sh)** — for power users or if your company policy restricts manual installs.
 
 If you don't have Scoop at all, you can install it with:
 
 ```powershell
 irm get.scoop.sh | iex
+```
+
+Then install the app:
+
+```powershell
+scoop install git
+scoop bucket add nyg https://github.com/nyg/scoop-bucket
+scoop install crypto-tools
 ```
 
 ### Updates
