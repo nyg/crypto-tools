@@ -187,6 +187,21 @@ describe('the rebalance planner', () => {
       expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['ETH within-band'])
    })
 
+   test('rounds a partial trim up, so the rounding never leaves a shortfall for the next coin to cover', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '40', ETH: '40', SOL: '10', DOGE: '10' }),
+         holdingsOf: { BTC: '0.0096', ETH: '0.164', SOL: '0.5', USDT: '60' },
+         markets: new Map([
+            ['BTC', market('BTC', '50000')], ['ETH', market('ETH', '2500')],
+            ['SOL', market('SOL', '100')], ['DOGE', market('DOGE', '0.1')]
+         ]),
+         band: Big(8),
+         feeRate: Big('0.001')
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.000801', 'buy DOGE 100'])
+   })
+
    test('trims an overweight back to its target when the part the buy needs is below the minimum', () => {
       const plan = planPortfolio(input({
          targets: bigMap({ BTC: '45', ETH: '45', DOGE: '10' }),
@@ -312,6 +327,63 @@ describe('the rebalance planner', () => {
       expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toContain('XYZ no-market')
       expect(plan.orders.map(({ asset }) => asset)).not.toContain('XYZ')
    })
+
+   test('buys outside the band with fresh cash without trimming the coins within it', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '30', ETH: '30', DOGE: '40' }),
+         holdingsOf: { BTC: '0.0062', ETH: '0.116', DOGE: '3700', USDT: '30' },
+         band: Big(2)
+      }))
+
+      expect(summary(plan)).toEqual(['buy DOGE 30'])
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['BTC within-band', 'ETH within-band'])
+   })
+
+   test('spends the cash left after the buys outside the band on the underweights within it', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '30', ETH: '30', DOGE: '40' }),
+         holdingsOf: { BTC: '0.0062', ETH: '0.112', DOGE: '3600', USDT: '50' },
+         band: Big(2)
+      }))
+
+      expect(summary(plan)).toEqual(['buy DOGE 40', 'buy ETH 10'])
+   })
+
+   test('only buys with the cash when told to invest it, leaving overweights and untargeted coins alone', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.012', ETH: '0.12', DOGE: '500', USDT: '50' },
+         mode: 'invest'
+      }))
+
+      expect(summary(plan)).toEqual(['buy ETH 50'])
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['BTC no-sells', 'DOGE no-sells'])
+   })
+
+   test('only sells when told to trim, keeping the proceeds as cash', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.012', ETH: '0.12', DOGE: '500', USDT: '50' },
+         mode: 'trim'
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.002', 'sell DOGE 500'])
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['ETH no-buys'])
+      expect(plan.cashAfter.toFixed()).toBe('200')
+   })
+
+   test('never trades an excluded coin, but still counts it and trims the next one instead', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '45', ETH: '45', DOGE: '10' }),
+         holdingsOf: { BTC: '0.0096', ETH: '0.2', USDT: '20' },
+         band: Big(5),
+         exclude: new Set(['ETH'])
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.0016', 'buy DOGE 100'])
+      expect(plan.skipped.map(({ asset, reason, value }) => `${asset} ${reason} ${value.toFixed()}`)).toEqual(['ETH excluded 50'])
+      expect(plan.before.get('ETH')!.toFixed()).toBe('50')
+   })
 })
 
 describe('a withdrawal plan', () => {
@@ -360,6 +432,18 @@ describe('a withdrawal plan', () => {
 
       expect(summary(plan)).toEqual(['sell BTC 0.02', 'sell ETH 0.2'])
       expect(plan.cashAfter.toFixed()).toBe('0')
+   })
+
+   test('raises the amount from the coins that are not excluded', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', ETH: '50' }),
+         holdingsOf: { BTC: '0.02', ETH: '0.4', USDT: '0' },
+         withdraw: Big(500),
+         exclude: new Set(['BTC'])
+      }))
+
+      expect(summary(plan)).toEqual(['sell ETH 0.2'])
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['BTC excluded'])
    })
 
    test('refuses more than the portfolio is worth', () => {

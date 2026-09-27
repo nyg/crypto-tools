@@ -418,6 +418,8 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
    if (withdraw > total) return reject(`Cannot withdraw more than the portfolio is worth (${fixed(total, 2)} ${quote}).`)
 
    const band = Number(request.band ?? portfolio.band)
+   const mode = request.kind === 'withdraw' ? 'full' : request.mode ?? 'full'
+   const excluded = new Set(request.exclude ?? [])
    const investable = total - withdraw
    const cash = portfolio.holdings[quote] ?? 0
    const weights = new Map(portfolio.targets.map(({ asset, weight }) => [asset, Number(weight)]))
@@ -434,10 +436,18 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       const drift = total > 0 ? value / total * 100 - (weights.get(asset) ?? 0) : 0
       const delta = target - value
 
+      if (excluded.has(asset)) {
+         skipped.push({ asset, reason: 'excluded', value: fixed(Math.abs(delta), 2) })
+         continue
+      }
       if (request.kind === 'withdraw' && (cash >= withdraw || delta >= 0)) continue
       const absorbsCash = (cashDrift > band && delta > 0) || (cashDrift < -band && delta < 0)
       if (request.kind === 'rebalance' && weights.has(asset) && Math.abs(drift) <= band && !absorbsCash) {
          if (drift !== 0) skipped.push({ asset, reason: 'within-band', value: fixed(Math.abs(delta), 2) })
+         continue
+      }
+      if ((mode === 'invest' && delta < 0) || (mode === 'trim' && delta > 0)) {
+         skipped.push({ asset, reason: mode === 'invest' ? 'no-sells' : 'no-buys', value: fixed(Math.abs(delta), 2) })
          continue
       }
       if (Math.abs(delta) < MIN_ORDER) {
@@ -465,6 +475,7 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       portfolioId: portfolio.id,
       venue,
       kind: request.kind,
+      mode,
       quoteAsset: quote,
       expiresAt: Date.now() + 120000,
       band: String(band),

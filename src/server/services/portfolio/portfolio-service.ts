@@ -25,8 +25,8 @@ import type {
    PortfolioStopSyncResponse, PortfolioSummary
 } from '../../../types/api'
 import type {
-   ExchangeAccount, OrderLookup, OrderSettlement, RunKind, RunStatus, SpotMarket, SpotPrice, TakerFee,
-   VenueId, WalletCoin
+   ExchangeAccount, OrderLookup, OrderSettlement, RebalanceMode, RunKind, RunStatus, SpotMarket, SpotPrice,
+   TakerFee, VenueId, WalletCoin
 } from '../../../types/portfolio'
 
 export type PortfolioErrorStatus = 400 | 403 | 404 | 409 | 410
@@ -117,6 +117,18 @@ function parseId(value: unknown): number {
 }
 
 const assetOf = (value: unknown) => String(value ?? '').trim().toUpperCase()
+
+const rebalanceModes: RebalanceMode[] = ['full', 'invest', 'trim']
+
+function parseMode(value: unknown): RebalanceMode {
+   if (value === undefined || value === null || value === '') return 'full'
+   const mode = rebalanceModes.find(known => known === value)
+   if (!mode) throw new PortfolioError(400, `"${String(value)}" is not a way to rebalance.`)
+   return mode
+}
+
+const parseExclude = (value: unknown): Set<string> =>
+   new Set(Array.isArray(value) ? value.filter(asset => typeof asset === 'string').map(assetOf) : [])
 
 function priceIn(prices: Record<string, SpotPrice>, asset: string, quote: string): Big | null {
    if (asset === quote) return Big(1)
@@ -729,6 +741,8 @@ export default class PortfolioService {
       const slippage = parseRange(body.slippage || DEFAULT_SLIPPAGE, 'The slippage tolerance', 0.01, 10).round(2)
       const withdrawAll = kind === 'withdraw' && body.all === true
       const withdraw = kind === 'withdraw' ? (withdrawAll ? 'all' : parsePositive(body.amount, 'The amount to withdraw')) : ZERO
+      const mode = kind === 'withdraw' ? 'full' : parseMode(body.mode)
+      const exclude = parseExclude(body.exclude)
 
       const holdings = this.#holdingsOf(repository, portfolio.id)
       const targets = new Map(repository.targets()
@@ -759,7 +773,9 @@ export default class PortfolioService {
 
       let plan
       try {
-         plan = planPortfolio({ quote, holdings, targets, markets: byBase, free, band, withdraw, feeRates, buyFeeInQuote })
+         plan = planPortfolio({
+            quote, holdings, targets, markets: byBase, free, band, withdraw, feeRates, buyFeeInQuote, mode, exclude
+         })
       }
       catch (error) {
          throw new PortfolioError(400, messageOf(error))
@@ -791,6 +807,7 @@ export default class PortfolioService {
          portfolioId: portfolio.id,
          venue: this.#venue.id,
          kind,
+         mode,
          quoteAsset: quote,
          expiresAt: stored.expiresAt,
          band: band.toFixed(),

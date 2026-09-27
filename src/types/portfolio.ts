@@ -85,6 +85,9 @@ export interface OrderSettlement {
 
 export type SkipReason =
    'within-band' | 'below-minimum' | 'no-market' | 'unpriced' | 'no-free-balance' | 'no-cash'
+   | 'excluded' | 'no-sells' | 'no-buys'
+
+export type RebalanceMode = 'full' | 'invest' | 'trim'
 
 export type MovementKind = 'deposit' | 'withdraw' | 'adjust' | 'fee'
 

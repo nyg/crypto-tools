@@ -63,6 +63,33 @@ function splitEqually(rows: TargetRow[]): TargetRow[] {
    return rows.map((entry, index) => ({ ...entry, weight: (index === rows.length - 1 ? last : share).toFixed() }))
 }
 
+function currentWeights(portfolio: PortfolioSummary, rows: TargetRow[]): TargetRow[] {
+
+   const quote = portfolio.quoteAsset
+   const keepsCash = rows.some(({ asset }) => asset === quote)
+   const held = portfolio.holdings
+      .filter(({ asset, value }) => value !== null && Big(value).gt(0) && (asset !== quote || keepsCash))
+      .map(({ asset, value }) => ({ asset, value: Big(value!) }))
+   const total = held.reduce((sum, { value }) => sum.plus(value), Big(0))
+   if (total.lte(0)) return rows
+
+   const exact = held.map(({ asset, value }) => ({ asset, weight: value.div(total).times(100) }))
+   const floors = exact.map(({ asset, weight }) => ({ asset, weight: weight.round(2, Big.roundDown), rest: weight.mod(Big('0.01')) }))
+   const missing = Big(100).minus(floors.reduce((sum, { weight }) => sum.plus(weight), Big(0))).div(Big('0.01')).toNumber()
+   const topped = new Set([...floors].sort((left, right) => right.rest.cmp(left.rest)).slice(0, missing).map(({ asset }) => asset))
+   const weights = new Map(floors.map(({ asset, weight }) => [asset, topped.has(asset) ? weight.plus(Big('0.01')) : weight]))
+
+   const kept = rows
+      .filter(({ asset }) => weights.get(asset)?.gt(0))
+      .map(entry => ({ ...entry, weight: weights.get(entry.asset)!.toFixed() }))
+   const listed = new Set(kept.map(({ asset }) => asset))
+   const added = [...weights]
+      .filter(([asset, weight]) => !listed.has(asset) && weight.gt(0))
+      .map(([asset, weight]) => row(asset, weight.toFixed()))
+
+   return [...kept, ...added]
+}
+
 function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, onSaved }: EditorFormProps) {
 
    const [name, setName] = useState(portfolio?.name ?? '')
@@ -93,6 +120,7 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
 
    const sum = sumOf(rows)
    const balanced = sum?.eq(100) ?? false
+   const unpriced = portfolio?.holdings.some(({ value, quantity }) => value === null && Big(quantity).gt(0)) ?? false
 
    const update = (key: number, changes: Partial<TargetRow>) =>
       setRows(current => current.map(entry => entry.key === key ? { ...entry, ...changes } : entry))
@@ -193,6 +221,17 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
                   <Button size="sm" variant="ghost" disabled={rows.length === 0} onClick={() => setRows(splitEqually)}>
                      Split equally
                   </Button>
+                  {portfolio && portfolio.valueNum > 0 &&
+                     <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={unpriced}
+                        title={unpriced
+                           ? 'A coin the portfolio holds has no price right now, so its weight is unknown.'
+                           : 'Set each weight to what the coin is worth in the portfolio today. Coins it holds none of are removed.'}
+                        onClick={() => setRows(current => currentWeights(portfolio, current))}>
+                        Use current weights
+                     </Button>}
                   <span className={cn('ml-auto text-sm tabular-nums', balanced ? 'text-muted-foreground' : 'text-destructive')}>
                      Total {sum ? `${sum.toFixed()}%` : 'not a number'}
                   </span>
