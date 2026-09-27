@@ -75,7 +75,7 @@ Desktop apps for macOS (Apple Silicon) and Windows (x64). No admin rights needed
 
 ### Installing on macOS
 
-**Manual** — take the `.dmg` from the [latest release](https://github.com/nyg/crypto-tools/releases/latest), open it and drag **Crypto Tools.app** into **Applications**. The app is ad-hoc signed but not notarized, so macOS quarantines it after download and blocks the first launch — as *damaged* or *could not verify*, which mean the same thing and neither of which means the app is broken. Open **System Settings → Privacy & Security**, scroll to the bottom and click **Open Anyway**. Alternatively, remove the quarantine flag yourself:
+**Manual** — download [`crypto-tools-…-macos-arm64.dmg`](https://github.com/nyg/crypto-tools/releases/latest), open it and drag **Crypto Tools.app** into your **Applications** folder. The app is **not notarized**, so macOS quarantines it after download and blocks the first launch (you may see *"Apple could not verify…"* or *"Crypto Tools.app is damaged"*). To let it through, open **System Settings → Privacy & Security**, scroll to the bottom and click **Open Anyway** next to *"Crypto Tools.app" was blocked to protect your Mac*. Alternatively, remove the quarantine flag yourself using the terminal:
 
 ```sh
 xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"
@@ -89,21 +89,24 @@ brew install --cask nyg/tap/crypto-tools
 
 ### Installing on Windows
 
-**Manual** — take the `-setup.exe` from the [latest release](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs per-user to `%LOCALAPPDATA%`, needs no admin rights, and shows no window while it works — the **Crypto Tools** shortcut it leaves on your Desktop and in the Start menu is how you know it finished. The app is not code-signed, so SmartScreen shows *Windows protected your PC*: click **More info → Run anyway**, which it offers to administrators only.
+**Manual** — download [`crypto-tools-…-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs to `%LOCALAPPDATA%` (`C:\Users\<you>\AppData\Local` — no admin rights needed). The app is not code-signed, so the SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway** (no admin rights needed, but company policy may block it, in which case Scoop is recommended).
 
-**[Scoop](https://scoop.sh)** — no admin rights, no SmartScreen prompt, and what standard users need:
+**[Scoop](https://scoop.sh)** — Scoop is a package manager for Windows, similar to Homebrew for macOS and Linux. Use this install method if your company policy restricts manual installs.
+
+To install it, open PowerShell and run:
 
 ```powershell
-# run in PowerShell
-scoop bucket add nyg https://github.com/nyg/scoop-bucket
-scoop install git crypto-tools
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 ```
 
-If you don't have Scoop: `irm get.scoop.sh | iex`. It installs software in `C:\Users\<YOUR USERNAME>\scoop`.
+Then install the app with:
 
-### Updates
-
-The app tells you when a newer release exists — a dot beside the version in the header, and the details in **About**, reachable by clicking that version. It never replaces itself, so Scoop and Homebrew installs stay under their package manager's control.
+```powershell
+scoop install git
+scoop bucket add nyg https://github.com/nyg/scoop-bucket
+scoop install crypto-tools
+```
 
 ## Run locally
 
