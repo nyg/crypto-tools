@@ -93,7 +93,7 @@ brew install --cask nyg/tap/crypto-tools
 
 **[Scoop](https://scoop.sh)** — Scoop is a package manager for Windows, similar to Homebrew for macOS and Linux. Use this install method if your company policy restricts manual installs.
 
-To install Scoop, open PowerShell and run:
+To install it, open PowerShell and run:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
@@ -107,10 +107,6 @@ scoop install git
 scoop bucket add nyg https://github.com/nyg/scoop-bucket
 scoop install crypto-tools
 ```
-
-### Updates
-
-The app tells you when a newer release exists — a dot beside the version in the header, and the details in **About**, reachable by clicking that version. It never replaces itself, so Scoop and Homebrew installs stay under their package manager's control.
 
 ## Run locally
 
