@@ -89,7 +89,7 @@ brew install --cask nyg/tap/crypto-tools
 
 ### Installing on Windows
 
-**Manual** — download [`crypto-tools-…-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs to `%LOCALAPPDATA%` (`C:\Users\<you>\AppData\Local` — no admin rights needed). The app is not code-signed, so the SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway** (offered only to administrators).
+**Manual** — download [`crypto-tools-…-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs to `%LOCALAPPDATA%` (`C:\Users\<you>\AppData\Local` — no admin rights needed). The app is not code-signed, so the SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway** (no admin rights needed, but company policy may block it, in which case Scoop is recommended).
 
 **[Scoop](https://scoop.sh)** — for power users:
 
