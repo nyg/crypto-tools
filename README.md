@@ -85,7 +85,7 @@ xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"
 
 **[Homebrew](https://brew.sh)**
 
-Homebrew is a package manager for macOS. Using it will handle all of the above automatically.
+Homebrew is a package manager for macOS. It handles all of the above automatically.
 
 To install it, open Terminal and run:
 
@@ -103,7 +103,7 @@ brew install --cask nyg/tap/crypto-tools
 
 **Manual**
 
-Download [`crypto-tools-…-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs to `%LOCALAPPDATA%`, i.e. `C:\Users\<you>\AppData\Local`. The app is not code-signed, so SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway**. If company policy blocks this, use Scoop instead.
+Download [`crypto-tools-…-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs to `%LOCALAPPDATA%`, i.e. `C:\Users\<you>\AppData\Local`. The app is not code-signed, so SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway**. No admin rights are needed, but a company laptop's policy may still block the installer. If it does, use Scoop instead.
 
 **[Scoop](https://scoop.sh)**
 
