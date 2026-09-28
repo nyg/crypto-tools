@@ -283,13 +283,17 @@ jobs:
 
           ### [Homebrew](https://brew.sh)
 
-          Homebrew is a package manager for macOS. Using it will handle all of the above automatically:
+          Homebrew is a package manager for macOS. Using it will handle all of the above automatically.
+
+          To install it, open Terminal and run:
 
           ```sh
-          # Install Homebrew
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          ```
 
-          # Install Crypto Tools
+          When it finishes, run the commands it prints under *Next steps* to add `brew` to your `PATH`. Then install the app with:
+
+          ```sh
           brew install --cask nyg/tap/crypto-tools
           ```
 
@@ -297,7 +301,7 @@ jobs:
 
           ### Manual
 
-          Download [`crypto-tools-__VERSION__-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/download/v__VERSION__/crypto-tools-__VERSION__-windows-x64-setup.exe) and run it. It installs to `%LOCALAPPDATA%`, i.e. `C:\Users\<you>\AppData\Local`. The app is not code-signed, so the SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway** (no admin rights needed, but company policy may block it, in which case Scoop is recommended).
+          Download [`crypto-tools-__VERSION__-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/download/v__VERSION__/crypto-tools-__VERSION__-windows-x64-setup.exe) and run it. It installs to `%LOCALAPPDATA%`, i.e. `C:\Users\<you>\AppData\Local`. The app is not code-signed, so SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway**. If company policy blocks this, use Scoop instead.
 
           ### [Scoop](https://scoop.sh)
 
