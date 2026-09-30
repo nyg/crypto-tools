@@ -73,7 +73,7 @@
       "@vitejs/plugin-react": "6.1.1",
       "bun-types": "1.4.0",
       "concurrently": "10.0.5",
-      "electrobun": "2.0.1",
+      "electrobun": "2.0.2",
       "eslint": "10.10.0",
       "eslint-plugin-react-hooks": "7.1.1",
       "globals": "17.12.0",

@@ -1,8 +1,8 @@
-import { readFileSync } from 'fs'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import path from 'path'
+import path from 'node:path'
 
 const { version } = JSON.parse(
    readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf-8')) as { version: string }
