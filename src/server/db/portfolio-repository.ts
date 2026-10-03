@@ -38,6 +38,10 @@ export type StopDraft = Pick<PortfolioStopRow,
    'orderLinkId' | 'portfolioId' | 'asset' | 'symbol' | 'quantity' | 'triggerPrice' | 'orderId' | 'status'>
    & { error?: string | null }
 
+export interface FeeDraft extends FeeAmount {
+   value?: string
+}
+
 export interface StopFill {
    runId: string
    quoteAsset: string
@@ -239,7 +243,7 @@ export default class PortfolioRepository {
             orderLinkId, ...this.#scope)
    }
 
-   settleOrder(order: PortfolioOrderRow, outcome: OrderOutcome, fees: FeeAmount[], now = Date.now()): void {
+   settleOrder(order: PortfolioOrderRow, outcome: OrderOutcome, fees: FeeDraft[], now = Date.now()): void {
       this.#db.transaction(() => {
          this.#db.query<void, Params>(`
             UPDATE portfolio_order SET
@@ -252,10 +256,10 @@ export default class PortfolioRepository {
          this.#db.query<void, Params>('DELETE FROM portfolio_movement WHERE kind = \'fee\' AND order_link_id = ?')
             .run(order.orderLinkId)
 
-         for (const { asset, amount } of fees) {
+         for (const { asset, amount, value = '0' } of fees) {
             this.addMovement({
                portfolioId: order.portfolioId, kind: 'fee', asset, amount: Big(amount).times(-1).toFixed(),
-               value: '0', orderLinkId: order.orderLinkId
+               value, orderLinkId: order.orderLinkId
             }, now)
          }
       })()

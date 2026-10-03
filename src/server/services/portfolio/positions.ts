@@ -23,11 +23,14 @@ export interface Position {
    quantity: Big
    cost: Big
    realized: Big
+   disposedCost: Big
 }
 
 export interface Positions {
    coins: Map<string, Position>
    cashRealized: Big
+   fees: Big
+   unvaluedFees: Set<string>
 }
 
 type Event =
@@ -40,12 +43,14 @@ const ONE = Big(1)
 export function foldPositions(quote: string, movements: PositionMovement[], orders: PositionOrder[]): Positions {
 
    const coins = new Map<string, Position>()
+   const unvaluedFees = new Set<string>()
    let cashRealized = ZERO
+   let fees = ZERO
 
    const positionOf = (asset: string): Position => {
       const existing = coins.get(asset)
       if (existing) return existing
-      const created = { quantity: ZERO, cost: ZERO, realized: ZERO }
+      const created = { quantity: ZERO, cost: ZERO, realized: ZERO, disposedCost: ZERO }
       coins.set(asset, created)
       return created
    }
@@ -62,6 +67,7 @@ export function foldPositions(quote: string, movements: PositionMovement[], orde
       const released = position.cost.times(share)
       position.quantity = position.quantity.minus(quantity)
       position.cost = position.cost.minus(released)
+      position.disposedCost = position.disposedCost.plus(released)
       position.realized = position.realized.plus(proceeds.minus(released))
    }
 
@@ -75,8 +81,20 @@ export function foldPositions(quote: string, movements: PositionMovement[], orde
       else standalone.push(movement)
    }
 
+   const feeValue = (fee: PositionMovement, order: PositionOrder | null): Big | null => {
+      const amount = Big(fee.amount).abs()
+      if (fee.asset === quote) return amount
+      const base = Big(order?.base || 0)
+      if (order && fee.asset === order.baseAsset && base.gt(0)) return amount.times(order.quote || 0).div(base)
+      const recorded = Big(fee.value || 0).abs()
+      return recorded.gt(0) ? recorded : null
+   }
+
    const payFee = (fee: PositionMovement, order: PositionOrder | null) => {
       const amount = Big(fee.amount).abs()
+      const value = feeValue(fee, order)
+      if (value) fees = fees.plus(value)
+      else unvaluedFees.add(fee.asset)
       if (fee.asset !== quote) {
          const position = positionOf(fee.asset)
          position.quantity = position.quantity.minus(amount)
@@ -120,5 +138,5 @@ export function foldPositions(quote: string, movements: PositionMovement[], orde
       else applyOrder(event.order)
    }
 
-   return { coins, cashRealized }
+   return { coins, cashRealized, fees, unvaluedFees }
 }

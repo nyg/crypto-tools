@@ -562,6 +562,31 @@ describe('folding positions', () => {
       expect(btc.realized.toFixed()).toBe('-100')
    })
 
+   test('adds up the cost of everything sold, for the realized profit to be a share of', () => {
+      const { coins } = foldPositions('USDT', [],
+         [order(1, 'buy-1', 'buy', '0.02', '1000'), order(2, 'sell-1', 'sell', '0.01', '600'), order(3, 'sell-2', 'sell', '0.005', '350')])
+
+      expect(coins.get('BTC')!.disposedCost.toFixed()).toBe('750')
+   })
+
+   test('values a fee in the cash coin as it is and one in the coin at the price its order filled at', () => {
+      const { fees, unvaluedFees } = foldPositions('USDT',
+         [movement(3, 'fee', 'BTC', '-0.00001', '0', 'buy-1'), movement(4, 'fee', 'USDT', '-0.7', '0', 'sell-1')],
+         [order(1, 'buy-1', 'buy', '0.01', '500'), order(2, 'sell-1', 'sell', '0.005', '700')])
+
+      expect(fees.toFixed()).toBe('1.2')
+      expect(unvaluedFees.size).toBe(0)
+   })
+
+   test('values a fee in a third coin at what was recorded with it, and reports one with nothing recorded', () => {
+      const { fees, unvaluedFees } = foldPositions('USDT',
+         [movement(3, 'fee', 'MNT', '-0.5', '0.4', 'buy-1'), movement(4, 'fee', 'BNB', '-0.001', '0', 'sell-1')],
+         [order(1, 'buy-1', 'buy', '0.01', '500'), order(2, 'sell-1', 'sell', '0.005', '700')])
+
+      expect(fees.toFixed()).toBe('0.4')
+      expect([...unvaluedFees]).toEqual(['BNB'])
+   })
+
    test('keeps cash out of the coins and books its adjustments on their own', () => {
       const { coins, cashRealized } = foldPositions('USDT', [
          movement(1, 'deposit', 'USDT', '1000', '1000'),
