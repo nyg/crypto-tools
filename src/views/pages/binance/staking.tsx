@@ -6,10 +6,12 @@ import NextRedemptions from '../../components/binance/next-redemptions'
 import StakingProducts from '../../components/binance/staking-products'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import LoadingSpinner from '../../components/lib/loading-spinner'
 import SettingsLink from '../../components/lib/settings-link'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { cn } from '@/lib/utils'
 import { messageOf } from '../../lib/errors'
 import type { AggregateBalanceResponse } from '../../../types/api'
 
@@ -45,12 +47,7 @@ export default function BinanceStaking() {
 
    let content
    if (isMutating && !data) {
-      content = (
-         <span className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2Icon className="size-4 animate-spin" />
-            Fetching from Binance…
-         </span>
-      )
+      content = <LoadingSpinner>Fetching from Binance…</LoadingSpinner>
    }
    else if (!data) {
       content = (
@@ -65,19 +62,19 @@ export default function BinanceStaking() {
 
    return (
       <BinanceLayout name="Staking">
-         <div className="space-y-6">
+         <div className="flex grow flex-col gap-6">
 
             {Boolean(error) &&
                <Alert variant="destructive">
                   <AlertDescription>{messageOf(error)}</AlertDescription>
                </Alert>}
 
-            <Card>
+            <Card className={cn(isMutating && !data && 'grow')}>
                <CardHeader>
                   <CardTitle>Holdings</CardTitle>
                   <CardAction>{fetchButton}</CardAction>
                </CardHeader>
-               <CardContent>
+               <CardContent className="flex grow flex-col">
                   {content}
                </CardContent>
             </Card>
