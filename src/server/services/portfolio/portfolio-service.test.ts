@@ -37,6 +37,7 @@ class FakeExchange implements PortfolioExchange {
    buyFeeInQuote = false
    feeRate = '0.001'
    reportsFees = true
+   feeAsset: string | null = null
    readonly balances = new Map<string, Big>([['USDT', Big(10000)], ['BTC', Big('0.5')]])
    readonly settlements = new Map<string, OrderSettlement>()
    readonly stops = new Map<string, FakeStop>()
@@ -91,16 +92,19 @@ class FakeExchange implements PortfolioExchange {
       }
       const value = quantity.times(price)
       const feeInBase = side === 'buy' && !this.buyFeeInQuote
-      const fee = feeInBase ? quantity.times(this.feeRate) : value.times(this.feeRate)
+      const feeAsset = this.feeAsset ?? (feeInBase ? base : 'USDT')
+      const fee = this.feeAsset ? value.times(this.feeRate).div(prices[`${this.feeAsset}USDT`]!.last)
+         : feeInBase ? quantity.times(this.feeRate) : value.times(this.feeRate)
       const sign = side === 'buy' ? 1 : -1
 
-      this.#move(base, quantity.times(sign).minus(feeInBase ? fee : 0))
-      this.#move('USDT', value.times(-sign).minus(feeInBase ? 0 : fee))
+      this.#move(base, quantity.times(sign))
+      this.#move('USDT', value.times(-sign))
+      this.#move(feeAsset, fee.times(-1))
 
       this.settlements.set(clientOrderId, {
          orderId: `order-${this.settlements.size + 1}`, status: 'filled',
          base: quantity.toFixed(), quote: value.toFixed(), averagePrice: price.toFixed(),
-         fees: { [feeInBase ? base : 'USDT']: fee.toFixed() }, reason: ''
+         fees: { [feeAsset]: fee.toFixed() }, reason: ''
       })
       return `order-${this.settlements.size}`
    }
@@ -298,7 +302,10 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(portfolio.unrealized).toBe('-0.8')
       expect(portfolio.unrealizedPercent).toBe('-0.1')
       expect(portfolio.realized).toBe('0')
+      expect(portfolio.realizedPercent).toBeNull()
       expect(portfolio.profit).toBe('-0.8')
+      expect(portfolio.fees).toBe('0.8')
+      expect(portfolio.feesUnvalued).toEqual([])
    })
 
    test('will not run the same preview twice', async () => {
@@ -421,6 +428,37 @@ describe('an exchange that reports no fee rate', () => {
    })
 })
 
+describe('a fee charged in a third coin', () => {
+
+   test('is valued at the price of that coin when the order filled', async () => {
+      const discounted = new FakeExchange()
+      discounted.accountId = 'third-coin-fees'
+      discounted.feeAsset = 'MNT'
+      discounted.balances.set('MNT', Big(10))
+      const portfolios = new PortfolioService(venue, discounted)
+
+      const { id: portfolioId } = await portfolios.save({
+         name: 'Discounted', quoteAsset: 'USDT', band: '2', targets: [{ asset: 'BTC', weight: '100' }]
+      })
+      await portfolios.deposit({ portfolioId, asset: 'USDT', amount: '100' })
+
+      prices.MNTUSDT = { last: '0.5', bid: '0.5', ask: '0.5' }
+      try {
+         const plan = await portfolios.plan({ portfolioId, kind: 'rebalance' })
+         const run = await finished((await portfolios.execute({ planId: plan.planId })).run.id, portfolios)
+         expect(run.orders[0]!.fees).toEqual([{ asset: 'MNT', amount: '0.2' }])
+
+         prices.MNTUSDT = { last: '2', bid: '2', ask: '2' }
+         const portfolio = (await portfolios.overview()).portfolios.find(({ id }) => id === portfolioId)!
+         expect(portfolio.fees).toBe('0.1')
+         expect(portfolio.feesUnvalued).toEqual([])
+      }
+      finally {
+         delete prices.MNTUSDT
+      }
+   })
+})
+
 describe('profit split into realized and unrealized', () => {
 
    test('adds up to the profit after a sell at a higher price', async () => {
@@ -442,6 +480,8 @@ describe('profit split into realized and unrealized', () => {
          expect(Big(btc.realized).gt(0)).toBe(true)
          expect(portfolio.closedRealized).toBe('0')
          expect(Big(portfolio.realized).plus(portfolio.unrealized).eq(portfolio.profit)).toBe(true)
+         expect(Big(portfolio.realizedPercent!).gt(0)).toBe(true)
+         expect(Big(portfolio.fees).gt(0)).toBe(true)
       }
       finally {
          prices.BTCUSDT = before

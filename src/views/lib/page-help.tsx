@@ -11,8 +11,10 @@ const portfolioHelp = (exchange: string, practice: ReactNode) =>
       Rebalancing and withdrawing preview their orders first and only place spot
       market orders once you confirm. Profit is split per coin at average cost:{' '}
       <b>unrealized</b> is what the coins still held are worth above what they cost, and{' '}
-      <b>realized</b> is what sells brought in above that cost, after fees. A coin you
-      deposit counts at its value on the day it came in.{practice}
+      <b>realized</b> is what sells brought in above that cost, after fees. Each percentage
+      is over the cost of the coins it is about: those still held, or those sold. A coin you
+      deposit counts at its value on the day it came in. <b>Fees paid</b> adds up every
+      order&apos;s fee at the price the order filled at; the two profits already count it.{practice}
    </>
 
 const settingsHelp = (tabs: string) =>
@@ -67,7 +69,8 @@ const pageHelp: Record<string, ReactNode> = {
 
    '/kraken/aggregated-trades':
       <>
-         Your trades for one asset, grouped into runs of buys and sells.
+         Your trades for one asset, grouped into runs of buys and sells. Orders in other fiat
+         currencies and stablecoins can be merged in, each converted at the rate of its own day.
       </>,
 
    '/kraken/open-orders':

@@ -27,6 +27,8 @@ interface MockPortfolio {
    costs: Record<string, number>
    realized: Record<string, number>
    closedRealized: number
+   closedCost: number
+   fees: number
    stops: PortfolioStopState[]
    deposited?: number
    rebalancedAt?: number
@@ -86,6 +88,8 @@ function seed(venue: VenueId): VenueState {
             costs: { BTC: 3900, ETH: 2750 },
             realized: { BTC: 820, ETH: 310 },
             closedRealized: 0,
+            closedCost: 5200,
+            fees: 38.6,
             rebalancedAt: Date.now() - 3 * DAY,
             stops: [{
                orderLinkId: 'pf1-stpa1b2c3d4', asset: 'BTC', symbol: `BTC${cash}`, quantity: '0.0712',
@@ -104,6 +108,8 @@ function seed(venue: VenueId): VenueState {
             costs: { SOL: 980, SUI: 610, ENA: 1010 },
             realized: { SOL: 40 },
             closedRealized: 72.4,
+            closedCost: 1340,
+            fees: 9.85,
             rebalancedAt: Date.now() - 12 * DAY,
             stops: [{
                orderLinkId: 'pf2-stp9f8e7d6c', asset: 'SOL', symbol: `SOL${cash}`, quantity: '6.1',
@@ -123,6 +129,8 @@ function seed(venue: VenueId): VenueState {
             costs: {},
             realized: {},
             closedRealized: 0,
+            closedCost: 0,
+            fees: 0,
             stops: [],
             deposited: 1000
          }
@@ -215,9 +223,12 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       netInvested: fixed(netInvested),
       profit: fixed(total - netInvested),
       realized: fixed(realized),
+      realizedPercent: portfolio.closedCost > 0 ? fixed(realized / portfolio.closedCost * 100, 4) : null,
       unrealized: fixed(unrealized),
       unrealizedPercent: openCost > 0 ? fixed(unrealized / openCost * 100, 4) : null,
       closedRealized: fixed(portfolio.closedRealized),
+      fees: fixed(portfolio.fees),
+      feesUnvalued: [],
       maxDrift: fixed(maxDrift, 4),
       needsRebalance: total > 0 && maxDrift > Number(portfolio.band),
       lastRebalancedAt: portfolio.rebalancedAt ?? null,
@@ -307,7 +318,7 @@ function save(venue: VenueId, request?: PortfolioSaveRequest): PortfolioSaveResp
    state.portfolios.push({
       id, name: request.name, quoteAsset: request.quoteAsset, band: request.band,
       createdAt: Date.now(), targets: request.targets, holdings: {}, costs: {}, realized: {},
-      closedRealized: 0, stops: []
+      closedRealized: 0, closedCost: 0, fees: 0, stops: []
    })
    return { id }
 }
@@ -353,6 +364,7 @@ function dispose(portfolio: MockPortfolio, asset: string, quantity: number, proc
    const cost = portfolio.costs[asset] ?? 0
    const released = held > quantity ? cost * quantity / held : cost
    portfolio.costs[asset] = cost - released
+   portfolio.closedCost += released
    portfolio.realized[asset] = (portfolio.realized[asset] ?? 0) + proceeds - released
 }
 
@@ -539,6 +551,7 @@ function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRun['
 
    if (buy) portfolio.costs[base] = (portfolio.costs[base] ?? 0) + value
    else dispose(portfolio, base, quantity, value - fee)
+   portfolio.fees += buy ? fee * price : fee
 
    portfolio.holdings[base] = (portfolio.holdings[base] ?? 0) + (buy ? quantity - fee : -quantity)
    portfolio.holdings[portfolio.quoteAsset] = (portfolio.holdings[portfolio.quoteAsset] ?? 0) + (buy ? -value : value - fee)

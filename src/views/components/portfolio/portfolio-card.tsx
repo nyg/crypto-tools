@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import HoldingsTable from './holdings-table'
-import { asPoints, asQuoteAmount, asSignedQuoteAmount, profitColor } from './format'
+import { asPoints, asQuoteAmount, asSignedPercent, asSignedQuoteAmount, profitColor } from './format'
 import { asDaysAgo, asLocalTimestamp } from '../../../utils/format'
 import type { PortfolioSummary } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
@@ -28,6 +28,12 @@ const Stat = ({ label, children, className }: { label: string, children: ReactNo
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={cn('text-base font-medium tabular-nums', className)}>{children}</div>
    </div>
+
+const ProfitStat = ({ label, value, percent, quote }: { label: string, value: string, percent: string | null, quote: string }) =>
+   <Stat label={label} className={profitColor(value)}>
+      {asSignedQuoteAmount(value, quote)}
+      {percent !== null && <span className="ml-1.5 text-sm">({asSignedPercent(percent)})</span>}
+   </Stat>
 
 export default function PortfolioCard({
    portfolio, busy, sort, onSortChange, onDeposit, onWithdraw, onRebalance, onEdit, onHistory, onArchive
@@ -61,8 +67,20 @@ export default function PortfolioCard({
                <div className="flex flex-wrap gap-x-8 gap-y-3">
                   <Stat label="Value">{asQuoteAmount(portfolio.value, portfolio.quoteAsset)}</Stat>
                   <Stat label="Net deposited">{asQuoteAmount(portfolio.netInvested, portfolio.quoteAsset)}</Stat>
-                  <Stat label="Profit / loss" className={profitColor(portfolio.profit)}>
-                     {asSignedQuoteAmount(portfolio.profit, portfolio.quoteAsset)}
+                  <ProfitStat
+                     label="Unrealized P/L" value={portfolio.unrealized}
+                     percent={portfolio.unrealizedPercent} quote={portfolio.quoteAsset} />
+                  <ProfitStat
+                     label="Realized P/L" value={portfolio.realized}
+                     percent={portfolio.realizedPercent} quote={portfolio.quoteAsset} />
+                  <Stat label="Fees paid">
+                     {asQuoteAmount(portfolio.fees, portfolio.quoteAsset)}
+                     {portfolio.feesUnvalued.length > 0 &&
+                        <span
+                           className="ml-1.5 text-sm text-muted-foreground"
+                           title="Fees paid in a coin whose price at the time of the trade was not recorded.">
+                           + {portfolio.feesUnvalued.join(', ')}
+                        </span>}
                   </Stat>
                   <Stat
                      label="Largest drift"

@@ -162,6 +162,21 @@ export interface QuoteTotals {
    price: string
 }
 
+export interface UnconvertedVolume {
+   quoteAsset: string
+   volume: string
+}
+
+export interface ConvertedTotals {
+   volume: string
+   cost: string
+   fee: string
+   netCost: string
+   price: string | null
+   converted: boolean
+   unconverted: UnconvertedVolume[]
+}
+
 export interface Order {
    orderId: string
    orderKey: string
@@ -194,6 +209,7 @@ export interface Aggregation {
    pairs: string[]
    margin: boolean
    quotes: QuoteTotals[]
+   totals: ConvertedTotals
    orders: Order[]
 }
 
@@ -202,6 +218,7 @@ export interface SummarySide {
    tradeCount: number
    volume: string
    quotes: QuoteTotals[]
+   totals: ConvertedTotals
 }
 
 export interface AggregationSummary {
@@ -209,11 +226,10 @@ export interface AggregationSummary {
    sell: SummarySide
 }
 
-export interface AggregationsResponse extends Page {
+export interface AggregationsResponse extends Page, RatesPending {
    rows: Aggregation[]
    baseAsset: string
    quoteAsset: string
-   quoteAssets: string[]
    summary: AggregationSummary
    truncated: boolean
 }
@@ -227,6 +243,7 @@ export interface TradeFiltersResponse {
    directions: string[]
    ordertypes: string[]
    markets: MarketRow[]
+   mergeableQuotes: string[]
 }
 
 /* Kraken — xStocks */
@@ -372,9 +389,12 @@ export interface PortfolioSummary {
    netInvested: string
    profit: string
    realized: string
+   realizedPercent: string | null
    unrealized: string
    unrealizedPercent: string | null
    closedRealized: string
+   fees: string
+   feesUnvalued: string[]
    maxDrift: string
    needsRebalance: boolean
    lastRebalancedAt: number | null

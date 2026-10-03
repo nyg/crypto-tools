@@ -13,7 +13,7 @@ import type { LiveStop } from './stops'
 import type { TargetWeight } from './targets'
 import type { Venue } from './venues'
 import type { RequestBody } from '../../routes/with-account'
-import type { OrderDraft } from '../../db/portfolio-repository'
+import type { FeeDraft, OrderDraft } from '../../db/portfolio-repository'
 import type {
    PortfolioMovementRow, PortfolioOrderRow, PortfolioRow, PortfolioStopRow, PortfolioTargetRow
 } from '../../../types/db'
@@ -88,6 +88,9 @@ const decimal = (value: Big, places = 8) => value.round(places).toFixed()
 const percentOf = (part: Big, whole: Big) => decimal(part.div(whole).times(HUNDRED), 4)
 
 const minOf = (left: Big, right: Big) => left.lt(right) ? left : right
+
+const feesOf = ({ fees }: OrderSettlement): FeeDraft[] =>
+   Object.entries(fees).map(([asset, amount]) => ({ asset, amount }))
 
 function parseDecimal(value: unknown, label: string): Big {
    try {
@@ -387,6 +390,8 @@ export default class PortfolioService {
          sum.plus(position.realized).minus(listed.has(asset) ? ZERO : position.cost), positions.cashRealized)
       const unrealizedTotal = rows.reduce((sum, row) => sum.plus(row.unrealized ?? ZERO), ZERO)
       const realizedInRows = rows.reduce((sum, row) => sum.plus(row.realized), ZERO)
+      const closedCost = [...positions.coins].reduce((sum, [asset, position]) =>
+         sum.plus(position.disposedCost).plus(listed.has(asset) ? ZERO : position.cost), ZERO)
 
       const maxDrift = rows.reduce((max, { drift }) => {
          const absolute = drift ? Big(drift).abs() : ZERO
@@ -412,9 +417,12 @@ export default class PortfolioService {
          netInvested: decimal(netInvested),
          profit: decimal(total.minus(netInvested)),
          realized: decimal(realizedTotal),
+         realizedPercent: closedCost.gt(0) ? percentOf(realizedTotal, closedCost) : null,
          unrealized: decimal(unrealizedTotal),
          unrealizedPercent: openCost.gt(0) ? percentOf(unrealizedTotal, openCost) : null,
          closedRealized: decimal(realizedTotal.minus(realizedInRows)),
+         fees: decimal(positions.fees),
+         feesUnvalued: [...positions.unvaluedFees],
          maxDrift: decimal(maxDrift, 4),
          needsRebalance: total.gt(0) && maxDrift.gt(portfolio.band),
          lastRebalancedAt,
@@ -1062,7 +1070,7 @@ export default class PortfolioService {
          const executed = Big(settlement.base || 0).gt(0)
          if (executed && Object.keys(settlement.fees).length === 0 && attempt < FEE_GRACE_ATTEMPTS) continue
 
-         this.#record(repository, order, settlement)
+         this.#record(repository, order, settlement, await this.#feesAtFill(order, settlement))
          return
       }
 
@@ -1072,7 +1080,22 @@ export default class PortfolioService {
       })
    }
 
-   #record(repository: PortfolioRepository, order: PortfolioOrderRow, settlement: OrderSettlement): void {
+   async #feesAtFill(order: PortfolioOrderRow, settlement: OrderSettlement): Promise<FeeDraft[]> {
+      const fees = feesOf(settlement)
+      if (fees.every(({ asset }) => asset === order.baseAsset || asset === order.quoteAsset)) return fees
+
+      try {
+         const prices = await this.#exchange.prices()
+         return fees.map(({ asset, amount }) =>
+            ({ asset, amount, value: decimal(Big(amount).times(priceIn(prices, asset, order.quoteAsset) ?? ZERO)) }))
+      }
+      catch (error) {
+         console.warn('Could not price the fees of order', order.orderLinkId, this.#describe(error))
+         return fees
+      }
+   }
+
+   #record(repository: PortfolioRepository, order: PortfolioOrderRow, settlement: OrderSettlement, fees = feesOf(settlement)): void {
       repository.settleOrder(order, {
          orderId: settlement.orderId,
          status: settlement.status === 'filled' ? 'filled' : settlement.status === 'partial' ? 'partial' : 'rejected',
@@ -1080,7 +1103,7 @@ export default class PortfolioService {
          quote: settlement.quote,
          averagePrice: settlement.averagePrice,
          error: settlement.reason || null
-      }, Object.entries(settlement.fees).map(([asset, amount]) => ({ asset, amount })))
+      }, fees)
    }
 
    async #reconcile(repository: PortfolioRepository): Promise<number> {
@@ -1162,7 +1185,7 @@ export default class PortfolioService {
                      averagePrice: settlement.averagePrice,
                      error: settlement.reason || null
                   }
-               }, Object.entries(settlement.fees).map(([asset, amount]) => ({ asset, amount })))
+               }, feesOf(settlement))
                this.#afterStopFill(repository, stop)
             }
 

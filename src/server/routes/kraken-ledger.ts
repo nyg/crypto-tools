@@ -59,13 +59,13 @@ app.get('/filters', async (c) => withAccount(c, ({ accountId }) =>
 
 app.post('/fees', async (c) => withAccount(c, ({ body, accountId }) => {
    const repository = new LedgerRepository(accountId)
-   const ratesPending = refreshUsdRates(accountId, () => repository.valuedAssetRanges())
+   const ratesPending = refreshUsdRates(accountId)
    return c.json({ ...repository.feeSummary(filtersOf(body)), ratesPending })
 }))
 
 app.get('/rewards', async (c) => withAccount(c, ({ accountId }) => {
    const repository = new LedgerRepository(accountId)
-   const ratesPending = refreshUsdRates(accountId, () => repository.valuedAssetRanges())
+   const ratesPending = refreshUsdRates(accountId)
    return c.json({ ...repository.rewardSummary(), ratesPending })
 }))
 

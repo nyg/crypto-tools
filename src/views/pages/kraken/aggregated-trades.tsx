@@ -12,10 +12,9 @@ import CredentialsAlert from '../../components/lib/credentials-alert'
 import SettingsLink from '../../components/lib/settings-link'
 import usePersistentState from '../../lib/use-persistent-state'
 import { asCount } from '../../components/lib/filter-options'
-import { ratesAt } from '../../lib/quote-conversion'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { AggregationsResponse, AssetRatesResponse, TradeFiltersResponse } from '../../../types/api'
+import type { AggregationsResponse, TradeFiltersResponse } from '../../../types/api'
 
 const PAGE_SIZE = 20
 
@@ -51,12 +50,14 @@ export default function KrakenAggregatedTrades() {
 
    const markets = filterOptions?.markets ?? []
    const market = markets.find(entry => entry.pairKey === filters.pairKey) ?? null
+   const mergeable = !market || (filterOptions?.mergeableQuotes ?? []).includes(market.quoteAsset)
+   const includeAllQuotes = filters.includeAllQuotes && mergeable
 
    const query = market
       ? {
          base: market.baseAsset,
          quote: market.quoteAsset,
-         includeAllQuotes: filters.includeAllQuotes,
+         includeAllQuotes,
          from: filters.from,
          to: filters.to,
          order: filters.order
@@ -67,15 +68,9 @@ export default function KrakenAggregatedTrades() {
       configured && query
          ? ['/api/kraken/ledger/trades/aggregations', { accountId, filters: query, page, pageSize: PAGE_SIZE }]
          : null,
-      { keepPreviousData: true })
+      { keepPreviousData: true, refreshInterval: latest => includeAllQuotes && latest?.ratesPending ? 2000 : 0 })
 
    const targetQuote = groups?.quoteAsset || market?.quoteAsset || ''
-   const quoteAssets = groups?.quoteAssets ?? []
-   const needsRates = quoteAssets.some(asset => asset !== targetQuote)
-
-   const { data: rateData, isLoading: isLoadingRates } = useSWR<AssetRatesResponse>(
-      needsRates ? ['/api/kraken/asset-rates', { assets: [...new Set([...quoteAssets, targetQuote])] }] : null,
-      { keepPreviousData: true })
 
    if (!isLoadingSettings && (unreachable || !configured)) {
       return (
@@ -109,21 +104,19 @@ export default function KrakenAggregatedTrades() {
                   <AggregateFilters
                      filters={filters}
                      markets={markets}
+                     mergeable={mergeable}
                      onChange={changeFilters}
                      onReset={() => changeFilters(defaultFilters)} />
                   <AggregateSummary
                      summary={groups?.summary}
                      market={market}
                      targetQuote={targetQuote}
-                     rateAt={ratesAt(rateData?.rates)}
-                     isLoadingRates={needsRates && isLoadingRates} />
+                     ratesPending={groups?.ratesPending} />
                   <AggregateTable
                      groups={groups}
                      market={market}
-                     scope={(filters.includeAllQuotes ? market?.baseAsset : market?.pairKey) ?? ''}
+                     scope={(includeAllQuotes ? market?.baseAsset : market?.pairKey) ?? ''}
                      targetQuote={targetQuote}
-                     rateAt={ratesAt(rateData?.rates)}
-                     isLoadingRates={needsRates && isLoadingRates}
                      hasTrades={(status?.state?.tradeCount ?? 0) > 0}
                      onPageChange={setPage} />
                   {groups?.truncated &&

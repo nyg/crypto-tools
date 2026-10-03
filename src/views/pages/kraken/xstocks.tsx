@@ -7,6 +7,7 @@ import KrakenLayout from '../../components/kraken/kraken-layout'
 import XStockTable from '../../components/kraken/xstock-table'
 import XStockJobProgress, { describingTickers, isJobRunning, jobCounts, jobVerbs } from '../../components/kraken/xstock-job'
 import Field from '../../components/lib/field'
+import LoadingSpinner from '../../components/lib/loading-spinner'
 import SettingsLink from '../../components/lib/settings-link'
 import NumericInput from '../../components/lib/numeric-input'
 import SelectField from '../../components/lib/select-field'
@@ -19,6 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import type { XStockJob, XStockJobKind } from '../../../types/jobs'
 import type { XStockListingsResponse, XStockJobResponse, XStockRow, XStockStartResponse } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
@@ -258,12 +260,7 @@ export default function KrakenXStocks() {
       tableContent = <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
    }
    else if (isLoading) {
-      tableContent = (
-         <span className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2Icon className="size-4 animate-spin" />
-            Loading Kraken&apos;s tokenized listings…
-         </span>
-      )
+      tableContent = <LoadingSpinner>Loading Kraken&apos;s tokenized listings…</LoadingSpinner>
    }
    else {
       tableContent = (
@@ -284,7 +281,7 @@ export default function KrakenXStocks() {
 
    return (
       <KrakenLayout name="xStocks">
-         <div className="space-y-6">
+         <div className="flex grow flex-col gap-6">
 
             {counts.unclassified > 0 && !isLoading &&
                <Alert>
@@ -365,7 +362,7 @@ export default function KrakenXStocks() {
 
             </div>
 
-            <Card>
+            <Card className={cn(isLoading && !error && 'grow')}>
                <CardHeader>
                   <CardTitle>Listings</CardTitle>
                   <CardAction>
@@ -374,7 +371,7 @@ export default function KrakenXStocks() {
                         : <Badge variant="outline">{asCount(filtered.length, 'listing')}</Badge>}
                   </CardAction>
                </CardHeader>
-               <CardContent className="space-y-4">
+               <CardContent className="flex grow flex-col gap-4">
                   <div className="grid grid-cols-2 items-end gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-4">
                      <div className="space-y-1">
                         <Label htmlFor="search" className="pl-2.5 text-xs">Search</Label>

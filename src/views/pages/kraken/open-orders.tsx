@@ -7,6 +7,7 @@ import KrakenLayout from '../../components/kraken/kraken-layout'
 import OpenOrderGroup from '../../components/kraken/open-order-group'
 import CancelOrdersDialog from '../../components/kraken/cancel-orders-dialog'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import LoadingSpinner from '../../components/lib/loading-spinner'
 import SettingsLink from '../../components/lib/settings-link'
 import TimeAgo from '../../components/lib/time-ago'
 import { useProvider } from '../../lib/use-settings'
@@ -126,12 +127,14 @@ export default function KrakenOpenOrders() {
 
    return (
       <KrakenLayout name="Open Orders" trailing={liveStatus}>
-         <div className="space-y-6">
+         <div className="flex grow flex-col gap-6">
 
             {Boolean(error) &&
                <Alert variant="destructive">
                   <AlertDescription>{String(error)}</AlertDescription>
                </Alert>}
+
+            {isMutating && !data && <LoadingSpinner />}
 
             {!isMutating && data && groups.length === 0 &&
                <Alert>
