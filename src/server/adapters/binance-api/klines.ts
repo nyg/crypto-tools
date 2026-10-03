@@ -1,5 +1,9 @@
 import type { BinanceKLine } from '../../../types/binance-api'
 import type { UsdRateRow } from '../../../types/db'
+import type { SpotCandle } from '../../../types/portfolio'
+
+export const candlesFromKLines = (klines: BinanceKLine[]): SpotCandle[] =>
+   klines.map(([time, , high, low, close]) => ({ time, high, low, close }))
 
 export function usdRatesFromKLines({ asset, klines, today }: {
    asset: string

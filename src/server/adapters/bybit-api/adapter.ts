@@ -1,19 +1,24 @@
 import Big from 'big.js'
 import {
    cancelOrder, createOrder, fetchApiKeyInfo, fetchExecutions, fetchOpenStopOrders,
-   fetchOrderByLinkId, fetchSpotFeeRates, fetchSpotInstruments, fetchSpotTickers, fetchUnifiedWallet
+   fetchOrderByLinkId, fetchSpotFeeRates, fetchSpotInstruments, fetchSpotKlines, fetchSpotTickers, fetchUnifiedWallet
 } from './resource'
+import { candlesFromKlines } from './klines'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
-import type { BybitEnvironment, BybitOrder } from '../../../types/bybit-api'
+import type { BybitEnvironment, BybitKlineInterval, BybitOrder } from '../../../types/bybit-api'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SettlementStatus, SpotMarket,
-   SpotPrice, StopOrderRequest, TakerFee, WalletCoin
+   CandleInterval, ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SettlementStatus, SpotCandle,
+   SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const openStatuses = ['New', 'PartiallyFilled', 'Untriggered', 'Created']
 
 const goneCodes = [110001, 170213, 170145]
+
+const KLINE_LIMIT = 1000
+
+const klineIntervals: Record<CandleInterval, BybitKlineInterval> = { '1d': 'D', '1w': 'W' }
 
 function alreadyGone(error: unknown): boolean {
    if (!(error instanceof HttpRequesterError)) return false
@@ -67,6 +72,10 @@ export default class BybitAPI {
       const tickers = await fetchSpotTickers()
       return Object.fromEntries(tickers.map(({ symbol, lastPrice, bid1Price, ask1Price }) =>
          [symbol, { last: lastPrice, bid: bid1Price || lastPrice, ask: ask1Price || lastPrice }]))
+   }
+
+   async fetchSpotCandles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      return candlesFromKlines(await fetchSpotKlines(symbol, klineIntervals[interval], KLINE_LIMIT))
    }
 
    async fetchWallet(): Promise<WalletCoin[]> {

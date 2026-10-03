@@ -6,7 +6,7 @@ import { buildPairIndex, resolvePair, usdPairsFor } from './pairs'
 import { parseCsv, parseCsvTime } from './csv'
 import { fetchTickerSnapshots } from './ticker-stream'
 import { earnPositions } from './earn'
-import { DAILY_INTERVAL, WEEKLY_INTERVAL, candlesOf, usdRatesFromCandles } from './ohlc'
+import { DAILY_INTERVAL, WEEKLY_INTERVAL, candlesOf, spotCandles, usdRatesFromCandles } from './ohlc'
 import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFees } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type {
@@ -17,7 +17,8 @@ import type { UsdRateRow } from '../../../types/db'
 import type { TradingPair, TradingPairs } from '../../../types/market'
 import type { KrakenAssets, KrakenOhlcCandle, KrakenOpenOrder, KrakenOrderBatchParams } from '../../../types/kraken-api'
 import type {
-   OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
+   OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle, SpotPrice, StopOrderRequest, TakerFee,
+   WalletCoin
 } from '../../../types/portfolio'
 
 // Amounts are kept as the exact strings Kraken wrote. Reading them through Big and
@@ -299,6 +300,11 @@ export default class KrakenAPI {
       }
 
       return usdRatesFromCandles({ asset, daily, weekly: weeklyCandles, inverse: pair.inverse, today })
+   }
+
+   async fetchDailyCandles(altname: string): Promise<SpotCandle[]> {
+      await this.#pacePublicCall()
+      return spotCandles(candlesOf((await resource.fetchOhlc(altname, DAILY_INTERVAL)).result))
    }
 
    async #pacePublicCall(): Promise<void> {

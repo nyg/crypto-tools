@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import HoldingsTable from './holdings-table'
+import type { SupertrendColumns } from './holdings-table'
 import { asPoints, asQuoteAmount, asSignedPercent, asSignedQuoteAmount, profitColor } from './format'
 import { asDaysAgo, asLocalTimestamp } from '../../../utils/format'
 import type { PortfolioSummary } from '../../../types/api'
@@ -12,6 +13,7 @@ import type { Sort } from '../../../types/kraken'
 
 interface PortfolioCardProps {
    portfolio: PortfolioSummary
+   supertrend?: SupertrendColumns
    busy: boolean
    sort: Sort
    onSortChange: (sort: Sort) => void
@@ -36,7 +38,7 @@ const ProfitStat = ({ label, value, percent, quote }: { label: string, value: st
    </Stat>
 
 export default function PortfolioCard({
-   portfolio, busy, sort, onSortChange, onDeposit, onWithdraw, onRebalance, onEdit, onHistory, onArchive
+   portfolio, supertrend, busy, sort, onSortChange, onDeposit, onWithdraw, onRebalance, onEdit, onHistory, onArchive
 }: PortfolioCardProps) {
 
    const empty = Number(portfolio.value) === 0
@@ -112,7 +114,7 @@ export default function PortfolioCard({
                </div>
             </div>
             {portfolio.holdings.length > 0 &&
-               <HoldingsTable portfolio={portfolio} sort={sort} onSortChange={onSortChange} />}
+               <HoldingsTable portfolio={portfolio} supertrend={supertrend} sort={sort} onSortChange={onSortChange} />}
          </CardContent>
       </Card>
    )

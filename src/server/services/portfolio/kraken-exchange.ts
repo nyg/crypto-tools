@@ -1,4 +1,5 @@
 import KrakenAPI from '../../adapters/kraken-api/adapter'
+import { mondayWeeks } from '../../adapters/kraken-api/ohlc'
 import { krakenErrors } from '../../adapters/kraken-api/spot'
 import { accountIdFor } from '../../db/entry-key'
 import { krakenAccountId } from '../../settings'
@@ -8,14 +9,16 @@ import type { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type { KrakenSpotMarket } from '../../../types/kraken'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, TakerFee, WalletCoin
+   CandleInterval, ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle,
+   SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const MARKETS_TTL_MS = 60 * 60 * 1000
+const CANDLES_TTL_MS = 5 * 60 * 1000
 const AMBIGUOUS_ERRORS = ['EService:Unavailable', 'EService:Busy', 'EService:Deadline elapsed', 'EGeneral:Internal error']
 
 const markets = new CacheMap<KrakenSpotMarket[]>(MARKETS_TTL_MS)
+const dailyCandles = new CacheMap<SpotCandle[]>(CANDLES_TTL_MS)
 
 export default class KrakenExchange implements PortfolioExchange {
 
@@ -44,6 +47,14 @@ export default class KrakenExchange implements PortfolioExchange {
 
    async prices(): Promise<Record<string, SpotPrice>> {
       return this.#api.fetchSpotPrices(await this.#markets())
+   }
+
+   async candles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      const daily = await dailyCandles.get(symbol, async () => {
+         const { altname } = await this.#market(symbol)
+         return this.#api.fetchDailyCandles(altname)
+      })
+      return interval === '1w' ? mondayWeeks(daily) : daily
    }
 
    async takerFees(symbols: string[]): Promise<Record<string, TakerFee>> {

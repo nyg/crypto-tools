@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { DAY_MS, candlesOf, usdRatesFromCandles } from './ohlc'
+import { DAY_MS, candlesOf, mondayWeeks, spotCandles, usdRatesFromCandles } from './ohlc'
 import type { KrakenOhlcCandle } from '../../../types/kraken-api'
+import type { SpotCandle } from '../../../types/portfolio'
 
 const seconds = (time: number) => time / 1000
 
@@ -15,6 +16,47 @@ describe('candlesOf', () => {
       const series = [candle(Date.UTC(2026, 8, 1))]
       expect(candlesOf({ DOTUSD: series, last: 1790208000 })).toEqual(series)
       expect(candlesOf(undefined)).toEqual([])
+   })
+})
+
+describe('spotCandles', () => {
+
+   test('keeps the high, the low and the close of each candle, timed in milliseconds', () => {
+      const day = Date.UTC(2026, 8, 1)
+      expect(spotCandles([candle(day)])).toEqual([{ time: day, high: '13', low: '8', close: '10' }])
+   })
+})
+
+describe('mondayWeeks', () => {
+
+   const monday = Date.UTC(2026, 8, 7)
+
+   const day = (offset: number, high: string, low: string, close: string): SpotCandle =>
+      ({ time: monday + offset * DAY_MS, high, low, close })
+
+   test('folds the days from Monday to Sunday into one candle', () => {
+
+      const weeks = mondayWeeks([
+         day(0, '13', '9', '12'), day(1, '15', '11', '14'), day(2, '14', '7', '8'), day(3, '10', '8', '9'),
+         day(4, '11', '9', '10'), day(5, '12', '10', '11'), day(6, '12', '10', '11.5')
+      ])
+
+      expect(weeks).toEqual([{ time: monday, high: '15', low: '7', close: '11.5' }])
+   })
+
+   test('keeps the week a coin was listed in and the week still forming, short as they are', () => {
+
+      const weeks = mondayWeeks([
+         day(-2, '99', '1', '50'), day(-1, '98', '2', '51'),
+         ...Array.from({ length: 7 }, (_, offset) => day(offset, '13', '9', '12')),
+         day(7, '20', '18', '19'), day(8, '22', '17', '21')
+      ])
+
+      expect(weeks).toEqual([
+         { time: monday - 7 * DAY_MS, high: '99', low: '1', close: '51' },
+         { time: monday, high: '13', low: '9', close: '12' },
+         { time: monday + 7 * DAY_MS, high: '22', low: '17', close: '21' }
+      ])
    })
 })
 

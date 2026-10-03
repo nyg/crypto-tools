@@ -8,8 +8,8 @@ import type { PortfolioExchange } from './exchange'
 import type PortfolioServiceType from './portfolio-service'
 import type { Venue } from './venues'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, TakerFee, WalletCoin
+   CandleInterval, ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle,
+   SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-portfolio-'))
@@ -41,6 +41,7 @@ class FakeExchange implements PortfolioExchange {
    readonly balances = new Map<string, Big>([['USDT', Big(10000)], ['BTC', Big('0.5')]])
    readonly settlements = new Map<string, OrderSettlement>()
    readonly stops = new Map<string, FakeStop>()
+   readonly candleSeries = new Map<string, SpotCandle[]>()
    rejectNext = false
    rejectStopNext = false
    stopsLock = false
@@ -69,6 +70,12 @@ class FakeExchange implements PortfolioExchange {
 
    async prices(): Promise<Record<string, SpotPrice>> {
       return prices
+   }
+
+   async candles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      const series = this.candleSeries.get(`${symbol}:${interval}`)
+      if (!series) throw new HttpRequesterError(200, { retCode: 10001, retMsg: 'Not supported symbols.' })
+      return series
    }
 
    async takerFees(symbols: string[]): Promise<Record<string, TakerFee>> {
@@ -710,6 +717,36 @@ describe('stop orders', () => {
       expect(await statusOf(quiet.syncStops({ portfolioId: id }))).toBe(400)
 
       await quiet.archive({ portfolioId: id })
+   })
+})
+
+describe('the Supertrend levels', () => {
+
+   const falling = (count: number): SpotCandle[] => Array.from({ length: count }, (_, index) => ({
+      time: index * 86400000,
+      high: String(305 - 10 * index),
+      low: String(295 - 10 * index),
+      close: String(296 - 10 * index)
+   }))
+
+   test('cover each coin of a portfolio in its quote, per timeframe', async () => {
+      await service().save({
+         name: 'Trend', quoteAsset: 'USDT', band: '1',
+         targets: [{ asset: 'BTC', weight: '50' }, { asset: 'ETH', weight: '30' }, { asset: 'USDT', weight: '20' }]
+      })
+      exchange.candleSeries.set('BTCUSDT:1d', falling(11))
+      exchange.candleSeries.set('BTCUSDT:1w', falling(10))
+
+      const { levels } = await service().supertrend()
+
+      expect(levels.BTCUSDT).toEqual({ daily: { flipPrice: '232.73', trend: 'down' }, weekly: null })
+      expect(levels.USDTUSDT).toBeUndefined()
+   })
+
+   test('leave a coin whose candles cannot be read without a level', async () => {
+      const { levels } = await service().supertrend()
+
+      expect(levels.ETHUSDT).toEqual({ daily: null, weekly: null })
    })
 })
 

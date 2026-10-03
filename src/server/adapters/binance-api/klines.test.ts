@@ -1,9 +1,19 @@
 import { describe, expect, test } from 'bun:test'
-import { usdRatesFromKLines } from './klines'
+import { candlesFromKLines, usdRatesFromKLines } from './klines'
 import type { BinanceKLine } from '../../../types/binance-api'
 
 const kline = (openTime: number, close: string, baseVolume: string, quoteVolume: string): BinanceKLine =>
    [openTime, '1', '1', '1', close, baseVolume, openTime + 86399999, quoteVolume, 10]
+
+describe('candlesFromKLines', () => {
+
+   test('keeps the high, the low and the close of each kline', () => {
+      const openTime = Date.UTC(2026, 8, 1)
+      const klines: BinanceKLine[] = [[openTime, '9', '13', '8', '10', '5', openTime + 86399999, '60', 3]]
+
+      expect(candlesFromKLines(klines)).toEqual([{ time: openTime, high: '13', low: '8', close: '10' }])
+   })
+})
 
 describe('usdRatesFromKLines', () => {
 

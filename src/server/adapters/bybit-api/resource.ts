@@ -3,9 +3,9 @@ import { authenticator } from './authenticator'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   BybitApiKeyInfo, BybitCancelRequest, BybitEnvironment, BybitExecution, BybitFeeRate, BybitOrder,
-   BybitOrderCancelled, BybitOrderCreated, BybitOrderRequest, BybitPage, BybitResponse,
-   BybitSpotInstrument, BybitSpotTicker, BybitWalletAccount
+   BybitApiKeyInfo, BybitCancelRequest, BybitEnvironment, BybitExecution, BybitFeeRate, BybitKline,
+   BybitKlineInterval, BybitOrder, BybitOrderCancelled, BybitOrderCreated, BybitOrderRequest, BybitPage,
+   BybitResponse, BybitSpotInstrument, BybitSpotTicker, BybitWalletAccount
 } from '../../../types/bybit-api'
 
 const hosts: Record<BybitEnvironment, string> = {
@@ -18,6 +18,7 @@ const TIMEOUT_MS = 15000
 
 const instrumentsEndpoint = '/v5/market/instruments-info'
 const tickersEndpoint = '/v5/market/tickers'
+const klineEndpoint = '/v5/market/kline'
 
 const walletBalanceEndpoint = '/v5/account/wallet-balance'
 const apiKeyInfoEndpoint = '/v5/user/query-api'
@@ -64,6 +65,13 @@ export async function fetchSpotInstruments(): Promise<BybitSpotInstrument[]> {
 
 export async function fetchSpotTickers(): Promise<BybitSpotTicker[]> {
    const page = await publicRequest<BybitPage<BybitSpotTicker>>(tickersEndpoint, { category: 'spot' })
+   return page.list
+}
+
+export async function fetchSpotKlines(
+   symbol: string, interval: BybitKlineInterval, limit: number
+): Promise<BybitKline[]> {
+   const page = await publicRequest<BybitPage<BybitKline>>(klineEndpoint, { category: 'spot', symbol, interval, limit })
    return page.list
 }
 
