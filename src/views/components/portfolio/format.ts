@@ -7,12 +7,14 @@ import type {
 const QUOTE_DECIMALS = 2
 const POINT_DECIMALS = 1
 
-export const asQuoteAmount = (value: string | null | undefined, asset: string) =>
-   value === null || value === undefined ? '—' : `${asDecimal(Number(value), QUOTE_DECIMALS)} ${asset}`
+const withAsset = (amount: string, asset?: string) => asset ? `${amount} ${asset}` : amount
+
+export const asQuoteAmount = (value: string | null | undefined, asset?: string) =>
+   value === null || value === undefined ? '—' : withAsset(asDecimal(Number(value), QUOTE_DECIMALS), asset)
 
 export const showsAsZeroQuoteAmount = (value: string) => Big(value).round(QUOTE_DECIMALS).eq(0)
 
-export const asSignedQuoteAmount = (value: string | null, asset: string) =>
+export const asSignedQuoteAmount = (value: string | null, asset?: string) =>
    value === null ? '—'
       : showsAsZeroQuoteAmount(value) ? asQuoteAmount('0', asset)
          : `${Number(value) > 0 ? '+' : ''}${asQuoteAmount(value, asset)}`
@@ -25,6 +27,15 @@ export const asWeight = (value: string | null | undefined) =>
    value === null || value === undefined ? '—' : asShortPercentage(Number(value) / 100)
 
 export const asSignedPercent = (value: string) => asSignedShortPercentage(Number(value) / 100)
+
+const percentChange = (from: string, to: string) =>
+   Big(from).eq(0) ? null : Big(to).minus(from).div(from).times(100).toFixed(4)
+
+export const flipDistance = (flipPrice: string, price: string | null) =>
+   price === null ? null : percentChange(price, flipPrice)
+
+export const flipExtension = (flipPrice: string, price: string | null) =>
+   price === null ? null : percentChange(flipPrice, price)
 
 export const asPoints = (value: string) => asDecimal(Number(value), POINT_DECIMALS)
 

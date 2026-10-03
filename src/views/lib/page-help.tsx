@@ -17,7 +17,9 @@ const portfolioHelp = (exchange: string, practice: ReactNode) =>
       order&apos;s fee at the price the order filled at; the two profits already count it.{' '}
       <b>ST 1D</b> and <b>ST 1W</b>, on a live account, are the prices at which the Supertrend
       (10, 3) indicator flips on the coin&apos;s daily and weekly {exchange} chart: green and
-      below the price in an uptrend, red and above it in a downtrend.{practice}
+      below the price in an uptrend, red and above it in a downtrend. The two percentages
+      beside it are how far the price has run past the flip price, and the move that would
+      flip the trend.{practice}
    </>
 
 const settingsHelp = (tabs: string) =>
