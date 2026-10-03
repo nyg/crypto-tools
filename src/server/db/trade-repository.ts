@@ -70,34 +70,39 @@ export default class TradeRepository {
 
       const insert = this.#db.prepare<void, NamedParams>(upsertStatement)
 
-      this.#db.transaction(() => {
-         for (const trade of trades) {
-            insert.run({
-               $accountId: this.#accountId,
-               $txid: trade.txid,
-               $ordertxid: trade.ordertxid,
-               $orderKey: trade.orderKey,
-               $pair: trade.pair,
-               $pairKey: trade.pairKey,
-               $baseAsset: trade.baseAsset,
-               $quoteAsset: trade.quoteAsset,
-               $time: trade.time,
-               $type: trade.type,
-               $ordertype: trade.ordertype,
-               $price: trade.price,
-               $cost: trade.cost,
-               $fee: trade.fee,
-               $vol: trade.vol,
-               $margin: trade.margin,
-               $misc: trade.misc,
-               $priceNum: Number(trade.price),
-               $costNum: Number(trade.cost),
-               $feeNum: Number(trade.fee),
-               $volNum: Number(trade.vol),
-               $syncedAt: syncedAt
-            })
-         }
-      })()
+      try {
+         this.#db.transaction(() => {
+            for (const trade of trades) {
+               insert.run({
+                  $accountId: this.#accountId,
+                  $txid: trade.txid,
+                  $ordertxid: trade.ordertxid,
+                  $orderKey: trade.orderKey,
+                  $pair: trade.pair,
+                  $pairKey: trade.pairKey,
+                  $baseAsset: trade.baseAsset,
+                  $quoteAsset: trade.quoteAsset,
+                  $time: trade.time,
+                  $type: trade.type,
+                  $ordertype: trade.ordertype,
+                  $price: trade.price,
+                  $cost: trade.cost,
+                  $fee: trade.fee,
+                  $vol: trade.vol,
+                  $margin: trade.margin,
+                  $misc: trade.misc,
+                  $priceNum: Number(trade.price),
+                  $costNum: Number(trade.cost),
+                  $feeNum: Number(trade.fee),
+                  $volNum: Number(trade.vol),
+                  $syncedAt: syncedAt
+               })
+            }
+         })()
+      }
+      finally {
+         insert.finalize()
+      }
    }
 
    countTrades(): number {
