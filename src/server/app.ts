@@ -1,22 +1,11 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { desktopOrigins, isWebOrigin } from './origin'
 import appRoutes from './routes/app'
 import binanceRoutes from './routes/binance'
 import bybitRoutes from './routes/bybit'
 import krakenRoutes from './routes/kraken'
 import settingsRoutes from './routes/settings'
-
-const allowedOrigins = ['http://localhost:3000', 'views://']
-
-// Vite's port is configurable and the browser sends Origin on same-origin writes too,
-// so pinning development to 3000 would 403 every write for anyone running it elsewhere.
-// The packaged app only ever loads from views://, so this stays out of production.
-const localhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/
-
-const isAllowedOrigin = (origin: string) =>
-   allowedOrigins.some(allowed =>
-      allowed.endsWith('://') ? origin.startsWith(allowed) : origin === allowed)
-   || (process.env.NODE_ENV !== 'production' && localhostOrigin.test(origin))
 
 const readOnlyMethods = ['GET', 'HEAD', 'OPTIONS']
 
@@ -24,13 +13,16 @@ export interface AppOptions {
    // The packaged desktop app says so, because an install path is a thing only it has:
    // the web build is not installed anywhere.
    desktop?: boolean
+   // The Vite dev server a dev build of the desktop app loaded its page from, if it did.
+   devServerOrigin?: string
 }
 
-export function createApp({ desktop = false }: AppOptions = {}) {
+export function createApp({ desktop = false, devServerOrigin }: AppOptions = {}) {
    const app = new Hono()
+   const isAllowedOrigin = desktop ? desktopOrigins(devServerOrigin) : isWebOrigin
 
    app.use('/api/*', cors({
-      origin: (origin) => isAllowedOrigin(origin) ? origin : null
+      origin: (origin, c) => isAllowedOrigin(origin, c.req.url) ? origin : null
    }))
 
    // CORS decides what a page may *read*; it does not stop the request being made.
@@ -44,7 +36,7 @@ export function createApp({ desktop = false }: AppOptions = {}) {
    app.use('/api/*', async (c, next) => {
 
       const origin = c.req.header('origin')
-      if (origin && !isAllowedOrigin(origin)) {
+      if (origin && !isAllowedOrigin(origin, c.req.url)) {
          return c.json({ error: 'Origin not allowed.' }, 403)
       }
 

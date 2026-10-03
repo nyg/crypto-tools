@@ -23,7 +23,7 @@ A voice or wording change means re-recording, not just re-encoding: the scene wa
 
 ## How it fits together
 
-- `vite.config.ts` serves the real frontend from the repo root in mocked mode on port 3100, with one change: a `resolveId` plugin swaps `src/views/mocks/portfolio.ts` for the video's own `mock.ts`. Port 3000 is left alone, so a normal `bun run dev` can keep running.
+- `vite.config.ts` serves the real frontend from the repo root in mocked mode on port 3100, with one change: a `resolveId` plugin swaps `src/views/mocks/portfolio.ts` for the video's own `mock.ts`. A normal `bun run dev` takes ports of its own, so it can keep running.
 - `studio.ts` drives headless Chrome through playwright-core and records the frames. It injects a synthetic cursor (headless Chrome draws none), click ripples, a spotlight that dims everything but one element, and full-screen title cards, then captures a CDP screencast. `speak()` starts a narration clip and resolves when it ends, so a scene reads as a timeline: start a line, perform the actions it describes, `await quiet()` before the next one.
 - `encode.ts` turns the frames into an MP4. Frame timestamps become per-frame durations, so the video keeps the real timing of the recording; stretches with no narration are sped up to at most 2.5x; the narration clips are mixed in at the times the scene recorded, quiet click sounds are added at each cursor press, and the captions become both a sidecar `.srt` and a soft subtitle track.
 - `narrate.ts` and `render-narration.py` render `narration.json` with [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (Apache-2.0, local, CPU), trim the silence, and record each clip's duration.

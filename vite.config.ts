@@ -7,6 +7,8 @@ import path from 'node:path'
 const { version } = JSON.parse(
    readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf-8')) as { version: string }
 
+const apiPort = process.env.PORT
+
 export default defineConfig({
    define: {
       'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
@@ -25,14 +27,13 @@ export default defineConfig({
       },
    },
    server: {
-      port: Number(process.env.VITE_PORT ?? 3000),
+      port: Number(process.env.VITE_PORT ?? 0),
       strictPort: true,
-      proxy: {
-         '/api': {
-            target: `http://localhost:${process.env.PORT ?? 3001}`,
-            changeOrigin: true,
-         },
-      },
+      // 127.0.0.1 is where the API server listens; `localhost` can resolve to ::1,
+      // where the same port number may belong to another process.
+      proxy: apiPort
+         ? { '/api': { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true } }
+         : undefined,
    },
    build: {
       outDir: 'dist',

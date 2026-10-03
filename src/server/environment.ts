@@ -1,4 +1,4 @@
-let enabled = process.env.NODE_ENV === 'development'
+let enabled = false
 
 export function allowEnvironmentOverrides(): void {
    enabled = true

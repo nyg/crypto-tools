@@ -281,11 +281,11 @@ describe('environment overrides', () => {
       expect(read?.store).toBe('env')
    })
 
-   needsStore('are ignored in a packaged build that never asks', () => {
+   needsStore('are ignored in a packaged build, which never asks and is compiled as development', () => {
       const { read } = run([
          { op: 'save', value: { anthropic: { apiKey: 'stored-key' } } },
          { op: 'read', provider: 'anthropic' }
-      ], { ANTHROPIC_API_KEY: 'env-key' })
+      ], { ANTHROPIC_API_KEY: 'env-key', NODE_ENV: 'development' })
 
       expect(read?.apiKey).toBe('stored-key')
       expect(read?.store).toBe(nativeStore())
