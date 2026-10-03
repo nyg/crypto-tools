@@ -372,9 +372,12 @@ export interface PortfolioSummary {
    netInvested: string
    profit: string
    realized: string
+   realizedPercent: string | null
    unrealized: string
    unrealizedPercent: string | null
    closedRealized: string
+   fees: string
+   feesUnvalued: string[]
    maxDrift: string
    needsRebalance: boolean
    lastRebalancedAt: number | null

@@ -35,6 +35,8 @@ interface MockPortfolio {
    costs: Record<string, number>
    realized: Record<string, number>
    closedRealized: number
+   closedCost: number
+   fees: number
    rebalancedAt?: number
 }
 
@@ -134,9 +136,12 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       netInvested: fixed(netInvested),
       profit: fixed(total - netInvested),
       realized: fixed(realized),
+      realizedPercent: portfolio.closedCost > 0 ? fixed(realized / portfolio.closedCost * 100, 4) : null,
       unrealized: fixed(unrealized),
       unrealizedPercent: openCost > 0 ? fixed(unrealized / openCost * 100, 4) : null,
       closedRealized: fixed(portfolio.closedRealized),
+      fees: fixed(portfolio.fees),
+      feesUnvalued: [],
       maxDrift: fixed(maxDrift, 4),
       needsRebalance: total > 0 && maxDrift > Number(portfolio.band),
       lastRebalancedAt: portfolio.rebalancedAt ?? null,
@@ -229,7 +234,8 @@ function save(venue: VenueId, request?: PortfolioSaveRequest): PortfolioSaveResp
    const id = state.nextId++
    state.portfolios.push({
       id, name: request.name, quoteAsset: request.quoteAsset, band: request.band,
-      createdAt: now(), targets: request.targets, holdings: {}, costs: {}, realized: {}, closedRealized: 0
+      createdAt: now(), targets: request.targets, holdings: {}, costs: {}, realized: {}, closedRealized: 0,
+      closedCost: 0, fees: 0
    })
    return { id }
 }
@@ -245,6 +251,7 @@ function dispose(portfolio: MockPortfolio, asset: string, quantity: number, proc
    const cost = portfolio.costs[asset] ?? 0
    const released = held > quantity ? cost * quantity / held : cost
    portfolio.costs[asset] = cost - released
+   portfolio.closedCost += released
    portfolio.realized[asset] = (portfolio.realized[asset] ?? 0) + proceeds - released
 }
 
@@ -427,6 +434,7 @@ function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRun['
 
    if (buy) portfolio.costs[base] = (portfolio.costs[base] ?? 0) + value
    else dispose(portfolio, base, quantity, value - fee)
+   portfolio.fees += buy ? fee * price : fee
 
    portfolio.holdings[base] = (portfolio.holdings[base] ?? 0) + (buy ? quantity - fee : -quantity)
    portfolio.holdings[portfolio.quoteAsset] = (portfolio.holdings[portfolio.quoteAsset] ?? 0) + (buy ? -value : value - fee)
