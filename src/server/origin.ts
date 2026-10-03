@@ -1,6 +1,12 @@
 export type OriginRule = (origin: string, requestUrl: string) => boolean
 
 const localhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
+const loopbackHost = /^(localhost|127\.0\.0\.1)(:\d+)?$/i
+
+// A page on a DNS name rebound to this machine is same-origin with the server, so its
+// reads carry no Origin to check. The name the request was addressed to is still in Host.
+export const isLoopbackHost = (host: string | undefined): boolean =>
+   host !== undefined && loopbackHost.test(host)
 
 // The browser sends Origin on same-origin writes too, and no port is fixed. Development
 // takes any local page, since Vite's port is its own; production only the page this

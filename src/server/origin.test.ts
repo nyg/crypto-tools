@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { desktopOrigins, isWebOrigin, originRuleFor } from './origin'
+import { desktopOrigins, isLoopbackHost, isWebOrigin, originRuleFor } from './origin'
 
 const nodeEnv = process.env.NODE_ENV
 
@@ -106,5 +106,34 @@ describe('originRuleFor', () => {
 
       expect(isAllowedOrigin('http://localhost:50000', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(true)
       expect(isAllowedOrigin('http://localhost:50002', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(false)
+   })
+})
+
+describe('isLoopbackHost', () => {
+
+   test('takes a request addressed to this machine by a loopback name, whatever the port', () => {
+
+      expect(isLoopbackHost('127.0.0.1:50001')).toBe(true)
+      expect(isLoopbackHost('localhost:50001')).toBe(true)
+      expect(isLoopbackHost('localhost')).toBe(true)
+      expect(isLoopbackHost('LOCALHOST:50001')).toBe(true)
+   })
+
+   test('refuses a request addressed to a name rebound to this machine', () => {
+
+      expect(isLoopbackHost('example.com:50001')).toBe(false)
+      expect(isLoopbackHost('localhost.example.com:50001')).toBe(false)
+   })
+
+   test('refuses a request addressed to a network address of this machine', () => {
+
+      expect(isLoopbackHost('192.168.1.20:50001')).toBe(false)
+      expect(isLoopbackHost('0.0.0.0:50001')).toBe(false)
+   })
+
+   test('refuses a request that names no host', () => {
+
+      expect(isLoopbackHost(undefined)).toBe(false)
+      expect(isLoopbackHost('')).toBe(false)
    })
 })
