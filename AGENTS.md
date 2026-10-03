@@ -3,7 +3,7 @@
 ## Build & Run
 
 - **Package manager / runtime**: bun
-- **Dev server**: `bun run dev` (starts Vite dev server on port 3000 + Hono API server on port 3001 via `concurrently`)
+- **Dev server**: `bun run dev` (`scripts/dev.ts` starts the Vite dev server on port 3000 and the Hono API server on port 3001 via `concurrently`; a port something already answers on is replaced by a free one the OS hands out, unless `VITE_PORT` or `PORT` sets it, so a second checkout runs beside the first)
 - **Mocked mode**: `bun run mocked` (sets `VITE_MOCK_DATA=true`, Vite-only — no API keys or server required)
 - **Build (frontend)**: `bun run build`
 - **Build (desktop app)**: `bun run build:stable`
