@@ -1,5 +1,6 @@
 import Big from 'big.js'
 import { asAssetAmount, asDecimal, asShortPercentage, asSignedShortPercentage } from '../../../utils/format'
+import type { SupertrendLevel } from '../../../types/api'
 import type {
    RunKind, RunOrderStatus, RunStatus, SkipReason, StopSkipReason, StopStatus
 } from '../../../types/portfolio'
@@ -36,6 +37,9 @@ export const flipDistance = (flipPrice: string, price: string | null) =>
 
 export const flipExtension = (flipPrice: string, price: string | null) =>
    price === null ? null : percentChange(flipPrice, price)
+
+export const flipPending = ({ flipPrice, trend }: SupertrendLevel, price: string | null) =>
+   price !== null && (trend === 'up' ? Big(price).lt(flipPrice) : Big(price).gt(flipPrice))
 
 export const asPoints = (value: string) => asDecimal(Number(value), POINT_DECIMALS)
 

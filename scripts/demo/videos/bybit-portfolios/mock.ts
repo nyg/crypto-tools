@@ -109,6 +109,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
          unrealizedPercent: cost !== undefined && cost > 0 && value !== null ? fixed((value - cost) / cost * 100, 4) : null,
          realized: fixed(portfolio.realized[asset] ?? 0),
+         realizedPercent: null,
          stopPrice: portfolio.targets.find(target => target.asset === asset)?.stopPrice ?? null,
          stopStatus: null
       }
@@ -140,6 +141,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       unrealized: fixed(unrealized),
       unrealizedPercent: openCost > 0 ? fixed(unrealized / openCost * 100, 4) : null,
       closedRealized: fixed(portfolio.closedRealized),
+      closedRealizedPercent: null,
       fees: fixed(portfolio.fees),
       feesUnvalued: [],
       maxDrift: fixed(maxDrift, 4),

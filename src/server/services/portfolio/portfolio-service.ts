@@ -372,6 +372,7 @@ export default class PortfolioService {
          const realized = asset === quote ? positions.cashRealized : position?.realized ?? ZERO
          const cost = value && position ? position.cost : null
          const unrealized = value && cost ? value.minus(cost) : null
+         const disposedCost = position?.disposedCost ?? ZERO
          if (cost) openCost = openCost.plus(cost)
          return {
             asset,
@@ -385,6 +386,7 @@ export default class PortfolioService {
             unrealized: unrealized ? decimal(unrealized) : null,
             unrealizedPercent: unrealized && cost?.gt(0) ? percentOf(unrealized, cost) : null,
             realized: decimal(realized),
+            realizedPercent: disposedCost.gt(0) ? percentOf(realized, disposedCost) : null,
             stopPrice: stopPrices.get(asset) ?? null,
             stopStatus: stopStates.get(asset)?.status ?? null
          }
@@ -397,6 +399,9 @@ export default class PortfolioService {
       const realizedInRows = rows.reduce((sum, row) => sum.plus(row.realized), ZERO)
       const closedCost = [...positions.coins].reduce((sum, [asset, position]) =>
          sum.plus(position.disposedCost).plus(listed.has(asset) ? ZERO : position.cost), ZERO)
+      const unlistedCost = [...positions.coins].reduce((sum, [asset, position]) =>
+         listed.has(asset) ? sum : sum.plus(position.disposedCost).plus(position.cost), ZERO)
+      const closedRealized = realizedTotal.minus(realizedInRows)
 
       const maxDrift = rows.reduce((max, { drift }) => {
          const absolute = drift ? Big(drift).abs() : ZERO
@@ -425,7 +430,8 @@ export default class PortfolioService {
          realizedPercent: closedCost.gt(0) ? percentOf(realizedTotal, closedCost) : null,
          unrealized: decimal(unrealizedTotal),
          unrealizedPercent: openCost.gt(0) ? percentOf(unrealizedTotal, openCost) : null,
-         closedRealized: decimal(realizedTotal.minus(realizedInRows)),
+         closedRealized: decimal(closedRealized),
+         closedRealizedPercent: unlistedCost.gt(0) ? percentOf(closedRealized, unlistedCost) : null,
          fees: decimal(positions.fees),
          feesUnvalued: [...positions.unvaluedFees],
          maxDrift: decimal(maxDrift, 4),
@@ -651,7 +657,7 @@ export default class PortfolioService {
 
    async #supertrendLevels(symbol: string): Promise<SupertrendLevels> {
       const levelFor = async (interval: CandleInterval) =>
-         levelOf(supertrend(await this.#exchange.candles(symbol, interval)))
+         levelOf(supertrend(await this.#exchange.candles(symbol, interval), { interval, now: Date.now() }))
       try {
          const [daily, weekly] = await Promise.all([levelFor('1d'), levelFor('1w')])
          return { daily, weekly }

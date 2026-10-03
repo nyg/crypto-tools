@@ -372,6 +372,7 @@ export interface PortfolioHolding {
    unrealized: string | null
    unrealizedPercent: string | null
    realized: string
+   realizedPercent: string | null
    stopPrice: string | null
    stopStatus: StopStatus | null
 }
@@ -393,6 +394,7 @@ export interface PortfolioSummary {
    unrealized: string
    unrealizedPercent: string | null
    closedRealized: string
+   closedRealizedPercent: string | null
    fees: string
    feesUnvalued: string[]
    maxDrift: string

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { flipDistance, flipExtension } from './format'
+import { flipDistance, flipExtension, flipPending } from './format'
 
 describe('flipDistance', () => {
 
@@ -29,5 +29,19 @@ describe('flipExtension', () => {
 
    test('is unknown for a coin without a price', () => {
       expect(flipExtension('80', null)).toBeNull()
+   })
+})
+
+describe('flipPending', () => {
+
+   test('is a price already past the flip price, before the close that would flip the trend', () => {
+      expect(flipPending({ flipPrice: '100', trend: 'up' }, '99')).toBe(true)
+      expect(flipPending({ flipPrice: '100', trend: 'down' }, '101')).toBe(true)
+   })
+
+   test('is not a price on the side of its trend, or a missing one', () => {
+      expect(flipPending({ flipPrice: '100', trend: 'up' }, '101')).toBe(false)
+      expect(flipPending({ flipPrice: '100', trend: 'down' }, '99')).toBe(false)
+      expect(flipPending({ flipPrice: '100', trend: 'up' }, null)).toBe(false)
    })
 })

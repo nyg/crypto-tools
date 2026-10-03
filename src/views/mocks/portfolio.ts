@@ -27,6 +27,7 @@ interface MockPortfolio {
    holdings: Record<string, number>
    costs: Record<string, number>
    realized: Record<string, number>
+   disposed: Record<string, number>
    closedRealized: number
    closedCost: number
    fees: number
@@ -88,6 +89,7 @@ function seed(venue: VenueId): VenueState {
             holdings: { BTC: 0.0712, ETH: 0.84, [cash]: 1480 },
             costs: { BTC: 3900, ETH: 2750 },
             realized: { BTC: 820, ETH: 310 },
+            disposed: { BTC: 3600, ETH: 1600 },
             closedRealized: 0,
             closedCost: 5200,
             fees: 38.6,
@@ -108,6 +110,7 @@ function seed(venue: VenueId): VenueState {
             holdings: { SOL: 6.1, SUI: 240, ENA: 1150, [cash]: 12.4 },
             costs: { SOL: 980, SUI: 610, ENA: 1010 },
             realized: { SOL: 40 },
+            disposed: { SOL: 420 },
             closedRealized: 72.4,
             closedCost: 1340,
             fees: 9.85,
@@ -129,6 +132,7 @@ function seed(venue: VenueId): VenueState {
             holdings: { [cash]: 1000 },
             costs: {},
             realized: {},
+            disposed: {},
             closedRealized: 0,
             closedCost: 0,
             fees: 0,
@@ -181,6 +185,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       const quantity = portfolio.holdings[asset] ?? 0
       const price = prices[asset] ?? null
       const value = price === null ? null : quantity * price
+      const disposed = portfolio.disposed[asset] ?? 0
       const weight = value !== null && total > 0 ? value / total * 100 : null
       const target = weights.get(asset) ?? 0
       const cost = asset === portfolio.quoteAsset ? undefined : portfolio.costs[asset]
@@ -197,6 +202,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
          unrealizedPercent: cost !== undefined && cost > 0 && value !== null ? fixed((value - cost) / cost * 100, 4) : null,
          realized: fixed(portfolio.realized[asset] ?? 0),
+         realizedPercent: disposed > 0 ? fixed((portfolio.realized[asset] ?? 0) / disposed * 100, 4) : null,
          stopPrice: portfolio.targets.find(target => target.asset === asset)?.stopPrice ?? null,
          stopStatus: stop?.status ?? null
       }
@@ -206,6 +212,9 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
    const unrealized = holdings.reduce((sum, holding) => sum + Number(holding.unrealized ?? 0), 0)
    const openCost = holdings.reduce((sum, { asset, unrealized }) =>
       unrealized === null ? sum : sum + (portfolio.costs[asset] ?? 0), 0)
+
+   const closedCost = portfolio.closedCost
+      - Object.values(portfolio.disposed).reduce((sum, amount) => sum + amount, 0)
 
    const maxDrift = Math.max(0, ...holdings.map(({ drift }) => Math.abs(Number(drift ?? 0))))
    const netInvested = (state.movements.get(portfolio.id) ?? []).reduce((sum, { kind, value }) =>
@@ -228,6 +237,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       unrealized: fixed(unrealized),
       unrealizedPercent: openCost > 0 ? fixed(unrealized / openCost * 100, 4) : null,
       closedRealized: fixed(portfolio.closedRealized),
+      closedRealizedPercent: closedCost > 0 ? fixed(portfolio.closedRealized / closedCost * 100, 4) : null,
       fees: fixed(portfolio.fees),
       feesUnvalued: [],
       maxDrift: fixed(maxDrift, 4),
@@ -340,7 +350,7 @@ function save(venue: VenueId, request?: PortfolioSaveRequest): PortfolioSaveResp
    const id = state.nextId++
    state.portfolios.push({
       id, name: request.name, quoteAsset: request.quoteAsset, band: request.band,
-      createdAt: Date.now(), targets: request.targets, holdings: {}, costs: {}, realized: {},
+      createdAt: Date.now(), targets: request.targets, holdings: {}, costs: {}, realized: {}, disposed: {},
       closedRealized: 0, closedCost: 0, fees: 0, stops: []
    })
    return { id }
@@ -388,6 +398,7 @@ function dispose(portfolio: MockPortfolio, asset: string, quantity: number, proc
    const released = held > quantity ? cost * quantity / held : cost
    portfolio.costs[asset] = cost - released
    portfolio.closedCost += released
+   portfolio.disposed[asset] = (portfolio.disposed[asset] ?? 0) + released
    portfolio.realized[asset] = (portfolio.realized[asset] ?? 0) + proceeds - released
 }
 
