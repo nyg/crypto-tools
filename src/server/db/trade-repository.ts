@@ -156,11 +156,12 @@ export default class TradeRepository {
 
       const orders = foldOrders(kept)
       const rateOn = this.#rateOn(orders, targetQuote)
-      const groups = asAggregations(orders, targetQuote, rateOn)
+      const groups = asAggregations(orders)
       const ordered = filters.order === 'asc' ? groups : groups.toReversed()
 
       return {
-         rows: ordered.slice(page * pageSize, (page + 1) * pageSize),
+         rows: ordered.slice(page * pageSize, (page + 1) * pageSize)
+            .map(group => ({ ...group, totals: convertOrders(group.orders, targetQuote, rateOn) })),
          total: ordered.length,
          page,
          pageSize,
@@ -293,6 +294,8 @@ interface SideFold {
    orders: Order[]
 }
 
+type UnconvertedAggregation = Omit<Aggregation, 'totals'>
+
 // Both sides of the whole selection, so the page can show what the range averages
 // out to. Every order in the range counts, not only the ones on the current page,
 // and each side keeps its quote currencies apart the way a run does, next to the
@@ -368,7 +371,7 @@ function foldOrders(trades: TradeRow[]): Order[] {
       .toSorted((a, b) => a.time - b.time || (a.orderKey < b.orderKey ? -1 : 1))
 }
 
-function asAggregations(orders: Order[], targetQuote: string, rateOn: RateOn): Aggregation[] {
+function asAggregations(orders: Order[]): UnconvertedAggregation[] {
 
    const runs: { direction: string, orders: Order[] }[] = []
 
@@ -378,12 +381,10 @@ function asAggregations(orders: Order[], targetQuote: string, rateOn: RateOn): A
       else runs.push({ direction: order.direction, orders: [order] })
    }
 
-   return runs.map((run, index) => asAggregation(run, index, targetQuote, rateOn))
+   return runs.map(asAggregation)
 }
 
-function asAggregation(
-   run: { direction: string, orders: Order[] }, index: number, targetQuote: string, rateOn: RateOn
-): Aggregation {
+function asAggregation(run: { direction: string, orders: Order[] }, index: number): UnconvertedAggregation {
 
    const orders = run.orders
    const first = orders[0]!
@@ -421,7 +422,6 @@ function asAggregation(
          netCost: totals.netCost.toString(),
          price: totals.volume.eq(0) ? '0' : totals.cost.div(totals.volume).toFixed(totals.decimals)
       })),
-      totals: convertOrders(orders, targetQuote, rateOn),
       orders
    }
 }

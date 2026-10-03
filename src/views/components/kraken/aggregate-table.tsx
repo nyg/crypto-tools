@@ -11,8 +11,8 @@ import { asCount } from '../lib/filter-options'
 import type { AggregationsResponse } from '../../../types/api'
 import type { MarketRow } from '../../../types/db'
 
-// The four amounts a run is totalled by, each of which a quote carries as a string and
-// the conversion returns as a Big.
+// The four amounts a run is totalled by, each of which a quote and the converted
+// totals carry as a string.
 type AmountKey = 'volume' | 'cost' | 'fee' | 'netCost' | 'price'
 
 const sideColours: Record<string, string> = {
@@ -108,7 +108,7 @@ export default function AggregateTable({
                      group.quotes.map(quote => `${quote.cost} ${quote.quoteAsset}`).join(' + '),
                      totals.converted ? `converted to ${targetQuote} at the rate of each order's day` : null,
                      excluded.length > 0
-                        ? `no rate for ${excluded.map(left => left.quoteAsset).join(', ')}, leaving out ${excludedVolume} ${group.baseAsset}`
+                        ? `no rate to convert ${excluded.map(left => left.quoteAsset).join(', ')} to ${targetQuote}, leaving out ${excludedVolume} ${group.baseAsset}`
                         : null
                   ].filter(Boolean).join(' — ')
 

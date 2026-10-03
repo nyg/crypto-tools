@@ -68,7 +68,7 @@ export default function KrakenAggregatedTrades() {
       configured && query
          ? ['/api/kraken/ledger/trades/aggregations', { accountId, filters: query, page, pageSize: PAGE_SIZE }]
          : null,
-      { keepPreviousData: true, refreshInterval: latest => latest?.ratesPending ? 2000 : 0 })
+      { keepPreviousData: true, refreshInterval: latest => includeAllQuotes && latest?.ratesPending ? 2000 : 0 })
 
    const targetQuote = groups?.quoteAsset || market?.quoteAsset || ''
 

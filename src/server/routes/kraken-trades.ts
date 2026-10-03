@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import TradeRepository from '../db/trade-repository'
-import { refreshUsdRates, usdRateRanges } from '../services/usd-rate-backfill'
+import { refreshUsdRates } from '../services/usd-rate-backfill'
 import { withAccount } from './with-account'
 import type { RequestBody } from './with-account'
 import type { AggregationFilters, Sort, TradeFilters } from '../../types/kraken'
@@ -14,7 +14,7 @@ const app = new Hono()
 // Runs of buying and selling for one base asset, each fold of consecutive same-side
 // orders returned as a single row with the orders behind it attached.
 app.post('/aggregations', async (c) => withAccount(c, ({ body, accountId }) => {
-   const ratesPending = refreshUsdRates(accountId, () => usdRateRanges(accountId))
+   const ratesPending = refreshUsdRates(accountId)
    return c.json({
       ...new TradeRepository(accountId).queryAggregations({
          filters: aggregationFiltersOf(body),

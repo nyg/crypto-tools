@@ -4,10 +4,11 @@ import FrankfurterAPI from '../adapters/frankfurter-api/adapter'
 import RateRepository from '../db/rate-repository'
 import LedgerRepository from '../db/ledger-repository'
 import TradeRepository from '../db/trade-repository'
+import { DAY_MS, dayOf } from '../db/quote-conversion'
 import { messageOf } from '../errors'
 import type { AssetRangeRow } from '../../types/db'
 
-export const DAY_MS = 86400000
+export { DAY_MS }
 
 export const DAILY_WINDOW_DAYS = 719
 
@@ -48,8 +49,6 @@ export interface BackfillProgress {
    onStored: (received: number) => void
    onSkipped: (asset: string, error: string | null) => void
 }
-
-export const dayOf = (time: number) => time - (time % DAY_MS)
 
 export function planRateFetch(ranges: AssetRangeRow[], coverage: Map<string, AssetRangeRow>, today: number): RatePlan {
 
@@ -136,13 +135,13 @@ const quietProgress: BackfillProgress = {
 const refreshes = new Map<string, Promise<void>>()
 const refreshed = new Set<string>()
 
-export function refreshUsdRates(accountId: string, ranges: () => AssetRangeRow[]): boolean {
+export function refreshUsdRates(accountId: string): boolean {
 
    if (refreshes.has(accountId)) return true
    if (refreshed.has(accountId)) return false
 
    const today = dayOf(Date.now())
-   const plan = planFor(ranges(), today)
+   const plan = planFor(usdRateRanges(accountId), today)
 
    if (isEmpty(plan)) {
       refreshed.add(accountId)

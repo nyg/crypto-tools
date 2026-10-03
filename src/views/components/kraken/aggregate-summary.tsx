@@ -163,8 +163,8 @@ export default function AggregateSummary({
          {missing.length > 0 &&
             <p className="text-xs text-muted-foreground">
                {ratesPending
-                  ? `Fetching the daily rates of ${missing.join(', ')}, so some orders are left out until then.`
-                  : `No rate for ${missing.join(', ')} on the day of some orders, so those orders are left out.`}
+                  ? `Fetching the daily rates to convert ${missing.join(', ')} to ${targetQuote}, so some orders are left out until then.`
+                  : `No rate to convert ${missing.join(', ')} to ${targetQuote} on the day of some orders, so those orders are left out.`}
             </p>}
 
          <div className="border-t border-border" />
