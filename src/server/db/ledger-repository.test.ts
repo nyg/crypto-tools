@@ -164,3 +164,32 @@ describe('USD valuation', () => {
       expect(ranges).toEqual([{ asset: 'KSM', first: Date.UTC(2026, 2, 1), last: Date.UTC(2026, 4, 1) }])
    })
 })
+
+describe('fundingEntries', () => {
+
+   test('lists deposits and withdrawals under their display asset, oldest first', () => {
+
+      const repository = new LedgerRepository('funding-entries')
+      repository.upsertEntries([
+         entry('W1', Date.UTC(2026, 7, 2), '-0.5', { type: 'withdrawal', subtype: '', asset: 'XXBT', baseAsset: 'BTC', fee: '0.0001' }),
+         entry('D1', Date.UTC(2026, 7, 1), '1000.0000', { type: 'deposit', subtype: '', asset: 'ZEUR', baseAsset: 'EUR', refid: 'REF' }),
+         entry('T1', Date.UTC(2026, 7, 3), '-10', { type: 'trade', subtype: '', asset: 'ZEUR', baseAsset: 'EUR' })
+      ], Date.UTC(2026, 7, 4))
+
+      expect(repository.fundingEntries()).toEqual([
+         { entryKey: 'D1', refid: 'REF', time: Date.UTC(2026, 7, 1), type: 'deposit', asset: 'EUR', amount: '1000.0000', fee: '0' },
+         { entryKey: 'W1', refid: 'RW1', time: Date.UTC(2026, 7, 2), type: 'withdrawal', asset: 'BTC', amount: '-0.5', fee: '0.0001' }
+      ])
+   })
+
+   test('leaves out moving coins into a staking or parachain position', () => {
+
+      const repository = new LedgerRepository('funding-staking')
+      repository.upsertEntries([
+         entry('P1', Date.UTC(2026, 7, 1), '50', { type: 'deposit', subtype: '', asset: 'DOT.P', baseAsset: 'DOT' }),
+         entry('S1', Date.UTC(2026, 7, 2), '-2', { type: 'withdrawal', subtype: '', asset: 'ETH2.S', baseAsset: 'ETH' })
+      ], Date.UTC(2026, 7, 4))
+
+      expect(repository.fundingEntries()).toEqual([])
+   })
+})

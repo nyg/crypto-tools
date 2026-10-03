@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, PieChartIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import { ArrowDownUpIcon, CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, PieChartIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 import type { Provider } from '../../types/credentials'
 
 
@@ -39,6 +39,14 @@ const portfolios = (exchange: string): Tool => ({
    icon: PieChartIcon
 })
 
+const funding = (exchange: string, readsLedger = false): Tool => ({
+   href: `/${exchange}/funding`,
+   readsLedger,
+   title: 'Funding',
+   description: 'Deposits and withdrawals of one asset: charted by day, listed side by side, with totals and the net.',
+   icon: ArrowDownUpIcon
+})
+
 export const toolGroups: ToolGroup[] = [
    {
       name: 'Kraken',
@@ -71,6 +79,7 @@ export const toolGroups: ToolGroup[] = [
             description: 'Everything Kraken has charged you, totalled per asset and over time.',
             icon: ReceiptIcon
          },
+         funding('kraken', true),
          {
             href: '/kraken/aggregated-trades',
             readsLedger: true,
@@ -109,13 +118,14 @@ export const toolGroups: ToolGroup[] = [
             description: 'Overview of your staking positions and upcoming redemptions.',
             icon: CoinsIcon
          },
+         funding('binance'),
          portfolios('binance')
       ],
       settings: { href: '/binance/settings', providers: ['binance', 'binanceTestnet'] }
    },
    {
       name: 'Bybit',
-      tools: [portfolios('bybit')],
+      tools: [portfolios('bybit'), funding('bybit')],
       settings: { href: '/bybit/settings', providers: ['bybit', 'bybitDemo'] }
    },
    {

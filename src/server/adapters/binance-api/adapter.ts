@@ -1,6 +1,7 @@
 import Big from 'big.js'
 import * as resource from './resource'
 import { candlesFromKLines, usdRatesFromKLines } from './klines'
+import { depositRecord, fiatRecord, withdrawalRecord } from './funding'
 import {
    hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, takerFee
 } from './spot'
@@ -9,8 +10,9 @@ import type { TradingPair, TradingPairs } from '../../../types/market'
 import type {
    Candlestick, FiatDeposit, PairRates, SpotBalances, StakingBalances
 } from '../../../types/binance'
-import type { BinanceEnvironment } from '../../../types/binance-api'
+import type { BinanceEnvironment, BinanceFiatOrder } from '../../../types/binance-api'
 import type { UsdRateRow } from '../../../types/db'
+import type { FundingKind, FundingRecord, FundingWindow } from '../../../types/funding'
 import type {
    CandleInterval, ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle,
    SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
@@ -22,6 +24,19 @@ const NO_SUCH_ORDER = -2013
 const DAY_MS = 86400000
 
 const KLINE_LIMIT = 1000
+
+const HISTORY_LIMIT = 1000
+
+async function everyPage<Row>(fetchPage: (offset: number) => Promise<Row[]>): Promise<Row[]> {
+
+   const rows: Row[] = []
+
+   for (;;) {
+      const page = await fetchPage(rows.length)
+      rows.push(...page)
+      if (page.length < HISTORY_LIMIT) return rows
+   }
+}
 
 export default class BinanceAPI {
 
@@ -165,6 +180,36 @@ export default class BinanceAPI {
       }
 
       return deposits
+   }
+
+   /* Deposits and withdrawals */
+
+   async fetchDeposits({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      const deposits = await everyPage(offset => resource.fetchDepositHistory(
+         this.#authenticated, { startTime: from, endTime: to, offset, limit: HISTORY_LIMIT }))
+      return deposits.map(depositRecord)
+   }
+
+   async fetchWithdrawals({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      const withdrawals = await everyPage(offset => resource.fetchWithdrawHistory(
+         this.#authenticated, { startTime: from, endTime: to, offset, limit: HISTORY_LIMIT }))
+      return withdrawals.map(withdrawalRecord)
+   }
+
+   async fetchFiatMovements(kind: FundingKind, { from, to }: FundingWindow): Promise<FundingRecord[]> {
+
+      const orders: BinanceFiatOrder[] = []
+
+      for (let pageIndex = 1; ; pageIndex++) {
+         const { data, total } = await resource.fetchFiatFunding(
+            this.#authenticated,
+            { transactionType: kind === 'deposit' ? 0 : 1, fromDate: from, toDate: to, pageIndex })
+
+         orders.push(...data)
+         if (data.length === 0 || orders.length >= total) break
+      }
+
+      return orders.map(order => fiatRecord(order, kind))
    }
 
    /* Spot trading for portfolios */

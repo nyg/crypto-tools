@@ -9,6 +9,7 @@ const utcLongDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric',
 const monthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long' })
 const shortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short' })
 const utcShortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+const utcShortDateYearFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short', day: 'numeric', timeZone: 'UTC' })
 const utcMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long', timeZone: 'UTC' })
 const utcShortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short', timeZone: 'UTC' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -72,6 +73,16 @@ export function asRounded(number: number): string {
    return roundedFormatter.format(number)
 }
 
+// Axis ticks stay short where the values do not: a fiat total wants no decimals, an
+// amount of BTC still has to show that it is not zero.
+export function asAxisTick(value: number): string {
+   const magnitude = Math.abs(value)
+   if (magnitude === 0) return '0'
+   if (magnitude >= 1000) return asCompact(value)
+   if (magnitude >= 1) return asRounded(value)
+   return Number(value.toPrecision(2)).toString()
+}
+
 export function asShortDate(timestamp: DateLike): string {
    return dateFormat(shortDateFormatter, timestamp)
 }
@@ -94,6 +105,10 @@ export function asShortMonthYearDate(timestamp: DateLike): string {
 
 export function asUtcShortDate(timestamp: DateLike): string {
    return dateFormat(utcShortDateFormatter, timestamp)
+}
+
+export function asUtcShortDateYear(timestamp: DateLike): string {
+   return dateFormat(utcShortDateYearFormatter, timestamp)
 }
 
 export function asUtcMonthYearDate(timestamp: DateLike): string {

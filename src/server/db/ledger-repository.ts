@@ -4,7 +4,7 @@ import { getDatabase } from './database'
 import { entryKeyFor } from './entry-key'
 import type {
    AssetRangeRow, BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
-   FeeTypeRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
+   FeeTypeRow, FundingLedgerRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
    SyncStateUpdate, TimeRangeRow, UsdValue, ValueRow
 } from '../../types/db'
 import type {
@@ -367,6 +367,16 @@ export default class LedgerRepository {
          first: range.first,
          last: range.last
       }
+   }
+
+   // A suffixed asset (DOT.P, ETH2.S) is a staking or parachain position: Kraken writes
+   // moving coins into one as a deposit too, and no money crossed the account's edge.
+   fundingEntries(): FundingLedgerRow[] {
+      return this.#db.query<FundingLedgerRow, Params>(`
+         SELECT entry_key AS entryKey, refid, time, type, base_asset AS asset, amount, fee
+         FROM ledger_entry
+         WHERE account_id = ? AND type IN ('deposit', 'withdrawal') AND asset NOT LIKE '%.%'
+         ORDER BY time, entry_key`).all(this.#accountId)
    }
 
    readSyncState(): SyncStateRow | null {

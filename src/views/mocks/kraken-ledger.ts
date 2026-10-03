@@ -1,11 +1,13 @@
+import Big from 'big.js'
 import { tradeCount, orderCount, allTradeCount, clearTrades, restoreTrades } from './kraken-trades'
 import { mockUsdRateOn } from './usd-rates'
 import type {
-   BalanceAsset, BalanceSummary, ClearResponse, FeeSummary,
+   BalanceAsset, BalanceSummary, ClearResponse, FeeSummary, FundingResponse,
    LedgerEntriesResponse, LedgerFiltersResponse, RewardAmount, RewardAsset, RewardSummary,
    SyncCancelResponse, SyncStartResponse, SyncStatusResponse
 } from '../../types/api'
 import type { LedgerEntryRow, RewardPeriodRow, SyncStateRow } from '../../types/db'
+import type { FundingKind } from '../../types/funding'
 import type { SyncJob, SyncMode, SyncStep, SyncStepPhase } from '../../types/jobs'
 import type { ExportReportType, LedgerFilters, Sort } from '../../types/kraken'
 
@@ -464,6 +466,25 @@ export function ledgerEntries(
 
 // Mirrors LedgerRepository.feeSummary: same groupings, same shape, computed over the
 // fixture so the page exercises its real rendering rather than a canned response.
+export function ledgerFunding(): FundingResponse {
+   return {
+      movements: entries
+         .filter(entry => entry.type === 'deposit' || entry.type === 'withdrawal')
+         .map(entry => ({
+            id: entry.txid,
+            kind: entry.type as FundingKind,
+            asset: entry.baseAsset,
+            amount: Big(entry.amount).abs().toFixed(),
+            fee: Big(entry.fee).toFixed(),
+            method: '',
+            time: entry.time,
+            pending: false
+         })),
+      lastSyncedAt: syncState.lastSyncedAt,
+      job: null
+   }
+}
+
 export function ledgerFees(body: { filters?: LedgerFilters } = {}): FeeSummary {
 
    const charged = applyFilters(body.filters).filter(entry => Number(entry.fee) !== 0)

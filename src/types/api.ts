@@ -6,7 +6,8 @@ import type {
    FeeAssetRow, FeeMonthRow, FeeTypeRow, LedgerEntryRow, MarketRow,
    OtherAccountRow, RewardPeriodRow, SyncStateRow, TradeListRow, UsdValue
 } from './db'
-import type { JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
+import type { FundingKind } from './funding'
+import type { FundingJob, JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
 import type {
@@ -621,6 +622,31 @@ export interface PortfolioHistoryRequest {
 export interface PortfolioHistoryResponse {
    movements: PortfolioMovement[]
    runs: PortfolioRun[]
+}
+
+/* Funding */
+
+export interface FundingMovement {
+   id: string
+   kind: FundingKind
+   asset: string
+   amount: string
+   fee: string
+   method: string
+   time: number
+   pending: boolean
+}
+
+export interface FundingResponse {
+   movements: FundingMovement[]
+   lastSyncedAt: number | null
+   job: FundingJob | null
+}
+
+export type FundingSyncResponse = StartedJob<FundingJob>
+
+export interface FundingCancelResponse {
+   job: FundingJob | null
 }
 
 export type { JobPhase }

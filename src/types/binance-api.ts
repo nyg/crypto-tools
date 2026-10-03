@@ -133,8 +133,39 @@ export interface BinanceFiatOrder {
    fiatCurrency: string
    indicatedAmount: string
    amount: string
+   totalFee?: string
+   method?: string
    status: string
    createTime: number
+}
+
+export interface BinanceDeposit {
+   id?: string
+   txId?: string
+   coin: string
+   network?: string
+   amount: string
+   status: number
+   insertTime: number
+   transferType?: number
+}
+
+export interface BinanceWithdrawal {
+   id: string
+   coin: string
+   network?: string
+   amount: string
+   transactionFee?: string
+   status: number
+   applyTime: string
+   transferType?: number
+}
+
+export interface BinanceHistoryParams {
+   startTime: number
+   endTime: number
+   offset: number
+   limit: number
 }
 
 export interface BinanceFiatFunding {

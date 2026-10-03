@@ -6,7 +6,9 @@ import { withAccount, withCredentials } from './with-account'
 import { dbSizeBytes } from '../db/paths'
 import { jobFor, isRunning, requestCancel, startSync } from '../services/kraken-ledger-sync'
 import { refreshUsdRates } from '../services/usd-rate-backfill'
+import { foldLedgerFunding } from '../services/funding/kraken-funding'
 import type { RequestBody } from './with-account'
+import type { FundingResponse } from '../../types/api'
 import type { LedgerFilters, Sort } from '../../types/kraken'
 
 // The browser's JSON is unknown until a handler says what it expects of it; these are
@@ -71,6 +73,15 @@ app.get('/rewards', async (c) => withAccount(c, ({ accountId }) => {
 
 app.get('/balances', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new LedgerRepository(accountId).balanceSummary())))
+
+app.get('/funding', async (c) => withAccount(c, ({ accountId }) => {
+   const repository = new LedgerRepository(accountId)
+   return c.json({
+      movements: foldLedgerFunding(repository.fundingEntries()),
+      lastSyncedAt: repository.readSyncState()?.lastSyncedAt ?? null,
+      job: null
+   } satisfies FundingResponse)
+}))
 
 app.post('/clear', async (c) => withAccount(c, ({ accountId }) => {
 
