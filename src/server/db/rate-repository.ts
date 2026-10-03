@@ -63,6 +63,17 @@ export default class RateRepository {
       return new Map(rows.map(row => [row.asset, row]))
    }
 
+   ratesBetween(assets: string[], fromDay: number, toDay: number): UsdRateRow[] {
+
+      if (assets.length === 0) return []
+
+      return this.#db.query<UsdRateRow, Params>(`
+         SELECT asset, day, rate, source
+         FROM asset_usd_rate
+         WHERE asset IN (${assets.map(() => '?').join(', ')}) AND day BETWEEN ? AND ?`)
+         .all(...assets, fromDay, toDay)
+   }
+
    countRates(): number {
       return this.#db.query<CountRow, Params>('SELECT COUNT(*) AS count FROM asset_usd_rate').get()!.count
    }

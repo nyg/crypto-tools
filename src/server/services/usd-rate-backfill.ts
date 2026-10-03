@@ -2,10 +2,13 @@ import KrakenAPI from '../adapters/kraken-api/adapter'
 import BinanceAPI from '../adapters/binance-api/adapter'
 import FrankfurterAPI from '../adapters/frankfurter-api/adapter'
 import RateRepository from '../db/rate-repository'
+import LedgerRepository from '../db/ledger-repository'
+import TradeRepository from '../db/trade-repository'
+import { DAY_MS, dayOf } from '../db/quote-conversion'
 import { messageOf } from '../errors'
 import type { AssetRangeRow } from '../../types/db'
 
-export const DAY_MS = 86400000
+export { DAY_MS }
 
 export const DAILY_WINDOW_DAYS = 719
 
@@ -46,8 +49,6 @@ export interface BackfillProgress {
    onStored: (received: number) => void
    onSkipped: (asset: string, error: string | null) => void
 }
-
-export const dayOf = (time: number) => time - (time % DAY_MS)
 
 export function planRateFetch(ranges: AssetRangeRow[], coverage: Map<string, AssetRangeRow>, today: number): RatePlan {
 
@@ -92,6 +93,26 @@ export function planRateFetch(ranges: AssetRangeRow[], coverage: Map<string, Ass
    }
 }
 
+export function mergeRanges(...lists: AssetRangeRow[][]): AssetRangeRow[] {
+
+   const merged = new Map<string, AssetRangeRow>()
+
+   for (const range of lists.flat()) {
+      const known = merged.get(range.asset)
+      merged.set(range.asset, known
+         ? { asset: range.asset, first: Math.min(known.first, range.first), last: Math.max(known.last, range.last) }
+         : { ...range })
+   }
+
+   return [...merged.values()]
+}
+
+export function usdRateRanges(accountId: string): AssetRangeRow[] {
+   return mergeRanges(
+      new LedgerRepository(accountId).valuedAssetRanges(),
+      new TradeRepository(accountId).quoteAssetRanges())
+}
+
 export function planFor(ranges: AssetRangeRow[], today = dayOf(Date.now())): RatePlan {
    return planRateFetch(ranges, new RateRepository().coverage(ranges.map(range => range.asset)), today)
 }
@@ -114,13 +135,13 @@ const quietProgress: BackfillProgress = {
 const refreshes = new Map<string, Promise<void>>()
 const refreshed = new Set<string>()
 
-export function refreshUsdRates(accountId: string, ranges: () => AssetRangeRow[]): boolean {
+export function refreshUsdRates(accountId: string): boolean {
 
    if (refreshes.has(accountId)) return true
    if (refreshed.has(accountId)) return false
 
    const today = dayOf(Date.now())
-   const plan = planFor(ranges(), today)
+   const plan = planFor(usdRateRanges(accountId), today)
 
    if (isEmpty(plan)) {
       refreshed.add(accountId)
