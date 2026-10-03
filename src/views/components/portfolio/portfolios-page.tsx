@@ -6,6 +6,7 @@ import useMutation from '../../lib/use-mutation'
 import usePersistentState from '../../lib/use-persistent-state'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../lib/credentials-alert'
+import LoadingSpinner from '../lib/loading-spinner'
 import TimeAgo from '../lib/time-ago'
 import AccountSummary from './account-summary'
 import AdjustDialog from './adjust-dialog'
@@ -150,7 +151,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
 
    return (
       <Layout name="Portfolios" trailing={liveStatus}>
-         <div className="space-y-6">
+         <div className="flex grow flex-col gap-6">
 
             <div className="flex flex-wrap items-center justify-between gap-3">
                {venueToggle}
@@ -171,7 +172,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
                   <AlertDescription>{String(error)}</AlertDescription>
                </Alert>}
 
-            {isMutating && !overview && <Loader2Icon className="size-5 animate-spin text-muted-foreground" />}
+            {isMutating && !overview && <LoadingSpinner />}
 
             {overview && !overview.key.canTrade &&
                <Alert variant="destructive">

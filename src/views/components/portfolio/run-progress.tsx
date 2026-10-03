@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import { Loader2Icon } from 'lucide-react'
+import LoadingSpinner from '../lib/loading-spinner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -86,7 +87,7 @@ export default function RunProgress({ apiBase, runId, quoteAsset, onDone }: RunP
       )
    }
 
-   if (!run) return <Loader2Icon className="size-5 animate-spin text-muted-foreground" />
+   if (!run) return <LoadingSpinner />
 
    const settled = run.orders.filter(({ status }) => !['pending', 'placed', 'unknown'].includes(status)).length
 

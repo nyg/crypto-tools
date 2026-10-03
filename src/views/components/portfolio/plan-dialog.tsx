@@ -3,6 +3,7 @@ import Big from 'big.js'
 import { toast } from 'sonner'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
+import LoadingSpinner from '../lib/loading-spinner'
 import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
 import OrderLabel from './order-label'
@@ -298,7 +299,7 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                         <AlertDescription>{String(planError)}</AlertDescription>
                      </Alert>}
 
-                  {isPlanning && !plan && <Loader2Icon className="size-5 animate-spin text-muted-foreground" />}
+                  {isPlanning && !plan && <LoadingSpinner />}
 
                   {plan && <PlanPreview plan={plan} disabled={isPlanning} onInclude={include} />}
 
