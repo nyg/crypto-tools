@@ -28,6 +28,7 @@
       "desktop:dev": "bunx electrobun dev --watch",
       "mocked": "VITE_MOCK_DATA=true vite",
       "demo:video": "bun scripts/demo/run.ts",
+      "screenshots": "bun scripts/screenshots/run.ts",
       "build": "vite build",
       "build:stable": "bunx electrobun build --env=stable",
       "start": "NODE_ENV=production bun src/server/index.ts",
