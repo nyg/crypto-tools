@@ -27,6 +27,8 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![Kraken Fees](public/screenshot-kraken-fees.png)
 
+**Funding** — what you deposited and withdrew, one asset at a time, crypto or fiat: a bar chart that adds up each day's deposits and withdrawals and only draws the days something moved, both lists side by side with sortable columns, and the totals with the net. Read from the synced ledger, so a withdrawal Kraken reversed and coins moved into staking are left out.
+
 **Aggregated Trades**
 
 ![Kraken Aggregated Trades](public/screenshot-kraken-aggregated-trades.png)
@@ -56,6 +58,8 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![Binance Staking](public/screenshot-binance-staking.png)
 
+**Funding** — the same Funding page as on Kraken, from Binance's deposit and withdrawal history, kept in the database on this machine. A first sync walks back to 2017 and takes about four minutes; later ones only read what is new. Binance serves only about the last 90 days of fiat deposits and withdrawals, so older ones are kept from the syncs that saw them. The API key needs Enable Reading only.
+
 **Portfolios** — the same portfolios as on Bybit, in your Binance spot wallet. Stops rest on Binance as `STOP_LOSS` orders. A Testnet switch runs it against the Binance spot testnet with its own keys and test funds. The API key needs Enable Reading and Enable Spot & Margin Trading, and never Enable Withdrawals. Turn off paying fees with BNB: a portfolio only holds its own coins, and a fee charged in BNB would show up in it as a negative BNB holding.
 
 </details>
@@ -66,6 +70,8 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 <br>
 
 **Portfolios** — define baskets of coins with target weights inside one Bybit unified trading account, deposit coins already on the account into them, and withdraw or rebalance with spot market orders. Every order is previewed first and only placed once you confirm; each portfolio's holdings are tracked on this machine from its own deposits and fills, so several portfolios can share one account and trades you make on Bybit yourself never touch them. Each target coin can also carry a stop price: the app rests a spot conditional order on Bybit for the portfolio's holding of that coin, keeps it the right size around every run, deposit and adjustment, and when it fires records the sell, drops the coin from the targets and moves its weight to cash so a rebalance does not buy it straight back. Next to each coin's price, the Supertrend 1D and 1W columns show where the Supertrend (10, 3) indicator flips on its daily and weekly chart, computed from the exchange's own candles the way TradingView does, with how far the price is beyond that level and how far it has to move back for a close to flip the trend, so a stop can be set against it. A Demo switch runs the same thing against Bybit's demo trading account. The API key needs the Read and Spot trade permissions, and never the Withdrawal one.
+
+**Funding** — the same Funding page as on Kraken, from Bybit's crypto deposit and withdrawal records, on-chain and between Bybit accounts, kept in the database on this machine. Fiat, card and P2P funding is not in Bybit's API.
 
 </details>
 

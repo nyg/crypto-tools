@@ -1,3 +1,4 @@
+import type { FundingKind, FundingStatus } from './funding'
 import type { MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, StopStatus } from './portfolio'
 import type { XStockType } from './xstock'
 
@@ -15,6 +16,10 @@ export interface TimeRangeRow {
 
 export interface ValueRow {
    value: string
+}
+
+export interface TimeRow {
+   time: number | null
 }
 
 export interface UserVersionRow {
@@ -258,4 +263,31 @@ export interface PortfolioOrderRow {
    error: string | null
    createdAt: number
    updatedAt: number
+}
+
+export interface FundingLedgerRow {
+   entryKey: string
+   refid: string
+   time: number
+   type: FundingKind
+   asset: string
+   amount: string
+   fee: string
+}
+
+export interface FundingAccountRow {
+   accountId: string
+   lastSyncedAt: number | null
+}
+
+export interface FundingMovementRow {
+   feed: string
+   movementId: string
+   kind: FundingKind
+   asset: string
+   amount: string
+   fee: string
+   method: string
+   status: FundingStatus
+   time: number
 }

@@ -131,6 +131,42 @@ export interface BybitExecution {
    feeCurrency: string
 }
 
+export interface BybitRows<T> {
+   rows: T[]
+   nextPageCursor?: string
+}
+
+export interface BybitDeposit {
+   id?: string
+   txID: string
+   txIndex?: string
+   coin: string
+   chain: string
+   amount: string
+   depositFee?: string
+   status: number
+   successAt: string
+}
+
+export interface BybitInternalDeposit {
+   id: string
+   coin: string
+   amount: string
+   status: number
+   createdTime: string
+}
+
+export interface BybitWithdrawal {
+   withdrawId: string
+   withdrawType: number
+   coin: string
+   chain?: string
+   amount: string
+   withdrawFee?: string
+   status: string
+   createTime: string
+}
+
 // [startTime, open, high, low, close, volume, turnover], newest first
 export type BybitKline = [string, string, string, string, string, string, string]
 

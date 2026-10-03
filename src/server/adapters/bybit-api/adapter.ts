@@ -1,12 +1,15 @@
 import Big from 'big.js'
 import {
-   cancelOrder, createOrder, fetchApiKeyInfo, fetchExecutions, fetchOpenStopOrders,
-   fetchOrderByLinkId, fetchSpotFeeRates, fetchSpotInstruments, fetchSpotKlines, fetchSpotTickers, fetchUnifiedWallet
+   cancelOrder, createOrder, fetchApiKeyInfo, fetchDepositRecords, fetchExecutions, fetchInternalDepositRecords,
+   fetchOpenStopOrders, fetchOrderByLinkId, fetchSpotFeeRates, fetchSpotInstruments, fetchSpotKlines,
+   fetchSpotTickers, fetchUnifiedWallet, fetchWithdrawRecords
 } from './resource'
 import { candlesFromKlines } from './klines'
+import { depositRecord, internalDepositRecord, withdrawalRecord } from './funding'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type { BybitEnvironment, BybitKlineInterval, BybitOrder } from '../../../types/bybit-api'
+import type { FundingRecord, FundingWindow } from '../../../types/funding'
 import type {
    CandleInterval, ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SettlementStatus, SpotCandle,
    SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
@@ -112,6 +115,20 @@ export default class BybitAPI {
          canTrade: readOnly === 0 && (permissions.Spot ?? []).includes('SpotTrade'),
          expiresAt: Number.isFinite(expiresAt) && expiresAt > 0 ? expiresAt : null
       }
+   }
+
+   async fetchDeposits({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      const deposits = await fetchDepositRecords(this.#authenticated, from, to)
+      const readAt = Date.now()
+      return deposits.map(deposit => depositRecord(deposit, readAt))
+   }
+
+   async fetchInternalDeposits({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      return (await fetchInternalDepositRecords(this.#authenticated, from, to)).map(internalDepositRecord)
+   }
+
+   async fetchWithdrawals({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      return (await fetchWithdrawRecords(this.#authenticated, from, to)).map(withdrawalRecord)
    }
 
    async placeMarketOrder({ clientOrderId, symbol, side, unit, amount, maxSlippagePercent }: OrderRequest): Promise<string> {

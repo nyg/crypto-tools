@@ -3,9 +3,10 @@ import { authenticator } from './authenticator'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   BybitApiKeyInfo, BybitCancelRequest, BybitEnvironment, BybitExecution, BybitFeeRate, BybitKline,
-   BybitKlineInterval, BybitOrder, BybitOrderCancelled, BybitOrderCreated, BybitOrderRequest, BybitPage,
-   BybitResponse, BybitSpotInstrument, BybitSpotTicker, BybitWalletAccount
+   BybitApiKeyInfo, BybitCancelRequest, BybitDeposit, BybitEnvironment, BybitExecution, BybitFeeRate,
+   BybitInternalDeposit, BybitKline, BybitKlineInterval, BybitOrder, BybitOrderCancelled, BybitOrderCreated,
+   BybitOrderRequest, BybitPage, BybitResponse, BybitRows, BybitSpotInstrument, BybitSpotTicker,
+   BybitWalletAccount, BybitWithdrawal
 } from '../../../types/bybit-api'
 
 const hosts: Record<BybitEnvironment, string> = {
@@ -28,6 +29,13 @@ const cancelOrderEndpoint = '/v5/order/cancel'
 const realtimeOrdersEndpoint = '/v5/order/realtime'
 const orderHistoryEndpoint = '/v5/order/history'
 const executionsEndpoint = '/v5/execution/list'
+
+const depositRecordsEndpoint = '/v5/asset/deposit/query-record'
+const internalDepositRecordsEndpoint = '/v5/asset/deposit/query-internal-record'
+const withdrawRecordsEndpoint = '/v5/asset/withdraw/query-record'
+
+const RECORD_LIMIT = 50
+const EVERY_WITHDRAW_TYPE = 2
 
 function unwrap<T>(response: BybitResponse<T>): T {
    if (response.retCode !== 0) {
@@ -158,4 +166,40 @@ export async function fetchExecutions(
       environment, credentials, executionsEndpoint,
       { searchParams: { category: 'spot', orderId, limit: 100 } })
    return page.list
+}
+
+async function fetchRecords<Row>(
+   credentials: Credentials, endpoint: string, query: Record<string, unknown>
+): Promise<Row[]> {
+
+   const records: Row[] = []
+   let cursor: string | undefined
+
+   do {
+      const page = await privateRequest<BybitRows<Row>>(
+         'mainnet', credentials, endpoint, { searchParams: { ...query, limit: RECORD_LIMIT, cursor } })
+      records.push(...page.rows)
+      cursor = page.rows.length < RECORD_LIMIT ? undefined : page.nextPageCursor || undefined
+   } while (cursor)
+
+   return records
+}
+
+export async function fetchDepositRecords(
+   credentials: Credentials, startTime: number, endTime: number
+): Promise<BybitDeposit[]> {
+   return await fetchRecords(credentials, depositRecordsEndpoint, { startTime, endTime })
+}
+
+export async function fetchInternalDepositRecords(
+   credentials: Credentials, startTime: number, endTime: number
+): Promise<BybitInternalDeposit[]> {
+   return await fetchRecords(credentials, internalDepositRecordsEndpoint, { startTime, endTime })
+}
+
+export async function fetchWithdrawRecords(
+   credentials: Credentials, startTime: number, endTime: number
+): Promise<BybitWithdrawal[]> {
+   return await fetchRecords(
+      credentials, withdrawRecordsEndpoint, { startTime, endTime, withdrawType: EVERY_WITHDRAW_TYPE })
 }

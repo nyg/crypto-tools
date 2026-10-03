@@ -4,7 +4,7 @@ import {
 } from '@/components/ui/chart'
 import SelectField from '../lib/select-field'
 import ComboboxField from '../lib/combobox-field'
-import { asAssetAmount, asCompact, asRounded, asShortMonthYearDate } from '../../../utils/format'
+import { asAssetAmount, asAxisTick, asShortMonthYearDate } from '../../../utils/format'
 import type { ChartConfig } from '@/components/ui/chart'
 import type { FeeSummary } from '../../../types/api'
 import type { FeeMonthRow } from '../../../types/db'
@@ -25,16 +25,6 @@ const granularities = [
    { value: 'quarter', label: 'Quarter' },
    { value: 'year', label: 'Year' }
 ]
-
-// Axis ticks have to stay short where the values do not: a fiat total wants no
-// decimals, a BTC one still has to show that it is not zero.
-const asAxisTick = (value: number) => {
-   const magnitude = Math.abs(value)
-   if (magnitude === 0) return '0'
-   if (magnitude >= 1000) return asCompact(value)
-   if (magnitude >= 1) return asRounded(value)
-   return Number(value.toPrecision(2)).toString()
-}
 
 // The server buckets by month; anything coarser is folded from those here.
 const bucketOf = (month: string, granularity: Granularity): Bucket => {

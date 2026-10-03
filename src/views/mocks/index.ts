@@ -4,10 +4,11 @@ import {
 } from './kraken'
 import {
    ledgerSync, ledgerSyncStatus, ledgerSyncCancel, ledgerClear,
-   ledgerEntries, ledgerFilters, ledgerFees, ledgerRewards, ledgerBalances
+   ledgerEntries, ledgerFilters, ledgerFees, ledgerFunding, ledgerRewards, ledgerBalances
 } from './kraken-ledger'
 import { tradeAggregations, tradeRows, tradeFilters } from './kraken-trades'
 import { aggregateBalance } from './binance'
+import { fundingRoutes } from './funding'
 import { portfolioRoutes } from './portfolio'
 import type { InstallInfo, LatestRelease } from '../../types/api'
 import type { MaskedSettings } from '../../types/settings'
@@ -41,6 +42,7 @@ const mockRoutes: Record<string, MockRoute> = {
    '/api/kraken/ledger/filters': () => ledgerFilters(),
    '/api/kraken/ledger/fees': (params) => ledgerFees(body(params)),
    '/api/kraken/ledger/rewards': () => ledgerRewards(),
+   '/api/kraken/ledger/funding': () => ledgerFunding(),
    '/api/kraken/ledger/balances': () => ledgerBalances(),
    '/api/kraken/ledger/clear': () => ledgerClear(),
    '/api/kraken/ledger/trades/aggregations': (params) => tradeAggregations(body(params)),
@@ -48,6 +50,7 @@ const mockRoutes: Record<string, MockRoute> = {
    '/api/kraken/ledger/trades/filters': () => tradeFilters(),
    '/api/binance/aggregate-balance': () => aggregateBalance,
    ...portfolioRoutes,
+   ...fundingRoutes,
    '/api/settings': () => mockSettings(false),
    '/api/settings?reveal=true': () => mockSettings(true),
    '/api/app/latest-release': () => mockLatestRelease(),

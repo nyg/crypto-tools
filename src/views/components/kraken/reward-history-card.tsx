@@ -7,7 +7,7 @@ import SelectField from '../lib/select-field'
 import usePersistentState from '../../lib/use-persistent-state'
 import { ValuationTag, usdOf } from './reward-valuation'
 import {
-   asAssetAmount, asCompact, asDollarAmount, asRounded,
+   asAssetAmount, asAxisTick, asDollarAmount,
    asUtcLongDate, asUtcMonthYearDate, asUtcShortDate, asUtcShortMonthYearDate
 } from '../../../utils/format'
 import type { RewardAmount, RewardAsset, RewardSummary } from '../../../types/api'
@@ -30,16 +30,6 @@ const granularities = [
    { value: 'month', label: 'Monthly' },
    { value: 'week', label: 'Weekly' }
 ]
-
-// Ticks stay short where the values do not: a dollar total wants no decimals, an
-// amount of BTC still has to show that it is not zero.
-const asAxisTick = (value: number) => {
-   const magnitude = Math.abs(value)
-   if (magnitude === 0) return '0'
-   if (magnitude >= 1000) return asCompact(value)
-   if (magnitude >= 1) return asRounded(value)
-   return Number(value.toPrecision(2)).toString()
-}
 
 function seriesOf(rewards: RewardSummary | undefined, granularity: Granularity): Series {
 
