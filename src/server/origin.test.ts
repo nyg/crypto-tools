@@ -32,6 +32,14 @@ describe('isWebOrigin', () => {
       expect(isWebOrigin('http://localhost:50001', 'http://localhost:50001/api/kraken/balance')).toBe(true)
    })
 
+   test('takes the page served on port 80 in production, whose origin names no port', () => {
+
+      inProduction()
+
+      expect(isWebOrigin('http://localhost', 'http://localhost/api/kraken/balance')).toBe(true)
+      expect(isWebOrigin('http://localhost', 'http://localhost:50001/api/kraken/balance')).toBe(false)
+   })
+
    test('refuses a local page on another port in production', () => {
 
       inProduction()

@@ -40,7 +40,7 @@ async function main() {
 
    await migrateSecretsToCredentialStore()
 
-   const honoApp = createApp({ desktop: true, devServerOrigin: url === VIEWS_URL ? undefined : url })
+   const honoApp = createApp({ desktop: true, devServerOrigin: url === VIEWS_URL ? undefined : new URL(url).origin })
 
    // Whatever port the OS hands out, so two Electrobun apps never fight over the same one.
    // The page learns it from the preload, even when Vite serves the page.

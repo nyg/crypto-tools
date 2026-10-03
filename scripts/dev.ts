@@ -11,11 +11,13 @@ function unusedPort(): string {
    return String(port)
 }
 
-const env = { PORT: process.env.PORT ?? unusedPort() }
+const env = { PORT: process.env.PORT || unusedPort() }
 
+// A server that lost its port must take Vite down with it, or Vite goes on proxying
+// /api to whichever process holds the port.
 const { result } = concurrently([
    { command: 'vite', name: 'vite', prefixColor: 'cyan', env },
    { command: 'bun --watch src/server/index.ts', name: 'bun', prefixColor: 'magenta', env }
-])
+], { killOthersOn: ['failure'] })
 
 await result.catch(() => process.exit(1))

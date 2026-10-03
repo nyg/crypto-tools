@@ -1,6 +1,6 @@
 export type OriginRule = (origin: string, requestUrl: string) => boolean
 
-const localhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/
+const localhostOrigin = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
 
 // The browser sends Origin on same-origin writes too, and no port is fixed. Development
 // takes any local page, since Vite's port is its own; production only the page this
