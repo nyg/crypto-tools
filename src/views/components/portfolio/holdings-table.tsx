@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
-import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react'
+import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
    asDrift, asQuantity, asQuoteAmount, asSignedPercent, asSignedQuoteAmount, asWeight, flipDistance, flipExtension,
-   profitColor, showsAsZeroQuoteAmount, stopStatusLabels
+   flipPending, profitColor, showsAsZeroQuoteAmount, stopStatusLabels
 } from './format'
 import SortableHead from '../lib/sortable-head'
 import { numericKey, sortRows } from '../../lib/sort'
@@ -26,13 +26,20 @@ const trendColors: Record<SupertrendTrend, string> = {
    down: 'text-destructive'
 }
 
-const trendTitle = ({ trend }: SupertrendLevel, timeframe: string) => trend === 'up'
-   ? `Uptrend: flips on a ${timeframe} close below this price`
-   : `Downtrend: flips on a ${timeframe} close above this price`
+const trendNames: Record<SupertrendTrend, string> = { up: 'Uptrend', down: 'Downtrend' }
+const flipSides: Record<SupertrendTrend, string> = { up: 'below', down: 'above' }
 
-const supertrendHint = (timeframe: string) =>
-   `Supertrend (10, 3) flip price on the ${timeframe} chart: green in an uptrend, red in a downtrend. `
-   + 'Top percentage: how far the price has run past it. Bottom: the move that would flip the trend.'
+const trendTitle = ({ trend }: SupertrendLevel, timeframe: string, pending: boolean) => pending
+   ? `${trendNames[trend]}, but the price is already ${flipSides[trend]} the flip price. `
+      + `The trend flips if the ${timeframe} candle closes there.`
+   : `${trendNames[trend]}. It flips if the ${timeframe} candle closes ${flipSides[trend]} this price.`
+
+const supertrendHint = (timeframe: string) => [
+   `Supertrend (10, 3) on the ${timeframe} chart.`,
+   'Price: the level where the trend flips. Green in an uptrend, red in a downtrend.',
+   'Top %: how far the current price is beyond that level.',
+   `Bottom %: how far it has to move back for a ${timeframe} close to flip the trend.`
+].join('\n')
 
 const SupertrendHead = ({ timeframe, children }: { timeframe: string, children: ReactNode }) =>
    <TableHead className="text-right">
@@ -41,19 +48,25 @@ const SupertrendHead = ({ timeframe, children }: { timeframe: string, children: 
       </span>
    </TableHead>
 
+const MINUS_SIGN = '−'
+
 const Move = ({ percent }: { percent: string }) => {
-   const Arrow = Number(percent) < 0 ? ArrowDownIcon : ArrowUpIcon
+   const falling = Number(percent) < 0
+   const Arrow = falling ? TrendingDownIcon : TrendingUpIcon
+   const color = trendColors[falling ? 'down' : 'up']
    return (
-      <span className="flex items-center justify-end gap-0.5">
-         <Arrow className="size-3" />{asSignedPercent(percent)}
-      </span>
+      <>
+         <Arrow className={cn('size-3', color)} />
+         <span className={color}>{asSignedPercent(percent).replace('-', MINUS_SIGN)}</span>
+      </>
    )
 }
 
 const ProfitCell = ({ value, percent = null, quote }: { value: string | null, percent?: string | null, quote: string }) =>
    <TableCell className={cn('text-right', profitColor(value))} title={asSignedQuoteAmount(value, quote)}>
       {asSignedQuoteAmount(value)}
-      {percent !== null && <span className="ml-1.5 text-xs">({asSignedPercent(percent)})</span>}
+      {percent !== null && value !== null && !showsAsZeroQuoteAmount(value) &&
+         <span className="ml-1.5 text-xs">({asSignedPercent(percent)})</span>}
    </TableCell>
 
 const ValueCell = ({ value, quote }: { value: string | null, quote: string }) =>
@@ -80,14 +93,17 @@ const SupertrendCell = ({ level, price, loading, timeframe }: {
    if (!level) return <TableCell className="text-right text-muted-foreground">{loading ? '…' : '—'}</TableCell>
    const extension = flipExtension(level.flipPrice, price)
    const distance = flipDistance(level.flipPrice, price)
+   const pending = flipPending(level, price)
    return (
-      <TableCell className={cn('text-right', trendColors[level.trend])} title={trendTitle(level, timeframe)}>
+      <TableCell className="text-right" title={trendTitle(level, timeframe, pending)}>
          <div className="flex items-center justify-end gap-2">
-            {asQuantity(level.flipPrice)}
+            <span className={trendColors[level.trend]}>{asQuantity(level.flipPrice)}</span>
             {extension !== null && distance !== null &&
-               <div className="text-xs leading-tight">
+               <div className="grid grid-cols-[auto_auto] items-center gap-x-0.5 text-xs leading-tight">
                   <Move percent={extension} />
-                  <Move percent={distance} />
+                  {pending
+                     ? <span className="col-span-2 text-amber-600 dark:text-amber-400">flips at close</span>
+                     : <Move percent={distance} />}
                </div>}
          </div>
       </TableCell>
@@ -133,8 +149,8 @@ export default function HoldingsTable({ portfolio, supertrend, sort, onSortChang
                <TableHead className="text-right">Quantity</TableHead>
                <TableHead className="text-right">Price</TableHead>
                {supertrend && <>
-                  <SupertrendHead timeframe="daily">ST 1D</SupertrendHead>
-                  <SupertrendHead timeframe="weekly">ST 1W</SupertrendHead>
+                  <SupertrendHead timeframe="daily">Supertrend 1D</SupertrendHead>
+                  <SupertrendHead timeframe="weekly">Supertrend 1W</SupertrendHead>
                </>}
                <SortableHead column="value" align="right" sort={sort} onSortChange={onSortChange}>
                   Value<span className="text-xs font-normal text-muted-foreground">{quote}</span>
@@ -158,7 +174,9 @@ export default function HoldingsTable({ portfolio, supertrend, sort, onSortChang
                         <TableCell colSpan={6 + extraColumns} />
                         <ValueCell value={holding.value} quote={quote} />
                         <TableCell />
-                        {realizedShown ? <ProfitCell value={holding.realized} quote={quote} /> : <TableCell />}
+                        {realizedShown
+                           ? <ProfitCell value={holding.realized} percent={holding.realizedPercent} quote={quote} />
+                           : <TableCell />}
                      </TableRow>
                   )
                }
@@ -193,14 +211,14 @@ export default function HoldingsTable({ portfolio, supertrend, sort, onSortChang
                      </>}
                      <ValueCell value={holding.value} quote={quote} />
                      <ProfitCell value={holding.unrealized} percent={holding.unrealizedPercent} quote={quote} />
-                     <ProfitCell value={holding.realized} quote={quote} />
+                     <ProfitCell value={holding.realized} percent={holding.realizedPercent} quote={quote} />
                   </TableRow>
                )
             })}
             {!showsAsZeroQuoteAmount(portfolio.closedRealized) &&
                <TableRow>
                   <TableCell colSpan={9 + extraColumns} className="text-muted-foreground">Closed positions</TableCell>
-                  <ProfitCell value={portfolio.closedRealized} quote={quote} />
+                  <ProfitCell value={portfolio.closedRealized} percent={portfolio.closedRealizedPercent} quote={quote} />
                </TableRow>}
          </TableBody>
          <TableFooter>
@@ -208,7 +226,7 @@ export default function HoldingsTable({ portfolio, supertrend, sort, onSortChang
                <TableCell colSpan={7 + extraColumns}>Total</TableCell>
                <ValueCell value={portfolio.value} quote={quote} />
                <ProfitCell value={portfolio.unrealized} percent={portfolio.unrealizedPercent} quote={quote} />
-               <ProfitCell value={portfolio.realized} quote={quote} />
+               <ProfitCell value={portfolio.realized} percent={portfolio.realizedPercent} quote={quote} />
             </TableRow>
          </TableFooter>
       </Table>

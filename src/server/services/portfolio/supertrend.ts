@@ -1,13 +1,23 @@
 import Big from 'big.js'
 import type { SupertrendTrend } from '../../../types/api'
-import type { SpotCandle } from '../../../types/portfolio'
+import type { CandleInterval, SpotCandle } from '../../../types/portfolio'
 
 export const ATR_LENGTH = 10
 export const FACTOR = 3
 
+const DAY_MS = 86400000
+const INTERVAL_MS: Record<CandleInterval, number> = { '1d': DAY_MS, '1w': 7 * DAY_MS }
+
 export interface Supertrend {
    flipPrice: Big
    trend: SupertrendTrend
+}
+
+export interface SupertrendOptions {
+   interval?: CandleInterval
+   now?: number
+   atrLength?: number
+   factor?: number
 }
 
 const TWO = Big(2)
@@ -25,7 +35,12 @@ function trueRanges(candles: SpotCandle[]): Big[] {
 
 // Follows TradingView's ta.supertrend bar for bar: the bands count as 0 before the first
 // ATR, the first bar with one is a downtrend, and the ATR is Wilder's, seeded with an SMA.
-export function supertrend(candles: SpotCandle[], atrLength = ATR_LENGTH, factor = FACTOR): Supertrend | null {
+// The one difference is the candle still forming at `now`: it moves the bands, but only a
+// close flips the trend, where a chart flips it for as long as the price is past the band.
+export function supertrend(
+   candles: SpotCandle[],
+   { interval = '1d', now = Infinity, atrLength = ATR_LENGTH, factor = FACTOR }: SupertrendOptions = {}
+): Supertrend | null {
 
    if (candles.length <= atrLength) return null
 
@@ -40,7 +55,8 @@ export function supertrend(candles: SpotCandle[], atrLength = ATR_LENGTH, factor
 
    for (let index = first; index < candles.length; index++) {
 
-      const { high, low, close } = candles[index]!
+      const { time, high, low, close } = candles[index]!
+      const forming = time + INTERVAL_MS[interval] > now
       if (index > first) atr = atr.times(atrLength - 1).plus(ranges[index]!).div(atrLength)
 
       const middle = Big(high).plus(low).div(TWO)
@@ -55,6 +71,7 @@ export function supertrend(candles: SpotCandle[], atrLength = ATR_LENGTH, factor
       lower = basicLower.gt(lower) || brokeLower ? basicLower : lower
 
       if (index === first) trend = 'down'
+      else if (forming) trend = wasUpper ? 'down' : 'up'
       else if (wasUpper) trend = Big(close).gt(upper) ? 'up' : 'down'
       else trend = Big(close).lt(lower) ? 'down' : 'up'
 

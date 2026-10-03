@@ -15,11 +15,12 @@ const portfolioHelp = (exchange: string, practice: ReactNode) =>
       is over the cost of the coins it is about: those still held, or those sold. A coin you
       deposit counts at its value on the day it came in. <b>Fees paid</b> adds up every
       order&apos;s fee at the price the order filled at; the two profits already count it.{' '}
-      <b>ST 1D</b> and <b>ST 1W</b>, on a live account, are the prices at which the Supertrend
-      (10, 3) indicator flips on the coin&apos;s daily and weekly {exchange} chart: green and
-      below the price in an uptrend, red and above it in a downtrend. The two percentages
-      beside it are how far the price has run past the flip price, and the move that would
-      flip the trend.{practice}
+      <b>Supertrend 1D</b> and <b>1W</b>, on a live account, are the prices at which the
+      Supertrend (10, 3) indicator flips on the coin&apos;s daily and weekly {exchange} chart:
+      green and below the price in an uptrend, red and above it in a downtrend. The two
+      percentages beside it are how far the price is beyond the flip price, and how far it
+      has to move back for a close to flip the trend. A price already past the flip price
+      shows <b>flips at close</b>: the trend only changes once the candle closes there.{practice}
    </>
 
 const settingsHelp = (tabs: string) =>

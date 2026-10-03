@@ -310,6 +310,8 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(portfolio.unrealizedPercent).toBe('-0.1')
       expect(portfolio.realized).toBe('0')
       expect(portfolio.realizedPercent).toBeNull()
+      expect(btc.realizedPercent).toBeNull()
+      expect(portfolio.closedRealizedPercent).toBeNull()
       expect(portfolio.profit).toBe('-0.8')
       expect(portfolio.fees).toBe('0.8')
       expect(portfolio.feesUnvalued).toEqual([])
@@ -485,6 +487,7 @@ describe('profit split into realized and unrealized', () => {
 
          expect(Big(btc.unrealized!).eq(Big(btc.quantity).times(10000))).toBe(true)
          expect(Big(btc.realized).gt(0)).toBe(true)
+         expect(Big(btc.realizedPercent!).gt(0)).toBe(true)
          expect(portfolio.closedRealized).toBe('0')
          expect(Big(portfolio.realized).plus(portfolio.unrealized).eq(portfolio.profit)).toBe(true)
          expect(Big(portfolio.realizedPercent!).gt(0)).toBe(true)
