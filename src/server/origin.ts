@@ -14,3 +14,7 @@ export const isWebOrigin: OriginRule = (origin, requestUrl) =>
 // as 'development' in every channel: a released build would take any local page.
 export const desktopOrigins = (devServerOrigin?: string): OriginRule =>
    origin => origin.startsWith('views://') || origin === devServerOrigin
+
+export const originRuleFor = (
+   { desktop, devServerOrigin }: { desktop?: boolean, devServerOrigin?: string }
+): OriginRule => desktop ? desktopOrigins(devServerOrigin) : isWebOrigin

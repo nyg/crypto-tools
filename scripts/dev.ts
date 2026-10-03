@@ -11,7 +11,9 @@ function unusedPort(): string {
    return String(port)
 }
 
-const env = { PORT: process.env.PORT || unusedPort() }
+// The probe and Vite's proxy both look at 127.0.0.1, so the server listens there
+// whatever HOST says.
+const env = { PORT: process.env.PORT || unusedPort(), HOST: '127.0.0.1' }
 
 // A server that lost its port must take Vite down with it, or Vite goes on proxying
 // /api to whichever process holds the port.

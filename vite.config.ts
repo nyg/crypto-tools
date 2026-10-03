@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
@@ -8,6 +8,20 @@ const { version } = JSON.parse(
    readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf-8')) as { version: string }
 
 const apiPort = process.env.PORT
+
+// With no port there is nothing to proxy to, and Vite would answer /api with index.html.
+const noApiServer: Plugin = {
+   name: 'no-api-server',
+   configureServer(server) {
+      server.middlewares.use('/api', (_request, response) => {
+         response.statusCode = 502
+         response.setHeader('Content-Type', 'application/json')
+         response.end(JSON.stringify({
+            error: 'No API server to proxy to: PORT is not set. Start both with `bun run dev`.'
+         }))
+      })
+   },
+}
 
 export default defineConfig({
    define: {
@@ -20,7 +34,7 @@ export default defineConfig({
    // resolves them against the route instead of the root, which the production
    // server in src/server/index.js compensates for.
    base: './',
-   plugins: [react(), tailwindcss()],
+   plugins: [react(), tailwindcss(), ...(apiPort ? [] : [noApiServer])],
    resolve: {
       alias: {
          '@': path.resolve(import.meta.dirname, 'src/views'),

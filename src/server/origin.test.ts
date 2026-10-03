@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { desktopOrigins, isWebOrigin } from './origin'
+import { desktopOrigins, isWebOrigin, originRuleFor } from './origin'
 
 const nodeEnv = process.env.NODE_ENV
 
@@ -79,5 +79,32 @@ describe('desktopOrigins', () => {
       expect(isDesktopOrigin('http://localhost:50000', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(true)
       expect(isDesktopOrigin('http://localhost:50002', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(false)
       expect(isDesktopOrigin('views://main', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(true)
+   })
+})
+
+describe('originRuleFor', () => {
+
+   test('gives the web server the rule that takes a local page and no page of the app', () => {
+
+      const isAllowedOrigin = originRuleFor({})
+
+      expect(isAllowedOrigin('http://localhost:50000', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(true)
+      expect(isAllowedOrigin('views://main', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(false)
+   })
+
+   test('gives the desktop app the rule that takes its own page and no local one', () => {
+
+      const isAllowedOrigin = originRuleFor({ desktop: true })
+
+      expect(isAllowedOrigin('views://main', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(true)
+      expect(isAllowedOrigin('http://localhost:50000', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(false)
+   })
+
+   test('hands the desktop app the dev server it loaded its page from', () => {
+
+      const isAllowedOrigin = originRuleFor({ desktop: true, devServerOrigin: 'http://localhost:50000' })
+
+      expect(isAllowedOrigin('http://localhost:50000', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(true)
+      expect(isAllowedOrigin('http://localhost:50002', 'http://127.0.0.1:50001/api/kraken/balance')).toBe(false)
    })
 })

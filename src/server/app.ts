@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { desktopOrigins, isWebOrigin } from './origin'
+import { originRuleFor } from './origin'
 import appRoutes from './routes/app'
 import binanceRoutes from './routes/binance'
 import bybitRoutes from './routes/bybit'
@@ -19,7 +19,7 @@ export interface AppOptions {
 
 export function createApp({ desktop = false, devServerOrigin }: AppOptions = {}) {
    const app = new Hono()
-   const isAllowedOrigin = desktop ? desktopOrigins(devServerOrigin) : isWebOrigin
+   const isAllowedOrigin = originRuleFor({ desktop, devServerOrigin })
 
    app.use('/api/*', cors({
       origin: (origin, c) => isAllowedOrigin(origin, c.req.url) ? origin : null
