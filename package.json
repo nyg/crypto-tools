@@ -21,7 +21,7 @@
       "url": "https://github.com/nyg/crypto-tools/issues"
    },
    "scripts": {
-      "dev": "concurrently -n vite,bun -c cyan,magenta \"vite\" \"bun --watch src/server/index.ts\"",
+      "dev": "bun scripts/dev.ts",
       "dev:vite": "vite",
       "dev:server": "bun --watch src/server/index.ts",
       "desktop:prepare": "bunx electrobun prepare",
