@@ -8,10 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asDecimal, asNumber, asLocalTimestamp } from '../../../utils/format'
 import { asCount } from '../lib/filter-options'
-import { convertQuotes } from '../../lib/quote-conversion'
 import type { AggregationsResponse } from '../../../types/api'
 import type { MarketRow } from '../../../types/db'
-import type { RateAt } from '../../lib/quote-conversion'
 
 // The four amounts a run is totalled by, each of which a quote carries as a string and
 // the conversion returns as a Big.
@@ -29,14 +27,12 @@ const decimalsOf = (values: string[], minimum: number) => Math.max(minimum, ...v
 const asAmount = (value: string, decimals = decimalsIn(value)) => asDecimal(Number(value), decimals)
 
 export default function AggregateTable({
-   groups, market, scope, targetQuote, rateAt, isLoadingRates, hasTrades, onPageChange
+   groups, market, scope, targetQuote, hasTrades, onPageChange
 }: {
    groups?: AggregationsResponse
    market?: MarketRow | null
    scope: string
    targetQuote: string
-   rateAt: RateAt
-   isLoadingRates?: boolean
    hasTrades?: boolean
    onPageChange: (page: number) => void
 }) {
@@ -60,7 +56,7 @@ export default function AggregateTable({
 
    if (!groups) return null
 
-   const { rows, total, page, pageSize } = groups
+   const { rows, total, page, pageSize, ratesPending } = groups
 
    if (rows.length === 0) {
       return hasTrades
@@ -93,26 +89,26 @@ export default function AggregateTable({
                {rows.map(group => {
 
                   const isExpanded = expanded.has(group.groupKey)
-                  const totals = convertQuotes(group.quotes, targetQuote, rateAt, group.startTime)
+                  const totals = group.totals
 
                   const [onlyQuote] = group.quotes
                   const exact = group.quotes.length === 1 && onlyQuote?.quoteAsset === targetQuote
                      ? onlyQuote
                      : null
 
-                  const pending = !exact && isLoadingRates
-                  const unpriced = !exact && totals.volume.eq(0)
+                  const excluded = totals.unconverted
+                  const pending = !exact && ratesPending && excluded.length > 0
+                  const unpriced = !exact && Big(totals.volume).eq(0)
 
-                  const excluded = group.quotes.filter(quote => totals.missing.includes(quote.quoteAsset))
                   const excludedVolume = excluded
-                     .reduce((total, quote) => total.plus(quote.volume), Big(0))
-                     .toString()
+                     .reduce((total, left) => total.plus(left.volume), Big(0))
+                     .toFixed()
 
                   const title = exact ? undefined : [
                      group.quotes.map(quote => `${quote.cost} ${quote.quoteAsset}`).join(' + '),
-                     totals.converted ? `converted to ${targetQuote} at today's rate` : null,
+                     totals.converted ? `converted to ${targetQuote} at the rate of each order's day` : null,
                      excluded.length > 0
-                        ? `no rate for ${totals.missing.join(', ')}, leaving out ${excludedVolume} ${group.baseAsset}`
+                        ? `no rate for ${excluded.map(left => left.quoteAsset).join(', ')}, leaving out ${excludedVolume} ${group.baseAsset}`
                         : null
                   ].filter(Boolean).join(' — ')
 
@@ -124,7 +120,7 @@ export default function AggregateTable({
                      const value = totals[key]
                      if (unpriced || value === null) return '—'
                      const decimals = decimalsOf(group.quotes.map(quote => quote[key]), 2)
-                     return `≈ ${asAmount(value.toFixed(decimals), decimals)}`
+                     return `≈ ${asAmount(Big(value).toFixed(decimals), decimals)}`
                   }
 
                   return [

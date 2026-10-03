@@ -5,7 +5,7 @@ import tradeRoutes from './kraken-trades'
 import { withAccount, withCredentials } from './with-account'
 import { dbSizeBytes } from '../db/paths'
 import { jobFor, isRunning, requestCancel, startSync } from '../services/kraken-ledger-sync'
-import { refreshUsdRates } from '../services/usd-rate-backfill'
+import { refreshUsdRates, usdRateRanges } from '../services/usd-rate-backfill'
 import type { RequestBody } from './with-account'
 import type { LedgerFilters, Sort } from '../../types/kraken'
 
@@ -59,13 +59,13 @@ app.get('/filters', async (c) => withAccount(c, ({ accountId }) =>
 
 app.post('/fees', async (c) => withAccount(c, ({ body, accountId }) => {
    const repository = new LedgerRepository(accountId)
-   const ratesPending = refreshUsdRates(accountId, () => repository.valuedAssetRanges())
+   const ratesPending = refreshUsdRates(accountId, () => usdRateRanges(accountId))
    return c.json({ ...repository.feeSummary(filtersOf(body)), ratesPending })
 }))
 
 app.get('/rewards', async (c) => withAccount(c, ({ accountId }) => {
    const repository = new LedgerRepository(accountId)
-   const ratesPending = refreshUsdRates(accountId, () => repository.valuedAssetRanges())
+   const ratesPending = refreshUsdRates(accountId, () => usdRateRanges(accountId))
    return c.json({ ...repository.rewardSummary(), ratesPending })
 }))
 

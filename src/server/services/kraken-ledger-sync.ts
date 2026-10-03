@@ -2,7 +2,7 @@ import KrakenAPI from '../adapters/kraken-api/adapter'
 import LedgerRepository from '../db/ledger-repository'
 import TradeRepository from '../db/trade-repository'
 import RateRepository from '../db/rate-repository'
-import { backfillUsdRates } from './usd-rate-backfill'
+import { backfillUsdRates, usdRateRanges } from './usd-rate-backfill'
 import { messageOf } from '../errors'
 import type { Credentials } from '../../types/credentials'
 import type { ExportReportType } from '../../types/kraken'
@@ -187,7 +187,7 @@ async function runSync(job: SyncJob, credentials: Credentials) {
 
       finishSyncState(repository)
 
-      await runRates(job, repository)
+      await runRates(job)
 
       setPhase(job, 'done')
    }
@@ -272,7 +272,7 @@ async function runReport<Row>(
    console.log(`Kraken ${report} sync stored ${rows.length} rows`)
 }
 
-async function runRates(job: SyncJob, repository: LedgerRepository) {
+async function runRates(job: SyncJob) {
 
    const step = stepFor(job, 'rates')
    const rateRepository = new RateRepository()
@@ -283,7 +283,7 @@ async function runRates(job: SyncJob, repository: LedgerRepository) {
    setStepPhase(job, step, 'requesting')
 
    try {
-      await backfillUsdRates(repository.valuedAssetRanges(), {
+      await backfillUsdRates(usdRateRanges(job.accountId), {
          checkCancelled: () => throwIfCancelled(job),
          onFetching: () => setStepPhase(job, step, 'downloading'),
          onStored: (received) => {

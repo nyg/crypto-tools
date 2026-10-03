@@ -67,7 +67,8 @@ const pageHelp: Record<string, ReactNode> = {
 
    '/kraken/aggregated-trades':
       <>
-         Your trades for one asset, grouped into runs of buys and sells.
+         Your trades for one asset, grouped into runs of buys and sells. Orders in other fiat
+         currencies and stablecoins can be merged in, each converted at the rate of its own day.
       </>,
 
    '/kraken/open-orders':

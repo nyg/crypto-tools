@@ -23,9 +23,10 @@ const orderOptions = [
    { value: 'asc', label: 'Oldest first' }
 ]
 
-export default function AggregateFilters({ filters, markets, onChange, onReset }: {
+export default function AggregateFilters({ filters, markets, mergeable, onChange, onReset }: {
    filters: AggregateFilterValues
    markets: MarketRow[]
+   mergeable: boolean
    onChange: (filters: AggregateFilterValues) => void
    onReset: () => void
 }) {
@@ -74,7 +75,9 @@ export default function AggregateFilters({ filters, markets, onChange, onReset }
 
             <Checkbox
                name="aggregate-all-quotes"
-               checked={filters.includeAllQuotes}
+               checked={filters.includeAllQuotes && mergeable}
+               disabled={!mergeable}
+               title={mergeable ? undefined : 'Only for a pair quoted in a fiat currency or a stablecoin.'}
                onChange={(e) => update({ includeAllQuotes: e.target.checked })}
                label="Include other fiat currencies and stablecoins" />
 

@@ -2,6 +2,8 @@ import KrakenAPI from '../adapters/kraken-api/adapter'
 import BinanceAPI from '../adapters/binance-api/adapter'
 import FrankfurterAPI from '../adapters/frankfurter-api/adapter'
 import RateRepository from '../db/rate-repository'
+import LedgerRepository from '../db/ledger-repository'
+import TradeRepository from '../db/trade-repository'
 import { messageOf } from '../errors'
 import type { AssetRangeRow } from '../../types/db'
 
@@ -90,6 +92,26 @@ export function planRateFetch(ranges: AssetRangeRow[], coverage: Map<string, Ass
       ecb: ecbAssets.length > 0 ? { assets: ecbAssets, from: ecbFrom, to: ecbTo } : null,
       legacy
    }
+}
+
+export function mergeRanges(...lists: AssetRangeRow[][]): AssetRangeRow[] {
+
+   const merged = new Map<string, AssetRangeRow>()
+
+   for (const range of lists.flat()) {
+      const known = merged.get(range.asset)
+      merged.set(range.asset, known
+         ? { asset: range.asset, first: Math.min(known.first, range.first), last: Math.max(known.last, range.last) }
+         : { ...range })
+   }
+
+   return [...merged.values()]
+}
+
+export function usdRateRanges(accountId: string): AssetRangeRow[] {
+   return mergeRanges(
+      new LedgerRepository(accountId).valuedAssetRanges(),
+      new TradeRepository(accountId).quoteAssetRanges())
 }
 
 export function planFor(ranges: AssetRangeRow[], today = dayOf(Date.now())): RatePlan {

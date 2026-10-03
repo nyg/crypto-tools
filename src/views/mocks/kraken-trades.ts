@@ -1,6 +1,7 @@
 import Big from 'big.js'
+import { mockUsdRateOn } from './usd-rates'
 import type {
-   Aggregation, AggregationsResponse, AggregationSummary, Order,
+   Aggregation, AggregationsResponse, AggregationSummary, ConvertedTotals, Order,
    SummarySide, TradeFiltersResponse, TradesResponse
 } from '../../types/api'
 import type { TradeListRow, TradeRow } from '../../types/db'
@@ -22,7 +23,10 @@ interface SideFold {
    orderCount: number
    tradeCount: number
    byQuote: Map<string, QuoteFold>
+   orders: Order[]
 }
+
+const mergeableQuotes = ['USD', 'EUR', 'GBP', 'CHF', 'CAD', 'JPY', 'AUD', 'USDT', 'USDC', 'DAI']
 
 // Deterministic pseudo-random source, so the fixture is identical across reloads.
 function randomizer(seed: number) {
@@ -193,17 +197,23 @@ export function tradeAggregations(
    const page = Math.max(0, body.page ?? 0)
    const pageSize = body.pageSize ?? 20
 
+   const targetQuote = filters.quote ?? ''
+
    const empty: AggregationsResponse = {
       rows: [], total: 0, page, pageSize,
-      baseAsset: filters.base ?? '', quoteAsset: filters.quote ?? '',
-      quoteAssets: [], summary: emptySummary(), truncated: false
+      baseAsset: filters.base ?? '', quoteAsset: targetQuote,
+      summary: emptySummary(), truncated: false, ratesPending: false
    }
 
    if (!filters.base) return empty
 
+   const merged = filters.includeAllQuotes === true && mergeableQuotes.includes(targetQuote)
+
    const matched = trades.filter(trade =>
       trade.baseAsset === filters.base
-      && (filters.includeAllQuotes || !filters.quote || trade.quoteAsset === filters.quote)
+      && (merged
+         ? mergeableQuotes.includes(trade.quoteAsset)
+         : !filters.quote || trade.quoteAsset === filters.quote)
       && (!filters.from || trade.time >= filters.from)
       && (!filters.to || trade.time <= filters.to))
 
@@ -223,7 +233,7 @@ export function tradeAggregations(
       else runs.push({ direction: order.direction, orders: [order] })
    }
 
-   const groups = runs.map(asAggregation)
+   const groups = runs.map((run, index) => asAggregation(run, index, targetQuote))
    const ordered = filters.order === 'asc' ? groups : groups.toReversed()
 
    return {
@@ -232,14 +242,55 @@ export function tradeAggregations(
       page,
       pageSize,
       baseAsset: filters.base,
-      quoteAsset: filters.quote ?? '',
-      quoteAssets: [...new Set(groups.flatMap(group => group.quotes.map(quote => quote.quoteAsset)))],
-      summary: asSummary(orders),
-      truncated: false
+      quoteAsset: targetQuote,
+      summary: asSummary(orders, targetQuote),
+      truncated: false,
+      ratesPending: false
    }
 }
 
-function asSummary(orders: Order[]): AggregationSummary {
+function convertOrders(orders: Order[], targetQuote: string): ConvertedTotals {
+
+   let volume = Big(0)
+   let cost = Big(0)
+   let fee = Big(0)
+   let netCost = Big(0)
+   let converted = false
+
+   const unconverted = new Map<string, Big>()
+
+   for (const order of orders) {
+
+      const from = mockUsdRateOn(order.quoteAsset, order.time)
+      const to = mockUsdRateOn(targetQuote, order.time)
+      const same = order.quoteAsset === targetQuote
+
+      if (!same && (!from || !to)) {
+         unconverted.set(order.quoteAsset, (unconverted.get(order.quoteAsset) ?? Big(0)).plus(order.volume))
+         continue
+      }
+
+      const factor = same ? Big(1) : Big(from!).div(to!)
+      if (!same) converted = true
+
+      volume = volume.plus(order.volume)
+      cost = cost.plus(factor.times(order.cost))
+      fee = fee.plus(factor.times(order.fee))
+      netCost = netCost.plus(factor.times(order.netCost))
+   }
+
+   return {
+      volume: volume.toFixed(),
+      cost: cost.toFixed(),
+      fee: fee.toFixed(),
+      netCost: netCost.toFixed(),
+      price: volume.eq(0) ? null : cost.div(volume).toFixed(),
+      converted,
+      unconverted: [...unconverted].map(([quoteAsset, left]) => ({ quoteAsset, volume: left.toFixed() }))
+   }
+}
+
+function asSummary(orders: Order[], targetQuote: string): AggregationSummary {
 
    const buy = newSummarySide()
    const sell = newSummarySide()
@@ -251,6 +302,7 @@ function asSummary(orders: Order[]): AggregationSummary {
 
       side.orderCount += 1
       side.tradeCount += order.tradeCount
+      side.orders.push(order)
 
       const totals = side.byQuote.get(order.quoteAsset)
          ?? { volume: Big(0), cost: Big(0), fee: Big(0), netCost: Big(0), decimals: 2 }
@@ -262,14 +314,14 @@ function asSummary(orders: Order[]): AggregationSummary {
       side.byQuote.set(order.quoteAsset, totals)
    }
 
-   return { buy: asSummarySide(buy), sell: asSummarySide(sell) }
+   return { buy: asSummarySide(buy, targetQuote), sell: asSummarySide(sell, targetQuote) }
 }
 
 function newSummarySide(): SideFold {
-   return { orderCount: 0, tradeCount: 0, byQuote: new Map() }
+   return { orderCount: 0, tradeCount: 0, byQuote: new Map(), orders: [] }
 }
 
-function asSummarySide(side: SideFold): SummarySide {
+function asSummarySide(side: SideFold, targetQuote: string): SummarySide {
    return {
       orderCount: side.orderCount,
       tradeCount: side.tradeCount,
@@ -282,15 +334,16 @@ function asSummarySide(side: SideFold): SummarySide {
          fee: totals.fee.toString(),
          netCost: totals.netCost.toString(),
          price: totals.volume.eq(0) ? '0' : totals.cost.div(totals.volume).toFixed(totals.decimals)
-      }))
+      })),
+      totals: convertOrders(side.orders, targetQuote)
    }
 }
 
 function emptySummary(): AggregationSummary {
-   return { buy: asSummarySide(newSummarySide()), sell: asSummarySide(newSummarySide()) }
+   return asSummary([], '')
 }
 
-function asAggregation(run: { direction: string, orders: Order[] }, index: number): Aggregation {
+function asAggregation(run: { direction: string, orders: Order[] }, index: number, targetQuote: string): Aggregation {
 
    const orders = run.orders
    const first = orders[0]!
@@ -328,6 +381,7 @@ function asAggregation(run: { direction: string, orders: Order[] }, index: numbe
          netCost: totals.netCost.toString(),
          price: totals.volume.eq(0) ? '0' : totals.cost.div(totals.volume).toFixed(totals.decimals)
       })),
+      totals: convertOrders(orders, targetQuote),
       orders
    }
 }
@@ -401,6 +455,7 @@ export function tradeFilters(): TradeFiltersResponse {
       pairs: distinct(trade => trade.pairKey),
       directions: distinct(trade => trade.type),
       ordertypes: distinct(trade => trade.ordertype),
-      markets
+      markets,
+      mergeableQuotes
    }
 }

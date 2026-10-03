@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { DAILY_WINDOW_DAYS, DAY_MS, planRateFetch } from './usd-rate-backfill'
+import { DAILY_WINDOW_DAYS, DAY_MS, mergeRanges, planRateFetch } from './usd-rate-backfill'
 import type { AssetRangeRow } from '../../types/db'
 
 const today = Date.UTC(2026, 8, 25)
@@ -83,5 +83,21 @@ describe('planRateFetch', () => {
       const after = planRateFetch(ranges, coverageOf(range('POL', Date.UTC(2023, 5, 13), Date.UTC(2026, 8, 24))), today)
 
       expect(after).toEqual({ kraken: [], ecb: null, legacy: [] })
+   })
+})
+
+describe('mergeRanges', () => {
+
+   test('keeps the earliest first and the latest last of an asset named in several lists', () => {
+
+      const merged = mergeRanges(
+         [range('EUR', Date.UTC(2021, 0, 5), Date.UTC(2024, 0, 5)), range('DOT', Date.UTC(2022, 0, 1), Date.UTC(2023, 0, 1))],
+         [range('EUR', Date.UTC(2019, 0, 5), Date.UTC(2022, 0, 5)), range('CHF', Date.UTC(2025, 0, 1), Date.UTC(2026, 0, 1))])
+
+      expect(merged).toEqual([
+         range('EUR', Date.UTC(2019, 0, 5), Date.UTC(2024, 0, 5)),
+         range('DOT', Date.UTC(2022, 0, 1), Date.UTC(2023, 0, 1)),
+         range('CHF', Date.UTC(2025, 0, 1), Date.UTC(2026, 0, 1))
+      ])
    })
 })
