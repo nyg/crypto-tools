@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { originRuleFor } from './origin'
+import { isLoopbackHost, originRuleFor } from './origin'
 import appRoutes from './routes/app'
 import binanceRoutes from './routes/binance'
 import bybitRoutes from './routes/bybit'
@@ -20,6 +20,13 @@ export interface AppOptions {
 export function createApp({ desktop = false, devServerOrigin }: AppOptions = {}) {
    const app = new Hono()
    const isAllowedOrigin = originRuleFor({ desktop, devServerOrigin })
+
+   app.use('/api/*', async (c, next) => {
+      if (!isLoopbackHost(c.req.header('host'))) {
+         return c.json({ error: 'Host not allowed.' }, 403)
+      }
+      await next()
+   })
 
    app.use('/api/*', cors({
       origin: (origin, c) => isAllowedOrigin(origin, c.req.url) ? origin : null
