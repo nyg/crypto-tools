@@ -1,6 +1,24 @@
 # Changelog
 
 
+## [1.0.0](https://github.com/nyg/crypto-tools/compare/v0.9.1..v1.0.0) - 2026-09-27
+
+### ⛰️  Features
+
+- [`2bab2d8`](https://github.com/nyg/crypto-tools/commit/2bab2d8b5344c2ec17ce975c41dcecdeb776b13d) *(kraken)* Value rewards and fees at the USD rate of their own day ([#313](https://github.com/nyg/crypto-tools/issues/313))
+- [`03e619d`](https://github.com/nyg/crypto-tools/commit/03e619d0bd96ebd97d1de87aee8a266a376e0997) *(kraken)* Monthly and weekly rewards chart, grouped ledger amounts, one-decimal share ([#312](https://github.com/nyg/crypto-tools/issues/312))
+- [`7c4b3d8`](https://github.com/nyg/crypto-tools/commit/7c4b3d86f6e69a2303888b777f3a40fd5bc645cb) *(kraken)* Read balance placement from Kraken Earn instead of the ledger ([#311](https://github.com/nyg/crypto-tools/issues/311))
+- [`838bbc6`](https://github.com/nyg/crypto-tools/commit/838bbc6553c71e1f9680c4e75b22e4cbae87748a) *(portfolio)* Fund out-of-band buys, per-pair fees in the preview, rebalance badge, remembered sort, unrealized % ([#310](https://github.com/nyg/crypto-tools/issues/310))
+- [`f1b8d94`](https://github.com/nyg/crypto-tools/commit/f1b8d94c0df867ca67930b704b99233f7ffcafa1) Unique portfolio coins, sortable tables, fee currency notes, scrollable asset list ([#307](https://github.com/nyg/crypto-tools/issues/307))
+
+### 🐛 Bug Fixes
+
+- [`1d27b30`](https://github.com/nyg/crypto-tools/commit/1d27b30301535aee13b7f279193d59ddd7d6d972) *(portfolio)* Leave room for Kraken's buy fee so cash never goes negative ([#308](https://github.com/nyg/crypto-tools/issues/308))
+
+### 📚 Documentation
+
+- [`0b9bfce`](https://github.com/nyg/crypto-tools/commit/0b9bfce280a359f36413bc6e5ab511f0a0535de8) Explain company-blocked SmartScreen and recommend Scoop on Windows ([#314](https://github.com/nyg/crypto-tools/issues/314))
+
 ## [0.9.1](https://github.com/nyg/crypto-tools/compare/v0.9.0..v0.9.1) - 2026-09-21
 
 ### 🐛 Bug Fixes

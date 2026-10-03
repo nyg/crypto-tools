@@ -10,8 +10,8 @@ import type { JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
 import type {
-   FeeAmount, MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, SkipReason,
-   StopSkipReason, StopStatus, VenueId
+   FeeAmount, MovementKind, OrderSide, RebalanceMode, RunKind, RunOrderStatus, RunStatus, SizeUnit,
+   SkipReason, StopSkipReason, StopStatus, VenueId
 } from './portfolio'
 import type { XStockListingType } from './xstock'
 
@@ -389,9 +389,12 @@ export interface PortfolioSummary {
    netInvested: string
    profit: string
    realized: string
+   realizedPercent: string | null
    unrealized: string
    unrealizedPercent: string | null
    closedRealized: string
+   fees: string
+   feesUnvalued: string[]
    maxDrift: string
    needsRebalance: boolean
    lastRebalancedAt: number | null
@@ -492,6 +495,8 @@ export interface PortfolioPlanRequest {
    all?: boolean
    band?: string
    slippage?: string
+   mode?: RebalanceMode
+   exclude?: string[]
 }
 
 export interface PortfolioPlanOrder {
@@ -518,6 +523,7 @@ export interface PortfolioPlanResponse {
    portfolioId: number
    venue: VenueId
    kind: RunKind
+   mode: RebalanceMode
    quoteAsset: string
    expiresAt: number
    band: string

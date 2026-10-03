@@ -4,10 +4,12 @@ import { toast } from 'sonner'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
 import NumericInput from '../lib/numeric-input'
+import SelectField from '../lib/select-field'
 import OrderLabel from './order-label'
 import RunProgress from './run-progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
    AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
@@ -23,6 +25,7 @@ import type {
    PortfolioExecuteRequest, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun,
    PortfolioRunResponse, PortfolioSummary
 } from '../../../types/api'
+import type { RebalanceMode } from '../../../types/portfolio'
 
 export interface PlanTarget {
    portfolio: PortfolioSummary
@@ -52,16 +55,46 @@ function tradeSummary(plan: PortfolioPlanResponse): string {
    return parts.charAt(0).toUpperCase() + parts.slice(1)
 }
 
-function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
+const modeOptions: { value: RebalanceMode, label: string }[] = [
+   { value: 'full', label: 'Buy and sell' },
+   { value: 'invest', label: 'Only buy, with the cash' },
+   { value: 'trim', label: 'Only sell, keep the cash' }
+]
+
+function describePlan(plan: PortfolioPlanResponse): string {
+   const quote = plan.quoteAsset
+   if (plan.kind === 'withdraw') return `Withdrawing ${asQuoteAmount(plan.withdraw, quote)} of ${asQuoteAmount(plan.total, quote)}.`
+   if (plan.mode === 'invest') return `Spending the portfolio's ${quote} on the coins below their targets, without selling anything.`
+   if (plan.mode === 'trim') return `Selling the coins above their targets and keeping the ${quote} in the portfolio.`
+   return `Bringing ${asQuoteAmount(plan.total, quote)} back to its targets.`
+}
+
+interface PlanPreviewProps {
+   plan: PortfolioPlanResponse
+   disabled: boolean
+   onInclude: (asset: string, included: boolean) => void
+}
+
+function PlanPreview({ plan, disabled, onInclude }: PlanPreviewProps) {
 
    const quote = plan.quoteAsset
+   const excluded = plan.skipped.filter(({ reason }) => reason === 'excluded')
+   const leftAlone = plan.skipped.filter(({ reason }) => reason !== 'excluded')
+
+   const includeBox = (asset: string, included: boolean) =>
+      <Checkbox
+         checked={included}
+         disabled={disabled}
+         aria-label={included ? `Leave ${asset} out` : `Trade ${asset}`}
+         onCheckedChange={checked => onInclude(asset, checked === true)} />
 
    return (
       <div className="space-y-4">
-         {plan.orders.length > 0
-            ? <Table className="text-[13px] tabular-nums">
+         {(plan.orders.length > 0 || excluded.length > 0) &&
+            <Table className="text-[13px] tabular-nums">
                <TableHeader>
                   <TableRow>
+                     <TableHead className="w-8"><span className="sr-only">Trade</span></TableHead>
                      <TableHead>Order</TableHead>
                      <TableHead className="text-right">Size</TableHead>
                      <TableHead className="text-right">Price now</TableHead>
@@ -72,6 +105,7 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                <TableBody>
                   {plan.orders.map((order, index) =>
                      <TableRow key={`${order.symbol}-${index}`}>
+                        <TableCell>{includeBox(order.asset, true)}</TableCell>
                         <TableCell><OrderLabel side={order.side} asset={order.asset} /></TableCell>
                         <TableCell className="text-right">
                            {asQuantity(order.amount)} {order.unit === 'base' ? order.asset : quote}
@@ -89,19 +123,38 @@ function PlanPreview({ plan }: { plan: PortfolioPlanResponse }) {
                            </span>
                         </TableCell>
                      </TableRow>)}
+                  {excluded.map(({ asset, value }) =>
+                     <TableRow key={`excluded-${asset}`} className="text-muted-foreground">
+                        <TableCell>{includeBox(asset, false)}</TableCell>
+                        <TableCell>
+                           <div className="flex items-center gap-2">
+                              <span className="w-10" />
+                              <span className="font-medium">{asset}</span>
+                              <span className="text-xs">left out</span>
+                           </div>
+                        </TableCell>
+                        <TableCell />
+                        <TableCell />
+                        <TableCell className="text-right">{Number(value) > 0 ? asQuoteAmount(value, quote) : '—'}</TableCell>
+                        <TableCell />
+                     </TableRow>)}
                </TableBody>
-            </Table>
-            : <Alert>
+            </Table>}
+
+         {plan.orders.length === 0 &&
+            <Alert>
                <AlertDescription>
                   {plan.kind === 'withdraw'
                      ? `No trade needed: the portfolio's ${quote} covers the withdrawal.`
-                     : 'Nothing to trade: every asset is within its band or below the minimum order size.'}
+                     : leftAlone.length > 0
+                        ? 'Nothing to trade: the notes below say why each coin is left alone.'
+                        : 'Nothing to trade.'}
                </AlertDescription>
             </Alert>}
 
-         {plan.skipped.length > 0 &&
+         {leftAlone.length > 0 &&
             <ul className="space-y-0.5 text-xs text-muted-foreground">
-               {plan.skipped.map(skip =>
+               {leftAlone.map(skip =>
                   <li key={`${skip.asset}-${skip.reason}`}>
                      {skip.asset} left alone: {skipReasons[skip.reason]}
                      {Number(skip.value) > 0 && ` (about ${asQuoteAmount(skip.value, quote)})`}
@@ -128,6 +181,8 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
 
    const [band, setBand] = useState(target.request.band ?? target.portfolio.band)
    const [slippage, setSlippage] = useState(target.request.slippage ?? '1')
+   const [mode, setMode] = useState<RebalanceMode>(target.request.mode ?? 'full')
+   const [exclude, setExclude] = useState<string[]>(target.request.exclude ?? [])
    const [confirming, setConfirming] = useState(false)
    const [runId, setRunId] = useState<string | null>(null)
    const [expiredPlan, setExpiredPlan] = useState<string | null>(null)
@@ -140,11 +195,23 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
    const quote = target.portfolio.quoteAsset
    const expired = Boolean(plan) && expiredPlan === plan?.planId
 
-   const requestPlan = () =>
-      preview({ ...target.request, band: band || undefined, slippage }).catch(() => {})
+   const requestPlan = (changes: Pick<PortfolioPlanRequest, 'mode' | 'exclude'> = {}) =>
+      preview({ ...target.request, band: band || undefined, slippage, mode, exclude, ...changes }).catch(() => {})
+
+   const changeMode = (value: string) => {
+      const next = modeOptions.find(option => option.value === value)?.value ?? 'full'
+      setMode(next)
+      requestPlan({ mode: next })
+   }
+
+   const include = (asset: string, included: boolean) => {
+      const next = included ? exclude.filter(excludedAsset => excludedAsset !== asset) : [...exclude, asset]
+      setExclude(next)
+      requestPlan({ exclude: next })
+   }
 
    useEffect(() => {
-      preview({ ...target.request, band, slippage }).catch(() => {})
+      requestPlan()
    }, [])
 
    useEffect(() => {
@@ -190,9 +257,7 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                <DialogDescription>
                   {runId
                      ? 'The orders are placed one after the other: sells first, then buys sized to the cash the sells actually raised.'
-                     : plan?.kind === 'withdraw'
-                        ? `Withdrawing ${asQuoteAmount(plan.withdraw, quote)} of ${asQuoteAmount(plan.total, quote)}.`
-                        : plan ? `Bringing ${asQuoteAmount(plan.total, quote)} back to its targets.` : 'Working out the orders…'}
+                     : plan ? describePlan(plan) : 'Working out the orders…'}
                </DialogDescription>
             </DialogHeader>
 
@@ -200,6 +265,15 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                ? <RunProgress apiBase={apiBase} runId={runId} quoteAsset={quote} onDone={finished} />
                : <div className="space-y-4">
                   <div className="flex flex-wrap items-end gap-3">
+                     {target.request.kind === 'rebalance' &&
+                        <SelectField
+                           name="plan-mode"
+                           label="Trades"
+                           className="w-56"
+                           value={mode}
+                           disabled={isPlanning}
+                           onValueChange={changeMode}
+                           options={modeOptions} />}
                      {target.request.kind === 'rebalance' &&
                         <NumericInput
                            name="plan-band"
@@ -226,7 +300,7 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
 
                   {isPlanning && !plan && <Loader2Icon className="size-5 animate-spin text-muted-foreground" />}
 
-                  {plan && <PlanPreview plan={plan} />}
+                  {plan && <PlanPreview plan={plan} disabled={isPlanning} onInclude={include} />}
 
                   {plan && hasOrders && <p className="text-xs text-muted-foreground">{feesNote}</p>}
 
