@@ -5,7 +5,8 @@ import type {
    PortfolioPlanOrder, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun, PortfolioRunRequest,
    PortfolioRunResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioStopAckRequest,
    PortfolioStopAckResponse, PortfolioStopFill, PortfolioStopState, PortfolioStopSyncRequest,
-   PortfolioStopSyncResponse, PortfolioSummary, PortfolioTarget
+   PortfolioStopSyncResponse, PortfolioSummary, PortfolioSupertrendResponse, PortfolioTarget, SupertrendLevel,
+   SupertrendLevels
 } from '../../types/api'
 import type { VenueId } from '../../types/portfolio'
 
@@ -288,6 +289,28 @@ function overview(venue: VenueId): PortfolioOverviewResponse {
       stopFills: state.stopFills
    }
 }
+
+const supertrendDistances: Record<keyof SupertrendLevels, number> = { daily: 0.06, weekly: 0.19 }
+const downtrends: Record<keyof SupertrendLevels, string[]> = { daily: ['SOL', 'ENA'], weekly: ['ENA'] }
+
+function supertrendLevel(asset: string, timeframe: keyof SupertrendLevels): SupertrendLevel | null {
+   const price = prices[asset]
+   if (price === undefined) return null
+   const down = downtrends[timeframe].includes(asset)
+   const distance = supertrendDistances[timeframe]
+   return { flipPrice: fixed(price * (down ? 1 + distance : 1 - distance)), trend: down ? 'down' : 'up' }
+}
+
+const supertrend = (venue: VenueId): PortfolioSupertrendResponse => ({
+   fetchedAt: Date.now(),
+   levels: Object.fromEntries(stateOf(venue).portfolios.flatMap(({ quoteAsset, targets, holdings }) =>
+      [...targets.map(({ asset }) => asset), ...Object.keys(holdings)]
+         .filter(asset => asset !== quoteAsset)
+         .map(asset => [
+            `${asset}${quoteAsset}`,
+            { daily: supertrendLevel(asset, 'daily'), weekly: supertrendLevel(asset, 'weekly') }
+         ])))
+})
 
 const markets = (venue: VenueId): PortfolioMarketsResponse => ({
    quoteAssets: quoteAssets[venue],
@@ -623,6 +646,7 @@ export const portfolioRoutes: Record<string, (params?: Body) => unknown> = Objec
    (Object.entries(bases) as [VenueId, string][]).flatMap(([venue, base]) => [
       [`${base}/overview`, () => overview(venue)],
       [`${base}/markets`, () => markets(venue)],
+      [`${base}/supertrend`, () => supertrend(venue)],
       [`${base}/save`, (params?: Body) => save(venue, arg(params))],
       [`${base}/archive`, (params?: Body) => archive(venue, arg(params))],
       [`${base}/deposit`, (params?: Body) => deposit(venue, arg(params))],

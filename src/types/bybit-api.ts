@@ -131,4 +131,9 @@ export interface BybitExecution {
    feeCurrency: string
 }
 
+// [startTime, open, high, low, close, volume, turnover], newest first
+export type BybitKline = [string, string, string, string, string, string, string]
+
+export type BybitKlineInterval = 'D' | 'W'
+
 export type BybitEnvironment = 'mainnet' | 'demo'

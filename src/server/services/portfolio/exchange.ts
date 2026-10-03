@@ -1,7 +1,7 @@
 import type { HttpRequesterError } from '../../errors'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, TakerFee, WalletCoin
+   CandleInterval, ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle,
+   SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 export interface PortfolioExchange {
@@ -11,6 +11,7 @@ export interface PortfolioExchange {
    wallet(): Promise<WalletCoin[]>
    markets(): Promise<SpotMarket[]>
    prices(): Promise<Record<string, SpotPrice>>
+   candles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]>
    takerFees?(symbols: string[]): Promise<Record<string, TakerFee>>
    placeOrder(order: OrderRequest): Promise<string>
    settleOrder(order: OrderLookup): Promise<OrderSettlement | null>

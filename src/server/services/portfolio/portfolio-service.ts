@@ -6,10 +6,12 @@ import { foldHoldings, sameHoldings } from './holdings'
 import { buyCost, buyFits, buyScale, DEFAULT_FEE_RATE, feeRateOf, floorTo, orderFee, planPortfolio } from './planner'
 import { foldPositions } from './positions'
 import { planStops, stopActions } from './stops'
+import { supertrend } from './supertrend'
 import { moveWeightToCash, validateTargets } from './targets'
 import type { PortfolioExchange } from './exchange'
 import type { FeeRate, PlanMarket, PlannedOrder } from './planner'
 import type { LiveStop } from './stops'
+import type { Supertrend } from './supertrend'
 import type { TargetWeight } from './targets'
 import type { Venue } from './venues'
 import type { RequestBody } from '../../routes/with-account'
@@ -22,11 +24,11 @@ import type {
    PortfolioMarketsResponse, PortfolioMovement, PortfolioMovementResponse,
    PortfolioOverviewResponse, PortfolioPlanResponse, PortfolioRun, PortfolioRunResponse,
    PortfolioSaveResponse, PortfolioStopAckResponse, PortfolioStopFill, PortfolioStopState,
-   PortfolioStopSyncResponse, PortfolioSummary
+   PortfolioStopSyncResponse, PortfolioSummary, PortfolioSupertrendResponse, SupertrendLevel, SupertrendLevels
 } from '../../../types/api'
 import type {
-   ExchangeAccount, OrderLookup, OrderSettlement, RebalanceMode, RunKind, RunStatus, SpotMarket, SpotPrice,
-   TakerFee, VenueId, WalletCoin
+   CandleInterval, ExchangeAccount, OrderLookup, OrderSettlement, RebalanceMode, RunKind, RunStatus, SpotMarket,
+   SpotPrice, TakerFee, VenueId, WalletCoin
 } from '../../../types/portfolio'
 
 export type PortfolioErrorStatus = 400 | 403 | 404 | 409 | 410
@@ -86,6 +88,9 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 const decimal = (value: Big, places = 8) => value.round(places).toFixed()
 
 const percentOf = (part: Big, whole: Big) => decimal(part.div(whole).times(HUNDRED), 4)
+
+const levelOf = (level: Supertrend | null): SupertrendLevel | null =>
+   level && { flipPrice: decimal(level.flipPrice), trend: level.trend }
 
 const minOf = (left: Big, right: Big) => left.lt(right) ? left : right
 
@@ -622,6 +627,38 @@ export default class PortfolioService {
             .filter(({ quote }) => quoteAssets.includes(quote))
             .map(({ symbol, base, quote }) => ({ symbol, base, quote }))
             .sort((left, right) => left.base.localeCompare(right.base))
+      }
+   }
+
+   async supertrend(): Promise<PortfolioSupertrendResponse> {
+
+      const { repository } = await this.#context()
+      const listed = new Set((await this.#exchange.markets()).map(({ symbol }) => symbol))
+      const holdings = this.#holdings(repository)
+      const targets = groupBy(repository.targets(), row => row.portfolioId)
+
+      const symbols = new Set(repository.portfolios().flatMap(({ id, quoteAsset }) =>
+         [...(targets.get(id) ?? []).map(({ asset }) => asset), ...(holdings.get(id) ?? new Map()).keys()]
+            .filter(asset => asset !== quoteAsset)
+            .map(asset => `${asset}${quoteAsset}`)
+            .filter(symbol => listed.has(symbol))))
+
+      const levels: Record<string, SupertrendLevels> = {}
+      for (const symbol of symbols) levels[symbol] = await this.#supertrendLevels(symbol)
+
+      return { fetchedAt: Date.now(), levels }
+   }
+
+   async #supertrendLevels(symbol: string): Promise<SupertrendLevels> {
+      const levelFor = async (interval: CandleInterval) =>
+         levelOf(supertrend(await this.#exchange.candles(symbol, interval)))
+      try {
+         const [daily, weekly] = await Promise.all([levelFor('1d'), levelFor('1w')])
+         return { daily, weekly }
+      }
+      catch (error) {
+         console.warn(`Could not read the ${symbol} candles:`, this.#describe(error))
+         return { daily: null, weekly: null }
       }
    }
 

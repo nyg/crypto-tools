@@ -57,6 +57,10 @@ export async function fetchKLines(symbol: string, interval: string, startTime: n
       { symbol, interval, startTime, endTime, limit })
 }
 
+export async function fetchRecentKLines(symbol: string, interval: string, limit: number): Promise<BinanceKLine[]> {
+   return await httpRequester.public<BinanceKLine[]>(urlFor(klinesEndpoint), { symbol, interval, limit })
+}
+
 interface FiatFundingParams {
    transactionType: number
    fromDate: number

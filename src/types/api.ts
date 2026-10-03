@@ -435,6 +435,23 @@ export interface PortfolioOverviewResponse {
    stopFills: PortfolioStopFill[]
 }
 
+export type SupertrendTrend = 'up' | 'down'
+
+export interface SupertrendLevel {
+   flipPrice: string
+   trend: SupertrendTrend
+}
+
+export interface SupertrendLevels {
+   daily: SupertrendLevel | null
+   weekly: SupertrendLevel | null
+}
+
+export interface PortfolioSupertrendResponse {
+   fetchedAt: number
+   levels: Record<string, SupertrendLevels>
+}
+
 export interface PortfolioMarket {
    symbol: string
    base: string

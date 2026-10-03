@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
+import useSWR from 'swr'
 import { toast } from 'sonner'
 import { Loader2Icon, PlusIcon, RefreshCwIcon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
@@ -27,7 +28,7 @@ import type { PlanTarget } from './plan-dialog'
 import { asQuantity, asQuoteAmount } from './format'
 import type {
    AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioOverviewResponse,
-   PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary
+   PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary, PortfolioSupertrendResponse
 } from '../../../types/api'
 import type { VenueId } from '../../../types/portfolio'
 import type { Sort } from '../../../types/kraken'
@@ -69,6 +70,8 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
       useMutation<PortfolioArchiveResponse, PortfolioArchiveRequest>(`${apiBase}/archive`)
    const { trigger: acknowledgeStop } =
       useMutation<PortfolioStopAckResponse, PortfolioStopAckRequest>(`${apiBase}/stops/ack`)
+   const { data: supertrend, isLoading: isLoadingSupertrend, mutate: fetchSupertrend } =
+      useSWR<PortfolioSupertrendResponse>(configured && live ? `${apiBase}/supertrend` : null, { revalidateOnFocus: false })
 
    const [editing, setEditing] = useState<{ portfolio: PortfolioSummary | null } | null>(null)
    const [depositing, setDepositing] = useState<PortfolioSummary | null>(null)
@@ -80,7 +83,12 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
    const [watchingRun, setWatchingRun] = useState(false)
    const [holdingsSort, setHoldingsSort] = usePersistentState<Sort>('portfolios.holdings.sort', {})
 
-   const refresh = () => fetchOverview().catch(() => {})
+   const loadOverview = () => fetchOverview().catch(() => {})
+
+   const refresh = () => {
+      fetchSupertrend()
+      return loadOverview()
+   }
 
    const fetchedFor = useRef<string | null>(null)
 
@@ -88,7 +96,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
       if (!configured || fetchedFor.current === venue) return
       fetchedFor.current = venue
       reset()
-      refresh()
+      loadOverview()
    }, [venue, configured])
 
    const rebalance = (portfolio: PortfolioSummary) =>
@@ -278,6 +286,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
                <PortfolioCard
                   key={portfolio.id}
                   portfolio={portfolio}
+                  supertrend={live ? { levels: supertrend?.levels, loading: isLoadingSupertrend } : undefined}
                   busy={busy}
                   sort={holdingsSort}
                   onSortChange={setHoldingsSort}

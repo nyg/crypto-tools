@@ -1,6 +1,6 @@
 import Big from 'big.js'
 import * as resource from './resource'
-import { usdRatesFromKLines } from './klines'
+import { candlesFromKLines, usdRatesFromKLines } from './klines'
 import {
    hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, takerFee
 } from './spot'
@@ -12,8 +12,8 @@ import type {
 import type { BinanceEnvironment } from '../../../types/binance-api'
 import type { UsdRateRow } from '../../../types/db'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, TakerFee, WalletCoin
+   CandleInterval, ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle,
+   SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const UNKNOWN_ORDER = -2011
@@ -89,6 +89,10 @@ export default class BinanceAPI {
       }
 
       return rows
+   }
+
+   async fetchSpotCandles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      return candlesFromKLines(await resource.fetchRecentKLines(symbol, interval, KLINE_LIMIT))
    }
 
    async fetchCandlestickData(

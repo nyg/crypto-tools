@@ -7,18 +7,20 @@ import type { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type { BinanceEnvironment } from '../../../types/binance-api'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, TakerFee, WalletCoin
+   CandleInterval, ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle,
+   SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
 } from '../../../types/portfolio'
 
 const ACCOUNT_TTL_MS = 5 * 60 * 1000
 const MARKETS_TTL_MS = 60 * 60 * 1000
 const FEES_TTL_MS = 10 * 60 * 1000
+const CANDLES_TTL_MS = 5 * 60 * 1000
 const AMBIGUOUS_CODES = [-1006, -1007]
 
 const accounts = new CacheMap<ExchangeAccount>(ACCOUNT_TTL_MS)
 const markets = new CacheMap<SpotMarket[]>(MARKETS_TTL_MS)
 const fees = new CacheMap<TakerFee>(FEES_TTL_MS)
+const candles = new CacheMap<SpotCandle[]>(CANDLES_TTL_MS)
 
 export default class BinanceExchange implements PortfolioExchange {
 
@@ -50,6 +52,10 @@ export default class BinanceExchange implements PortfolioExchange {
 
    prices(): Promise<Record<string, SpotPrice>> {
       return this.#api.fetchSpotPrices()
+   }
+
+   candles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      return candles.get(`${symbol}:${interval}`, () => this.#api.fetchSpotCandles(symbol, interval))
    }
 
    async takerFees(symbols: string[]): Promise<Record<string, TakerFee>> {

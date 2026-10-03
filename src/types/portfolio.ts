@@ -23,6 +23,15 @@ export interface SpotPrice {
    ask: string
 }
 
+export type CandleInterval = '1d' | '1w'
+
+export interface SpotCandle {
+   time: number
+   high: string
+   low: string
+   close: string
+}
+
 export interface TakerFee {
    buy: string
    sell: string
