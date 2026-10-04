@@ -33,6 +33,7 @@ export interface FundingVenue {
    setup: ReactNode
    empty: ReactNode
    note?: ReactNode
+   assetLabel?: (asset: string) => string
 }
 
 export type FundingLayout = ComponentType<{ children: ReactNode, name: string }>
@@ -152,7 +153,7 @@ export default function FundingPage({ layout: Layout, venue }: { layout: Funding
                                  className="w-40"
                                  value={asset}
                                  onValueChange={setAsset}
-                                 options={assets.map(({ asset }) => ({ value: asset, label: asset }))}
+                                 options={assets.map(({ asset }) => ({ value: asset, label: venue.assetLabel?.(asset) ?? asset }))}
                                  searchPlaceholder="Search assets…"
                                  emptyText="No asset." />
                               <SelectField

@@ -165,6 +165,27 @@ describe('USD valuation', () => {
    })
 })
 
+describe('queryEntries', () => {
+
+   test('shows a renamed asset under the ticker Kraken wrote each entry with, and lists it once', () => {
+
+      const repository = new LedgerRepository('renamed')
+      repository.upsertEntries([
+         entry('A', Date.UTC(2024, 0, 1), '5', { asset: 'MATIC.S', baseAsset: 'POL' }),
+         entry('B', Date.UTC(2025, 0, 1), '5', { asset: 'POL', baseAsset: 'POL' }),
+         entry('C', Date.UTC(2025, 0, 2), '1', { asset: 'XXBT', baseAsset: 'BTC' })
+      ], Date.UTC(2025, 0, 3))
+
+      const { rows } = repository.queryEntries({ filters: { asset: 'POL' }, sort: { column: 'time', direction: 'asc' } })
+
+      expect(rows.map(row => [row.asset, row.ticker, row.baseAsset])).toEqual([
+         ['MATIC.S', 'MATIC', 'POL'],
+         ['POL', 'POL', 'POL']
+      ])
+      expect(repository.distinctFilters().assets).toEqual(['BTC', 'POL'])
+   })
+})
+
 describe('fundingEntries', () => {
 
    test('lists deposits and withdrawals under their display asset, oldest first', () => {

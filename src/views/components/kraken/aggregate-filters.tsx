@@ -4,7 +4,7 @@ import SelectField from '../lib/select-field'
 import Checkbox from '../lib/checkbox'
 import DateField from '../lib/date-field'
 import { asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
-import type { MarketRow } from '../../../types/db'
+import type { Market } from '../../../types/api'
 
 export interface AggregateFilterValues {
    pairKey: string
@@ -25,7 +25,7 @@ const orderOptions = [
 
 export default function AggregateFilters({ filters, markets, mergeable, onChange, onReset }: {
    filters: AggregateFilterValues
-   markets: MarketRow[]
+   markets: Market[]
    mergeable: boolean
    onChange: (filters: AggregateFilterValues) => void
    onReset: () => void
@@ -45,7 +45,7 @@ export default function AggregateFilters({ filters, markets, mergeable, onChange
                label="Pair"
                value={filters.pairKey}
                onValueChange={(value) => update({ pairKey: value })}
-               options={markets.map(entry => ({ value: entry.pairKey, label: entry.pairKey }))}
+               options={markets.map(entry => ({ value: entry.pairKey, label: entry.label }))}
                placeholder="Pick a pair"
                searchPlaceholder="Search pairs…"
                emptyText="No pair found." />

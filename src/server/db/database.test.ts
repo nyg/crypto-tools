@@ -8,12 +8,25 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-database-'))
 
 const syncedAt = Date.UTC(2024, 2, 10)
 
-const trade = (txid: string, pair: string, assets: Partial<Trade> = {}): Trade => ({
+const unresolved = (txid: string, pair: string): Trade => ({
    txid, ordertxid: `O${txid}`, orderKey: `O${txid}`,
    pair, pairKey: pair.replace('/', ''), baseAsset: '', quoteAsset: '',
    time: Date.UTC(2014, 11, 2), type: 'buy', ordertype: 'limit',
-   price: '100', cost: '100', fee: '1', vol: '1', margin: '0', misc: '', ...assets
+   price: '100', cost: '100', fee: '1', vol: '1', margin: '0', misc: ''
 })
+
+const stored = (txid: string, pair: string, pairKey: string, baseAsset: string, quoteAsset: string): Trade =>
+   ({ ...unresolved(txid, pair), pairKey, baseAsset, quoteAsset })
+
+const storedPairs = async (accountId: string, trades: Trade[]) => {
+
+   const TradeRepository = (await import('./trade-repository')).default
+   const repository = new TradeRepository(accountId)
+   repository.upsertTrades(trades, syncedAt)
+
+   return () => repository.queryTrades({ sort: { column: 'pair', direction: 'asc' } }).rows
+      .map(row => [row.rawPair, row.pair, row.baseAsset, row.quoteAsset])
+}
 
 beforeAll(() => {
    process.env.CRYPTO_TOOLS_DATA_DIR = dataDir
@@ -28,28 +41,49 @@ afterAll(async () => {
 test('resolveUnresolvedTradePairs gives the stored trades of a delisted pair their assets', async () => {
 
    const { getDatabase, resolveUnresolvedTradePairs } = await import('./database')
-   const TradeRepository = (await import('./trade-repository')).default
 
-   const repository = new TradeRepository('account')
-   repository.upsertTrades([
-      trade('A', 'BTC/LTC'),
-      trade('B', 'BTC/LTC'),
-      trade('C', 'BTC/NMC'),
-      trade('D', 'MATIC/POL'),
-      trade('E', 'FOOBAR'),
-      trade('F', 'XBTUSD', { pairKey: 'BTC/USD', baseAsset: 'BTC', quoteAsset: 'USD' })
-   ], syncedAt)
+   const pairs = await storedPairs('unresolved', [
+      unresolved('A', 'BTC/LTC'),
+      unresolved('B', 'BTC/NMC'),
+      unresolved('C', 'MATIC/POL'),
+      unresolved('D', 'FOOBAR'),
+      stored('E', 'XBTUSD', 'BTC/USD', 'BTC', 'USD')
+   ])
 
    resolveUnresolvedTradePairs(getDatabase())
 
-   expect(repository.distinctOrderFilters().markets).toEqual([
-      { pairKey: 'BTC/LTC', baseAsset: 'BTC', quoteAsset: 'LTC' },
-      { pairKey: 'BTC/NMC', baseAsset: 'BTC', quoteAsset: 'NMC' },
-      { pairKey: 'BTC/USD', baseAsset: 'BTC', quoteAsset: 'USD' },
-      { pairKey: 'FOOBAR', baseAsset: '', quoteAsset: '' },
-      { pairKey: 'MATIC/POL', baseAsset: 'MATIC', quoteAsset: 'POL' }
+   expect(pairs()).toEqual([
+      ['BTC/LTC', 'BTC/LTC', 'BTC', 'LTC'],
+      ['BTC/NMC', 'BTC/NMC', 'BTC', 'NMC'],
+      ['XBTUSD', 'BTC/USD', 'BTC', 'USD'],
+      ['FOOBAR', 'FOOBAR', '', ''],
+      ['MATIC/POL', 'MATIC/POL', 'POL', 'POL']
+   ])
+})
+
+test('nameTradesAsTraded gives the stored trades of a renamed asset the pair they were made in', async () => {
+
+   const { getDatabase, nameTradesAsTraded } = await import('./database')
+
+   const pairs = await storedPairs('renamed', [
+      stored('A', 'MATIC/EUR', 'POL/EUR', 'POL', 'EUR'),
+      stored('B', 'POLEUR', 'POL/EUR', 'POL', 'EUR'),
+      stored('C', 'MATIC/POL', 'MATIC/POL', 'MATIC', 'POL'),
+      stored('D', 'POLPYUSD', 'POL/PYUSD', 'POL', 'PYUSD'),
+      stored('E', 'XBTUSD', 'BTC/USD', 'BTC', 'USD')
    ])
 
-   const btcLtc = repository.queryAggregations({ filters: { base: 'BTC', quote: 'LTC' } })
-   expect(btcLtc.rows.flatMap(row => row.orders.map(order => order.orderKey)).toSorted()).toEqual(['OA', 'OB'])
+   const renamed = [
+      ['XBTUSD', 'BTC/USD', 'BTC', 'USD'],
+      ['MATIC/EUR', 'MATIC/EUR', 'POL', 'EUR'],
+      ['MATIC/POL', 'MATIC/POL', 'POL', 'POL'],
+      ['POLEUR', 'POL/EUR', 'POL', 'EUR'],
+      ['POLPYUSD', 'POL/PYUSD', 'POL', 'PYUSD']
+   ]
+
+   nameTradesAsTraded(getDatabase())
+   expect(pairs()).toEqual(renamed)
+
+   nameTradesAsTraded(getDatabase())
+   expect(pairs()).toEqual(renamed)
 })
