@@ -1,16 +1,25 @@
 import {
    environmentValue, providers, readStoredSecret, rememberKrakenAccount, writeStoredSecret
 } from './settings'
+import { dataProfile } from './environment'
 import { messageOf } from './errors'
+import type { DataProfile } from './environment'
 import type { Credentials, Provider } from '../types/credentials'
 import type {
    CredentialStore, ProviderSecrets, SecretField, SettingsUpdate
 } from '../types/settings'
 
-const SERVICE = process.env.CRYPTO_TOOLS_KEYCHAIN_SERVICE
-   ?? (process.env.NODE_ENV === 'production'
-      ? 'io.github.nyg.crypto-tools'
-      : 'io.github.nyg.crypto-tools.dev')
+const PRODUCTION_SERVICE = 'io.github.nyg.crypto-tools'
+
+export interface StoreEntries {
+   values: Map<string, string>
+   complete: boolean
+}
+
+function serviceOf(profile: DataProfile = dataProfile()): string {
+   const production = process.env.CRYPTO_TOOLS_KEYCHAIN_SERVICE ?? PRODUCTION_SERVICE
+   return profile === 'production' ? production : `${production}.dev`
+}
 
 const fields: Record<SecretField, string> = { apiKey: 'api-key', apiSecret: 'api-secret' }
 
@@ -42,7 +51,7 @@ class SecretStore {
 
    async #read(provider: Provider, field: SecretField): Promise<string> {
       try {
-         const stored = await Bun.secrets.get({ service: SERVICE, name: entryName(provider, field) })
+         const stored = await Bun.secrets.get({ service: serviceOf(), name: entryName(provider, field) })
          if (stored) return stored
       }
       catch (error) {
@@ -56,8 +65,8 @@ class SecretStore {
       const name = entryName(provider, field)
 
       try {
-         if (value) await Bun.secrets.set({ service: SERVICE, name, value })
-         else await Bun.secrets.delete({ service: SERVICE, name })
+         if (value) await Bun.secrets.set({ service: serviceOf(), name, value })
+         else await Bun.secrets.delete({ service: serviceOf(), name })
       }
       catch (error) {
          this.#reportUnavailable('store', error)
@@ -78,7 +87,7 @@ class SecretStore {
 
       for (const { field } of configured) {
          const inStore = await Bun.secrets
-            .get({ service: SERVICE, name: entryName(provider, field) })
+            .get({ service: serviceOf(), name: entryName(provider, field) })
             .catch(() => null)
 
          if (inStore) store = store === 'file' ? 'file' : nativeStore()
@@ -135,6 +144,38 @@ class SecretStore {
       }
    }
 
+   async storeEntries(profile: DataProfile): Promise<StoreEntries> {
+      const service = serviceOf(profile)
+      const values = new Map<string, string>()
+      let complete = true
+
+      for (const [id] of providerEntries()) {
+         for (const field of secretFields(id)) {
+            const name = entryName(id, field)
+
+            try {
+               const stored = await Bun.secrets.get({ service, name })
+               if (stored) values.set(name, stored)
+            }
+            catch (error) {
+               this.#reportUnavailable('read', error)
+               complete = false
+            }
+         }
+      }
+
+      return { values, complete }
+   }
+
+   async adopt(values: Map<string, string>): Promise<void> {
+      for (const [id] of providerEntries()) {
+         for (const field of secretFields(id)) {
+            const value = values.get(entryName(id, field))
+            if (value) await this.#write(id, field, value)
+         }
+      }
+   }
+
    async migrate(): Promise<void> {
       for (const [id] of providerEntries()) {
          for (const field of secretFields(id)) {
@@ -144,7 +185,7 @@ class SecretStore {
             if (id === 'kraken' && field === 'apiKey') rememberKrakenAccount(stored)
 
             try {
-               await Bun.secrets.set({ service: SERVICE, name: entryName(id, field), value: stored })
+               await Bun.secrets.set({ service: serviceOf(), name: entryName(id, field), value: stored })
                writeStoredSecret(id, field, null)
             }
             catch (error) {
