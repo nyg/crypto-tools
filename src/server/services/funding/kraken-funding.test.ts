@@ -74,10 +74,23 @@ describe('withBalances', () => {
       ])
 
       expect(balances.map(({ id, balance }) => ({ id, balance }))).toEqual([
-         { id: 'D1', balance: '1050' },
-         { id: 'W1', balance: '548.5' },
-         { id: 'B1', balance: '0.3999' }
+         { id: 'D1', balance: { after: '1050', low: '0', high: '1050' } },
+         { id: 'W1', balance: { after: '548.5', low: '548.5', high: '1050' } },
+         { id: 'B1', balance: { after: '0.3999', low: '0', high: '0.5' } }
       ])
+   })
+
+   test('reports how low and how high trades took the balance since the movement before', () => {
+
+      const balances = withBalances(movements, [
+         held('EUR', TIME, '1000.0000'),
+         held('EUR', TIME + SECOND, '4000.0000'),
+         held('EUR', TIME + SECOND + 1, '-4900.0000'),
+         held('EUR', TIME + 2 * SECOND, '-300.0000', '1.0000'),
+         held('EUR', TIME + 2 * SECOND, '900.0000')
+      ])
+
+      expect(balances.find(({ id }) => id === 'W1')?.balance).toEqual({ after: '699', low: '100', high: '5000' })
    })
 
    test('counts every entry of the same second, whichever order they come in', () => {
@@ -88,11 +101,11 @@ describe('withBalances', () => {
          held('EUR', TIME, '1000.0000')
       ])
 
-      expect(balances.find(({ id }) => id === 'D1')?.balance).toBe('1025')
-      expect(balances.find(({ id }) => id === 'W1')?.balance).toBe('724')
+      expect(balances.find(({ id }) => id === 'D1')?.balance).toEqual({ after: '1025', low: '0', high: '1025' })
+      expect(balances.find(({ id }) => id === 'W1')?.balance).toEqual({ after: '724', low: '724', high: '1025' })
    })
 
    test('holds nothing of an asset the ledger has no entry for', () => {
-      expect(withBalances(movements, []).map(({ balance }) => balance)).toEqual(['0', '0', '0'])
+      expect(withBalances(movements, []).map(({ balance }) => balance?.after)).toEqual(['0', '0', '0'])
    })
 })

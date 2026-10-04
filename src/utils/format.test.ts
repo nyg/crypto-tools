@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { asDaysAgo, asExactDecimal, decimalPadding, fractionDigits } from './format'
+import { asDaysAgo, asExactDecimal, asNumericTimestamp, decimalPadding, fractionDigits } from './format'
 
 describe('asDaysAgo', () => {
 
@@ -55,5 +55,12 @@ describe('decimalPadding', () => {
       expect(decimalPadding('1', 5)).toHaveLength(6)
       expect(decimalPadding('1', 5).slice(1)).toBe('00000')
       expect(decimalPadding('1', 0)).toBe('')
+   })
+})
+
+describe('asNumericTimestamp', () => {
+
+   test('writes the local date and time in digits only, with nothing but a space between them', () => {
+      expect(asNumericTimestamp(new Date(2024, 10, 3, 9, 23, 4))).toMatch(/^\d{2}\D\d{2}\D\d{4} 09:23:04$/)
    })
 })

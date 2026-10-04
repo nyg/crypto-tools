@@ -635,8 +635,15 @@ export interface FundingMovement {
    method: string
    time: number
    pending: boolean
-   // What the account held of the asset right after, where the exchange lets it be known.
-   balance: string | null
+   balance: FundingBalance | null
+}
+
+// What the account held of the asset right after a movement, and the lowest and the
+// highest it held since the movement before: trades move the balance in between.
+export interface FundingBalance {
+   after: string
+   low: string
+   high: string
 }
 
 export interface FundingResponse {

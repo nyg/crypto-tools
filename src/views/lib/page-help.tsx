@@ -88,7 +88,9 @@ const pageHelp: Record<string, ReactNode> = {
          Read from the ledger the Ledger tab stores, so it is as fresh as the last sync. A withdrawal
          Kraken reversed is left out, and so is moving coins into staking. The <b>balance</b> line is
          what you held of the asset right after each movement, in every wallet, added up from the
-         same ledger.
+         same ledger. It only has a point where something moved, so the whisker on each point
+         shows how low and how high the balance went since the bar before, as trades and rewards
+         changed it.
       </>),
 
    '/kraken/aggregated-trades':

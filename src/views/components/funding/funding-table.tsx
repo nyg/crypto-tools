@@ -7,7 +7,7 @@ import SortableHead from '../lib/sortable-head'
 import { asCount } from '../lib/filter-options'
 import { fundingTotals } from '@/lib/funding'
 import { numericKey, sortRows } from '@/lib/sort'
-import { asLocalTimestamp, asUtcTimestamp, fractionDigits } from '../../../utils/format'
+import { asNumericTimestamp, asUtcTimestamp, fractionDigits } from '../../../utils/format'
 import type { SortKeys } from '@/lib/sort'
 import type { FundingMovement } from '../../../types/api'
 import type { FundingKind } from '../../../types/funding'
@@ -70,7 +70,7 @@ export default function FundingTable({ kind, asset, movements }: {
                   {rows.map(movement =>
                      <TableRow key={movement.id}>
                         <TableCell className="text-muted-foreground" title={`${asUtcTimestamp(movement.time)} UTC`}>
-                           {asLocalTimestamp(movement.time)}
+                           {asNumericTimestamp(movement.time)}
                            {movement.pending && <Badge variant="secondary" className="ml-2">Pending</Badge>}
                         </TableCell>
                         {hasMethods && <TableCell className="text-muted-foreground">{movement.method || '—'}</TableCell>}

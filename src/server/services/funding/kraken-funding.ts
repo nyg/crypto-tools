@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import type { FundingMovement } from '../../../types/api'
+import type { FundingBalance, FundingMovement } from '../../../types/api'
 import type { FundingBalanceRow, FundingLedgerRow } from '../../../types/db'
 
 interface Folded {
@@ -43,10 +43,11 @@ export function foldLedgerFunding(rows: FundingLedgerRow[]): FundingMovement[] {
 }
 
 // The balance is every entry of the asset up to the second of the movement, in any
-// wallet: Kraken's times have no finer grain, so entries sharing one have no order.
+// wallet. Kraken's times have no finer grain, so entries sharing a second have no order
+// and the low and the high are only read once a whole second is added up.
 export function withBalances(movements: FundingMovement[], entries: FundingBalanceRow[]): FundingMovement[] {
 
-   const balances = new Map<string, string>()
+   const balances = new Map<string, FundingBalance>()
 
    for (const asset of new Set(movements.map(movement => movement.asset))) {
 
@@ -56,10 +57,20 @@ export function withBalances(movements: FundingMovement[], entries: FundingBalan
       let next = 0
 
       for (const movement of held) {
-         for (; next < ledger.length && ledger[next]!.time <= movement.time; next++) {
-            balance = balance.plus(ledger[next]!.amount || 0).minus(ledger[next]!.fee || 0)
+
+         let low = balance
+         let high = balance
+
+         while (next < ledger.length && ledger[next]!.time <= movement.time) {
+            const second = ledger[next]!.time
+            for (; next < ledger.length && ledger[next]!.time === second; next++) {
+               balance = balance.plus(ledger[next]!.amount || 0).minus(ledger[next]!.fee || 0)
+            }
+            if (balance.lt(low)) low = balance
+            if (balance.gt(high)) high = balance
          }
-         balances.set(movement.id, balance.toFixed())
+
+         balances.set(movement.id, { after: balance.toFixed(), low: low.toFixed(), high: high.toFixed() })
       }
    }
 

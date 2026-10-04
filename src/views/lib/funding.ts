@@ -21,6 +21,7 @@ export interface FundingBucket {
    withdrawn: number
    net: number
    balance: number | null
+   balanceRange: [number, number] | null
    count: number
 }
 
@@ -57,8 +58,9 @@ export function fundingTotals(movements: FundingMovement[]): FundingTotals {
 }
 
 // Only the periods something moved in get a bucket, so the chart draws them side by
-// side however far apart they are. Withdrawals are negative, to hang below the axis,
-// and a period's balance is the one its last movement left.
+// side however far apart they are. Withdrawals are negative, to hang below the axis.
+// A period's balance is the one its last movement left, and its range runs from the
+// lowest to the highest balance held since the period before.
 export function fundingBuckets(movements: FundingMovement[], granularity: FundingGranularity): FundingBucket[] {
 
    const startOf = bucketStarts[granularity]
@@ -77,12 +79,16 @@ export function fundingBuckets(movements: FundingMovement[], granularity: Fundin
          const { deposited, withdrawn } = fundingTotals(bucket)
          net = net.plus(deposited).minus(withdrawn)
          const { balance } = bucket.reduce((last, movement) => movement.time >= last.time ? movement : last)
+         const ranges = bucket.flatMap(movement => movement.balance ? [movement.balance] : [])
          return {
             start,
             deposited: Number(deposited),
             withdrawn: 0 - Number(withdrawn),
             net: net.toNumber(),
-            balance: balance === null ? null : Number(balance),
+            balance: balance ? Number(balance.after) : null,
+            balanceRange: ranges.length > 0
+               ? [Math.min(...ranges.map(({ low }) => Number(low))), Math.max(...ranges.map(({ high }) => Number(high)))]
+               : null,
             count: bucket.length
          }
       })

@@ -21,6 +21,10 @@ const localTimestampFormatter = new Intl.DateTimeFormat(locales, {
    year: 'numeric', month: 'short', day: 'numeric',
    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
 })
+const numericTimestampFormatter = new Intl.DateTimeFormat(locales, {
+   year: 'numeric', month: '2-digit', day: '2-digit',
+   hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+})
 const countFormatter = new Intl.NumberFormat(locales)
 const compactFormatter = new Intl.NumberFormat(locales, { notation: 'compact', maximumFractionDigits: 1 })
 const roundedFormatter = new Intl.NumberFormat(locales, { maximumFractionDigits: 1 })
@@ -139,6 +143,12 @@ export function asUtcTimestamp(timestamp: DateLike): string {
 
 export function asLocalTimestamp(timestamp: DateLike): string {
    return dateFormat(localTimestampFormatter, timestamp)
+}
+
+// Digits only, in the order and with the separators of the locale: 03.11.2024 09:23:04
+// in one, 11/03/2024 09:23:04 in another. The comma some put between the two is dropped.
+export function asNumericTimestamp(timestamp: DateLike): string {
+   return dateFormat(numericTimestampFormatter, timestamp).replace(', ', ' ')
 }
 
 export function asPercentage(number: number): string {

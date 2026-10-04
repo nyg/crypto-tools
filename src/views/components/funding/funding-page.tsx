@@ -173,7 +173,7 @@ export default function FundingPage({ layout: Layout, venue }: { layout: Funding
                                  <Checkbox
                                     name="funding-balance"
                                     label="Balance"
-                                    title={`What you held of ${asset} right after each movement`}
+                                    title={`What you held of ${asset} right after each movement, and how low and high it went in between`}
                                     className="h-8 self-end"
                                     checked={balanceWanted}
                                     onChange={event => setBalanceWanted(event.target.checked)} />}
