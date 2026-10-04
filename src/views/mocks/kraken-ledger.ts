@@ -476,7 +476,9 @@ export function ledgerEntries(
    const page = Math.max(0, body.page ?? 0)
    const pageSize = body.pageSize ?? 50
 
-   return { rows: sorted.slice(page * pageSize, (page + 1) * pageSize), total: filtered.length, page, pageSize }
+   const rows = sorted.slice(page * pageSize, (page + 1) * pageSize).map(entry => ({ ...entry, ticker: entry.baseAsset }))
+
+   return { rows, total: filtered.length, page, pageSize }
 }
 
 // Mirrors LedgerRepository.feeSummary: same groupings, same shape, computed over the

@@ -22,15 +22,22 @@ export const digitTickers = new Set([
    'USD1', 'USDT0', 'XL1', 'XU3O8'
 ])
 
-// Assets Kraken has since renamed or migrated.
+// Other names Kraken gives an asset, whatever the date.
 const assetAliases: Record<string, string> = {
    'XBT': 'BTC',
    'XDG': 'DOGE',
-   'ETH2': 'ETH',
+   'ETH2': 'ETH'
+}
+
+// Assets Kraken renamed on a date: what it wrote before still carries the old ticker.
+// The pages list one under both names, from formerTickers in
+// src/views/components/kraken/asset-migrations.ts — change the two together.
+export const renamedAssets: Record<string, string> = {
    'MATIC': 'POL'
 }
 
-export function normalizeAsset(asset: string | undefined): string {
+// The ticker as it was when Kraken wrote it: MATIC stays MATIC.
+export function tickerOf(asset: string | undefined): string {
    if (!asset) return ''
 
    // Strip any staking, earn or parachain suffix: DOT28.S becomes DOT, XBT.F becomes
@@ -49,4 +56,10 @@ export function normalizeAsset(asset: string | undefined): string {
    }
 
    return assetAliases[base] ?? assetAliases[asset] ?? base
+}
+
+// The asset an amount is added up under: MATIC and POL are one holding.
+export function normalizeAsset(asset: string | undefined): string {
+   const ticker = tickerOf(asset)
+   return renamedAssets[ticker] ?? ticker
 }
