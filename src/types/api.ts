@@ -106,15 +106,27 @@ export interface RewardAmount extends UsdValue {
    amount: number
 }
 
-export interface RewardAsset {
-   asset: string
+export interface RewardTotals {
    total: RewardAmount
    entries: number
    first: number
    last: number
    byYear: Record<number, RewardAmount>
+}
+
+// The ledger export names no strategy, only the wallet a reward was paid into, so a
+// strategy here is what that wallet stands for: one of Kraken's lock types, or
+// 'staking' for what was paid before Earn replaced it.
+export interface RewardStrategy extends RewardTotals {
+   lockType: string
+   active: boolean
+}
+
+export interface RewardAsset extends RewardTotals {
+   asset: string
    byMonth: Record<number, RewardAmount>
    byWeek: Record<number, RewardAmount>
+   strategies: RewardStrategy[]
 }
 
 export interface RewardPeriod {
