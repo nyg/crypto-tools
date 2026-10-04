@@ -26,6 +26,10 @@ export interface UserVersionRow {
    user_version: number
 }
 
+export interface TableNameRow {
+   name: string
+}
+
 export interface LedgerEntryRow {
    txid: string
    refid: string
