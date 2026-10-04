@@ -57,6 +57,18 @@ export function asExactDecimal(value: string): string {
    return `${sign}${countFormatter.format(BigInt(integer))}${fraction === undefined ? '' : `${decimalSeparator}${fraction}`}`
 }
 
+export function fractionDigits(value: string): number {
+   return /\.(\d+)$/.exec(value)?.[1]?.length ?? 0
+}
+
+// What a decimal lacks to be as long as the longest one in its column. Drawn after it
+// but invisible, it is what lines the decimal points up without adding zeros to read.
+export function decimalPadding(value: string, digits: number): string {
+   const own = fractionDigits(value)
+   if (own >= digits) return ''
+   return `${own === 0 ? decimalSeparator : ''}${'0'.repeat(digits - own)}`
+}
+
 export function asDecimalOne(number: number): string {
    return decimalOneFormatter.format(number)
 }

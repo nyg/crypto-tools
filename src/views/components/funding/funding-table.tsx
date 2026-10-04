@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import AlignedDecimal from '../lib/aligned-decimal'
 import SortableHead from '../lib/sortable-head'
 import { asCount } from '../lib/filter-options'
 import { fundingTotals } from '@/lib/funding'
 import { numericKey, sortRows } from '@/lib/sort'
-import { asExactDecimal, asUtcTimestamp } from '../../../utils/format'
+import { asUtcTimestamp, fractionDigits } from '../../../utils/format'
 import type { SortKeys } from '@/lib/sort'
 import type { FundingMovement } from '../../../types/api'
 import type { FundingKind } from '../../../types/funding'
@@ -21,7 +22,7 @@ const sortKeys: SortKeys<FundingMovement> = {
 
 const COLLAPSED_ROWS = 10
 
-const asFee = (fee: string) => Number(fee) === 0 ? '—' : asExactDecimal(fee)
+const longestFraction = (values: string[]) => Math.max(0, ...values.map(fractionDigits))
 
 const names: Record<FundingKind, { title: string, noun: string, total: 'deposited' | 'withdrawn' }> = {
    deposit: { title: 'Deposits', noun: 'deposit', total: 'deposited' },
@@ -42,6 +43,10 @@ export default function FundingTable({ kind, asset, movements }: {
    const rows = expanded ? sorted : sorted.slice(0, COLLAPSED_ROWS)
    const totals = fundingTotals(movements)
    const hasMethods = movements.some(({ method }) => method)
+   const amountDigits = longestFraction([...movements.map(({ amount }) => amount), totals[total]])
+   const feeDigits = longestFraction([...movements.map(({ fee }) => fee), totals.fees])
+
+   const feeOf = (fee: string) => Number(fee) === 0 ? '—' : <AlignedDecimal value={fee} digits={feeDigits} />
 
    return (
       <div className="min-w-0 space-y-2">
@@ -69,15 +74,20 @@ export default function FundingTable({ kind, asset, movements }: {
                            {movement.pending && <Badge variant="secondary" className="ml-2">Pending</Badge>}
                         </TableCell>
                         {hasMethods && <TableCell className="text-muted-foreground">{movement.method || '—'}</TableCell>}
-                        <TableCell className="text-right font-medium">{asExactDecimal(movement.amount)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">{asFee(movement.fee)}</TableCell>
+                        <TableCell className="text-right font-medium">
+                           <AlignedDecimal value={movement.amount} digits={amountDigits} />
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">{feeOf(movement.fee)}</TableCell>
                      </TableRow>)}
                </TableBody>
                <TableFooter>
                   <TableRow>
                      <TableHead colSpan={hasMethods ? 2 : 1}>Total</TableHead>
-                     <TableCell className="text-right">{asExactDecimal(totals[total])}</TableCell>
-                     <TableCell className="text-right">{asFee(totals.fees)}</TableCell>
+                     <TableCell className="text-right">
+                        <AlignedDecimal value={totals[total]} digits={amountDigits} />
+                     </TableCell>
+                     {/* The weight of the rows above: a bolder digit is wider, and the points would not line up. */}
+                     <TableCell className="text-right font-normal">{feeOf(totals.fees)}</TableCell>
                   </TableRow>
                </TableFooter>
             </Table>}
