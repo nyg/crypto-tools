@@ -77,3 +77,24 @@ export interface XStockJob {
    error: string | null
    cancelRequested: boolean
 }
+
+export type FundingStepPhase = 'pending' | 'running' | 'done' | 'error' | 'cancelled' | 'skipped'
+
+export interface FundingStep {
+   feed: string
+   label: string
+   phase: FundingStepPhase
+   windows: number
+   windowsDone: number
+   stored: number
+}
+
+export interface FundingJob {
+   phase: JobPhase
+   startedAt: number
+   updatedAt: number
+   finishedAt: number | null
+   steps: FundingStep[]
+   error: string | null
+   cancelRequested: boolean
+}

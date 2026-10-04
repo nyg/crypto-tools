@@ -264,6 +264,40 @@ const migrations: Migration[] = [
       DROP TABLE asset_usd_rate;
 
       ALTER TABLE asset_usd_rate_next RENAME TO asset_usd_rate;
+   `),
+
+   db => db.exec(`
+      CREATE TABLE funding_movement (
+         venue       TEXT    NOT NULL,
+         account_id  TEXT    NOT NULL,
+         feed        TEXT    NOT NULL,
+         movement_id TEXT    NOT NULL,
+         kind        TEXT    NOT NULL CHECK (kind IN ('deposit', 'withdrawal')),
+         asset       TEXT    NOT NULL,
+         amount      TEXT    NOT NULL,
+         fee         TEXT    NOT NULL,
+         method      TEXT    NOT NULL DEFAULT '',
+         status      TEXT    NOT NULL CHECK (status IN ('completed', 'pending', 'failed')),
+         time        INTEGER NOT NULL,
+         synced_at   INTEGER NOT NULL,
+         PRIMARY KEY (venue, account_id, feed, movement_id)
+      ) STRICT;
+
+      CREATE TABLE funding_feed (
+         venue      TEXT    NOT NULL,
+         account_id TEXT    NOT NULL,
+         feed       TEXT    NOT NULL,
+         covered_to INTEGER NOT NULL,
+         PRIMARY KEY (venue, account_id, feed)
+      ) STRICT;
+
+      CREATE TABLE funding_account (
+         venue          TEXT NOT NULL,
+         key_id         TEXT NOT NULL,
+         account_id     TEXT NOT NULL,
+         last_synced_at INTEGER,
+         PRIMARY KEY (venue, key_id)
+      ) STRICT;
    `)
 ]
 

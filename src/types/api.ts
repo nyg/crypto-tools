@@ -6,7 +6,8 @@ import type {
    FeeAssetRow, FeeMonthRow, FeeTypeRow, LedgerEntryRow, MarketRow,
    OtherAccountRow, RewardPeriodRow, SyncStateRow, TradeListRow, UsdValue
 } from './db'
-import type { JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
+import type { FundingKind } from './funding'
+import type { FundingJob, JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
 import type {
@@ -633,6 +634,40 @@ export interface PortfolioHistoryRequest {
 export interface PortfolioHistoryResponse {
    movements: PortfolioMovement[]
    runs: PortfolioRun[]
+}
+
+/* Funding */
+
+export interface FundingMovement {
+   id: string
+   kind: FundingKind
+   asset: string
+   amount: string
+   fee: string
+   method: string
+   time: number
+   pending: boolean
+   balance: FundingBalance | null
+}
+
+// What the account held of the asset right after a movement, and the lowest and the
+// highest it held since the movement before: trades move the balance in between.
+export interface FundingBalance {
+   after: string
+   low: string
+   high: string
+}
+
+export interface FundingResponse {
+   movements: FundingMovement[]
+   lastSyncedAt: number | null
+   job: FundingJob | null
+}
+
+export type FundingSyncResponse = StartedJob<FundingJob>
+
+export interface FundingCancelResponse {
+   job: FundingJob | null
 }
 
 export type { JobPhase }

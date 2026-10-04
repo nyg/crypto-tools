@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { asDaysAgo, asExactDecimal } from './format'
+import { asDaysAgo, asExactDecimal, asNumericTimestamp, decimalPadding, fractionDigits } from './format'
 
 describe('asDaysAgo', () => {
 
@@ -37,5 +37,30 @@ describe('asExactDecimal', () => {
    test('returns anything that is not a plain decimal unchanged', () => {
       expect(asExactDecimal('')).toBe('')
       expect(asExactDecimal('1e-8')).toBe('1e-8')
+   })
+})
+
+describe('decimalPadding', () => {
+
+   test('counts the digits after the decimal point', () => {
+      expect(['0.000015', '1.5', '1500', '-0.25'].map(fractionDigits)).toEqual([6, 1, 0, 2])
+   })
+
+   test('fills a decimal up to the longest fraction of its column', () => {
+      expect(decimalPadding('0.05', 6)).toBe('0000')
+      expect(decimalPadding('0.000015', 6)).toBe('')
+   })
+
+   test('stands in for the separator too when the value has no fraction', () => {
+      expect(decimalPadding('1', 5)).toHaveLength(6)
+      expect(decimalPadding('1', 5).slice(1)).toBe('00000')
+      expect(decimalPadding('1', 0)).toBe('')
+   })
+})
+
+describe('asNumericTimestamp', () => {
+
+   test('writes the local date and time in digits only, with nothing but a space between them', () => {
+      expect(asNumericTimestamp(new Date(2024, 10, 3, 9, 23, 4))).toMatch(/^\d{2}\D\d{2}\D\d{4} 09:23:04$/)
    })
 })

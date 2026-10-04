@@ -31,6 +31,16 @@ const settingsHelp = (tabs: string) =>
       here is enough to cut those tabs off from it.
    </>
 
+const fundingHelp = (source: ReactNode) =>
+   <>
+      What you moved in and out of the account, one asset at a time. {source} The chart adds up
+      each day&apos;s deposits above the line and its withdrawals below it, and only draws the
+      days something moved, so they sit side by side however far apart they are. A deposit
+      counts what the exchange received and a withdrawal what it sent out; the fee is what the
+      exchange kept on top, and <b>net</b> is deposited less withdrawn. Dates are in your own
+      time zone.
+   </>
+
 // What each page is and where its data comes from, keyed by route. Kept in one place
 // and out of the pages themselves: the copy is worth having, a banner above every
 // page is not, and whichever surface ends up showing it should have a single list to
@@ -72,6 +82,16 @@ const pageHelp: Record<string, ReactNode> = {
          charged in, and each one is converted at the USD rate of the day it was charged
          for the cost column and the share.
       </>,
+
+   '/kraken/funding': fundingHelp(
+      <>
+         Read from the ledger the Ledger tab stores, so it is as fresh as the last sync. A withdrawal
+         Kraken reversed is left out, and so is moving coins into staking. The <b>balance</b> line is
+         what you held of the asset right after each movement, in every wallet, added up from the
+         same ledger. It only has a point where something moved, so the whisker on each point
+         shows how low and how high the balance went since the bar before, as trades and rewards
+         changed it.
+      </>),
 
    '/kraken/aggregated-trades':
       <>
@@ -116,6 +136,18 @@ const pageHelp: Record<string, ReactNode> = {
          nothing is shown until you fetch. Locked staking positions are listed with the
          date each one is released and the products they were subscribed to.
       </>,
+
+   '/binance/funding': fundingHelp(
+      <>
+         Read from Binance when you sync and kept in a database on this machine: crypto deposits and
+         withdrawals back to the start, and the fiat ones Binance still serves.
+      </>),
+
+   '/bybit/funding': fundingHelp(
+      <>
+         Read from Bybit when you sync and kept in a database on this machine: crypto deposits and
+         withdrawals, on-chain and between Bybit accounts.
+      </>),
 
    '/kraken/portfolios': portfolioHelp('Kraken', ''),
 
