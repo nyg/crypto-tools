@@ -1,4 +1,3 @@
-import { mkdirSync } from 'fs'
 import { relative, resolve } from 'path'
 import { chromium } from 'playwright-core'
 import type { Browser, Page } from 'playwright-core'
@@ -6,6 +5,7 @@ import { shots } from './shots'
 import type { Shot } from './shots'
 
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+const PORT = 3100
 const WIDTH = 1440
 const HEIGHT = 900
 const FRAME_WIDTH = 2247
@@ -14,28 +14,18 @@ const RADIUS = 14
 const QUIET = 1200
 const SETTLE_TIMEOUT = 30000
 
-const args = process.argv.slice(2)
-const option = (name: string) => args.find(argument => argument.startsWith(`--${name}=`))?.split('=').slice(1).join('=')
-const names = args.filter(argument => !argument.startsWith('--'))
+const names = process.argv.slice(2)
 const root = resolve(import.meta.dir, '../..')
-const out = resolve(option('out') ?? `${root}/public`)
-const port = Number(option('port') ?? 3100)
-
-if (args.includes('--list')) {
-   shots.forEach(({ name, path }) => console.log(`${name.padEnd(28)} ${path}`))
-   process.exit(0)
-}
 
 const unknown = names.filter(name => !shots.some(shot => shot.name === name))
 if (unknown.length > 0) {
-   console.error(`unknown screenshot: ${unknown.join(', ')} (see --list)`)
+   console.error(`unknown screenshot: ${unknown.join(', ')}\nknown: ${shots.map(shot => shot.name).join(', ')}`)
    process.exit(1)
 }
 
 const selected = names.length > 0 ? shots.filter(shot => names.includes(shot.name)) : shots
-mkdirSync(out, { recursive: true })
 
-const server = Bun.spawn(['./node_modules/.bin/vite', '--port', String(port), '--strictPort'], {
+const server = Bun.spawn(['./node_modules/.bin/vite', '--port', String(PORT), '--strictPort'], {
    cwd: root,
    env: { ...process.env, VITE_MOCK_DATA: 'true' },
    stdout: 'ignore',
@@ -45,7 +35,7 @@ const server = Bun.spawn(['./node_modules/.bin/vite', '--port', String(port), '-
 let browser: Browser | undefined
 
 try {
-   await waitForServer(port)
+   await waitForServer()
    browser = await chromium.launch({
       executablePath: CHROME,
       args: ['--lang=en-US', '--hide-scrollbars', '--force-color-profile=srgb']
@@ -55,7 +45,7 @@ try {
    for (const shot of selected) {
       const capture = await captureShot(browser, shot)
       const framed = await frame(framer, capture)
-      const file = `${out}/screenshot-${shot.name}.png`
+      const file = `${root}/public/screenshot-${shot.name}.png`
       await Bun.write(file, framed)
       console.log(`${shot.name.padEnd(28)} ${relative(process.cwd(), file)}`)
    }
@@ -68,7 +58,7 @@ finally {
 async function captureShot(browser: Browser, shot: Shot): Promise<Buffer> {
 
    const context = await browser.newContext({
-      viewport: { width: shot.width ?? WIDTH, height: HEIGHT },
+      viewport: { width: WIDTH, height: HEIGHT },
       deviceScaleFactor: 2,
       locale: 'en-US',
       colorScheme: 'light',
@@ -88,7 +78,7 @@ async function captureShot(browser: Browser, shot: Shot): Promise<Buffer> {
    try {
       const page = await context.newPage()
       page.on('pageerror', error => console.error(`${shot.name}: page error`, error))
-      await page.goto(`http://localhost:${port}${shot.path}`)
+      await page.goto(`http://localhost:${PORT}${shot.path}`)
       await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; caret-color: transparent !important }' })
       await waitForQuiet(page, shot)
       if (shot.prepare) {
@@ -137,6 +127,7 @@ async function frame(page: Page, capture: Buffer): Promise<Buffer> {
       context.roundRect(margin, margin, inner, height, radius)
 
       context.save()
+      // Measured off the original screenshots' alpha channel: change only together with every image.
       context.shadowColor = 'rgba(15, 23, 42, 0.28)'
       context.shadowBlur = 40
       context.shadowOffsetY = 14
@@ -152,16 +143,16 @@ async function frame(page: Page, capture: Buffer): Promise<Buffer> {
    return Buffer.from(dataUrl.split(',')[1] ?? '', 'base64')
 }
 
-async function waitForServer(port: number) {
+async function waitForServer() {
    for (let attempt = 0; attempt < 60; attempt++) {
-      if (server.exitCode !== null) throw new Error(`vite exited with code ${server.exitCode}: is port ${port} already taken?`)
+      if (server.exitCode !== null) throw new Error(`vite exited with code ${server.exitCode}: is port ${PORT} already taken?`)
       try {
-         await fetch(`http://localhost:${port}/`)
+         await fetch(`http://localhost:${PORT}/`)
          return
       }
       catch {
          await Bun.sleep(500)
       }
    }
-   throw new Error(`vite did not start on port ${port}`)
+   throw new Error(`vite did not start on port ${PORT}`)
 }

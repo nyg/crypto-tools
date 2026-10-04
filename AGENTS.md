@@ -19,22 +19,12 @@
 
 ## README screenshots
 
-Every screenshot in `public/` is a 2247px-wide PNG: the page on a transparent background with a 44px margin, rounded corners and a drop shadow. They are retaken by hand when someone asks, never on a schedule or in CI, with `bun run screenshots`:
+Retaken by hand when someone asks, never on a schedule or in CI:
 
-- `bun run screenshots` retakes every shot into `public/`.
-- `bun run screenshots kraken-fees home` retakes only the named ones.
-- `bun run screenshots --list` prints each name and its route.
-- `--out=<dir>` writes somewhere other than `public/`, which is how to compare a take with the committed images before overwriting them.
-
-`scripts/screenshots/shots.ts` is the list. A shot has a `name` (its file is `public/screenshot-<name>.png`) and a `path`, and optionally `storage` and `prepare`. `storage` is seeded into `localStorage` before the page loads, each value JSON-encoded; the `usePersistentState` keys are how a page's filters and forms get filled in (Aggregated Trades and Order Batch use it). `prepare` runs once the page has loaded, for whatever it needs before it shows anything worth looking at, such as clicking Fetch data on Binance Staking. A new README image is one entry there plus its Markdown line. When a page needs data the fixture lacks, change the mock in `src/views/mocks/`, not the script.
-
-`scripts/screenshots/run.ts` does the rest:
-
-1. **It serves the fixture, never real data.** A running `bun run dev` is the real thing: its Vite proxies `/api` to the Hono server and your actual databases. The script starts its own `VITE_MOCK_DATA=true` Vite on port 3100 with `--strictPort`, so it fails instead of reusing whatever already listens there. It also aborts every `/api` request and fails the shot if one is made: in mocked mode the SWR fetcher answers from `src/views/mocks/` and the app makes no `/api` request at all.
-2. **It captures with playwright-core and the installed Chrome** (`CHROME_PATH` overrides where). Each shot gets a fresh context at 1440×900 with `deviceScaleFactor: 2`, light mode (the app follows the OS appearance, and every screenshot is light), `en-US` and transitions off. It waits until `main` has content and no `animate-spin` spinner has shown for 1.2 s, runs `prepare`, waits the same way again, then takes a full-page capture.
-3. **It composites the frame on a canvas** in the same Chrome: the capture scaled to 2159px wide, placed at (44, 44) on a 2247px-wide canvas 88px taller than it, clipped to a `roundRect` of radius 14, with the shadow cast by filling that same path first with `shadowColor = 'rgba(15, 23, 42, 0.28)'`, `shadowBlur = 40` and `shadowOffsetY = 14`.
-
-The shadow numbers are not arbitrary: they were measured off the original screenshots' alpha channel, and reproduce their falloff to within a couple of levels of 255. Change them only together with every image. Look at a take before committing it; GitHub's image diff on the pull request is a good place to compare it with the previous one.
+- `bun run screenshots` retakes every screenshot in `public/` from the mocked app, never real data; `bun run screenshots kraken-fees home` retakes only the named ones.
+- `scripts/screenshots/shots.ts` is the list: a new README image is one entry there plus its Markdown line.
+- When a page needs data the fixture lacks, change the mock in `src/views/mocks/`, not the script.
+- Look at every take before committing it.
 
 ## Architecture
 

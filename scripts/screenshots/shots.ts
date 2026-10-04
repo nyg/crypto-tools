@@ -3,7 +3,6 @@ import type { Page } from 'playwright-core'
 export interface Shot {
    name: string
    path: string
-   width?: number
    storage?: Record<string, unknown>
    prepare?: (page: Page) => Promise<void>
 }
@@ -18,6 +17,7 @@ export const shots: Shot[] = [
    { name: 'kraken-balances', path: '/kraken/balances' },
    { name: 'kraken-rewards', path: '/kraken/rewards' },
    { name: 'kraken-fees', path: '/kraken/fees' },
+   { name: 'kraken-funding', path: '/kraken/funding' },
    {
       name: 'kraken-aggregated-trades',
       path: '/kraken/aggregated-trades',
