@@ -467,6 +467,11 @@ export function ledgerEntries(
 // Mirrors LedgerRepository.feeSummary: same groupings, same shape, computed over the
 // fixture so the page exercises its real rendering rather than a canned response.
 export function ledgerFunding(): FundingResponse {
+
+   const balanceAt = ({ baseAsset, time }: MockEntry) => entries
+      .filter(entry => entry.baseAsset === baseAsset && entry.time <= time)
+      .reduce((balance, entry) => balance.plus(entry.amount).minus(entry.fee), Big(0))
+
    return {
       movements: entries
          .filter(entry => entry.type === 'deposit' || entry.type === 'withdrawal')
@@ -478,7 +483,8 @@ export function ledgerFunding(): FundingResponse {
             fee: Big(entry.fee).toFixed(),
             method: '',
             time: entry.time,
-            pending: false
+            pending: false,
+            balance: balanceAt(entry).toFixed()
          })),
       lastSyncedAt: syncState.lastSyncedAt,
       job: null

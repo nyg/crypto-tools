@@ -193,3 +193,23 @@ describe('fundingEntries', () => {
       expect(repository.fundingEntries()).toEqual([])
    })
 })
+
+describe('fundedAssetEntries', () => {
+
+   test('lists every entry of an asset that was deposited or withdrawn, in any wallet, and of no other', () => {
+
+      const repository = new LedgerRepository('funded-assets')
+      repository.upsertEntries([
+         entry('D1', Date.UTC(2026, 7, 1), '10', { type: 'deposit', subtype: '', asset: 'DOT', baseAsset: 'DOT' }),
+         entry('E1', Date.UTC(2026, 7, 3), '0.5', { asset: 'DOT28.S', baseAsset: 'DOT', fee: '0.1' }),
+         entry('T1', Date.UTC(2026, 7, 2), '-4', { type: 'trade', subtype: '', asset: 'DOT', baseAsset: 'DOT' }),
+         entry('T2', Date.UTC(2026, 7, 2), '40', { type: 'trade', subtype: '', asset: 'ZUSD', baseAsset: 'USD' })
+      ], Date.UTC(2026, 7, 4))
+
+      expect(repository.fundedAssetEntries()).toEqual([
+         { asset: 'DOT', time: Date.UTC(2026, 7, 1), amount: '10', fee: '0' },
+         { asset: 'DOT', time: Date.UTC(2026, 7, 2), amount: '-4', fee: '0' },
+         { asset: 'DOT', time: Date.UTC(2026, 7, 3), amount: '0.5', fee: '0.1' }
+      ])
+   })
+})

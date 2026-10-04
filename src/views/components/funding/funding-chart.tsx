@@ -1,7 +1,7 @@
-import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, XAxis, YAxis } from 'recharts'
+import { Bar, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from 'recharts'
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip } from '@/components/ui/chart'
 import {
-   asAssetAmount, asAxisTick, asUtcLongDate, asUtcMonthYearDate, asUtcShortDateYear, asUtcShortMonthYearDate
+   asAssetAmount, asAxisTick, asLongDate, asMonthYearDate, asShortDateYear, asShortMonthYearDate
 } from '../../../utils/format'
 import type { ChartConfig } from '@/components/ui/chart'
 import type { FundingBucket, FundingGranularity } from '@/lib/funding'
@@ -10,24 +10,28 @@ export type FundingChartView = 'movements' | 'net'
 
 const DEPOSIT_COLOR = 'var(--chart-3)'
 const WITHDRAWAL_COLOR = 'var(--chart-8)'
+const BALANCE_COLOR = 'var(--chart-1)'
 
-const movementsConfig: ChartConfig = {
-   deposited: { label: 'Deposits', color: DEPOSIT_COLOR },
-   withdrawn: { label: 'Withdrawals', color: WITHDRAWAL_COLOR }
+const configs: Record<FundingChartView, ChartConfig> = {
+   movements: {
+      deposited: { label: 'Deposits', color: DEPOSIT_COLOR },
+      withdrawn: { label: 'Withdrawals', color: WITHDRAWAL_COLOR },
+      balance: { label: 'Balance', color: BALANCE_COLOR }
+   },
+   net: {
+      net: { label: 'Net to date', color: DEPOSIT_COLOR },
+      balance: { label: 'Balance', color: BALANCE_COLOR }
+   }
 }
 
-const netConfig: ChartConfig = {
-   net: { label: 'Net to date' }
-}
-
-const yearOf = (start: number) => String(new Date(start).getUTCFullYear())
+const yearOf = (start: number) => String(new Date(start).getFullYear())
 
 const ticks: Record<FundingGranularity, (start: number) => string> = {
-   day: asUtcShortDateYear, month: asUtcShortMonthYearDate, year: yearOf
+   day: asShortDateYear, month: asShortMonthYearDate, year: yearOf
 }
 
 const labels: Record<FundingGranularity, (start: number) => string> = {
-   day: asUtcLongDate, month: asUtcMonthYearDate, year: yearOf
+   day: asLongDate, month: asMonthYearDate, year: yearOf
 }
 
 function TooltipRow({ color, label, value }: { color: string, label: string, value: number }) {
@@ -40,10 +44,11 @@ function TooltipRow({ color, label, value }: { color: string, label: string, val
    )
 }
 
-function FundingTooltip({ active, payload, granularity }: {
+function FundingTooltip({ active, payload, granularity, showBalance }: {
    active?: boolean
    payload?: { payload?: FundingBucket }[]
    granularity: FundingGranularity
+   showBalance: boolean
 }) {
 
    const bucket = payload?.[0]?.payload
@@ -58,20 +63,23 @@ function FundingTooltip({ active, payload, granularity }: {
             color={bucket.net < 0 ? WITHDRAWAL_COLOR : DEPOSIT_COLOR}
             label="Net to date"
             value={bucket.net} />
+         {showBalance && bucket.balance !== null &&
+            <TooltipRow color={BALANCE_COLOR} label="Balance after" value={bucket.balance} />}
       </div>
    )
 }
 
 // The x axis is one category per bucket rather than a time scale: periods in which
 // nothing moved take no room, however far apart their neighbours are.
-export default function FundingChart({ buckets, granularity, view }: {
+export default function FundingChart({ buckets, granularity, view, showBalance }: {
    buckets: FundingBucket[]
    granularity: FundingGranularity
    view: FundingChartView
+   showBalance: boolean
 }) {
    return (
-      <ChartContainer config={view === 'net' ? netConfig : movementsConfig} className="h-[320px] w-full">
-         <BarChart data={buckets} stackOffset="sign" margin={{ top: 8, right: 8 }}>
+      <ChartContainer config={configs[view]} className="h-[320px] w-full">
+         <ComposedChart data={buckets} stackOffset="sign" margin={{ top: 8, right: 8 }}>
             <CartesianGrid vertical={false} />
             <XAxis
                dataKey="start"
@@ -82,16 +90,16 @@ export default function FundingChart({ buckets, granularity, view }: {
                tickFormatter={ticks[granularity]} />
             <YAxis tickLine={false} axisLine={false} tickMargin={8} width={72} tickFormatter={asAxisTick} />
             <ReferenceLine y={0} stroke="var(--border)" />
-            <ChartTooltip content={<FundingTooltip granularity={granularity} />} />
+            <ChartTooltip content={<FundingTooltip granularity={granularity} showBalance={showBalance} />} />
+            <ChartLegend itemSorter={null} content={<ChartLegendContent />} />
             {/* The entry animation is off for the same reason as the fee chart: under
                 StrictMode the bars can stay stuck on their zero-height first frame. */}
             {view === 'net'
-               ? <Bar dataKey="net" maxBarSize={48} radius={[4, 4, 0, 0]} isAnimationActive={false}>
+               ? <Bar dataKey="net" fill={DEPOSIT_COLOR} maxBarSize={48} radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {buckets.map(bucket =>
                      <Cell key={bucket.start} fill={bucket.net < 0 ? WITHDRAWAL_COLOR : DEPOSIT_COLOR} />)}
                </Bar>
                : <>
-                  <ChartLegend content={<ChartLegendContent />} />
                   <Bar
                      dataKey="deposited"
                      stackId="funding"
@@ -107,7 +115,17 @@ export default function FundingChart({ buckets, granularity, view }: {
                      radius={[4, 4, 0, 0]}
                      isAnimationActive={false} />
                </>}
-         </BarChart>
+            {showBalance &&
+               <Line
+                  dataKey="balance"
+                  type="linear"
+                  stroke={BALANCE_COLOR}
+                  strokeWidth={2}
+                  dot={{ r: 2.5, fill: BALANCE_COLOR }}
+                  activeDot={{ r: 4 }}
+                  connectNulls
+                  isAnimationActive={false} />}
+         </ComposedChart>
       </ChartContainer>
    )
 }

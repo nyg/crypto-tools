@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import useMutation from '../../lib/use-mutation'
 import usePersistentState from '../../lib/use-persistent-state'
 import { useProvider } from '../../lib/use-settings'
+import Checkbox from '../lib/checkbox'
 import ComboboxField from '../lib/combobox-field'
 import CredentialsAlert from '../lib/credentials-alert'
 import Field from '../lib/field'
@@ -57,6 +58,7 @@ export default function FundingPage({ layout: Layout, venue }: { layout: Funding
    const [storedAsset, setAsset] = usePersistentState<string | null>(`${provider}.funding.asset`, null)
    const [granularity, setGranularity] = usePersistentState<FundingGranularity>('funding.granularity', 'day')
    const [view, setView] = usePersistentState<FundingChartView>('funding.view', 'movements')
+   const [balanceWanted, setBalanceWanted] = usePersistentState('funding.balance', true)
 
    const { data: funding, error, isLoading, mutate } = useSWR<FundingResponse>(
       configured ? apiBase : null,
@@ -93,6 +95,7 @@ export default function FundingPage({ layout: Layout, venue }: { layout: Funding
    const deposits = selected.filter(({ kind }) => kind === 'deposit')
    const withdrawals = selected.filter(({ kind }) => kind === 'withdrawal')
    const totals = fundingTotals(selected)
+   const hasBalances = selected.some(({ balance }) => balance !== null)
 
    const job = funding?.job
 
@@ -166,6 +169,14 @@ export default function FundingPage({ layout: Layout, venue }: { layout: Funding
                                  value={view}
                                  onValueChange={value => setView(value as FundingChartView)}
                                  options={views} />
+                              {hasBalances &&
+                                 <Checkbox
+                                    name="funding-balance"
+                                    label="Balance"
+                                    title={`What you held of ${asset} right after each movement`}
+                                    className="h-8 self-end"
+                                    checked={balanceWanted}
+                                    onChange={event => setBalanceWanted(event.target.checked)} />}
                            </div>
 
                            <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4">
@@ -187,7 +198,8 @@ export default function FundingPage({ layout: Layout, venue }: { layout: Funding
                               <FundingChart
                                  buckets={fundingBuckets(selected, granularity)}
                                  granularity={granularity}
-                                 view={view} />
+                                 view={view}
+                                 showBalance={hasBalances && balanceWanted} />
                            </div>
 
                            <div className="grid gap-8 border-t border-border pt-6 lg:grid-cols-2">

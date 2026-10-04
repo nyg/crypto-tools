@@ -4,12 +4,12 @@ import { locales } from './locale'
 type DateLike = number | Date
 
 const shortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' })
+const shortDateYearFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short', day: 'numeric' })
 const longDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric' })
 const utcLongDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
 const monthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long' })
 const shortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short' })
 const utcShortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric', timeZone: 'UTC' })
-const utcShortDateYearFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short', day: 'numeric', timeZone: 'UTC' })
 const utcMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long', timeZone: 'UTC' })
 const utcShortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short', timeZone: 'UTC' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -99,6 +99,10 @@ export function asShortDate(timestamp: DateLike): string {
    return dateFormat(shortDateFormatter, timestamp)
 }
 
+export function asShortDateYear(timestamp: DateLike): string {
+   return dateFormat(shortDateYearFormatter, timestamp)
+}
+
 export function asLongDate(timestamp: DateLike): string {
    return dateFormat(longDateFormatter, timestamp)
 }
@@ -117,10 +121,6 @@ export function asShortMonthYearDate(timestamp: DateLike): string {
 
 export function asUtcShortDate(timestamp: DateLike): string {
    return dateFormat(utcShortDateFormatter, timestamp)
-}
-
-export function asUtcShortDateYear(timestamp: DateLike): string {
-   return dateFormat(utcShortDateYearFormatter, timestamp)
 }
 
 export function asUtcMonthYearDate(timestamp: DateLike): string {

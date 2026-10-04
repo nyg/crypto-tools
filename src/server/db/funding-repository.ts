@@ -75,7 +75,7 @@ export default class FundingRepository {
          WHERE venue = ? AND account_id = ? AND status <> 'failed'
          ORDER BY time, feed, movement_id`).all(this.#venue, this.#accountId)
          .map(({ feed, movementId, status, ...movement }) =>
-            ({ id: `${feed}:${movementId}`, ...movement, pending: status === 'pending' }))
+            ({ id: `${feed}:${movementId}`, ...movement, pending: status === 'pending', balance: null }))
    }
 
    coveredTo(feed: string): number | null {

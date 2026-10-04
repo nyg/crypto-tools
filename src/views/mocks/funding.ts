@@ -39,7 +39,8 @@ function movementsOf(prefix: string, plans: Plan[]): FundingMovement[] {
          fee: String(plan.fee),
          method: plan.method,
          time: start + index * plan.everyDays * DAY + ((index * 5 + planIndex * 3) % 12) * HOUR,
-         pending: false
+         pending: false,
+         balance: null
       })))
       .toSorted((a, b) => a.time - b.time)
 }
@@ -48,7 +49,7 @@ const withPending = (movements: FundingMovement[]): FundingMovement[] => [
    ...movements,
    {
       id: 'pending-withdrawal', kind: 'withdrawal', asset: 'USDT', amount: '750', fee: '1',
-      method: 'TRX', time: Date.now() - 20 * 60000, pending: true
+      method: 'TRX', time: Date.now() - 20 * 60000, pending: true, balance: null
    }
 ]
 

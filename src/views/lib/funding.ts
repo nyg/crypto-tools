@@ -20,15 +20,14 @@ export interface FundingBucket {
    deposited: number
    withdrawn: number
    net: number
+   balance: number | null
    count: number
 }
 
-const DAY = 86400000
-
-const bucketStarts: Record<FundingGranularity, (time: number) => number> = {
-   day: time => time - time % DAY,
-   month: time => Date.UTC(new Date(time).getUTCFullYear(), new Date(time).getUTCMonth(), 1),
-   year: time => Date.UTC(new Date(time).getUTCFullYear(), 0, 1)
+const bucketStarts: Record<FundingGranularity, (date: Date) => number> = {
+   day: date => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime(),
+   month: date => new Date(date.getFullYear(), date.getMonth(), 1).getTime(),
+   year: date => new Date(date.getFullYear(), 0, 1).getTime()
 }
 
 const sumOf = (movements: FundingMovement[], field: 'amount' | 'fee'): Big =>
@@ -58,14 +57,15 @@ export function fundingTotals(movements: FundingMovement[]): FundingTotals {
 }
 
 // Only the periods something moved in get a bucket, so the chart draws them side by
-// side however far apart they are. Withdrawals are negative, to hang below the axis.
+// side however far apart they are. Withdrawals are negative, to hang below the axis,
+// and a period's balance is the one its last movement left.
 export function fundingBuckets(movements: FundingMovement[], granularity: FundingGranularity): FundingBucket[] {
 
    const startOf = bucketStarts[granularity]
    const grouped = new Map<number, FundingMovement[]>()
 
    for (const movement of movements) {
-      const start = startOf(movement.time)
+      const start = startOf(new Date(movement.time))
       grouped.set(start, [...grouped.get(start) ?? [], movement])
    }
 
@@ -76,11 +76,13 @@ export function fundingBuckets(movements: FundingMovement[], granularity: Fundin
       .map(([start, bucket]) => {
          const { deposited, withdrawn } = fundingTotals(bucket)
          net = net.plus(deposited).minus(withdrawn)
+         const { balance } = bucket.reduce((last, movement) => movement.time >= last.time ? movement : last)
          return {
             start,
             deposited: Number(deposited),
             withdrawn: 0 - Number(withdrawn),
             net: net.toNumber(),
+            balance: balance === null ? null : Number(balance),
             count: bucket.length
          }
       })

@@ -4,7 +4,7 @@ import { getDatabase } from './database'
 import { entryKeyFor } from './entry-key'
 import type {
    AssetRangeRow, BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
-   FeeTypeRow, FundingLedgerRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
+   FeeTypeRow, FundingBalanceRow, FundingLedgerRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
    SyncStateUpdate, TimeRangeRow, UsdValue, ValueRow
 } from '../../types/db'
 import type {
@@ -377,6 +377,16 @@ export default class LedgerRepository {
          FROM ledger_entry
          WHERE account_id = ? AND type IN ('deposit', 'withdrawal') AND asset NOT LIKE '%.%'
          ORDER BY time, entry_key`).all(this.#accountId)
+   }
+
+   fundedAssetEntries(): FundingBalanceRow[] {
+      return this.#db.query<FundingBalanceRow, Params>(`
+         SELECT base_asset AS asset, time, amount, fee
+         FROM ledger_entry
+         WHERE account_id = ? AND base_asset IN (
+            SELECT base_asset FROM ledger_entry
+            WHERE account_id = ? AND type IN ('deposit', 'withdrawal') AND asset NOT LIKE '%.%')
+         ORDER BY time`).all(this.#accountId, this.#accountId)
    }
 
    readSyncState(): SyncStateRow | null {

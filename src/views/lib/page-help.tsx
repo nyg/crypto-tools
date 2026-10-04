@@ -37,7 +37,8 @@ const fundingHelp = (source: ReactNode) =>
       each day&apos;s deposits above the line and its withdrawals below it, and only draws the
       days something moved, so they sit side by side however far apart they are. A deposit
       counts what the exchange received and a withdrawal what it sent out; the fee is what the
-      exchange kept on top, and <b>net</b> is deposited less withdrawn. Times are in UTC.
+      exchange kept on top, and <b>net</b> is deposited less withdrawn. Dates are in your own
+      time zone.
    </>
 
 // What each page is and where its data comes from, keyed by route. Kept in one place
@@ -85,7 +86,9 @@ const pageHelp: Record<string, ReactNode> = {
    '/kraken/funding': fundingHelp(
       <>
          Read from the ledger the Ledger tab stores, so it is as fresh as the last sync. A withdrawal
-         Kraken reversed is left out, and so is moving coins into staking.
+         Kraken reversed is left out, and so is moving coins into staking. The <b>balance</b> line is
+         what you held of the asset right after each movement, in every wallet, added up from the
+         same ledger.
       </>),
 
    '/kraken/aggregated-trades':

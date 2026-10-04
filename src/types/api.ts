@@ -635,6 +635,8 @@ export interface FundingMovement {
    method: string
    time: number
    pending: boolean
+   // What the account held of the asset right after, where the exchange lets it be known.
+   balance: string | null
 }
 
 export interface FundingResponse {

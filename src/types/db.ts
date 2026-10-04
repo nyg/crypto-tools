@@ -275,6 +275,13 @@ export interface FundingLedgerRow {
    fee: string
 }
 
+export interface FundingBalanceRow {
+   asset: string
+   time: number
+   amount: string
+   fee: string
+}
+
 export interface FundingAccountRow {
    accountId: string
    lastSyncedAt: number | null

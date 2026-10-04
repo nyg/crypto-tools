@@ -27,7 +27,7 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![Kraken Fees](public/screenshot-kraken-fees.png)
 
-**Funding** — what you deposited and withdrew, one asset at a time, crypto or fiat: a bar chart that adds up each day's deposits and withdrawals and only draws the days something moved, both lists side by side with sortable columns, and the totals with the net. Read from the synced ledger, so a withdrawal Kraken reversed and coins moved into staking are left out.
+**Funding** — what you deposited and withdrew, one asset at a time, crypto or fiat: a bar chart that adds up each day's deposits and withdrawals and only draws the days something moved, both lists side by side with sortable columns, and the totals with the net. Read from the synced ledger, so a withdrawal Kraken reversed and coins moved into staking are left out. A line on the chart shows what you held of the asset right after each movement.
 
 **Aggregated Trades**
 

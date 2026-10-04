@@ -1,6 +1,6 @@
 import Big from 'big.js'
 import type { FundingMovement } from '../../../types/api'
-import type { FundingLedgerRow } from '../../../types/db'
+import type { FundingBalanceRow, FundingLedgerRow } from '../../../types/db'
 
 interface Folded {
    row: FundingLedgerRow
@@ -37,6 +37,31 @@ export function foldLedgerFunding(rows: FundingLedgerRow[]): FundingMovement[] {
          fee: fee.toFixed(),
          method: '',
          time: row.time,
-         pending: false
+         pending: false,
+         balance: null
       }))
+}
+
+// The balance is every entry of the asset up to the second of the movement, in any
+// wallet: Kraken's times have no finer grain, so entries sharing one have no order.
+export function withBalances(movements: FundingMovement[], entries: FundingBalanceRow[]): FundingMovement[] {
+
+   const balances = new Map<string, string>()
+
+   for (const asset of new Set(movements.map(movement => movement.asset))) {
+
+      const ledger = entries.filter(entry => entry.asset === asset).toSorted((a, b) => a.time - b.time)
+      const held = movements.filter(movement => movement.asset === asset).toSorted((a, b) => a.time - b.time)
+      let balance = Big(0)
+      let next = 0
+
+      for (const movement of held) {
+         for (; next < ledger.length && ledger[next]!.time <= movement.time; next++) {
+            balance = balance.plus(ledger[next]!.amount || 0).minus(ledger[next]!.fee || 0)
+         }
+         balances.set(movement.id, balance.toFixed())
+      }
+   }
+
+   return movements.map(movement => ({ ...movement, balance: balances.get(movement.id) ?? null }))
 }
