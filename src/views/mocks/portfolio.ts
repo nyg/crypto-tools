@@ -2,20 +2,22 @@ import type {
    AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioExecuteRequest,
    PortfolioHistoryRequest, PortfolioHistoryResponse, PortfolioHolding, PortfolioMarketsResponse,
    PortfolioMovement, PortfolioMovementRequest, PortfolioMovementResponse, PortfolioOverviewResponse,
-   PortfolioPlanOrder, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun, PortfolioRunRequest,
+   PortfolioPlanOrder, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun, PortfolioRunOrder, PortfolioRunRequest,
    PortfolioRunResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioStopAckRequest,
    PortfolioStopAckResponse, PortfolioStopFill, PortfolioStopState, PortfolioStopSyncRequest,
    PortfolioStopSyncResponse, PortfolioSummary, PortfolioSupertrendResponse, PortfolioTarget, SupertrendLevel,
    SupertrendLevels
 } from '../../types/api'
-import type { VenueId } from '../../types/portfolio'
+import type { Execution, VenueId } from '../../types/portfolio'
 
 const prices: Record<string, number> = {
    USD: 1, EUR: 1.08, USDT: 1, USDC: 1, BTC: 64250, ETH: 3120, SOL: 152.4, SUI: 3.18, TAO: 418, ENA: 0.92, DOGE: 0.14, XRP: 0.58
 }
 
-const FEE_RATE = 0.001
+const feeRates: Record<Execution, number> = { limit: 0.0004, market: 0.001 }
 const MIN_ORDER = 5
+const TICK = 0.01
+const STOPPED = 'The run was stopped.'
 
 interface MockPortfolio {
    id: number
@@ -41,11 +43,13 @@ interface MockPlan {
    orders: PortfolioPlanOrder[]
    withdraw: number
    all: boolean
+   execution: Execution
 }
 
 interface MockRun {
    run: PortfolioRun
    polls: number
+   stopped: boolean
 }
 
 interface VenueState {
@@ -326,7 +330,7 @@ const markets = (venue: VenueId): PortfolioMarketsResponse => ({
    quoteAssets: quoteAssets[venue],
    markets: Object.keys(prices)
       .filter(asset => !quoteAssets[venue].includes(asset))
-      .flatMap(base => quoteAssets[venue].map(quote => ({ symbol: `${base}${quote}`, base, quote })))
+      .flatMap(base => quoteAssets[venue].map(quote => ({ symbol: `${base}${quote}`, base, quote, tickStep: String(TICK) })))
 })
 
 const reject = (message: string) => Promise.reject(message)
@@ -465,6 +469,8 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
 
    const band = Number(request.band ?? portfolio.band)
    const mode = request.kind === 'withdraw' ? 'full' : request.mode ?? 'full'
+   const execution = request.execution ?? 'limit'
+   const feeRate = feeRates[execution]
    const excluded = new Set(request.exclude ?? [])
    const investable = total - withdraw
    const cash = portfolio.holdings[quote] ?? 0
@@ -502,17 +508,17 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       }
 
       const fee = delta < 0 || venue === 'kraken'
-         ? { asset: quote, amount: fixed(Math.abs(delta) * FEE_RATE) }
-         : { asset, amount: fixed(delta / price * FEE_RATE) }
+         ? { asset: quote, amount: fixed(Math.abs(delta) * feeRate) }
+         : { asset, amount: fixed(delta / price * feeRate) }
       orders.push(delta < 0
-         ? { asset, symbol: `${asset}${quote}`, side: 'sell', unit: 'base', amount: fixed(-delta / price, 6), price: String(price), value: fixed(-delta, 2), fee, feeRate: String(FEE_RATE), feeRateAssumed: false }
-         : { asset, symbol: `${asset}${quote}`, side: 'buy', unit: 'quote', amount: fixed(delta, 2), price: String(price), value: fixed(delta, 2), fee, feeRate: String(FEE_RATE), feeRateAssumed: false })
+         ? { asset, symbol: `${asset}${quote}`, side: 'sell', unit: 'base', amount: fixed(-delta / price, 6), price: String(price), value: fixed(-delta, 2), fee, feeRate: String(feeRate), feeRateAssumed: false }
+         : { asset, symbol: `${asset}${quote}`, side: 'buy', unit: 'quote', amount: fixed(delta, 2), price: String(price), value: fixed(delta, 2), fee, feeRate: String(feeRate), feeRateAssumed: false })
    }
 
    orders.sort((left, right) => (left.side === right.side ? 0 : left.side === 'sell' ? -1 : 1))
 
    const planId = `mock-plan-${state.nextId++}`
-   state.plans.set(planId, { portfolioId: portfolio.id, orders, withdraw, all: Boolean(request.all) })
+   state.plans.set(planId, { portfolioId: portfolio.id, orders, withdraw, all: Boolean(request.all), execution })
 
    const traded = orders.reduce((sum, order) => sum + (order.side === 'sell' ? 1 : -1) * Number(order.value), 0)
 
@@ -526,6 +532,8 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       expiresAt: Date.now() + 120000,
       band: String(band),
       slippage: request.slippage ?? '1',
+      execution,
+      wait: request.wait ?? '120',
       total: fixed(total, 2),
       withdraw: fixed(withdraw, 2),
       orders,
@@ -549,8 +557,10 @@ function execute(venue: VenueId, request?: PortfolioExecuteRequest): PortfolioRu
       id,
       portfolioId: portfolio.id,
       kind: stored.withdraw > 0 ? 'withdraw' : 'rebalance',
+      execution: stored.execution,
       status: 'running',
       running: true,
+      stopping: false,
       withdraw: fixed(stored.withdraw, 2),
       withdrawn: '0',
       startedAt: Date.now(),
@@ -567,21 +577,31 @@ function execute(venue: VenueId, request?: PortfolioExecuteRequest): PortfolioRu
          base: '0',
          quote: '0',
          averagePrice: '0',
+         limitPrice: null,
+         attempts: 1,
          fees: [],
          error: null
       }))
    }
-   state.runs.set(id, { run, polls: 0 })
+   state.runs.set(id, { run, polls: 0, stopped: false })
    return { run: structuredClone(run) }
 }
 
-function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRun['orders'][number]) {
-   const base = order.symbol.replace(new RegExp(`${portfolio.quoteAsset}$`), '')
-   const price = prices[base] ?? 0
+const baseOf = (portfolio: MockPortfolio, order: PortfolioRunOrder) =>
+   order.symbol.replace(new RegExp(`${portfolio.quoteAsset}$`), '')
+
+function rest(portfolio: MockPortfolio, order: PortfolioRunOrder) {
+   const price = prices[baseOf(portfolio, order)] ?? 0
+   Object.assign(order, { status: 'placed', limitPrice: fixed(order.side === 'buy' ? price - TICK : price + TICK) })
+}
+
+function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRunOrder, execution: Execution) {
+   const base = baseOf(portfolio, order)
+   const price = Number(order.limitPrice ?? prices[base] ?? 0)
    const quantity = order.unit === 'base' ? Number(order.requested) : Number(order.requested) / price
    const value = quantity * price
    const buy = order.side === 'buy'
-   const fee = buy ? quantity * FEE_RATE : value * FEE_RATE
+   const fee = (buy ? quantity : value) * feeRates[execution]
 
    if (buy) portfolio.costs[base] = (portfolio.costs[base] ?? 0) + value
    else dispose(portfolio, base, quantity, value - fee)
@@ -607,9 +627,20 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
    const portfolio = state.portfolios.find(({ id }) => id === current.portfolioId)
    entry.polls++
 
+   if (current.running && portfolio && entry.stopped) {
+      for (const order of current.orders) {
+         if (order.status === 'placed') Object.assign(order, { status: 'cancelled', error: STOPPED })
+         if (order.status === 'pending') Object.assign(order, { status: 'skipped', error: STOPPED })
+      }
+      Object.assign(current, { status: 'partial', running: false, stopping: false, finishedAt: Date.now() })
+   }
+
    if (current.running && portfolio) {
-      const next = current.orders.find(({ status }) => status === 'pending')
-      if (next && entry.polls > 1) fill(state, portfolio, next)
+      const next = current.orders.find(({ status }) => status === 'pending' || status === 'placed')
+      if (next && entry.polls > 1) {
+         if (current.execution === 'limit' && next.status === 'pending') rest(portfolio, next)
+         else fill(state, portfolio, next, current.execution)
+      }
       else if (!next) {
          const withdraw = Number(current.withdraw)
          if (withdraw > 0) {
@@ -628,6 +659,17 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
    }
 
    return { run: structuredClone(current) }
+}
+
+function stop(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunResponse | Promise<never> {
+   const entry = stateOf(venue).runs.get(request?.runId ?? '')
+   if (!entry) return reject('This run does not exist.')
+
+   if (entry.run.running) {
+      entry.stopped = true
+      entry.run.stopping = true
+   }
+   return { run: structuredClone(entry.run) }
 }
 
 function history(venue: VenueId, request?: PortfolioHistoryRequest): PortfolioHistoryResponse {
@@ -665,6 +707,7 @@ export const portfolioRoutes: Record<string, (params?: Body) => unknown> = Objec
       [`${base}/plan`, (params?: Body) => plan(venue, arg(params))],
       [`${base}/execute`, (params?: Body) => execute(venue, arg(params))],
       [`${base}/run`, (params?: Body) => run(venue, arg(params))],
+      [`${base}/stop`, (params?: Body) => stop(venue, arg(params))],
       [`${base}/stops/sync`, (params?: Body) => syncStops(venue, arg(params))],
       [`${base}/stops/ack`, (params?: Body) => ackStop(venue, arg(params))],
       [`${base}/history`, (params?: Body) => history(venue, arg(params))]

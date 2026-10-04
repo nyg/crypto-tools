@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import Big from 'big.js'
 import { toast } from 'sonner'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
@@ -8,6 +9,7 @@ import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
 import OrderLabel from './order-label'
 import RunProgress from './run-progress'
+import { SupertrendCell, SupertrendHead } from './supertrend-cell'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -22,11 +24,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { asCount } from '../lib/filter-options'
 import { asQuantity, asQuoteAmount, runStatusLabels, skipReasons } from './format'
 import { asPercentage } from '../../../utils/format'
+import type { SupertrendColumns } from './supertrend-cell'
 import type {
    PortfolioExecuteRequest, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun,
-   PortfolioRunResponse, PortfolioSummary
+   PortfolioRunResponse, PortfolioSummary, PortfolioSupertrendResponse
 } from '../../../types/api'
-import type { RebalanceMode } from '../../../types/portfolio'
+import type { Execution, RebalanceMode } from '../../../types/portfolio'
 
 export interface PlanTarget {
    portfolio: PortfolioSummary
@@ -62,6 +65,23 @@ const modeOptions: { value: RebalanceMode, label: string }[] = [
    { value: 'trim', label: 'Only sell, keep the cash' }
 ]
 
+const executionOptions: { value: Execution, label: string }[] = [
+   { value: 'limit', label: 'Limit, maker only' },
+   { value: 'market', label: 'Market' }
+]
+
+const DEFAULT_WAIT_SECONDS = '120'
+
+const feeRateTitles: Record<Execution, string> = {
+   limit: 'Your maker fee rate on this pair, as the exchange reports it.',
+   market: 'Your taker fee rate on this pair, as the exchange reports it.'
+}
+
+const assumedFeeRateTitles: Record<Execution, string> = {
+   limit: 'The exchange did not report a rate for this pair, so this assumes its standard fee.',
+   market: 'The exchange did not report a rate for this pair, so this assumes its standard taker fee.'
+}
+
 function describePlan(plan: PortfolioPlanResponse): string {
    const quote = plan.quoteAsset
    if (plan.kind === 'withdraw') return `Withdrawing ${asQuoteAmount(plan.withdraw, quote)} of ${asQuoteAmount(plan.total, quote)}.`
@@ -72,15 +92,29 @@ function describePlan(plan: PortfolioPlanResponse): string {
 
 interface PlanPreviewProps {
    plan: PortfolioPlanResponse
+   portfolio: PortfolioSummary
+   supertrend?: SupertrendColumns
    disabled: boolean
    onInclude: (asset: string, included: boolean) => void
 }
 
-function PlanPreview({ plan, disabled, onInclude }: PlanPreviewProps) {
+function PlanPreview({ plan, portfolio, supertrend, disabled, onInclude }: PlanPreviewProps) {
 
    const quote = plan.quoteAsset
    const excluded = plan.skipped.filter(({ reason }) => reason === 'excluded')
    const leftAlone = plan.skipped.filter(({ reason }) => reason !== 'excluded')
+   const priceOf = (asset: string) => portfolio.holdings.find(holding => holding.asset === asset)?.price ?? null
+
+   const supertrendCells = (asset: string, price: string | null) => {
+      if (!supertrend) return null
+      const levels = supertrend.levels?.[`${asset}${quote}`]
+      return (
+         <>
+            <SupertrendCell level={levels?.daily} price={price} loading={supertrend.loading} timeframe="daily" />
+            <SupertrendCell level={levels?.weekly} price={price} loading={supertrend.loading} timeframe="weekly" />
+         </>
+      )
+   }
 
    const includeBox = (asset: string, included: boolean) =>
       <Checkbox
@@ -99,7 +133,10 @@ function PlanPreview({ plan, disabled, onInclude }: PlanPreviewProps) {
                      <TableHead>Order</TableHead>
                      <TableHead className="text-right">Size</TableHead>
                      <TableHead className="text-right">Price now</TableHead>
-                     <TableHead className="text-right">About</TableHead>
+                     {supertrend && <>
+                        <SupertrendHead timeframe="daily">Supertrend 1D</SupertrendHead>
+                        <SupertrendHead timeframe="weekly">Supertrend 1W</SupertrendHead>
+                     </>}
                      <TableHead className="text-right">Fee</TableHead>
                   </TableRow>
                </TableHeader>
@@ -108,20 +145,15 @@ function PlanPreview({ plan, disabled, onInclude }: PlanPreviewProps) {
                      <TableRow key={`${order.symbol}-${index}`}>
                         <TableCell>{includeBox(order.asset, true)}</TableCell>
                         <TableCell><OrderLabel side={order.side} asset={order.asset} /></TableCell>
-                        <TableCell className="text-right">
-                           {asQuantity(order.amount)} {order.unit === 'base' ? order.asset : quote}
+                        <TableCell className="text-right" title={`About ${asQuoteAmount(order.value, quote)}`}>
+                           {order.unit === 'base' ? `${asQuantity(order.amount)} ${order.asset}` : asQuantity(order.amount)}
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground">{asQuantity(order.price)}</TableCell>
-                        <TableCell className="text-right">{asQuoteAmount(order.value, quote)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                           {asQuantity(order.fee.amount)} {order.fee.asset}
-                           <span
-                              className="ml-1.5 text-xs"
-                              title={order.feeRateAssumed
-                                 ? 'The exchange did not report a rate for this pair, so this assumes its standard taker fee.'
-                                 : 'Your taker fee rate on this pair, as the exchange reports it.'}>
-                              {order.feeRateAssumed ? '~' : ''}{asPercentage(Number(order.feeRate))}
-                           </span>
+                        {supertrendCells(order.asset, priceOf(order.asset) ?? order.price)}
+                        <TableCell
+                           className="text-right text-muted-foreground"
+                           title={(order.feeRateAssumed ? assumedFeeRateTitles : feeRateTitles)[plan.execution]}>
+                           {order.feeRateAssumed ? '~' : ''}{asPercentage(Number(order.feeRate))}
                         </TableCell>
                      </TableRow>)}
                   {excluded.map(({ asset, value }) =>
@@ -134,9 +166,9 @@ function PlanPreview({ plan, disabled, onInclude }: PlanPreviewProps) {
                               <span className="text-xs">left out</span>
                            </div>
                         </TableCell>
-                        <TableCell />
-                        <TableCell />
-                        <TableCell className="text-right">{Number(value) > 0 ? asQuoteAmount(value, quote) : '—'}</TableCell>
+                        <TableCell className="text-right">{Number(value) > 0 ? asQuoteAmount(value) : '—'}</TableCell>
+                        <TableCell className="text-right">{asQuantity(priceOf(asset))}</TableCell>
+                        {supertrendCells(asset, priceOf(asset))}
                         <TableCell />
                      </TableRow>)}
                </TableBody>
@@ -183,6 +215,8 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
    const [band, setBand] = useState(target.request.band ?? target.portfolio.band)
    const [slippage, setSlippage] = useState(target.request.slippage ?? '1')
    const [mode, setMode] = useState<RebalanceMode>(target.request.mode ?? 'full')
+   const [execution, setExecution] = useState<Execution>(target.request.execution ?? 'limit')
+   const [wait, setWait] = useState(target.request.wait ?? DEFAULT_WAIT_SECONDS)
    const [exclude, setExclude] = useState<string[]>(target.request.exclude ?? [])
    const [confirming, setConfirming] = useState(false)
    const [runId, setRunId] = useState<string | null>(null)
@@ -192,17 +226,26 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
       useMutation<PortfolioPlanResponse, PortfolioPlanRequest>(`${apiBase}/plan`)
    const { trigger: execute, isMutating: isExecuting } =
       useMutation<PortfolioRunResponse, PortfolioExecuteRequest>(`${apiBase}/execute`)
+   const { data: supertrend, isLoading: isLoadingSupertrend } =
+      useSWR<PortfolioSupertrendResponse>(live ? `${apiBase}/supertrend` : null, { revalidateOnFocus: false })
 
    const quote = target.portfolio.quoteAsset
    const expired = Boolean(plan) && expiredPlan === plan?.planId
 
-   const requestPlan = (changes: Pick<PortfolioPlanRequest, 'mode' | 'exclude'> = {}) =>
-      preview({ ...target.request, band: band || undefined, slippage, mode, exclude, ...changes }).catch(() => {})
+   const requestPlan = (changes: Pick<PortfolioPlanRequest, 'mode' | 'exclude' | 'execution'> = {}) =>
+      preview({ ...target.request, band: band || undefined, slippage, mode, exclude, execution, wait, ...changes })
+         .catch(() => {})
 
    const changeMode = (value: string) => {
       const next = modeOptions.find(option => option.value === value)?.value ?? 'full'
       setMode(next)
       requestPlan({ mode: next })
+   }
+
+   const changeExecution = (value: string) => {
+      const next = executionOptions.find(option => option.value === value)?.value ?? 'limit'
+      setExecution(next)
+      requestPlan({ execution: next })
    }
 
    const include = (asset: string, included: boolean) => {
@@ -252,7 +295,7 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
 
    return (
       <Dialog open onOpenChange={open => !isExecuting && !open && close()}>
-         <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
+         <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-4xl">
             <DialogHeader>
                <DialogTitle>{title} {target.portfolio.name} on {venueLabel}</DialogTitle>
                <DialogDescription>
@@ -275,6 +318,14 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                            disabled={isPlanning}
                            onValueChange={changeMode}
                            options={modeOptions} />}
+                     <SelectField
+                        name="plan-execution"
+                        label="Orders"
+                        className="w-44"
+                        value={execution}
+                        disabled={isPlanning}
+                        onValueChange={changeExecution}
+                        options={executionOptions} />
                      {target.request.kind === 'rebalance' &&
                         <NumericInput
                            name="plan-band"
@@ -288,6 +339,13 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                         className="w-32"
                         value={slippage}
                         onChange={event => setSlippage(event.target.value)} />
+                     {execution === 'limit' &&
+                        <NumericInput
+                           name="plan-wait"
+                           label="Wait per order (s)"
+                           className="w-36"
+                           value={wait}
+                           onChange={event => setWait(event.target.value)} />}
                      <Button variant="outline" disabled={isPlanning} onClick={() => requestPlan()}>
                         {isPlanning ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
                         Preview again
@@ -301,7 +359,13 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
 
                   {isPlanning && !plan && <LoadingSpinner />}
 
-                  {plan && <PlanPreview plan={plan} disabled={isPlanning} onInclude={include} />}
+                  {plan &&
+                     <PlanPreview
+                        plan={plan}
+                        portfolio={target.portfolio}
+                        supertrend={live ? { levels: supertrend?.levels, loading: isLoadingSupertrend } : undefined}
+                        disabled={isPlanning}
+                        onInclude={include} />}
 
                   {plan && hasOrders && <p className="text-xs text-muted-foreground">{feesNote}</p>}
 
@@ -340,15 +404,24 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                <AlertDialogHeader>
                   <AlertDialogTitle>
                      {hasOrders
-                        ? `Place ${asCount(plan?.orders.length ?? 0, 'market order')} on ${venueLabel}?`
+                        ? `Place ${asCount(plan?.orders.length ?? 0, `${plan?.execution ?? 'limit'} order`)} on ${venueLabel}?`
                         : `Withdraw ${asQuoteAmount(plan?.withdraw, quote)}?`}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
                      {hasOrders && plan
                         ? <>
-                           {tradeSummary(plan)}, with {live ? 'real' : 'demo'} funds. Market orders fill
-                           at whatever the book offers, at most {plan.slippage}% away from the price at
-                           the time; anything beyond that is cancelled. Filled orders cannot be undone.
+                           {tradeSummary(plan)}, with {live ? 'real' : 'demo'} funds.{' '}
+                           {plan.execution === 'limit'
+                              ? <>
+                                 Each order rests on the book one tick inside the spread, as a maker only,
+                                 and follows the price for up to {plan.wait} s, at most {plan.slippage}% away
+                                 from the price now; what has not filled by then is cancelled.
+                              </>
+                              : <>
+                                 Market orders fill at whatever the book offers, at most {plan.slippage}% away
+                                 from the price at the time; anything beyond that is cancelled.
+                              </>}
+                           {' '}Filled orders cannot be undone.
                         </>
                         : `The ${quote} leaves the portfolio and becomes unallocated in your account. No order is placed.`}
                   </AlertDialogDescription>

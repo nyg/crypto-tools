@@ -7,7 +7,7 @@ import { parseCsv, parseCsvTime } from './csv'
 import { fetchTickerSnapshots } from './ticker-stream'
 import { earnPositions } from './earn'
 import { DAILY_INTERVAL, WEEKLY_INTERVAL, candlesOf, spotCandles, usdRatesFromCandles } from './ohlc'
-import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFees } from './spot'
+import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, tradeFees } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type {
    CancelResult, ExportReport, ExportReportType, ExportRequest, KrakenSpotMarket, LedgerEntry,
@@ -17,8 +17,8 @@ import type { UsdRateRow } from '../../../types/db'
 import type { TradingPair, TradingPairs } from '../../../types/market'
 import type { KrakenAssets, KrakenOhlcCandle, KrakenOpenOrder, KrakenOrderBatchParams } from '../../../types/kraken-api'
 import type {
-   OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle, SpotPrice, StopOrderRequest, TakerFee,
-   WalletCoin
+   LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle, SpotPrice,
+   StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 // Amounts are kept as the exact strings Kraken wrote. Reading them through Big and
@@ -369,10 +369,10 @@ export default class KrakenAPI {
       return spotWallet((await resource.fetchExtendedBalance(this.#authenticated)).result ?? {})
    }
 
-   async fetchTakerFees(markets: KrakenSpotMarket[]): Promise<Record<string, TakerFee>> {
+   async fetchTradeFees(markets: KrakenSpotMarket[]): Promise<Record<string, TradeFees>> {
       if (markets.length === 0) return {}
       const volume = await resource.fetchTradeVolume(this.#authenticated, markets.map(({ altname }) => altname))
-      return takerFees(volume.result ?? {}, markets)
+      return tradeFees(volume.result ?? {}, markets)
    }
 
    async placeMarketOrder(pair: string, { clientOrderId, side, unit, amount }: OrderRequest): Promise<string> {
@@ -383,6 +383,19 @@ export default class KrakenAPI {
          volume: amount,
          cl_ord_id: clientOrderId,
          oflags: unit === 'quote' ? 'fciq,viqc' : 'fciq'
+      })
+      return response.result.txid[0] ?? ''
+   }
+
+   async placeLimitOrder(pair: string, { clientOrderId, side, quantity, price }: LimitOrderRequest): Promise<string> {
+      const response = await resource.addOrder(this.#authenticated, {
+         pair,
+         type: side,
+         ordertype: 'limit',
+         volume: quantity,
+         price,
+         cl_ord_id: clientOrderId,
+         oflags: 'fciq,post'
       })
       return response.result.txid[0] ?? ''
    }

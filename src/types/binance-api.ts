@@ -61,9 +61,10 @@ export type BinanceOrderSide = 'BUY' | 'SELL'
 export interface BinanceOrderParams {
    symbol: string
    side: BinanceOrderSide
-   type: 'MARKET' | 'STOP_LOSS'
+   type: 'MARKET' | 'LIMIT_MAKER' | 'STOP_LOSS'
    quantity?: string
    quoteOrderQty?: string
+   price?: string
    stopPrice?: string
    newClientOrderId: string
    newOrderRespType: 'ACK'

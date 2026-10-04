@@ -32,10 +32,17 @@ export interface SpotCandle {
    close: string
 }
 
-export interface TakerFee {
+export interface SideFees {
    buy: string
    sell: string
 }
+
+export interface TradeFees {
+   taker: SideFees
+   maker: SideFees
+}
+
+export type Execution = 'limit' | 'market'
 
 export interface WalletCoin {
    asset: string
@@ -57,6 +64,14 @@ export interface OrderRequest {
    unit: SizeUnit
    amount: string
    maxSlippagePercent: string
+}
+
+export interface LimitOrderRequest {
+   clientOrderId: string
+   symbol: string
+   side: OrderSide
+   quantity: string
+   price: string
 }
 
 export interface OrderLookup {
@@ -90,6 +105,7 @@ export interface OrderSettlement {
    averagePrice: string
    fees: Record<string, string>
    reason: string
+   postOnlyRefused?: boolean
 }
 
 export type SkipReason =
@@ -105,7 +121,7 @@ export type RunKind = 'rebalance' | 'withdraw' | 'stop'
 export type RunStatus = 'running' | 'done' | 'partial' | 'error' | 'interrupted'
 
 export type RunOrderStatus =
-   'pending' | 'placed' | 'filled' | 'partial' | 'rejected' | 'failed' | 'skipped' | 'unknown'
+   'pending' | 'placed' | 'filled' | 'partial' | 'rejected' | 'failed' | 'skipped' | 'unknown' | 'cancelled'
 
 export type StopStatus =
    'pending' | 'placed' | 'cancelled' | 'filled' | 'partial' | 'failed' | 'missing'
