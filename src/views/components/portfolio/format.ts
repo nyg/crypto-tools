@@ -70,7 +70,8 @@ export const orderStatusLabels: Record<RunOrderStatus, string> = {
    rejected: 'Rejected',
    failed: 'Failed',
    skipped: 'Skipped',
-   unknown: 'Checking'
+   unknown: 'Checking',
+   cancelled: 'Not filled'
 }
 
 export const stopStatusLabels: Record<StopStatus, string> = {

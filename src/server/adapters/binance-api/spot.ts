@@ -5,7 +5,7 @@ import type {
    BinanceSymbol, BinanceTickerPrice, BinanceTrade
 } from '../../../types/binance-api'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderSettlement, SettlementStatus, SpotMarket, SpotPrice, TakerFee, WalletCoin
+   ExchangeAccount, OpenStopOrder, OrderSettlement, SettlementStatus, SpotMarket, SpotPrice, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 const OPEN_STATUSES = ['NEW', 'PENDING_NEW', 'PARTIALLY_FILLED', 'PENDING_CANCEL']
@@ -48,11 +48,14 @@ function spotMarket({ symbol, baseAsset, quoteAsset, quoteAssetPrecision, filter
    }
 }
 
-export function takerFee({ standardCommission, specialCommission, taxCommission }: BinanceCommission): TakerFee {
+export function tradeFees({ standardCommission, specialCommission, taxCommission }: BinanceCommission): TradeFees {
    const tiers = [standardCommission, specialCommission, taxCommission]
-   const rateFor = (side: 'buyer' | 'seller') =>
-      tiers.reduce((sum, tier) => sum.plus(tier?.taker || 0).plus(tier?.[side] || 0), Big(0)).toFixed()
-   return { buy: rateFor('buyer'), sell: rateFor('seller') }
+   const rateFor = (liquidity: 'taker' | 'maker', side: 'buyer' | 'seller') =>
+      tiers.reduce((sum, tier) => sum.plus(tier?.[liquidity] || 0).plus(tier?.[side] || 0), Big(0)).toFixed()
+   return {
+      taker: { buy: rateFor('taker', 'buyer'), sell: rateFor('taker', 'seller') },
+      maker: { buy: rateFor('maker', 'buyer'), sell: rateFor('maker', 'seller') }
+   }
 }
 
 export function spotMarkets({ symbols }: BinanceExchangeInfo): SpotMarket[] {

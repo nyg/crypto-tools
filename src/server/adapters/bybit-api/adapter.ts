@@ -8,16 +8,18 @@ import { candlesFromKlines } from './klines'
 import { depositRecord, internalDepositRecord, withdrawalRecord } from './funding'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
-import type { BybitEnvironment, BybitKlineInterval, BybitOrder } from '../../../types/bybit-api'
+import type { BybitEnvironment, BybitKlineInterval, BybitOrder, BybitOrderFilter } from '../../../types/bybit-api'
 import type { FundingRecord, FundingWindow } from '../../../types/funding'
 import type {
-   CandleInterval, ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SettlementStatus, SpotCandle,
-   SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderRequest, OrderSettlement,
+   SettlementStatus, SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 const openStatuses = ['New', 'PartiallyFilled', 'Untriggered', 'Created']
 
-const goneCodes = [110001, 170213, 170145]
+const goneCodes = [110001, 170139, 170142, 170143, 170145, 170213]
+
+const POST_ONLY_REFUSAL = 'EC_PostOnlyWillTakeLiquidity'
 
 const KLINE_LIMIT = 1000
 
@@ -91,16 +93,21 @@ export default class BybitAPI {
       }))
    }
 
-   async fetchTakerFees(symbols: string[]): Promise<Record<string, TakerFee>> {
+   async fetchTradeFees(symbols: string[]): Promise<Record<string, TradeFees>> {
       const listed = await fetchSpotFeeRates(this.#environment, this.#authenticated).catch(() => [])
-      const rates = new Map(listed.map(({ symbol, takerFeeRate }) => [symbol, takerFeeRate]))
+      const rates = new Map(listed.map(rate => [rate.symbol, rate]))
       for (const symbol of symbols.filter(symbol => !rates.has(symbol))) {
          const [entry] = await fetchSpotFeeRates(this.#environment, this.#authenticated, symbol)
-         if (entry?.symbol === symbol) rates.set(symbol, entry.takerFeeRate)
+         if (entry?.symbol === symbol) rates.set(symbol, entry)
       }
       return Object.fromEntries(symbols.flatMap(symbol => {
          const rate = rates.get(symbol)
-         return rate ? [[symbol, { buy: rate, sell: rate }]] : []
+         if (!rate?.takerFeeRate) return []
+         const maker = rate.makerFeeRate || rate.takerFeeRate
+         return [[symbol, {
+            taker: { buy: rate.takerFeeRate, sell: rate.takerFeeRate },
+            maker: { buy: maker, sell: maker }
+         }]]
       }))
    }
 
@@ -147,6 +154,21 @@ export default class BybitAPI {
       return orderId
    }
 
+   async placeLimitOrder({ clientOrderId, symbol, side, quantity, price }: LimitOrderRequest): Promise<string> {
+      const { orderId } = await createOrder(this.#environment, this.#authenticated, {
+         category: 'spot',
+         symbol,
+         side: side === 'buy' ? 'Buy' : 'Sell',
+         orderType: 'Limit',
+         qty: quantity,
+         price,
+         timeInForce: 'PostOnly',
+         isLeverage: 0,
+         orderLinkId: clientOrderId
+      })
+      return orderId
+   }
+
    async placeStopOrder({ clientOrderId, symbol, quantity, triggerPrice }: StopOrderRequest): Promise<string> {
       const { orderId } = await createOrder(this.#environment, this.#authenticated, {
          category: 'spot',
@@ -163,12 +185,12 @@ export default class BybitAPI {
       return orderId
    }
 
-   async cancelStopOrder(symbol: string, clientOrderId: string): Promise<void> {
+   async cancelOrderIfOpen(symbol: string, clientOrderId: string, orderFilter: BybitOrderFilter): Promise<void> {
       try {
          await cancelOrder(this.#environment, this.#authenticated, {
             category: 'spot',
             symbol,
-            orderFilter: 'StopOrder',
+            orderFilter,
             orderLinkId: clientOrderId
          })
       }
@@ -203,7 +225,8 @@ export default class BybitAPI {
          quote: order.cumExecValue || '0',
          averagePrice: order.avgPrice || '0',
          fees: status === 'open' || !executed ? {} : await this.#feesOf(order),
-         reason: order.rejectReason && order.rejectReason !== 'EC_NoError' ? order.rejectReason : ''
+         reason: order.rejectReason && order.rejectReason !== 'EC_NoError' ? order.rejectReason : '',
+         ...(order.rejectReason === POST_ONLY_REFUSAL ? { postOnlyRefused: true } : {})
       }
    }
 

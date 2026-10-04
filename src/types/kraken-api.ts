@@ -100,6 +100,7 @@ export interface KrakenTradeVolume {
    currency?: string
    volume?: string
    fees?: Record<string, KrakenFeeTier>
+   fees_maker?: Record<string, KrakenFeeTier> | null
 }
 
 export interface KrakenOrderDescription {
@@ -144,7 +145,7 @@ export type KrakenOrderReference = { txid: string } | { cl_ord_id: string }
 export interface KrakenAddOrderParams {
    pair: string
    type: 'buy' | 'sell'
-   ordertype: 'market' | 'stop-loss'
+   ordertype: 'market' | 'limit' | 'stop-loss'
    volume: string
    price?: string
    trigger?: 'last' | 'index'

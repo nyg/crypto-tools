@@ -34,6 +34,16 @@ export type RunDraft = Omit<PortfolioRunRow, 'withdrawn' | 'error' | 'finishedAt
 export type OrderDraft = Pick<PortfolioOrderRow,
    'orderLinkId' | 'seq' | 'symbol' | 'side' | 'baseAsset' | 'quoteAsset' | 'unit' | 'requested'>
 
+export type AttemptDraft = OrderDraft & Pick<PortfolioOrderRow, 'runId' | 'portfolioId'>
+
+export interface OrderMark {
+   status: RunOrderStatus
+   orderId?: string | null
+   requested?: string
+   limitPrice?: string
+   error?: string | null
+}
+
 export type StopDraft = Pick<PortfolioStopRow,
    'orderLinkId' | 'portfolioId' | 'asset' | 'symbol' | 'quantity' | 'triggerPrice' | 'orderId' | 'status'>
    & { error?: string | null }
@@ -67,11 +77,11 @@ const movementColumns = `id, portfolio_id AS portfolioId, kind, asset, amount, v
    order_link_id AS orderLinkId, note, created_at AS createdAt`
 
 const runColumns = `id, portfolio_id AS portfolioId, kind, status, withdraw, withdrawn, reserve,
-   slippage, error, started_at AS startedAt, finished_at AS finishedAt`
+   slippage, execution, error, started_at AS startedAt, finished_at AS finishedAt`
 
 const orderColumns = `order_link_id AS orderLinkId, run_id AS runId, portfolio_id AS portfolioId,
    seq, symbol, side, base_asset AS baseAsset, quote_asset AS quoteAsset, unit, requested,
-   order_id AS orderId, status, cum_base AS base, cum_quote AS quote, avg_price AS averagePrice,
+   limit_price AS limitPrice, order_id AS orderId, status, cum_base AS base, cum_quote AS quote, avg_price AS averagePrice,
    error, created_at AS createdAt, updated_at AS updatedAt`
 
 const stopColumns = `order_link_id AS orderLinkId, portfolio_id AS portfolioId, asset, symbol,
@@ -80,6 +90,11 @@ const stopColumns = `order_link_id AS orderLinkId, portfolio_id AS portfolioId, 
    acknowledged_at AS acknowledgedAt`
 
 const unsettledStatuses = '(\'pending\', \'placed\', \'unknown\')'
+
+const insertOrder = `
+   INSERT INTO portfolio_order (order_link_id, run_id, portfolio_id, seq, symbol, side,
+      base_asset, quote_asset, unit, requested, status, created_at, updated_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
 
 const liveStopStatuses = '(\'pending\', \'placed\')'
 
@@ -209,14 +224,12 @@ export default class PortfolioRepository {
    createRun(run: RunDraft, orders: OrderDraft[]): void {
       this.#db.transaction(() => {
          this.#db.query<void, Params>(`
-            INSERT INTO portfolio_run (id, portfolio_id, kind, status, withdraw, reserve, slippage, started_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-            .run(run.id, run.portfolioId, run.kind, run.status, run.withdraw, run.reserve, run.slippage, run.startedAt)
+            INSERT INTO portfolio_run (id, portfolio_id, kind, status, withdraw, reserve, slippage, execution, started_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+            .run(run.id, run.portfolioId, run.kind, run.status, run.withdraw, run.reserve, run.slippage,
+               run.execution, run.startedAt)
 
-         const insert = this.#db.prepare<void, Params>(`
-            INSERT INTO portfolio_order (order_link_id, run_id, portfolio_id, seq, symbol, side,
-               base_asset, quote_asset, unit, requested, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`)
+         const insert = this.#db.prepare<void, Params>(insertOrder)
 
          try {
             for (const order of orders) {
@@ -230,17 +243,31 @@ export default class PortfolioRepository {
       })()
    }
 
-   markOrder(orderLinkId: string, fields: { status: RunOrderStatus, orderId?: string | null, requested?: string, error?: string | null }, now = Date.now()): void {
+   addAttempt(attempt: AttemptDraft, now = Date.now()): PortfolioOrderRow {
+      this.#db.query<void, Params>(insertOrder).run(
+         attempt.orderLinkId, attempt.runId, attempt.portfolioId, attempt.seq, attempt.symbol, attempt.side,
+         attempt.baseAsset, attempt.quoteAsset, attempt.unit, attempt.requested, now, now)
+      return this.order(attempt.orderLinkId)!
+   }
+
+   orderCount(runId: string): number {
+      return this.#db.query<{ count: number }, Params>(`
+         SELECT COUNT(*) AS count FROM portfolio_order
+         WHERE run_id = ? AND ${ownedPortfolio}`).get(runId, ...this.#scope)!.count
+   }
+
+   markOrder(orderLinkId: string, fields: OrderMark, now = Date.now()): void {
       this.#db.query<void, Params>(`
          UPDATE portfolio_order SET
             status = ?,
             order_id = COALESCE(?, order_id),
             requested = COALESCE(?, requested),
+            limit_price = COALESCE(?, limit_price),
             error = ?,
             updated_at = ?
          WHERE order_link_id = ? AND ${ownedPortfolio}`)
-         .run(fields.status, fields.orderId ?? null, fields.requested ?? null, fields.error ?? null, now,
-            orderLinkId, ...this.#scope)
+         .run(fields.status, fields.orderId ?? null, fields.requested ?? null, fields.limitPrice ?? null,
+            fields.error ?? null, now, orderLinkId, ...this.#scope)
    }
 
    settleOrder(order: PortfolioOrderRow, outcome: OrderOutcome, fees: FeeDraft[], now = Date.now()): void {
@@ -269,7 +296,7 @@ export default class PortfolioRepository {
       return this.#db.query<PortfolioOrderRow, Params>(`
          SELECT ${orderColumns} FROM portfolio_order
          WHERE run_id = ? AND ${ownedPortfolio}
-         ORDER BY seq`).all(runId, ...this.#scope)
+         ORDER BY seq, created_at, rowid`).all(runId, ...this.#scope)
    }
 
    order(orderLinkId: string): PortfolioOrderRow | null {
@@ -395,6 +422,7 @@ export default class PortfolioRepository {
             withdraw: '0',
             reserve: '0',
             slippage: '0',
+            execution: 'market',
             startedAt: now
          }, [{
             orderLinkId: stop.orderLinkId,

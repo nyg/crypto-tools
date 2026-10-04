@@ -210,8 +210,8 @@ const markets = (): PortfolioMarketsResponse => ({
       .filter(asset => !['USDT', 'USDC'].includes(asset))
       .toSorted()
       .flatMap(base => [
-         { symbol: `${base}USDT`, base, quote: 'USDT' },
-         { symbol: `${base}USDC`, base, quote: 'USDC' }
+         { symbol: `${base}USDT`, base, quote: 'USDT', tickStep: '0.01' },
+         { symbol: `${base}USDC`, base, quote: 'USDC', tickStep: '0.01' }
       ])
 })
 
@@ -377,6 +377,8 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       expiresAt: Date.now() + 120000,
       band: String(band),
       slippage: request.slippage ?? '1',
+      execution: request.execution ?? 'limit',
+      wait: request.wait ?? '120',
       total: result.total.toFixed(2),
       withdraw: result.withdraw.toFixed(2),
       orders,
@@ -400,8 +402,10 @@ function execute(venue: VenueId, request?: PortfolioExecuteRequest): PortfolioRu
       id,
       portfolioId: portfolio.id,
       kind: stored.withdraw > 0 ? 'withdraw' : 'rebalance',
+      execution: 'market',
       status: 'running',
       running: true,
+      stopping: false,
       withdraw: fixed(stored.withdraw, 2),
       withdrawn: '0',
       startedAt: now(),
@@ -418,6 +422,8 @@ function execute(venue: VenueId, request?: PortfolioExecuteRequest): PortfolioRu
          base: '0',
          quote: '0',
          averagePrice: '0',
+         limitPrice: null,
+         attempts: 1,
          fees: [],
          error: null
       }))

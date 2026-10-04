@@ -3,7 +3,7 @@ import * as resource from './resource'
 import { candlesFromKLines, usdRatesFromKLines } from './klines'
 import { depositRecord, fiatRecord, withdrawalRecord } from './funding'
 import {
-   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, takerFee
+   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, tradeFees
 } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type { TradingPair, TradingPairs } from '../../../types/market'
@@ -14,8 +14,8 @@ import type { BinanceEnvironment, BinanceFiatOrder } from '../../../types/binanc
 import type { UsdRateRow } from '../../../types/db'
 import type { FundingKind, FundingRecord, FundingWindow } from '../../../types/funding'
 import type {
-   CandleInterval, ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle,
-   SpotMarket, SpotPrice, StopOrderRequest, TakerFee, WalletCoin
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
+   SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 const UNKNOWN_ORDER = -2011
@@ -228,8 +228,8 @@ export default class BinanceAPI {
       return spotAccount(await resource.fetchAccount(this.#environment, this.#authenticated), fallbackId)
    }
 
-   async fetchTakerFee(symbol: string): Promise<TakerFee> {
-      return takerFee(await resource.fetchCommission(this.#environment, this.#authenticated, symbol))
+   async fetchTradeFees(symbol: string): Promise<TradeFees> {
+      return tradeFees(await resource.fetchCommission(this.#environment, this.#authenticated, symbol))
    }
 
    async fetchSpotWallet(): Promise<WalletCoin[]> {
@@ -242,6 +242,19 @@ export default class BinanceAPI {
          side: side === 'buy' ? 'BUY' : 'SELL',
          type: 'MARKET',
          ...(unit === 'base' ? { quantity: amount } : { quoteOrderQty: amount }),
+         newClientOrderId: clientOrderId,
+         newOrderRespType: 'ACK'
+      })
+      return String(orderId)
+   }
+
+   async placeLimitOrder({ clientOrderId, symbol, side, quantity, price }: LimitOrderRequest): Promise<string> {
+      const { orderId } = await resource.createOrder(this.#environment, this.#authenticated, {
+         symbol,
+         side: side === 'buy' ? 'BUY' : 'SELL',
+         type: 'LIMIT_MAKER',
+         quantity,
+         price,
          newClientOrderId: clientOrderId,
          newOrderRespType: 'ACK'
       })

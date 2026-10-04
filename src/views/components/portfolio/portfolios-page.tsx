@@ -305,6 +305,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
             quoteAsset={current.quoteAsset}
             open={editing !== null}
             portfolio={editing?.portfolio ?? null}
+            supertrend={live ? supertrend?.levels : undefined}
             onOpenChange={open => !open && setEditing(null)}
             onSaved={() => {
                setEditing(null)

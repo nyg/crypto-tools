@@ -378,7 +378,12 @@ const migrations: Migration[] = [
 
    nameTradesAsTraded,
 
-   keepTickerDigits
+   keepTickerDigits,
+
+   db => db.exec(`
+      ALTER TABLE portfolio_run ADD COLUMN execution TEXT NOT NULL DEFAULT 'market';
+      ALTER TABLE portfolio_order ADD COLUMN limit_price TEXT;
+   `)
 ]
 
 function migrate(db: Database) {

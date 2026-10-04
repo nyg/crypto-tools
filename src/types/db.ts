@@ -1,5 +1,7 @@
 import type { FundingKind, FundingStatus } from './funding'
-import type { MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, StopStatus } from './portfolio'
+import type {
+   Execution, MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, StopStatus
+} from './portfolio'
 import type { XStockType } from './xstock'
 
 // The row shapes the repositories read back out of SQLite. Column names are aliased
@@ -248,6 +250,7 @@ export interface PortfolioRunRow {
    withdrawn: string
    reserve: string
    slippage: string
+   execution: Execution
    error: string | null
    startedAt: number
    finishedAt: number | null
@@ -264,6 +267,7 @@ export interface PortfolioOrderRow {
    quoteAsset: string
    unit: SizeUnit
    requested: string
+   limitPrice: string | null
    orderId: string | null
    status: RunOrderStatus
    base: string

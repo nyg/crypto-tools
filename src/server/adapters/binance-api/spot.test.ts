@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { HttpRequesterError } from '../../errors'
 import {
-   binanceError, hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, takerFee
+   binanceError, hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, tradeFees
 } from './spot'
 import type { BinanceOrder, BinanceSymbol } from '../../../types/binance-api'
 
@@ -118,19 +118,25 @@ describe('Binance open stop orders', () => {
    })
 })
 
-describe('the Binance taker fee', () => {
+describe('the Binance trade fees', () => {
 
-   test('adds the standard, special and tax rates, with the buyer or seller surcharge for each side', () => {
-      expect(takerFee({
+   test('add the standard, special and tax rates, with the buyer or seller surcharge for each side', () => {
+      expect(tradeFees({
          symbol: 'BTCUSDT',
-         standardCommission: { maker: '0.00100000', taker: '0.00100000', buyer: '0.00000000', seller: '0.00010000' },
+         standardCommission: { maker: '0.00080000', taker: '0.00100000', buyer: '0.00000000', seller: '0.00010000' },
          specialCommission: { maker: '0.00000000', taker: '0.00020000', buyer: '0.00005000', seller: '0.00000000' },
          taxCommission: { maker: '0.00000000', taker: '0.00001000', buyer: '0.00000000', seller: '0.00000000' }
-      })).toEqual({ buy: '0.00126', sell: '0.00131' })
+      })).toEqual({
+         taker: { buy: '0.00126', sell: '0.00131' },
+         maker: { buy: '0.00085', sell: '0.0009' }
+      })
    })
 
-   test('counts a missing tier as zero', () => {
-      expect(takerFee({ symbol: 'BTCUSDT', standardCommission: { taker: '0.001' } })).toEqual({ buy: '0.001', sell: '0.001' })
+   test('count a missing tier as zero', () => {
+      expect(tradeFees({ symbol: 'BTCUSDT', standardCommission: { taker: '0.001' } })).toEqual({
+         taker: { buy: '0.001', sell: '0.001' },
+         maker: { buy: '0', sell: '0' }
+      })
    })
 })
 

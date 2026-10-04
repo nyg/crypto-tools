@@ -87,12 +87,26 @@ export interface BybitStopOrderRequest extends BybitOrderBase {
    triggerPrice: string
 }
 
-export type BybitOrderRequest = BybitMarketOrderRequest | BybitStopOrderRequest
+export interface BybitLimitOrderRequest {
+   category: 'spot'
+   symbol: string
+   side: BybitOrderSide
+   orderType: 'Limit'
+   qty: string
+   price: string
+   timeInForce: 'PostOnly'
+   isLeverage: 0
+   orderLinkId: string
+}
+
+export type BybitOrderRequest = BybitMarketOrderRequest | BybitStopOrderRequest | BybitLimitOrderRequest
+
+export type BybitOrderFilter = 'Order' | 'StopOrder'
 
 export interface BybitCancelRequest {
    category: 'spot'
    symbol: string
-   orderFilter: 'StopOrder'
+   orderFilter: BybitOrderFilter
    orderLinkId: string
 }
 
