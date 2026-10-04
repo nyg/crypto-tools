@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asExactDecimal, asNumber } from '../../../utils/format'
 import SortableHead from '../lib/sortable-head'
+import { migrationOf } from './asset-migrations'
 import type { LedgerEntriesResponse, LedgerEntryView } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
 
@@ -12,10 +13,16 @@ import type { Sort } from '../../../types/kraken'
 // silently shift every entry.
 const asUtcTimestamp = (time: number) => new Date(time).toISOString().replace('T', ' ').slice(0, 19)
 
-const assetNote = (entry: LedgerEntryView) => [
-   entry.asset !== entry.ticker && entry.asset,
-   entry.ticker !== entry.baseAsset && `now ${entry.baseAsset}`
-].filter(Boolean).join(', ') || undefined
+const assetNote = (entry: LedgerEntryView) => {
+
+   const migration = migrationOf(entry.baseAsset)
+
+   return [
+      entry.asset !== entry.ticker && entry.asset,
+      entry.ticker !== entry.baseAsset && `now ${entry.baseAsset}`,
+      migration && `migrated to ${migration.to} at 1:${migration.ratio}`
+   ].filter(Boolean).join(', ') || undefined
+}
 
 export default function LedgerTable({ entries, sort, onSortChange, onPageChange, onSearchRef }: {
    entries?: LedgerEntriesResponse

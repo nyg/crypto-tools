@@ -17,12 +17,19 @@ const formerTickers: Record<string, string[]> = {
    POL: ['MATIC']
 }
 
-export const assetLabel = (asset: string): string => {
-   const former = formerTickers[asset]
-   return former ? `${asset} (ex. ${former.join(', ')})` : asset
-}
-
 export const migrationOf = (asset: string): AssetMigration | null => assetMigrations[asset] ?? null
+
+// A renamed asset is listed once, under today's ticker. A migrated one stays two
+// assets, since Kraken keeps both balances and the ratio is not one to one, so the
+// old one says where it went.
+export const assetLabel = (asset: string): string => {
+
+   const former = formerTickers[asset]
+   if (former) return `${asset} (ex. ${former.join(', ')})`
+
+   const migration = migrationOf(asset)
+   return migration ? `${asset} (now ${migration.to})` : asset
+}
 
 export const migrationNote = (asset: string): string | null => {
 
