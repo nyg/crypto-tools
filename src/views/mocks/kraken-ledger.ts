@@ -1,11 +1,13 @@
+import Big from 'big.js'
 import { tradeCount, orderCount, allTradeCount, clearTrades, restoreTrades } from './kraken-trades'
 import { mockUsdRateOn } from './usd-rates'
 import type {
-   BalanceAsset, BalanceSummary, ClearResponse, FeeSummary,
+   BalanceAsset, BalanceSummary, ClearResponse, FeeSummary, FundingBalance, FundingResponse,
    LedgerEntriesResponse, LedgerFiltersResponse, RewardAmount, RewardAsset, RewardSummary,
    SyncCancelResponse, SyncStartResponse, SyncStatusResponse
 } from '../../types/api'
 import type { LedgerEntryRow, RewardPeriodRow, SyncStateRow } from '../../types/db'
+import type { FundingKind } from '../../types/funding'
 import type { SyncJob, SyncMode, SyncStep, SyncStepPhase } from '../../types/jobs'
 import type { ExportReportType, LedgerFilters, Sort } from '../../types/kraken'
 
@@ -464,6 +466,52 @@ export function ledgerEntries(
 
 // Mirrors LedgerRepository.feeSummary: same groupings, same shape, computed over the
 // fixture so the page exercises its real rendering rather than a canned response.
+export function ledgerFunding(): FundingResponse {
+
+   const isFunding = (entry: MockEntry) => entry.type === 'deposit' || entry.type === 'withdrawal'
+
+   // Mirrors withBalances on the server: the balance after the movement, and how low
+   // and how high it went since the movement before.
+   const balanceOf = (movement: MockEntry): FundingBalance => {
+
+      const held = entries.filter(entry => entry.baseAsset === movement.baseAsset && entry.time <= movement.time)
+      const since = held.findLast(entry => isFunding(entry) && entry !== movement)?.time ?? -Infinity
+      let balance = Big(0)
+      let low: Big | null = null
+      let high: Big | null = null
+
+      for (const entry of held) {
+         if (entry.time > since) {
+            low ??= balance
+            high ??= balance
+         }
+         balance = balance.plus(entry.amount).minus(entry.fee)
+         if (low && balance.lt(low)) low = balance
+         if (high && balance.gt(high)) high = balance
+      }
+
+      return { after: balance.toFixed(), low: (low ?? balance).toFixed(), high: (high ?? balance).toFixed() }
+   }
+
+   return {
+      movements: entries
+         .filter(isFunding)
+         .map(entry => ({
+            id: entry.txid,
+            kind: entry.type as FundingKind,
+            asset: entry.baseAsset,
+            amount: Big(entry.amount).abs().toFixed(),
+            fee: Big(entry.fee).toFixed(),
+            method: '',
+            time: entry.time,
+            pending: false,
+            balance: balanceOf(entry)
+         })),
+      lastSyncedAt: syncState.lastSyncedAt,
+      job: null
+   }
+}
+
 export function ledgerFees(body: { filters?: LedgerFilters } = {}): FeeSummary {
 
    const charged = applyFilters(body.filters).filter(entry => Number(entry.fee) !== 0)
