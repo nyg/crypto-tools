@@ -4,14 +4,15 @@
 
 import type {
    FeeAssetRow, FeeMonthRow, FeeTypeRow, LedgerEntryRow, MarketRow,
-   OtherAccountRow, RewardPeriodRow, SyncStateRow, TradeListRow
+   OtherAccountRow, RewardPeriodRow, SyncStateRow, TradeListRow, UsdValue
 } from './db'
-import type { JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
+import type { FundingKind } from './funding'
+import type { FundingJob, JobPhase, StartedJob, SyncJob, XStockJob } from './jobs'
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
 import type {
-   FeeAmount, MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, SkipReason,
-   StopSkipReason, StopStatus, VenueId
+   Execution, FeeAmount, MovementKind, OrderSide, RebalanceMode, RunKind, RunOrderStatus, RunStatus, SizeUnit,
+   SkipReason, StopSkipReason, StopStatus, VenueId
 } from './portfolio'
 import type { XStockListingType } from './xstock'
 
@@ -80,8 +81,14 @@ export interface SyncCancelResponse {
    job: SyncJob | null
 }
 
+// The ticker is the one Kraken wrote the entry under, where baseAsset is the asset it is
+// added up under: an entry from before a rename reads MATIC and counts as POL.
+export interface LedgerEntryView extends LedgerEntryRow {
+   ticker: string
+}
+
 export interface LedgerEntriesResponse extends Page {
-   rows: LedgerEntryRow[]
+   rows: LedgerEntryView[]
 }
 
 export interface LedgerFiltersResponse {
@@ -90,20 +97,42 @@ export interface LedgerFiltersResponse {
    wallets: string[]
 }
 
-export interface FeeSummary {
+export interface RatesPending {
+   ratesPending?: boolean
+}
+
+export interface FeeSummary extends RatesPending {
    assets: FeeAssetRow[]
    byType: FeeTypeRow[]
    byMonth: FeeMonthRow[]
    entries: number
 }
 
-export interface RewardAsset {
-   asset: string
-   total: number
+export interface RewardAmount extends UsdValue {
+   amount: number
+}
+
+export interface RewardTotals {
+   total: RewardAmount
    entries: number
    first: number
    last: number
-   byYear: Record<number, number>
+   byYear: Record<number, RewardAmount>
+}
+
+// The ledger export names no strategy, only the wallet a reward was paid into, so a
+// strategy here is what that wallet stands for: one of Kraken's lock types, or
+// 'staking' for what was paid before Earn replaced it.
+export interface RewardStrategy extends RewardTotals {
+   lockType: string
+   active: boolean
+}
+
+export interface RewardAsset extends RewardTotals {
+   asset: string
+   byMonth: Record<number, RewardAmount>
+   byWeek: Record<number, RewardAmount>
+   strategies: RewardStrategy[]
 }
 
 export interface RewardPeriod {
@@ -112,8 +141,10 @@ export interface RewardPeriod {
    assets: RewardPeriodRow[]
 }
 
-export interface RewardSummary {
+export interface RewardSummary extends RatesPending {
    years: number[]
+   months: number[]
+   weeks: number[]
    periods: Record<string, RewardPeriod>
    assets: RewardAsset[]
    entries: number
@@ -121,28 +152,14 @@ export interface RewardSummary {
    last: number | null
 }
 
-export interface BalancePosition {
-   wallet: string
-   amount: string
-   amountNum: number
-   rawAssets: string[]
-   entries: number
-   first: number | null
-   last: number | null
-   lastRewardAt: number | null
-   rewardEntries: number
-}
-
 export interface BalanceAsset {
    asset: string
    total: string
    totalNum: number
-   positions: BalancePosition[]
 }
 
 export interface BalanceSummary {
    assets: BalanceAsset[]
-   positions: number
    entries: number
    first: number | null
    last: number | null
@@ -162,6 +179,21 @@ export interface QuoteTotals {
    fee: string
    netCost: string
    price: string
+}
+
+export interface UnconvertedVolume {
+   quoteAsset: string
+   volume: string
+}
+
+export interface ConvertedTotals {
+   volume: string
+   cost: string
+   fee: string
+   netCost: string
+   price: string | null
+   converted: boolean
+   unconverted: UnconvertedVolume[]
 }
 
 export interface Order {
@@ -196,6 +228,7 @@ export interface Aggregation {
    pairs: string[]
    margin: boolean
    quotes: QuoteTotals[]
+   totals: ConvertedTotals
    orders: Order[]
 }
 
@@ -204,6 +237,7 @@ export interface SummarySide {
    tradeCount: number
    volume: string
    quotes: QuoteTotals[]
+   totals: ConvertedTotals
 }
 
 export interface AggregationSummary {
@@ -211,11 +245,10 @@ export interface AggregationSummary {
    sell: SummarySide
 }
 
-export interface AggregationsResponse extends Page {
+export interface AggregationsResponse extends Page, RatesPending {
    rows: Aggregation[]
    baseAsset: string
    quoteAsset: string
-   quoteAssets: string[]
    summary: AggregationSummary
    truncated: boolean
 }
@@ -224,11 +257,18 @@ export interface TradesResponse extends Page {
    rows: TradeListRow[]
 }
 
+// One per base and quote asset. The label lists the pairs it was traded as, since a
+// renamed asset was traded under more than one.
+export interface Market extends MarketRow {
+   label: string
+}
+
 export interface TradeFiltersResponse {
    pairs: string[]
    directions: string[]
    ordertypes: string[]
-   markets: MarketRow[]
+   markets: Market[]
+   mergeableQuotes: string[]
 }
 
 /* Kraken — xStocks */
@@ -355,7 +395,9 @@ export interface PortfolioHolding {
    target: string
    drift: string | null
    unrealized: string | null
+   unrealizedPercent: string | null
    realized: string
+   realizedPercent: string | null
    stopPrice: string | null
    stopStatus: StopStatus | null
 }
@@ -373,10 +415,16 @@ export interface PortfolioSummary {
    netInvested: string
    profit: string
    realized: string
+   realizedPercent: string | null
    unrealized: string
+   unrealizedPercent: string | null
    closedRealized: string
+   closedRealizedPercent: string | null
+   fees: string
+   feesUnvalued: string[]
    maxDrift: string
    needsRebalance: boolean
+   lastRebalancedAt: number | null
    quoteLocked: boolean
    stops: PortfolioStopState[]
 }
@@ -414,10 +462,28 @@ export interface PortfolioOverviewResponse {
    stopFills: PortfolioStopFill[]
 }
 
+export type SupertrendTrend = 'up' | 'down'
+
+export interface SupertrendLevel {
+   flipPrice: string
+   trend: SupertrendTrend
+}
+
+export interface SupertrendLevels {
+   daily: SupertrendLevel | null
+   weekly: SupertrendLevel | null
+}
+
+export interface PortfolioSupertrendResponse {
+   fetchedAt: number
+   levels: Record<string, SupertrendLevels>
+}
+
 export interface PortfolioMarket {
    symbol: string
    base: string
    quote: string
+   tickStep: string
 }
 
 export interface PortfolioMarketsResponse {
@@ -474,6 +540,10 @@ export interface PortfolioPlanRequest {
    all?: boolean
    band?: string
    slippage?: string
+   mode?: RebalanceMode
+   exclude?: string[]
+   execution?: Execution
+   wait?: string
 }
 
 export interface PortfolioPlanOrder {
@@ -484,6 +554,9 @@ export interface PortfolioPlanOrder {
    amount: string
    price: string
    value: string
+   fee: FeeAmount
+   feeRate: string
+   feeRateAssumed: boolean
 }
 
 export interface PortfolioPlanSkip {
@@ -497,10 +570,13 @@ export interface PortfolioPlanResponse {
    portfolioId: number
    venue: VenueId
    kind: RunKind
+   mode: RebalanceMode
    quoteAsset: string
    expiresAt: number
    band: string
    slippage: string
+   execution: Execution
+   wait: string
    total: string
    withdraw: string
    orders: PortfolioPlanOrder[]
@@ -529,6 +605,8 @@ export interface PortfolioRunOrder {
    base: string
    quote: string
    averagePrice: string
+   limitPrice: string | null
+   attempts: number
    fees: FeeAmount[]
    error: string | null
 }
@@ -537,8 +615,10 @@ export interface PortfolioRun {
    id: string
    portfolioId: number
    kind: RunKind
+   execution: Execution
    status: RunStatus
    running: boolean
+   stopping: boolean
    withdraw: string
    withdrawn: string
    startedAt: number
@@ -575,6 +655,40 @@ export interface PortfolioHistoryRequest {
 export interface PortfolioHistoryResponse {
    movements: PortfolioMovement[]
    runs: PortfolioRun[]
+}
+
+/* Funding */
+
+export interface FundingMovement {
+   id: string
+   kind: FundingKind
+   asset: string
+   amount: string
+   fee: string
+   method: string
+   time: number
+   pending: boolean
+   balance: FundingBalance | null
+}
+
+// What the account held of the asset right after a movement, and the lowest and the
+// highest it held since the movement before: trades move the balance in between.
+export interface FundingBalance {
+   after: string
+   low: string
+   high: string
+}
+
+export interface FundingResponse {
+   movements: FundingMovement[]
+   lastSyncedAt: number | null
+   job: FundingJob | null
+}
+
+export type FundingSyncResponse = StartedJob<FundingJob>
+
+export interface FundingCancelResponse {
+   job: FundingJob | null
 }
 
 export type { JobPhase }

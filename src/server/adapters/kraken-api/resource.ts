@@ -6,9 +6,10 @@ import type { Credentials } from '../../../types/credentials'
 import type { ExportReportType, ExportRequest } from '../../../types/kraken'
 import type {
    KrakenAddExportResult, KrakenAddOrderBatchResult, KrakenAddOrderParams, KrakenAddOrderResult,
-   KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenExportStatus,
-   KrakenExtendedBalance, KrakenOpenOrders, KrakenOrderBatchParams, KrakenOrderFilter,
-   KrakenOrderReference, KrakenQueriedOrders, KrakenResponse, KrakenTicker, KrakenTradeVolume
+   KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenEarnAllocations,
+   KrakenEarnStrategies, KrakenExportStatus, KrakenExtendedBalance, KrakenOpenOrders,
+   KrakenOhlc, KrakenOrderBatchParams, KrakenOrderFilter, KrakenOrderReference, KrakenQueriedOrders,
+   KrakenResponse, KrakenTicker, KrakenTradeVolume
 } from '../../../types/kraken-api'
 
 const apiUrl = 'https://api.kraken.com'
@@ -17,6 +18,7 @@ const urlFor = (endpoint: string) => apiUrl + endpoint
 const assetPairsEndpoint = '/0/public/AssetPairs'
 const assetInfoEndpoint = '/0/public/Assets'
 const tickerEndpoint = '/0/public/Ticker'
+const ohlcEndpoint = '/0/public/OHLC'
 
 const addOrderEndpoint = '/0/private/AddOrder'
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
@@ -27,6 +29,8 @@ const queryOrdersEndpoint = '/0/private/QueryOrders'
 const cancelOrderEndpoint = '/0/private/CancelOrder'
 const cancelOrderBatchEndpoint = '/0/private/CancelOrderBatch'
 const tradeVolumeEndpoint = '/0/private/TradeVolume'
+const earnAllocationsEndpoint = '/0/private/Earn/Allocations'
+const earnStrategiesEndpoint = '/0/private/Earn/Strategies'
 
 const addExportEndpoint = '/0/private/AddExport'
 const exportStatusEndpoint = '/0/private/ExportStatus'
@@ -54,6 +58,10 @@ export async function fetchAllAssetPairs(): Promise<KrakenResponse<KrakenAssetPa
 // by its own name for each of them, which is not always the name that was asked for.
 export async function fetchTicker(pairs: string[]): Promise<KrakenResponse<KrakenTicker>> {
    return await httpRequester.public(urlFor(tickerEndpoint), pairs.length > 0 ? { pair: pairs.join(',') } : {})
+}
+
+export async function fetchOhlc(pair: string, interval: number, since?: number): Promise<KrakenResponse<KrakenOhlc>> {
+   return await httpRequester.public(urlFor(ohlcEndpoint), since === undefined ? { pair, interval } : { pair, interval, since })
 }
 
 /* Private endpoints */
@@ -101,6 +109,15 @@ export async function queryOrders(apiCredentials: Credentials, txids: string[]):
 
 export async function fetchTradeVolume(apiCredentials: Credentials, pairs: string[]): Promise<KrakenResponse<KrakenTradeVolume>> {
    return await privateRequest(urlFor(tradeVolumeEndpoint), apiCredentials, { bodyParams: { pair: pairs.join(',') } })
+}
+
+export async function fetchEarnAllocations(apiCredentials: Credentials): Promise<KrakenResponse<KrakenEarnAllocations>> {
+   return await privateRequest(
+      urlFor(earnAllocationsEndpoint), apiCredentials, { bodyParams: { hide_zero_allocations: true } })
+}
+
+export async function fetchEarnStrategies(apiCredentials: Credentials): Promise<KrakenResponse<KrakenEarnStrategies>> {
+   return await privateRequest(urlFor(earnStrategiesEndpoint), apiCredentials)
 }
 
 export async function addOrder(apiCredentials: Credentials, order: KrakenAddOrderParams): Promise<KrakenResponse<KrakenAddOrderResult>> {

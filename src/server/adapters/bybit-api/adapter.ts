@@ -1,19 +1,29 @@
 import Big from 'big.js'
 import {
-   cancelOrder, createOrder, fetchApiKeyInfo, fetchExecutions, fetchOpenStopOrders,
-   fetchOrderByLinkId, fetchSpotInstruments, fetchSpotTickers, fetchUnifiedWallet
+   cancelOrder, createOrder, fetchApiKeyInfo, fetchDepositRecords, fetchExecutions, fetchInternalDepositRecords,
+   fetchOpenStopOrders, fetchOrderByLinkId, fetchSpotFeeRates, fetchSpotInstruments, fetchSpotKlines,
+   fetchSpotTickers, fetchUnifiedWallet, fetchWithdrawRecords
 } from './resource'
+import { candlesFromKlines } from './klines'
+import { depositRecord, internalDepositRecord, withdrawalRecord } from './funding'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
-import type { BybitEnvironment, BybitOrder } from '../../../types/bybit-api'
+import type { BybitEnvironment, BybitKlineInterval, BybitOrder, BybitOrderFilter } from '../../../types/bybit-api'
+import type { FundingRecord, FundingWindow } from '../../../types/funding'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderRequest, OrderSettlement, SettlementStatus, SpotMarket,
-   SpotPrice, StopOrderRequest, WalletCoin
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderRequest, OrderSettlement,
+   SettlementStatus, SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 const openStatuses = ['New', 'PartiallyFilled', 'Untriggered', 'Created']
 
-const goneCodes = [110001, 170213, 170145]
+const goneCodes = [110001, 170139, 170142, 170143, 170145, 170213]
+
+const POST_ONLY_REFUSAL = 'EC_PostOnlyWillTakeLiquidity'
+
+const KLINE_LIMIT = 1000
+
+const klineIntervals: Record<CandleInterval, BybitKlineInterval> = { '1d': 'D', '1w': 'W' }
 
 function alreadyGone(error: unknown): boolean {
    if (!(error instanceof HttpRequesterError)) return false
@@ -69,6 +79,10 @@ export default class BybitAPI {
          [symbol, { last: lastPrice, bid: bid1Price || lastPrice, ask: ask1Price || lastPrice }]))
    }
 
+   async fetchSpotCandles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      return candlesFromKlines(await fetchSpotKlines(symbol, klineIntervals[interval], KLINE_LIMIT))
+   }
+
    async fetchWallet(): Promise<WalletCoin[]> {
       const account = await fetchUnifiedWallet(this.#environment, this.#authenticated)
       return (account?.coin ?? []).map(({ coin, walletBalance, locked, spotBorrow }) => ({
@@ -76,6 +90,24 @@ export default class BybitAPI {
          total: walletBalance || '0',
          free: Big(walletBalance || 0).minus(locked || 0).toFixed(),
          borrowed: spotBorrow || '0'
+      }))
+   }
+
+   async fetchTradeFees(symbols: string[]): Promise<Record<string, TradeFees>> {
+      const listed = await fetchSpotFeeRates(this.#environment, this.#authenticated).catch(() => [])
+      const rates = new Map(listed.map(rate => [rate.symbol, rate]))
+      for (const symbol of symbols.filter(symbol => !rates.has(symbol))) {
+         const [entry] = await fetchSpotFeeRates(this.#environment, this.#authenticated, symbol)
+         if (entry?.symbol === symbol) rates.set(symbol, entry)
+      }
+      return Object.fromEntries(symbols.flatMap(symbol => {
+         const rate = rates.get(symbol)
+         if (!rate?.takerFeeRate) return []
+         const maker = rate.makerFeeRate || rate.takerFeeRate
+         return [[symbol, {
+            taker: { buy: rate.takerFeeRate, sell: rate.takerFeeRate },
+            maker: { buy: maker, sell: maker }
+         }]]
       }))
    }
 
@@ -92,6 +124,20 @@ export default class BybitAPI {
       }
    }
 
+   async fetchDeposits({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      const deposits = await fetchDepositRecords(this.#authenticated, from, to)
+      const readAt = Date.now()
+      return deposits.map(deposit => depositRecord(deposit, readAt))
+   }
+
+   async fetchInternalDeposits({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      return (await fetchInternalDepositRecords(this.#authenticated, from, to)).map(internalDepositRecord)
+   }
+
+   async fetchWithdrawals({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      return (await fetchWithdrawRecords(this.#authenticated, from, to)).map(withdrawalRecord)
+   }
+
    async placeMarketOrder({ clientOrderId, symbol, side, unit, amount, maxSlippagePercent }: OrderRequest): Promise<string> {
       const { orderId } = await createOrder(this.#environment, this.#authenticated, {
          category: 'spot',
@@ -104,6 +150,21 @@ export default class BybitAPI {
          orderLinkId: clientOrderId,
          slippageToleranceType: 'Percent',
          slippageTolerance: maxSlippagePercent
+      })
+      return orderId
+   }
+
+   async placeLimitOrder({ clientOrderId, symbol, side, quantity, price }: LimitOrderRequest): Promise<string> {
+      const { orderId } = await createOrder(this.#environment, this.#authenticated, {
+         category: 'spot',
+         symbol,
+         side: side === 'buy' ? 'Buy' : 'Sell',
+         orderType: 'Limit',
+         qty: quantity,
+         price,
+         timeInForce: 'PostOnly',
+         isLeverage: 0,
+         orderLinkId: clientOrderId
       })
       return orderId
    }
@@ -124,12 +185,12 @@ export default class BybitAPI {
       return orderId
    }
 
-   async cancelStopOrder(symbol: string, clientOrderId: string): Promise<void> {
+   async cancelOrderIfOpen(symbol: string, clientOrderId: string, orderFilter: BybitOrderFilter): Promise<void> {
       try {
          await cancelOrder(this.#environment, this.#authenticated, {
             category: 'spot',
             symbol,
-            orderFilter: 'StopOrder',
+            orderFilter,
             orderLinkId: clientOrderId
          })
       }
@@ -164,7 +225,8 @@ export default class BybitAPI {
          quote: order.cumExecValue || '0',
          averagePrice: order.avgPrice || '0',
          fees: status === 'open' || !executed ? {} : await this.#feesOf(order),
-         reason: order.rejectReason && order.rejectReason !== 'EC_NoError' ? order.rejectReason : ''
+         reason: order.rejectReason && order.rejectReason !== 'EC_NoError' ? order.rejectReason : '',
+         ...(order.rejectReason === POST_ONLY_REFUSAL ? { postOnlyRefused: true } : {})
       }
    }
 

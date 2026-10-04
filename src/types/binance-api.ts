@@ -61,9 +61,10 @@ export type BinanceOrderSide = 'BUY' | 'SELL'
 export interface BinanceOrderParams {
    symbol: string
    side: BinanceOrderSide
-   type: 'MARKET' | 'STOP_LOSS'
+   type: 'MARKET' | 'LIMIT_MAKER' | 'STOP_LOSS'
    quantity?: string
    quoteOrderQty?: string
+   price?: string
    stopPrice?: string
    newClientOrderId: string
    newOrderRespType: 'ACK'
@@ -72,6 +73,20 @@ export interface BinanceOrderParams {
 export interface BinanceOrderReference {
    symbol: string
    origClientOrderId: string
+}
+
+export interface BinanceCommissionRates {
+   maker?: string
+   taker?: string
+   buyer?: string
+   seller?: string
+}
+
+export interface BinanceCommission {
+   symbol: string
+   standardCommission?: BinanceCommissionRates
+   specialCommission?: BinanceCommissionRates
+   taxCommission?: BinanceCommissionRates
 }
 
 export interface BinanceOrderAck {
@@ -119,8 +134,39 @@ export interface BinanceFiatOrder {
    fiatCurrency: string
    indicatedAmount: string
    amount: string
+   totalFee?: string
+   method?: string
    status: string
    createTime: number
+}
+
+export interface BinanceDeposit {
+   id?: string
+   txId?: string
+   coin: string
+   network?: string
+   amount: string
+   status: number
+   insertTime: number
+   transferType?: number
+}
+
+export interface BinanceWithdrawal {
+   id: string
+   coin: string
+   network?: string
+   amount: string
+   transactionFee?: string
+   status: number
+   applyTime: string
+   transferType?: number
+}
+
+export interface BinanceHistoryParams {
+   startTime: number
+   endTime: number
+   offset: number
+   limit: number
 }
 
 export interface BinanceFiatFunding {

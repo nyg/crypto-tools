@@ -28,6 +28,7 @@ export default function portfolioRoutes(venueId: VenueId): Hono {
 
    app.post('/overview', handle(service => service.overview()))
    app.get('/markets', handle(service => service.markets()))
+   app.get('/supertrend', handle(service => service.supertrend()))
    app.post('/save', handle((service, body) => service.save(body)))
    app.post('/archive', handle((service, body) => service.archive(body)))
    app.post('/deposit', handle((service, body) => service.deposit(body)))
@@ -35,6 +36,7 @@ export default function portfolioRoutes(venueId: VenueId): Hono {
    app.post('/plan', handle((service, body) => service.plan(body)))
    app.post('/execute', handle((service, body) => service.execute(body)))
    app.post('/run', handle((service, body) => service.run(body)))
+   app.post('/stop', handle((service, body) => service.stop(body)))
    app.post('/stops/sync', handle((service, body) => service.syncStops(body)))
    app.post('/stops/ack', handle((service, body) => service.ackStop(body)))
    app.post('/history', handle((service, body) => service.history(body)))

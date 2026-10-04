@@ -2,19 +2,22 @@ import type {
    AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioExecuteRequest,
    PortfolioHistoryRequest, PortfolioHistoryResponse, PortfolioHolding, PortfolioMarketsResponse,
    PortfolioMovement, PortfolioMovementRequest, PortfolioMovementResponse, PortfolioOverviewResponse,
-   PortfolioPlanOrder, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun, PortfolioRunRequest,
+   PortfolioPlanOrder, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun, PortfolioRunOrder, PortfolioRunRequest,
    PortfolioRunResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioStopAckRequest,
    PortfolioStopAckResponse, PortfolioStopFill, PortfolioStopState, PortfolioStopSyncRequest,
-   PortfolioStopSyncResponse, PortfolioSummary, PortfolioTarget
+   PortfolioStopSyncResponse, PortfolioSummary, PortfolioSupertrendResponse, PortfolioTarget, SupertrendLevel,
+   SupertrendLevels
 } from '../../types/api'
-import type { VenueId } from '../../types/portfolio'
+import type { Execution, VenueId } from '../../types/portfolio'
 
 const prices: Record<string, number> = {
    USD: 1, EUR: 1.08, USDT: 1, USDC: 1, BTC: 64250, ETH: 3120, SOL: 152.4, SUI: 3.18, TAO: 418, ENA: 0.92, DOGE: 0.14, XRP: 0.58
 }
 
-const FEE_RATE = 0.001
+const feeRates: Record<Execution, number> = { limit: 0.0004, market: 0.001 }
 const MIN_ORDER = 5
+const TICK = 0.01
+const STOPPED = 'The run was stopped.'
 
 interface MockPortfolio {
    id: number
@@ -26,9 +29,13 @@ interface MockPortfolio {
    holdings: Record<string, number>
    costs: Record<string, number>
    realized: Record<string, number>
+   disposed: Record<string, number>
    closedRealized: number
+   closedCost: number
+   fees: number
    stops: PortfolioStopState[]
    deposited?: number
+   rebalancedAt?: number
 }
 
 interface MockPlan {
@@ -36,11 +43,13 @@ interface MockPlan {
    orders: PortfolioPlanOrder[]
    withdraw: number
    all: boolean
+   execution: Execution
 }
 
 interface MockRun {
    run: PortfolioRun
    polls: number
+   stopped: boolean
 }
 
 interface VenueState {
@@ -84,7 +93,11 @@ function seed(venue: VenueId): VenueState {
             holdings: { BTC: 0.0712, ETH: 0.84, [cash]: 1480 },
             costs: { BTC: 3900, ETH: 2750 },
             realized: { BTC: 820, ETH: 310 },
+            disposed: { BTC: 3600, ETH: 1600 },
             closedRealized: 0,
+            closedCost: 5200,
+            fees: 38.6,
+            rebalancedAt: Date.now() - 3 * DAY,
             stops: [{
                orderLinkId: 'pf1-stpa1b2c3d4', asset: 'BTC', symbol: `BTC${cash}`, quantity: '0.0712',
                triggerPrice: '58000', status: 'placed', error: null, placedAt: created + 30 * DAY
@@ -101,7 +114,11 @@ function seed(venue: VenueId): VenueState {
             holdings: { SOL: 6.1, SUI: 240, ENA: 1150, [cash]: 12.4 },
             costs: { SOL: 980, SUI: 610, ENA: 1010 },
             realized: { SOL: 40 },
+            disposed: { SOL: 420 },
             closedRealized: 72.4,
+            closedCost: 1340,
+            fees: 9.85,
+            rebalancedAt: Date.now() - 12 * DAY,
             stops: [{
                orderLinkId: 'pf2-stp9f8e7d6c', asset: 'SOL', symbol: `SOL${cash}`, quantity: '6.1',
                triggerPrice: '120', status: 'placed', error: null, placedAt: created + 32 * DAY
@@ -119,7 +136,10 @@ function seed(venue: VenueId): VenueState {
             holdings: { [cash]: 1000 },
             costs: {},
             realized: {},
+            disposed: {},
             closedRealized: 0,
+            closedCost: 0,
+            fees: 0,
             stops: [],
             deposited: 1000
          }
@@ -169,6 +189,7 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       const quantity = portfolio.holdings[asset] ?? 0
       const price = prices[asset] ?? null
       const value = price === null ? null : quantity * price
+      const disposed = portfolio.disposed[asset] ?? 0
       const weight = value !== null && total > 0 ? value / total * 100 : null
       const target = weights.get(asset) ?? 0
       const cost = asset === portfolio.quoteAsset ? undefined : portfolio.costs[asset]
@@ -183,7 +204,9 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
          target: String(target),
          drift: weight === null ? null : fixed(weight - target, 4),
          unrealized: cost !== undefined && value !== null ? fixed(value - cost) : null,
+         unrealizedPercent: cost !== undefined && cost > 0 && value !== null ? fixed((value - cost) / cost * 100, 4) : null,
          realized: fixed(portfolio.realized[asset] ?? 0),
+         realizedPercent: disposed > 0 ? fixed((portfolio.realized[asset] ?? 0) / disposed * 100, 4) : null,
          stopPrice: portfolio.targets.find(target => target.asset === asset)?.stopPrice ?? null,
          stopStatus: stop?.status ?? null
       }
@@ -191,6 +214,11 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
 
    const realized = Object.values(portfolio.realized).reduce((sum, amount) => sum + amount, portfolio.closedRealized)
    const unrealized = holdings.reduce((sum, holding) => sum + Number(holding.unrealized ?? 0), 0)
+   const openCost = holdings.reduce((sum, { asset, unrealized }) =>
+      unrealized === null ? sum : sum + (portfolio.costs[asset] ?? 0), 0)
+
+   const closedCost = portfolio.closedCost
+      - Object.values(portfolio.disposed).reduce((sum, amount) => sum + amount, 0)
 
    const maxDrift = Math.max(0, ...holdings.map(({ drift }) => Math.abs(Number(drift ?? 0))))
    const netInvested = (state.movements.get(portfolio.id) ?? []).reduce((sum, { kind, value }) =>
@@ -209,10 +237,16 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
       netInvested: fixed(netInvested),
       profit: fixed(total - netInvested),
       realized: fixed(realized),
+      realizedPercent: portfolio.closedCost > 0 ? fixed(realized / portfolio.closedCost * 100, 4) : null,
       unrealized: fixed(unrealized),
+      unrealizedPercent: openCost > 0 ? fixed(unrealized / openCost * 100, 4) : null,
       closedRealized: fixed(portfolio.closedRealized),
+      closedRealizedPercent: closedCost > 0 ? fixed(portfolio.closedRealized / closedCost * 100, 4) : null,
+      fees: fixed(portfolio.fees),
+      feesUnvalued: [],
       maxDrift: fixed(maxDrift, 4),
       needsRebalance: total > 0 && maxDrift > Number(portfolio.band),
+      lastRebalancedAt: portfolio.rebalancedAt ?? null,
       quoteLocked: (state.movements.get(portfolio.id) ?? []).length > 0,
       stops: portfolio.stops
    }
@@ -270,11 +304,33 @@ function overview(venue: VenueId): PortfolioOverviewResponse {
    }
 }
 
+const supertrendDistances: Record<keyof SupertrendLevels, number> = { daily: 0.06, weekly: 0.19 }
+const downtrends: Record<keyof SupertrendLevels, string[]> = { daily: ['SOL', 'ENA'], weekly: ['ENA'] }
+
+function supertrendLevel(asset: string, timeframe: keyof SupertrendLevels): SupertrendLevel | null {
+   const price = prices[asset]
+   if (price === undefined) return null
+   const down = downtrends[timeframe].includes(asset)
+   const distance = supertrendDistances[timeframe]
+   return { flipPrice: fixed(price * (down ? 1 + distance : 1 - distance)), trend: down ? 'down' : 'up' }
+}
+
+const supertrend = (venue: VenueId): PortfolioSupertrendResponse => ({
+   fetchedAt: Date.now(),
+   levels: Object.fromEntries(stateOf(venue).portfolios.flatMap(({ quoteAsset, targets, holdings }) =>
+      [...targets.map(({ asset }) => asset), ...Object.keys(holdings)]
+         .filter(asset => asset !== quoteAsset)
+         .map(asset => [
+            `${asset}${quoteAsset}`,
+            { daily: supertrendLevel(asset, 'daily'), weekly: supertrendLevel(asset, 'weekly') }
+         ])))
+})
+
 const markets = (venue: VenueId): PortfolioMarketsResponse => ({
    quoteAssets: quoteAssets[venue],
    markets: Object.keys(prices)
       .filter(asset => !quoteAssets[venue].includes(asset))
-      .flatMap(base => quoteAssets[venue].map(quote => ({ symbol: `${base}${quote}`, base, quote })))
+      .flatMap(base => quoteAssets[venue].map(quote => ({ symbol: `${base}${quote}`, base, quote, tickStep: String(TICK) })))
 })
 
 const reject = (message: string) => Promise.reject(message)
@@ -298,8 +354,8 @@ function save(venue: VenueId, request?: PortfolioSaveRequest): PortfolioSaveResp
    const id = state.nextId++
    state.portfolios.push({
       id, name: request.name, quoteAsset: request.quoteAsset, band: request.band,
-      createdAt: Date.now(), targets: request.targets, holdings: {}, costs: {}, realized: {},
-      closedRealized: 0, stops: []
+      createdAt: Date.now(), targets: request.targets, holdings: {}, costs: {}, realized: {}, disposed: {},
+      closedRealized: 0, closedCost: 0, fees: 0, stops: []
    })
    return { id }
 }
@@ -345,6 +401,8 @@ function dispose(portfolio: MockPortfolio, asset: string, quantity: number, proc
    const cost = portfolio.costs[asset] ?? 0
    const released = held > quantity ? cost * quantity / held : cost
    portfolio.costs[asset] = cost - released
+   portfolio.closedCost += released
+   portfolio.disposed[asset] = (portfolio.disposed[asset] ?? 0) + released
    portfolio.realized[asset] = (portfolio.realized[asset] ?? 0) + proceeds - released
 }
 
@@ -410,6 +468,10 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
    if (withdraw > total) return reject(`Cannot withdraw more than the portfolio is worth (${fixed(total, 2)} ${quote}).`)
 
    const band = Number(request.band ?? portfolio.band)
+   const mode = request.kind === 'withdraw' ? 'full' : request.mode ?? 'full'
+   const execution = request.execution ?? 'limit'
+   const feeRate = feeRates[execution]
+   const excluded = new Set(request.exclude ?? [])
    const investable = total - withdraw
    const cash = portfolio.holdings[quote] ?? 0
    const weights = new Map(portfolio.targets.map(({ asset, weight }) => [asset, Number(weight)]))
@@ -426,10 +488,18 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       const drift = total > 0 ? value / total * 100 - (weights.get(asset) ?? 0) : 0
       const delta = target - value
 
+      if (excluded.has(asset)) {
+         skipped.push({ asset, reason: 'excluded', value: fixed(Math.abs(delta), 2) })
+         continue
+      }
       if (request.kind === 'withdraw' && (cash >= withdraw || delta >= 0)) continue
       const absorbsCash = (cashDrift > band && delta > 0) || (cashDrift < -band && delta < 0)
       if (request.kind === 'rebalance' && weights.has(asset) && Math.abs(drift) <= band && !absorbsCash) {
          if (drift !== 0) skipped.push({ asset, reason: 'within-band', value: fixed(Math.abs(delta), 2) })
+         continue
+      }
+      if ((mode === 'invest' && delta < 0) || (mode === 'trim' && delta > 0)) {
+         skipped.push({ asset, reason: mode === 'invest' ? 'no-sells' : 'no-buys', value: fixed(Math.abs(delta), 2) })
          continue
       }
       if (Math.abs(delta) < MIN_ORDER) {
@@ -437,15 +507,18 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
          continue
       }
 
+      const fee = delta < 0 || venue === 'kraken'
+         ? { asset: quote, amount: fixed(Math.abs(delta) * feeRate) }
+         : { asset, amount: fixed(delta / price * feeRate) }
       orders.push(delta < 0
-         ? { asset, symbol: `${asset}${quote}`, side: 'sell', unit: 'base', amount: fixed(-delta / price, 6), price: String(price), value: fixed(-delta, 2) }
-         : { asset, symbol: `${asset}${quote}`, side: 'buy', unit: 'quote', amount: fixed(delta, 2), price: String(price), value: fixed(delta, 2) })
+         ? { asset, symbol: `${asset}${quote}`, side: 'sell', unit: 'base', amount: fixed(-delta / price, 6), price: String(price), value: fixed(-delta, 2), fee, feeRate: String(feeRate), feeRateAssumed: false }
+         : { asset, symbol: `${asset}${quote}`, side: 'buy', unit: 'quote', amount: fixed(delta, 2), price: String(price), value: fixed(delta, 2), fee, feeRate: String(feeRate), feeRateAssumed: false })
    }
 
    orders.sort((left, right) => (left.side === right.side ? 0 : left.side === 'sell' ? -1 : 1))
 
    const planId = `mock-plan-${state.nextId++}`
-   state.plans.set(planId, { portfolioId: portfolio.id, orders, withdraw, all: Boolean(request.all) })
+   state.plans.set(planId, { portfolioId: portfolio.id, orders, withdraw, all: Boolean(request.all), execution })
 
    const traded = orders.reduce((sum, order) => sum + (order.side === 'sell' ? 1 : -1) * Number(order.value), 0)
 
@@ -454,10 +527,13 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
       portfolioId: portfolio.id,
       venue,
       kind: request.kind,
+      mode,
       quoteAsset: quote,
       expiresAt: Date.now() + 120000,
       band: String(band),
       slippage: request.slippage ?? '1',
+      execution,
+      wait: request.wait ?? '120',
       total: fixed(total, 2),
       withdraw: fixed(withdraw, 2),
       orders,
@@ -481,8 +557,10 @@ function execute(venue: VenueId, request?: PortfolioExecuteRequest): PortfolioRu
       id,
       portfolioId: portfolio.id,
       kind: stored.withdraw > 0 ? 'withdraw' : 'rebalance',
+      execution: stored.execution,
       status: 'running',
       running: true,
+      stopping: false,
       withdraw: fixed(stored.withdraw, 2),
       withdrawn: '0',
       startedAt: Date.now(),
@@ -499,24 +577,35 @@ function execute(venue: VenueId, request?: PortfolioExecuteRequest): PortfolioRu
          base: '0',
          quote: '0',
          averagePrice: '0',
+         limitPrice: null,
+         attempts: 1,
          fees: [],
          error: null
       }))
    }
-   state.runs.set(id, { run, polls: 0 })
+   state.runs.set(id, { run, polls: 0, stopped: false })
    return { run: structuredClone(run) }
 }
 
-function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRun['orders'][number]) {
-   const base = order.symbol.replace(new RegExp(`${portfolio.quoteAsset}$`), '')
-   const price = prices[base] ?? 0
+const baseOf = (portfolio: MockPortfolio, order: PortfolioRunOrder) =>
+   order.symbol.replace(new RegExp(`${portfolio.quoteAsset}$`), '')
+
+function rest(portfolio: MockPortfolio, order: PortfolioRunOrder) {
+   const price = prices[baseOf(portfolio, order)] ?? 0
+   Object.assign(order, { status: 'placed', limitPrice: fixed(order.side === 'buy' ? price - TICK : price + TICK) })
+}
+
+function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRunOrder, execution: Execution) {
+   const base = baseOf(portfolio, order)
+   const price = Number(order.limitPrice ?? prices[base] ?? 0)
    const quantity = order.unit === 'base' ? Number(order.requested) : Number(order.requested) / price
    const value = quantity * price
    const buy = order.side === 'buy'
-   const fee = buy ? quantity * FEE_RATE : value * FEE_RATE
+   const fee = (buy ? quantity : value) * feeRates[execution]
 
    if (buy) portfolio.costs[base] = (portfolio.costs[base] ?? 0) + value
    else dispose(portfolio, base, quantity, value - fee)
+   portfolio.fees += buy ? fee * price : fee
 
    portfolio.holdings[base] = (portfolio.holdings[base] ?? 0) + (buy ? quantity - fee : -quantity)
    portfolio.holdings[portfolio.quoteAsset] = (portfolio.holdings[portfolio.quoteAsset] ?? 0) + (buy ? -value : value - fee)
@@ -538,9 +627,20 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
    const portfolio = state.portfolios.find(({ id }) => id === current.portfolioId)
    entry.polls++
 
+   if (current.running && portfolio && entry.stopped) {
+      for (const order of current.orders) {
+         if (order.status === 'placed') Object.assign(order, { status: 'cancelled', error: STOPPED })
+         if (order.status === 'pending') Object.assign(order, { status: 'skipped', error: STOPPED })
+      }
+      Object.assign(current, { status: 'partial', running: false, stopping: false, finishedAt: Date.now() })
+   }
+
    if (current.running && portfolio) {
-      const next = current.orders.find(({ status }) => status === 'pending')
-      if (next && entry.polls > 1) fill(state, portfolio, next)
+      const next = current.orders.find(({ status }) => status === 'pending' || status === 'placed')
+      if (next && entry.polls > 1) {
+         if (current.execution === 'limit' && next.status === 'pending') rest(portfolio, next)
+         else fill(state, portfolio, next, current.execution)
+      }
       else if (!next) {
          const withdraw = Number(current.withdraw)
          if (withdraw > 0) {
@@ -552,11 +652,24 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
             })
             current.withdrawn = fixed(withdrawn, 2)
          }
-         Object.assign(current, { status: 'done', running: false, finishedAt: Date.now() })
+         const finishedAt = Date.now()
+         Object.assign(current, { status: 'done', running: false, finishedAt })
+         if (current.kind === 'rebalance' && current.orders.length > 0) portfolio.rebalancedAt = finishedAt
       }
    }
 
    return { run: structuredClone(current) }
+}
+
+function stop(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunResponse | Promise<never> {
+   const entry = stateOf(venue).runs.get(request?.runId ?? '')
+   if (!entry) return reject('This run does not exist.')
+
+   if (entry.run.running) {
+      entry.stopped = true
+      entry.run.stopping = true
+   }
+   return { run: structuredClone(entry.run) }
 }
 
 function history(venue: VenueId, request?: PortfolioHistoryRequest): PortfolioHistoryResponse {
@@ -586,6 +699,7 @@ export const portfolioRoutes: Record<string, (params?: Body) => unknown> = Objec
    (Object.entries(bases) as [VenueId, string][]).flatMap(([venue, base]) => [
       [`${base}/overview`, () => overview(venue)],
       [`${base}/markets`, () => markets(venue)],
+      [`${base}/supertrend`, () => supertrend(venue)],
       [`${base}/save`, (params?: Body) => save(venue, arg(params))],
       [`${base}/archive`, (params?: Body) => archive(venue, arg(params))],
       [`${base}/deposit`, (params?: Body) => deposit(venue, arg(params))],
@@ -593,6 +707,7 @@ export const portfolioRoutes: Record<string, (params?: Body) => unknown> = Objec
       [`${base}/plan`, (params?: Body) => plan(venue, arg(params))],
       [`${base}/execute`, (params?: Body) => execute(venue, arg(params))],
       [`${base}/run`, (params?: Body) => run(venue, arg(params))],
+      [`${base}/stop`, (params?: Body) => stop(venue, arg(params))],
       [`${base}/stops/sync`, (params?: Body) => syncStops(venue, arg(params))],
       [`${base}/stops/ack`, (params?: Body) => ackStop(venue, arg(params))],
       [`${base}/history`, (params?: Body) => history(venue, arg(params))]

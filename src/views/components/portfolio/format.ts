@@ -1,5 +1,6 @@
 import Big from 'big.js'
-import { asAssetAmount, asDecimal, asShortPercentage } from '../../../utils/format'
+import { asAssetAmount, asDecimal, asShortPercentage, asSignedShortPercentage } from '../../../utils/format'
+import type { SupertrendLevel } from '../../../types/api'
 import type {
    RunKind, RunOrderStatus, RunStatus, SkipReason, StopSkipReason, StopStatus
 } from '../../../types/portfolio'
@@ -7,12 +8,14 @@ import type {
 const QUOTE_DECIMALS = 2
 const POINT_DECIMALS = 1
 
-export const asQuoteAmount = (value: string | null | undefined, asset: string) =>
-   value === null || value === undefined ? '—' : `${asDecimal(Number(value), QUOTE_DECIMALS)} ${asset}`
+const withAsset = (amount: string, asset?: string) => asset ? `${amount} ${asset}` : amount
+
+export const asQuoteAmount = (value: string | null | undefined, asset?: string) =>
+   value === null || value === undefined ? '—' : withAsset(asDecimal(Number(value), QUOTE_DECIMALS), asset)
 
 export const showsAsZeroQuoteAmount = (value: string) => Big(value).round(QUOTE_DECIMALS).eq(0)
 
-export const asSignedQuoteAmount = (value: string | null, asset: string) =>
+export const asSignedQuoteAmount = (value: string | null, asset?: string) =>
    value === null ? '—'
       : showsAsZeroQuoteAmount(value) ? asQuoteAmount('0', asset)
          : `${Number(value) > 0 ? '+' : ''}${asQuoteAmount(value, asset)}`
@@ -23,6 +26,20 @@ export const profitColor = (value: string | null) =>
 
 export const asWeight = (value: string | null | undefined) =>
    value === null || value === undefined ? '—' : asShortPercentage(Number(value) / 100)
+
+export const asSignedPercent = (value: string) => asSignedShortPercentage(Number(value) / 100)
+
+const percentChange = (from: string, to: string) =>
+   Big(from).eq(0) ? null : Big(to).minus(from).div(from).times(100).toFixed(4)
+
+export const flipDistance = (flipPrice: string, price: string | null) =>
+   price === null ? null : percentChange(price, flipPrice)
+
+export const flipExtension = (flipPrice: string, price: string | null) =>
+   price === null ? null : percentChange(flipPrice, price)
+
+export const flipPending = ({ flipPrice, trend }: SupertrendLevel, price: string | null) =>
+   price !== null && (trend === 'up' ? Big(price).lt(flipPrice) : Big(price).gt(flipPrice))
 
 export const asPoints = (value: string) => asDecimal(Number(value), POINT_DECIMALS)
 
@@ -39,7 +56,10 @@ export const skipReasons: Record<SkipReason, string> = {
    'no-market': 'no market against the cash coin',
    'unpriced': 'no price right now',
    'no-free-balance': 'nothing free in the wallet to sell',
-   'no-cash': 'no cash left to buy with'
+   'no-cash': 'not enough cash to buy with',
+   'excluded': 'left out of this plan',
+   'no-sells': 'this rebalance only buys',
+   'no-buys': 'this rebalance only sells'
 }
 
 export const orderStatusLabels: Record<RunOrderStatus, string> = {
@@ -50,7 +70,8 @@ export const orderStatusLabels: Record<RunOrderStatus, string> = {
    rejected: 'Rejected',
    failed: 'Failed',
    skipped: 'Skipped',
-   unknown: 'Checking'
+   unknown: 'Checking',
+   cancelled: 'Not filled'
 }
 
 export const stopStatusLabels: Record<StopStatus, string> = {

@@ -8,8 +8,8 @@ import type { PortfolioExchange } from './exchange'
 import type PortfolioServiceType from './portfolio-service'
 import type { Venue } from './venues'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, WalletCoin
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
+   OrderSide, SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-portfolio-'))
@@ -31,14 +31,35 @@ interface FakeStop {
    orderId: string
 }
 
+interface FakeLimit {
+   clientOrderId: string
+   symbol: string
+   side: OrderSide
+   quantity: Big
+   price: Big
+   filled: Big
+   orderId: string
+}
+
+const POST_ONLY_REFUSED = 170218
+
 class FakeExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
+   chasePacing = { pollMs: 20, moveAfterMs: 0 }
    buyFeeInQuote = false
    feeRate = '0.001'
+   makerFeeRate = '0.0004'
+   reportsFees = true
+   feeAsset: string | null = null
    readonly balances = new Map<string, Big>([['USDT', Big(10000)], ['BTC', Big('0.5')]])
    readonly settlements = new Map<string, OrderSettlement>()
    readonly stops = new Map<string, FakeStop>()
+   readonly candleSeries = new Map<string, SpotCandle[]>()
+   readonly limits = new Map<string, FakeLimit>()
+   readonly placedLimits: FakeLimit[] = []
+   fillsLimits = true
+   refusesLimits = 0
    rejectNext = false
    rejectStopNext = false
    stopsLock = false
@@ -69,8 +90,74 @@ class FakeExchange implements PortfolioExchange {
       return prices
    }
 
-   async takerFeeRate(): Promise<string | null> {
-      return this.feeRate
+   async candles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      const series = this.candleSeries.get(`${symbol}:${interval}`)
+      if (!series) throw new HttpRequesterError(200, { retCode: 10001, retMsg: 'Not supported symbols.' })
+      return series
+   }
+
+   async tradeFees(symbols: string[]): Promise<Record<string, TradeFees>> {
+      if (!this.reportsFees) return {}
+      return Object.fromEntries(symbols.map(symbol => [symbol, {
+         taker: { buy: this.feeRate, sell: this.feeRate },
+         maker: { buy: this.makerFeeRate, sell: this.makerFeeRate }
+      }]))
+   }
+
+   async placeLimitOrder({ clientOrderId, symbol, side, quantity, price }: LimitOrderRequest): Promise<string> {
+      const book = prices[symbol]!
+      const wouldTake = side === 'buy' ? Big(price).gte(book.ask) : Big(price).lte(book.bid)
+
+      if (this.refusesLimits > 0 || wouldTake) {
+         this.refusesLimits = Math.max(0, this.refusesLimits - 1)
+         throw new HttpRequesterError(200, { retCode: POST_ONLY_REFUSED, retMsg: 'The LIMIT-MAKER order is rejected due to invalid price.' })
+      }
+
+      const limit = {
+         clientOrderId, symbol, side, quantity: Big(quantity), price: Big(price), filled: Big(0),
+         orderId: `limit-${this.placedLimits.length + 1}`
+      }
+      this.limits.set(clientOrderId, limit)
+      this.placedLimits.push(limit)
+      this.#settleLimit(limit, 'open')
+      return limit.orderId
+   }
+
+   async cancelOrder({ clientOrderId }: OrderLookup): Promise<void> {
+      const limit = this.limits.get(clientOrderId)
+      if (!limit) return
+      this.limits.delete(clientOrderId)
+      this.#settleLimit(limit, limit.filled.gt(0) ? 'partial' : 'rejected')
+   }
+
+   fillLimit(clientOrderId: string, quantity?: string): void {
+      const limit = this.limits.get(clientOrderId)!
+      const filled = Big(quantity ?? limit.quantity.minus(limit.filled))
+      const value = filled.times(limit.price)
+      const base = limit.symbol.replace(/USDT$/, '')
+      const sign = limit.side === 'buy' ? 1 : -1
+
+      limit.filled = limit.filled.plus(filled)
+      this.#move(base, filled.times(sign))
+      this.#move('USDT', value.times(-sign))
+
+      const done = limit.filled.eq(limit.quantity)
+      if (done) this.limits.delete(clientOrderId)
+      this.#settleLimit(limit, done ? 'filled' : 'open')
+   }
+
+   #settleLimit(limit: FakeLimit, status: OrderSettlement['status']): void {
+      const base = limit.symbol.replace(/USDT$/, '')
+      const value = limit.filled.times(limit.price)
+      const feeInBase = limit.side === 'buy' && !this.buyFeeInQuote
+      const fee = (feeInBase ? limit.filled : value).times(this.makerFeeRate)
+
+      this.settlements.set(limit.clientOrderId, {
+         orderId: limit.orderId, status,
+         base: limit.filled.toFixed(), quote: value.toFixed(), averagePrice: limit.price.toFixed(),
+         fees: status === 'open' || fee.eq(0) ? {} : { [feeInBase ? base : 'USDT']: fee.toFixed() },
+         reason: status === 'filled' || status === 'open' ? '' : 'Cancelled'
+      })
    }
 
    async placeOrder({ clientOrderId, symbol, side, unit, amount }: OrderRequest): Promise<string> {
@@ -89,21 +176,25 @@ class FakeExchange implements PortfolioExchange {
       }
       const value = quantity.times(price)
       const feeInBase = side === 'buy' && !this.buyFeeInQuote
-      const fee = feeInBase ? quantity.times(this.feeRate) : value.times(this.feeRate)
+      const feeAsset = this.feeAsset ?? (feeInBase ? base : 'USDT')
+      const fee = this.feeAsset ? value.times(this.feeRate).div(prices[`${this.feeAsset}USDT`]!.last)
+         : feeInBase ? quantity.times(this.feeRate) : value.times(this.feeRate)
       const sign = side === 'buy' ? 1 : -1
 
-      this.#move(base, quantity.times(sign).minus(feeInBase ? fee : 0))
-      this.#move('USDT', value.times(-sign).minus(feeInBase ? 0 : fee))
+      this.#move(base, quantity.times(sign))
+      this.#move('USDT', value.times(-sign))
+      this.#move(feeAsset, fee.times(-1))
 
       this.settlements.set(clientOrderId, {
          orderId: `order-${this.settlements.size + 1}`, status: 'filled',
          base: quantity.toFixed(), quote: value.toFixed(), averagePrice: price.toFixed(),
-         fees: { [feeInBase ? base : 'USDT']: fee.toFixed() }, reason: ''
+         fees: { [feeAsset]: fee.toFixed() }, reason: ''
       })
       return `order-${this.settlements.size}`
    }
 
    async settleOrder({ clientOrderId }: OrderLookup): Promise<OrderSettlement | null> {
+      if (this.fillsLimits && this.limits.has(clientOrderId)) this.fillLimit(clientOrderId)
       return this.settlements.get(clientOrderId) ?? null
    }
 
@@ -133,6 +224,10 @@ class FakeExchange implements PortfolioExchange {
 
    isAmbiguous(): boolean {
       return false
+   }
+
+   isPostOnlyRefusal(error: HttpRequesterError): boolean {
+      return (error.body as { retCode?: number }).retCode === POST_ONLY_REFUSED
    }
 
    triggerStop(clientOrderId: string): void {
@@ -193,6 +288,16 @@ async function finished(runId: string, portfolios = service()) {
    throw new Error('The run never finished.')
 }
 
+async function until(condition: () => boolean) {
+   for (let attempt = 0; attempt < 300; attempt++) {
+      if (condition()) return
+      await new Promise(resolve => setTimeout(resolve, 10))
+   }
+   throw new Error('The condition never held.')
+}
+
+const quoted = (price: string): SpotPrice => ({ last: price, bid: price, ask: price })
+
 async function statusOf(promise: Promise<unknown>): Promise<number | null> {
    try {
       await promise
@@ -249,12 +354,29 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(usdt.allocated).toBe('1000')
       expect(usdt.unallocated).toBe('9000')
       expect(overview.portfolios[0]!.needsRebalance).toBe(true)
+      expect(overview.portfolios[0]!.lastRebalancedAt).toBeNull()
+   })
+
+   test('previews a rebalance that only sells, or leaves a coin out, without placing anything', async () => {
+      const trim = await service().plan({ execution: 'market', portfolioId, kind: 'rebalance', mode: 'trim' })
+      expect(trim.mode).toBe('trim')
+      expect(trim.orders).toHaveLength(0)
+      expect(trim.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['BTC no-buys', 'ETH no-buys'])
+
+      const withoutEth = await service().plan({ execution: 'market', portfolioId, kind: 'rebalance', exclude: ['eth'] })
+      expect(withoutEth.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`)).toEqual(['buy BTC 500'])
+      expect(withoutEth.skipped).toContainEqual({ asset: 'ETH', reason: 'excluded', value: '300' })
+   })
+
+   test('refuses a way to rebalance it does not know', async () => {
+      expect(await statusOf(service().plan({ execution: 'market', portfolioId, kind: 'rebalance', mode: 'sideways' }))).toBe(400)
    })
 
    test('rebalances into the targets through market orders', async () => {
-      const plan = await service().plan({ portfolioId, kind: 'rebalance' })
+      const plan = await service().plan({ execution: 'market', portfolioId, kind: 'rebalance' })
       expect(plan.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`))
          .toEqual(['buy BTC 500', 'buy ETH 300'])
+      expect(plan.orders[0]).toMatchObject({ fee: { asset: 'BTC', amount: '0.00001' }, feeRate: '0.001', feeRateAssumed: false })
 
       const { run } = await service().execute({ planId: plan.planId })
       const done = await finished(run.id)
@@ -267,6 +389,7 @@ describe('a portfolio from creation to withdrawal', () => {
       const btc = overview.portfolios[0]!.holdings.find(({ asset }) => asset === 'BTC')!
       expect(btc.quantity).toBe('0.00999')
       expect(overview.portfolios[0]!.needsRebalance).toBe(false)
+      expect(overview.portfolios[0]!.lastRebalancedAt).toBe(done.finishedAt)
    })
 
    test('counts the buy fees as unrealized loss while prices stand still', async () => {
@@ -274,27 +397,34 @@ describe('a portfolio from creation to withdrawal', () => {
       const btc = portfolio.holdings.find(({ asset }) => asset === 'BTC')!
 
       expect(btc.unrealized).toBe('-0.5')
+      expect(btc.unrealizedPercent).toBe('-0.1')
       expect(portfolio.unrealized).toBe('-0.8')
+      expect(portfolio.unrealizedPercent).toBe('-0.1')
       expect(portfolio.realized).toBe('0')
+      expect(portfolio.realizedPercent).toBeNull()
+      expect(btc.realizedPercent).toBeNull()
+      expect(portfolio.closedRealizedPercent).toBeNull()
       expect(portfolio.profit).toBe('-0.8')
+      expect(portfolio.fees).toBe('0.8')
+      expect(portfolio.feesUnvalued).toEqual([])
    })
 
    test('will not run the same preview twice', async () => {
-      const plan = await service().plan({ portfolioId, kind: 'rebalance', band: '0' })
+      const plan = await service().plan({ execution: 'market', portfolioId, kind: 'rebalance', band: '0' })
       await finished((await service().execute({ planId: plan.planId })).run.id)
 
       expect(await statusOf(service().execute({ planId: plan.planId }))).toBe(410)
    })
 
    test('refuses a preview the portfolio has moved on from', async () => {
-      const plan = await service().plan({ portfolioId, kind: 'rebalance' })
+      const plan = await service().plan({ execution: 'market', portfolioId, kind: 'rebalance' })
       await service().deposit({ portfolioId, asset: 'USDT', amount: '10' })
 
       expect(await statusOf(service().execute({ planId: plan.planId }))).toBe(409)
    })
 
    test('withdraws from cash without trading when the cash covers it', async () => {
-      const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '100' })
+      const plan = await service().plan({ execution: 'market', portfolioId, kind: 'withdraw', amount: '100' })
       expect(plan.orders).toHaveLength(0)
 
       const run = await finished((await service().execute({ planId: plan.planId })).run.id)
@@ -306,7 +436,8 @@ describe('a portfolio from creation to withdrawal', () => {
    })
 
    test('records a refused order and finishes the run as partial', async () => {
-      const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '500' })
+      const rebalancedAt = (await service().overview()).portfolios[0]!.lastRebalancedAt
+      const plan = await service().plan({ execution: 'market', portfolioId, kind: 'withdraw', amount: '500' })
       expect(plan.orders.length).toBeGreaterThan(0)
 
       exchange.rejectNext = true
@@ -315,6 +446,7 @@ describe('a portfolio from creation to withdrawal', () => {
       expect(run.orders[0]!.status).toBe('rejected')
       expect(run.orders[0]!.error).toContain('Insufficient balance')
       expect(run.status).toBe('partial')
+      expect((await service().overview()).portfolios[0]!.lastRebalancedAt).toBe(rebalancedAt)
    })
 
    test('releases its holdings to unallocated when archived', async () => {
@@ -333,7 +465,7 @@ describe('a withdrawal that fills below the preview price', () => {
          name: 'Slipping', quoteAsset: 'USDT', band: '1', targets: [{ asset: 'BTC', weight: '100' }]
       })
       await service().deposit({ portfolioId, asset: 'BTC', amount: '0.01' })
-      const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '100' })
+      const plan = await service().plan({ execution: 'market', portfolioId, kind: 'withdraw', amount: '100' })
 
       prices.BTCUSDT = { ...prices.BTCUSDT!, last: '49750' }
       try {
@@ -364,9 +496,10 @@ describe('a venue that takes the buy fee from the cash', () => {
       })
       await portfolios.deposit({ portfolioId, asset: 'USDT', amount: '300' })
 
-      const plan = await portfolios.plan({ portfolioId, kind: 'rebalance' })
+      const plan = await portfolios.plan({ execution: 'market', portfolioId, kind: 'rebalance' })
       expect(plan.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`))
          .toEqual(['buy BTC 149.62', 'buy ETH 149.62'])
+      expect(plan.orders[0]).toMatchObject({ fee: { asset: 'USDT', amount: '0.37405' }, feeRate: '0.0025' })
       expect(plan.shortfall).toBe('0')
 
       const run = await finished((await portfolios.execute({ planId: plan.planId })).run.id, portfolios)
@@ -375,6 +508,55 @@ describe('a venue that takes the buy fee from the cash', () => {
       const portfolio = (await portfolios.overview()).portfolios.find(({ id }) => id === portfolioId)!
       const cash = portfolio.holdings.find(({ asset }) => asset === 'USDT')!
       expect(cash.quantity).toBe('0.03195')
+   })
+})
+
+describe('an exchange that reports no fee rate', () => {
+
+   test('previews the orders at the standard taker rate and says it assumed it', async () => {
+      const silent = new FakeExchange()
+      silent.accountId = 'silent-fees'
+      silent.reportsFees = false
+      const portfolios = new PortfolioService(venue, silent)
+
+      const { id: portfolioId } = await portfolios.save({
+         name: 'Assumed', quoteAsset: 'USDT', band: '2', targets: [{ asset: 'BTC', weight: '100' }]
+      })
+      await portfolios.deposit({ portfolioId, asset: 'USDT', amount: '100' })
+
+      const plan = await portfolios.plan({ execution: 'market', portfolioId, kind: 'rebalance' })
+      expect(plan.orders[0]).toMatchObject({ fee: { asset: 'BTC', amount: '0.000002' }, feeRate: '0.001', feeRateAssumed: true })
+   })
+})
+
+describe('a fee charged in a third coin', () => {
+
+   test('is valued at the price of that coin when the order filled', async () => {
+      const discounted = new FakeExchange()
+      discounted.accountId = 'third-coin-fees'
+      discounted.feeAsset = 'MNT'
+      discounted.balances.set('MNT', Big(10))
+      const portfolios = new PortfolioService(venue, discounted)
+
+      const { id: portfolioId } = await portfolios.save({
+         name: 'Discounted', quoteAsset: 'USDT', band: '2', targets: [{ asset: 'BTC', weight: '100' }]
+      })
+      await portfolios.deposit({ portfolioId, asset: 'USDT', amount: '100' })
+
+      prices.MNTUSDT = { last: '0.5', bid: '0.5', ask: '0.5' }
+      try {
+         const plan = await portfolios.plan({ execution: 'market', portfolioId, kind: 'rebalance' })
+         const run = await finished((await portfolios.execute({ planId: plan.planId })).run.id, portfolios)
+         expect(run.orders[0]!.fees).toEqual([{ asset: 'MNT', amount: '0.2' }])
+
+         prices.MNTUSDT = { last: '2', bid: '2', ask: '2' }
+         const portfolio = (await portfolios.overview()).portfolios.find(({ id }) => id === portfolioId)!
+         expect(portfolio.fees).toBe('0.1')
+         expect(portfolio.feesUnvalued).toEqual([])
+      }
+      finally {
+         delete prices.MNTUSDT
+      }
    })
 })
 
@@ -389,7 +571,7 @@ describe('profit split into realized and unrealized', () => {
       const before = prices.BTCUSDT!
       prices.BTCUSDT = { last: '60000', bid: '60000', ask: '60000' }
       try {
-         const plan = await service().plan({ portfolioId, kind: 'withdraw', amount: '120' })
+         const plan = await service().plan({ execution: 'market', portfolioId, kind: 'withdraw', amount: '120' })
          await finished((await service().execute({ planId: plan.planId })).run.id)
 
          const portfolio = (await service().overview()).portfolios.find(({ id }) => id === portfolioId)!
@@ -397,8 +579,11 @@ describe('profit split into realized and unrealized', () => {
 
          expect(Big(btc.unrealized!).eq(Big(btc.quantity).times(10000))).toBe(true)
          expect(Big(btc.realized).gt(0)).toBe(true)
+         expect(Big(btc.realizedPercent!).gt(0)).toBe(true)
          expect(portfolio.closedRealized).toBe('0')
          expect(Big(portfolio.realized).plus(portfolio.unrealized).eq(portfolio.profit)).toBe(true)
+         expect(Big(portfolio.realizedPercent!).gt(0)).toBe(true)
+         expect(Big(portfolio.fees).gt(0)).toBe(true)
       }
       finally {
          prices.BTCUSDT = before
@@ -431,7 +616,7 @@ describe('stop orders', () => {
       portfolioId = id
 
       await service().deposit({ portfolioId, asset: 'USDT', amount: '1000' })
-      const plan = await service().plan({ portfolioId, kind: 'rebalance' })
+      const plan = await service().plan({ execution: 'market', portfolioId, kind: 'rebalance' })
       await finished((await service().execute({ planId: plan.planId })).run.id)
 
       const { stops } = await service().syncStops({ portfolioId })
@@ -472,7 +657,7 @@ describe('stop orders', () => {
       const armed = stopOf(await portfolioOf(portfolioId), 'BTC')!
 
       await service().deposit({ portfolioId, asset: 'USDT', amount: '500' })
-      const plan = await service().plan({ portfolioId, kind: 'rebalance', band: '0' })
+      const plan = await service().plan({ execution: 'market', portfolioId, kind: 'rebalance', band: '0' })
       const done = await finished((await service().execute({ planId: plan.planId })).run.id)
       expect(done.status).toBe('done')
 
@@ -591,7 +776,7 @@ describe('stop orders', () => {
          const { stops } = await reserving.syncStops({ portfolioId: id })
          expect(stops).toHaveLength(1)
 
-         const plan = await reserving.plan({ portfolioId: id, kind: 'rebalance' })
+         const plan = await reserving.plan({ execution: 'market', portfolioId: id, kind: 'rebalance' })
          expect(plan.orders.map(({ side, asset }) => `${side} ${asset}`)).toEqual(['sell BTC'])
          expect(plan.skipped).toEqual([])
 
@@ -630,6 +815,337 @@ describe('stop orders', () => {
    })
 })
 
+describe('the Supertrend levels', () => {
+
+   const falling = (count: number): SpotCandle[] => Array.from({ length: count }, (_, index) => ({
+      time: index * 86400000,
+      high: String(305 - 10 * index),
+      low: String(295 - 10 * index),
+      close: String(296 - 10 * index)
+   }))
+
+   test('cover each coin of a portfolio in its quote, per timeframe', async () => {
+      await service().save({
+         name: 'Trend', quoteAsset: 'USDT', band: '1',
+         targets: [{ asset: 'BTC', weight: '50' }, { asset: 'ETH', weight: '30' }, { asset: 'USDT', weight: '20' }]
+      })
+      exchange.candleSeries.set('BTCUSDT:1d', falling(11))
+      exchange.candleSeries.set('BTCUSDT:1w', falling(10))
+
+      const { levels } = await service().supertrend()
+
+      expect(levels.BTCUSDT).toEqual({ daily: { flipPrice: '232.73', trend: 'down' }, weekly: null })
+      expect(levels.USDTUSDT).toBeUndefined()
+   })
+
+   test('leave a coin whose candles cannot be read without a level', async () => {
+      const { levels } = await service().supertrend()
+
+      expect(levels.ETHUSDT).toEqual({ daily: null, weekly: null })
+   })
+})
+
+describe('limit orders', () => {
+
+   const resting = new FakeExchange()
+   resting.accountId = 'limit-orders'
+   const portfolios = () => new PortfolioService(venue, resting)
+   const restingOrders = () => [...resting.limits.values()]
+
+   async function funded(name: string, targets = [{ asset: 'BTC', weight: '100' }]): Promise<number> {
+      const { id } = await portfolios().save({ name, quoteAsset: 'USDT', band: '1', targets })
+      await portfolios().deposit({ portfolioId: id, asset: 'USDT', amount: '1000' })
+      return id
+   }
+
+   async function started(request: Record<string, unknown>): Promise<string> {
+      const plan = await portfolios().plan(request)
+      return (await portfolios().execute({ planId: plan.planId })).run.id
+   }
+
+   test('rest a buy one tick under the ask and pay the maker fee', async () => {
+      const portfolioId = await funded('Resting')
+
+      const plan = await portfolios().plan({ portfolioId, kind: 'rebalance' })
+      expect(plan).toMatchObject({ execution: 'limit', wait: '120' })
+      expect(plan.orders[0]).toMatchObject({ feeRate: '0.0004', feeRateAssumed: false })
+
+      const run = await finished((await portfolios().execute({ planId: plan.planId })).run.id, portfolios())
+
+      expect(run).toMatchObject({ status: 'done', execution: 'limit' })
+      expect(run.orders[0]).toMatchObject({
+         status: 'filled', base: '0.02', averagePrice: '49999.99', limitPrice: '49999.99', attempts: 1,
+         fees: [{ asset: 'BTC', amount: '0.000008' }]
+      })
+   })
+
+   test('rest a sell one tick over the bid', async () => {
+      const portfolioId = await funded('Selling')
+      await finished(await started({ portfolioId, kind: 'rebalance' }), portfolios())
+
+      const run = await finished(await started({ portfolioId, kind: 'withdraw', amount: '500' }), portfolios())
+
+      expect(run.orders[0]).toMatchObject({ side: 'sell', status: 'filled', limitPrice: '50000.01' })
+      expect(run.status).toBe('done')
+   })
+
+   test('follow the price as one order, up to the slippage allowed', async () => {
+      const portfolioId = await funded('Following')
+      resting.fillsLimits = false
+
+      try {
+         const runId = await started({ portfolioId, kind: 'rebalance', slippage: '1' })
+         await until(() => restingOrders()[0]?.price.eq('49999.99') ?? false)
+
+         prices.BTCUSDT = quoted('50200')
+         await until(() => restingOrders()[0]?.price.eq('50199.99') ?? false)
+
+         prices.BTCUSDT = quoted('51000')
+         await until(() => restingOrders()[0]?.price.eq('50500') ?? false)
+
+         resting.fillsLimits = true
+         const run = await finished(runId, portfolios())
+
+         expect(run.orders).toHaveLength(1)
+         expect(run.orders[0]).toMatchObject({ status: 'filled', attempts: 3, limitPrice: '50500', error: null })
+         expect(run.status).toBe('done')
+      }
+      finally {
+         resting.fillsLimits = true
+         prices.BTCUSDT = quoted('50000')
+      }
+   })
+
+   test('stay where they are until they have rested as long as the exchange asks', async () => {
+      const portfolioId = await funded('Patient')
+      resting.fillsLimits = false
+      resting.chasePacing = { pollMs: 20, moveAfterMs: 600 }
+
+      try {
+         const runId = await started({ portfolioId, kind: 'rebalance' })
+         await until(() => resting.limits.size === 1)
+
+         prices.BTCUSDT = quoted('50100')
+         await new Promise(resolve => setTimeout(resolve, 200))
+         expect(restingOrders()[0]!.price.toFixed()).toBe('49999.99')
+
+         await until(() => restingOrders()[0]?.price.eq('50099.99') ?? false)
+
+         resting.fillsLimits = true
+         expect((await finished(runId, portfolios())).orders[0]).toMatchObject({ status: 'filled', attempts: 2 })
+      }
+      finally {
+         resting.fillsLimits = true
+         resting.chasePacing = { pollMs: 20, moveAfterMs: 0 }
+         prices.BTCUSDT = quoted('50000')
+      }
+   })
+
+   test('keep what filled before the order moved, and buy only the rest', async () => {
+      const portfolioId = await funded('Moving')
+      resting.fillsLimits = false
+
+      try {
+         const runId = await started({ portfolioId, kind: 'rebalance' })
+         await until(() => resting.limits.size === 1)
+
+         const first = restingOrders()[0]!
+         resting.fillLimit(first.clientOrderId, '0.005')
+         prices.BTCUSDT = quoted('50100')
+         await until(() => restingOrders()[0]?.price.eq('50099.99') ?? false)
+
+         resting.fillsLimits = true
+         const run = await finished(runId, portfolios())
+
+         expect(run.orders[0]).toMatchObject({
+            status: 'filled', attempts: 2, base: '0.01997', quote: '999.9968003',
+            fees: [{ asset: 'BTC', amount: '0.000007988' }]
+         })
+
+         const portfolio = (await portfolios().overview()).portfolios.find(({ id }) => id === portfolioId)!
+         expect(portfolio.holdings.find(({ asset }) => asset === 'BTC')!.quantity).toBe('0.01996201')
+      }
+      finally {
+         resting.fillsLimits = true
+         prices.BTCUSDT = quoted('50000')
+      }
+   })
+
+   test('cancel what is left once the time allowed is up', async () => {
+      const portfolioId = await funded('Waiting')
+      resting.fillsLimits = false
+
+      try {
+         const run = await finished(await started({ portfolioId, kind: 'rebalance', wait: '1' }), portfolios())
+
+         expect(run.status).toBe('partial')
+         expect(run.orders[0]).toMatchObject({ status: 'cancelled', base: '0', error: 'Not filled within 1 s.' })
+         expect(resting.limits.size).toBe(0)
+      }
+      finally {
+         resting.fillsLimits = true
+      }
+   })
+
+   test('are placed again when the exchange refuses one as a taker', async () => {
+      const portfolioId = await funded('Refused')
+      resting.refusesLimits = 2
+
+      const run = await finished(await started({ portfolioId, kind: 'rebalance' }), portfolios())
+
+      expect(run.orders[0]).toMatchObject({ status: 'filled', attempts: 1 })
+      expect(resting.refusesLimits).toBe(0)
+   })
+
+   test('stop on request, leaving the orders not placed yet alone', async () => {
+      const portfolioId = await funded('Stopped', [{ asset: 'BTC', weight: '50' }, { asset: 'ETH', weight: '50' }])
+      resting.fillsLimits = false
+
+      try {
+         const runId = await started({ portfolioId, kind: 'rebalance' })
+         await until(() => resting.limits.size === 1)
+
+         const { run: stopping } = await portfolios().stop({ runId })
+         expect(stopping.stopping).toBe(true)
+
+         const run = await finished(runId, portfolios())
+
+         expect(run.status).toBe('partial')
+         expect(run.orders.map(({ status, error }) => `${status}: ${error}`))
+            .toEqual(['cancelled: The run was stopped.', 'skipped: The run was stopped.'])
+         expect(resting.limits.size).toBe(0)
+      }
+      finally {
+         resting.fillsLimits = true
+      }
+   })
+
+   test('left resting by a run the server no longer tracks are cancelled, keeping what filled', async () => {
+      const portfolioId = await funded('Abandoned')
+      const repository = new PortfolioRepository('bybitDemo', resting.accountId)
+
+      repository.createRun({
+         id: 'abandoned-run', portfolioId, kind: 'rebalance', status: 'running',
+         withdraw: '0', reserve: '0', slippage: '1', execution: 'limit', startedAt: Date.now()
+      }, [{
+         orderLinkId: 'pf-abandoned-1', seq: 1, symbol: 'BTCUSDT', side: 'buy',
+         baseAsset: 'BTC', quoteAsset: 'USDT', unit: 'quote', requested: '1000'
+      }])
+      resting.fillsLimits = false
+
+      try {
+         const orderId = await resting.placeLimitOrder({
+            clientOrderId: 'pf-abandoned-1', symbol: 'BTCUSDT', side: 'buy', quantity: '0.02', price: '49999.99'
+         })
+         repository.markOrder('pf-abandoned-1', { status: 'placed', orderId, limitPrice: '49999.99' })
+         resting.fillLimit('pf-abandoned-1', '0.004')
+
+         await portfolios().overview()
+         const { run } = await portfolios().run({ runId: 'abandoned-run' })
+
+         expect(run.status).toBe('interrupted')
+         expect(run.orders[0]).toMatchObject({
+            status: 'partial', base: '0.004', error: 'Cancelled: the run stopped first.'
+         })
+         expect(resting.limits.size).toBe(0)
+      }
+      finally {
+         resting.fillsLimits = true
+      }
+   })
+})
+
+describe('a coin sold out of a portfolio', () => {
+
+   const lots = new FakeExchange()
+   lots.accountId = 'sold-out'
+   const portfolios = () => new PortfolioService(venue, lots)
+
+   const btcOf = (portfolio: { holdings: { asset: string, quantity: string }[] }) =>
+      portfolio.holdings.find(({ asset }) => asset === 'BTC')
+
+   const releasesOf = async (portfolioId: number) =>
+      (await portfolios().history({ portfolioId })).movements
+         .filter(({ kind, asset }) => kind === 'withdraw' && asset === 'BTC')
+         .map(({ amount, value, note }) => ({ amount, value, note }))
+
+   async function overviewOf(portfolioId: number) {
+      const overview = await portfolios().overview()
+      return { overview, portfolio: overview.portfolios.find(({ id }) => id === portfolioId)! }
+   }
+
+   async function untargetedBtc(name: string): Promise<number> {
+      const portfolio = { name, quoteAsset: 'USDT', band: '1' }
+      const { id } = await portfolios().save({ ...portfolio, targets: [{ asset: 'BTC', weight: '100' }] })
+      await portfolios().deposit({ portfolioId: id, asset: 'USDT', amount: '123' })
+
+      const plan = await portfolios().plan({ portfolioId: id, kind: 'rebalance', execution: 'market' })
+      await finished((await portfolios().execute({ planId: plan.planId })).run.id, portfolios())
+      await portfolios().save({ ...portfolio, id, targets: [{ asset: 'USDT', weight: '100' }] })
+
+      expect(btcOf((await overviewOf(id)).portfolio)!.quantity).toBe('0.00245754')
+      return id
+   }
+
+   test('gives back what a withdrawal of everything leaves below the lot size', async () => {
+      const portfolioId = await untargetedBtc('Emptied')
+
+      const plan = await portfolios().plan({ portfolioId, kind: 'withdraw', all: true, execution: 'market' })
+      expect(plan.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`)).toEqual(['sell BTC 0.002457'])
+
+      const run = await finished((await portfolios().execute({ planId: plan.planId })).run.id, portfolios())
+      expect(run).toMatchObject({ status: 'done', withdrawn: '122.72715' })
+
+      const { overview, portfolio } = await overviewOf(portfolioId)
+      expect(portfolio.holdings.map(({ asset }) => asset)).toEqual(['USDT'])
+      expect(overview.coins.find(({ asset }) => asset === 'BTC')!.allocated).toBe('0')
+      expect(await releasesOf(portfolioId)).toEqual([{ amount: '-0.00000054', value: '0.027', note: 'Too small to sell.' }])
+
+      expect(portfolio.value).toBe('0')
+      expect(portfolio.netInvested).toBe('0.24585')
+      expect(portfolio.profit).toBe('-0.24585')
+      expect(portfolio.unrealized).toBe('0')
+      expect(portfolio.realized).toBe(portfolio.profit)
+      expect(portfolio.closedRealized).toBe(portfolio.profit)
+   })
+
+   test('gives it back after a rebalance sells a coin that is no longer a target', async () => {
+      const portfolioId = await untargetedBtc('Rebalanced')
+
+      const plan = await portfolios().plan({ portfolioId, kind: 'rebalance' })
+      const run = await finished((await portfolios().execute({ planId: plan.planId })).run.id, portfolios())
+      expect(run.orders.map(({ side, status, base }) => `${side} ${status} ${base}`)).toEqual(['sell filled 0.002457'])
+
+      const { portfolio } = await overviewOf(portfolioId)
+      expect(portfolio.holdings.map(({ asset }) => asset)).toEqual(['USDT'])
+      expect(await releasesOf(portfolioId)).toHaveLength(1)
+      expect(Big(portfolio.realized).plus(portfolio.unrealized).minus(portfolio.profit).abs().lte('0.00000001')).toBe(true)
+   })
+
+   test('keeps the coin when its sell only partly filled, even if what is left cannot be sold', async () => {
+      const portfolioId = await untargetedBtc('Half sold')
+      lots.fillsLimits = false
+
+      try {
+         const plan = await portfolios().plan({ portfolioId, kind: 'withdraw', all: true, wait: '1' })
+         const runId = (await portfolios().execute({ planId: plan.planId })).run.id
+         await until(() => lots.limits.size === 1)
+         lots.fillLimit([...lots.limits.keys()][0]!, '0.0024')
+
+         const run = await finished(runId, portfolios())
+         expect(run.status).toBe('partial')
+         expect(run.orders[0]).toMatchObject({ side: 'sell', status: 'partial', base: '0.0024' })
+
+         const { portfolio } = await overviewOf(portfolioId)
+         expect(btcOf(portfolio)!.quantity).toBe('0.00005754')
+         expect(await releasesOf(portfolioId)).toEqual([])
+      }
+      finally {
+         lots.fillsLimits = true
+      }
+   })
+})
+
 describe('reconciliation', () => {
 
    test('marks a run the server no longer tracks as interrupted', async () => {
@@ -640,7 +1156,7 @@ describe('reconciliation', () => {
       const repository = new PortfolioRepository('bybitDemo', exchange.accountId)
       repository.createRun({
          id: 'orphan-run', portfolioId, kind: 'rebalance', status: 'running',
-         withdraw: '0', reserve: '0', slippage: '1', startedAt: Date.now()
+         withdraw: '0', reserve: '0', slippage: '1', execution: 'market', startedAt: Date.now()
       }, [{
          orderLinkId: 'pf-orphan-1', seq: 1, symbol: 'BTCUSDT', side: 'buy',
          baseAsset: 'BTC', quoteAsset: 'USDT', unit: 'quote', requested: '100'

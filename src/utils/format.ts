@@ -4,24 +4,41 @@ import { locales } from './locale'
 type DateLike = number | Date
 
 const shortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric' })
+const shortDateYearFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short', day: 'numeric' })
 const longDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric' })
 const utcLongDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
 const monthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long' })
 const shortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short' })
+const utcShortDateFormatter = new Intl.DateTimeFormat(locales, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+const utcMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: 'numeric', month: 'long', timeZone: 'UTC' })
+const utcShortMonthDateFormatter = new Intl.DateTimeFormat(locales, { year: '2-digit', month: 'short', timeZone: 'UTC' })
 const percentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const shortPercentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const signedShortPercentageFormatter = new Intl.NumberFormat(locales, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' })
 const usDollarFormatter = new Intl.NumberFormat(locales, { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const decimalOneFormatter = new Intl.NumberFormat(locales, { style: 'decimal', minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const localTimestampFormatter = new Intl.DateTimeFormat(locales, {
    year: 'numeric', month: 'short', day: 'numeric',
    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
 })
+const numericTimestampFormatter = new Intl.DateTimeFormat(locales, {
+   year: 'numeric', month: '2-digit', day: '2-digit',
+   hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+})
 const countFormatter = new Intl.NumberFormat(locales)
 const compactFormatter = new Intl.NumberFormat(locales, { notation: 'compact', maximumFractionDigits: 1 })
 const roundedFormatter = new Intl.NumberFormat(locales, { maximumFractionDigits: 1 })
+const decimalSeparator = countFormatter.formatToParts(1.5).find(part => part.type === 'decimal')?.value ?? '.'
 
 const dateFormat = (formatter: Intl.DateTimeFormat, date: DateLike) =>
    formatter.format(date).replace('\u00a0', ' ')
+
+const DAY = 86400000
+
+const startOfDay = (date: DateLike) => {
+   const day = new Date(date)
+   return new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime()
+}
 
 export function asDecimal(number: number, decimalCount = 2): string {
    const options: Intl.NumberFormatOptions = { style: 'decimal', minimumFractionDigits: decimalCount, maximumFractionDigits: decimalCount }
@@ -35,6 +52,25 @@ export function asAssetAmount(number: number): string {
    if (magnitude >= 1) return asDecimal(number, 2)
    if (magnitude >= 0.01) return asDecimal(number, 4)
    return asDecimal(number, 8)
+}
+
+export function asExactDecimal(value: string): string {
+   const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value)
+   if (!match) return value
+   const [, sign = '', integer = '0', fraction] = match
+   return `${sign}${countFormatter.format(BigInt(integer))}${fraction === undefined ? '' : `${decimalSeparator}${fraction}`}`
+}
+
+export function fractionDigits(value: string): number {
+   return /\.(\d+)$/.exec(value)?.[1]?.length ?? 0
+}
+
+// What a decimal lacks to be as long as the longest one in its column. Drawn after it
+// but invisible, it is what lines the decimal points up without adding zeros to read.
+export function decimalPadding(value: string, digits: number): string {
+   const own = fractionDigits(value)
+   if (own >= digits) return ''
+   return `${own === 0 ? decimalSeparator : ''}${'0'.repeat(digits - own)}`
 }
 
 export function asDecimalOne(number: number): string {
@@ -53,8 +89,22 @@ export function asRounded(number: number): string {
    return roundedFormatter.format(number)
 }
 
+// Axis ticks stay short where the values do not: a fiat total wants no decimals, an
+// amount of BTC still has to show that it is not zero.
+export function asAxisTick(value: number): string {
+   const magnitude = Math.abs(value)
+   if (magnitude === 0) return '0'
+   if (magnitude >= 1000) return asCompact(value)
+   if (magnitude >= 1) return asRounded(value)
+   return Number(value.toPrecision(2)).toString()
+}
+
 export function asShortDate(timestamp: DateLike): string {
    return dateFormat(shortDateFormatter, timestamp)
+}
+
+export function asShortDateYear(timestamp: DateLike): string {
+   return dateFormat(shortDateYearFormatter, timestamp)
 }
 
 export function asLongDate(timestamp: DateLike): string {
@@ -73,6 +123,18 @@ export function asShortMonthYearDate(timestamp: DateLike): string {
    return dateFormat(shortMonthDateFormatter, timestamp)
 }
 
+export function asUtcShortDate(timestamp: DateLike): string {
+   return dateFormat(utcShortDateFormatter, timestamp)
+}
+
+export function asUtcMonthYearDate(timestamp: DateLike): string {
+   return dateFormat(utcMonthDateFormatter, timestamp)
+}
+
+export function asUtcShortMonthYearDate(timestamp: DateLike): string {
+   return dateFormat(utcShortMonthDateFormatter, timestamp)
+}
+
 // Kraken records trade times in UTC; rendering them in the browser's zone would
 // silently shift every order.
 export function asUtcTimestamp(timestamp: DateLike): string {
@@ -83,12 +145,29 @@ export function asLocalTimestamp(timestamp: DateLike): string {
    return dateFormat(localTimestampFormatter, timestamp)
 }
 
+// Digits only, in the order and with the separators of the locale: 03.11.2024 09:23:04
+// in one, 11/03/2024 09:23:04 in another. The comma some put between the two is dropped.
+export function asNumericTimestamp(timestamp: DateLike): string {
+   return dateFormat(numericTimestampFormatter, timestamp).replace(', ', ' ')
+}
+
 export function asPercentage(number: number): string {
    return percentageFormatter.format(number)
 }
 
 export function asShortPercentage(number: number): string {
    return shortPercentageFormatter.format(number)
+}
+
+export function asSignedShortPercentage(number: number): string {
+   return signedShortPercentageFormatter.format(number)
+}
+
+export function asDaysAgo(timestamp: DateLike, now: DateLike = Date.now()): string {
+   const days = Math.round((startOfDay(now) - startOfDay(timestamp)) / DAY)
+   if (days <= 0) return 'today'
+   if (days === 1) return 'yesterday'
+   return `${countFormatter.format(days)} days ago`
 }
 
 export function asDollarAmount(number: number): string {

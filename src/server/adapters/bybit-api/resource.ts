@@ -3,9 +3,10 @@ import { authenticator } from './authenticator'
 import { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   BybitApiKeyInfo, BybitCancelRequest, BybitEnvironment, BybitExecution, BybitOrder,
-   BybitOrderCancelled, BybitOrderCreated, BybitOrderRequest, BybitPage, BybitResponse,
-   BybitSpotInstrument, BybitSpotTicker, BybitWalletAccount
+   BybitApiKeyInfo, BybitCancelRequest, BybitDeposit, BybitEnvironment, BybitExecution, BybitFeeRate,
+   BybitInternalDeposit, BybitKline, BybitKlineInterval, BybitOrder, BybitOrderCancelled, BybitOrderCreated,
+   BybitOrderRequest, BybitPage, BybitResponse, BybitRows, BybitSpotInstrument, BybitSpotTicker,
+   BybitWalletAccount, BybitWithdrawal
 } from '../../../types/bybit-api'
 
 const hosts: Record<BybitEnvironment, string> = {
@@ -18,14 +19,23 @@ const TIMEOUT_MS = 15000
 
 const instrumentsEndpoint = '/v5/market/instruments-info'
 const tickersEndpoint = '/v5/market/tickers'
+const klineEndpoint = '/v5/market/kline'
 
 const walletBalanceEndpoint = '/v5/account/wallet-balance'
 const apiKeyInfoEndpoint = '/v5/user/query-api'
+const feeRateEndpoint = '/v5/account/fee-rate'
 const createOrderEndpoint = '/v5/order/create'
 const cancelOrderEndpoint = '/v5/order/cancel'
 const realtimeOrdersEndpoint = '/v5/order/realtime'
 const orderHistoryEndpoint = '/v5/order/history'
 const executionsEndpoint = '/v5/execution/list'
+
+const depositRecordsEndpoint = '/v5/asset/deposit/query-record'
+const internalDepositRecordsEndpoint = '/v5/asset/deposit/query-internal-record'
+const withdrawRecordsEndpoint = '/v5/asset/withdraw/query-record'
+
+const RECORD_LIMIT = 50
+const EVERY_WITHDRAW_TYPE = 2
 
 function unwrap<T>(response: BybitResponse<T>): T {
    if (response.retCode !== 0) {
@@ -66,6 +76,13 @@ export async function fetchSpotTickers(): Promise<BybitSpotTicker[]> {
    return page.list
 }
 
+export async function fetchSpotKlines(
+   symbol: string, interval: BybitKlineInterval, limit: number
+): Promise<BybitKline[]> {
+   const page = await publicRequest<BybitPage<BybitKline>>(klineEndpoint, { category: 'spot', symbol, interval, limit })
+   return page.list
+}
+
 /* Private endpoints */
 
 export async function fetchUnifiedWallet(
@@ -80,6 +97,14 @@ export async function fetchApiKeyInfo(
    environment: BybitEnvironment, credentials: Credentials
 ): Promise<BybitApiKeyInfo> {
    return await privateRequest<BybitApiKeyInfo>(environment, credentials, apiKeyInfoEndpoint)
+}
+
+export async function fetchSpotFeeRates(
+   environment: BybitEnvironment, credentials: Credentials, symbol?: string
+): Promise<BybitFeeRate[]> {
+   const page = await privateRequest<BybitPage<BybitFeeRate>>(
+      environment, credentials, feeRateEndpoint, { searchParams: { category: 'spot', ...(symbol ? { symbol } : {}) } })
+   return page.list
 }
 
 export async function createOrder(
@@ -141,4 +166,40 @@ export async function fetchExecutions(
       environment, credentials, executionsEndpoint,
       { searchParams: { category: 'spot', orderId, limit: 100 } })
    return page.list
+}
+
+async function fetchRecords<Row>(
+   credentials: Credentials, endpoint: string, query: Record<string, unknown>
+): Promise<Row[]> {
+
+   const records: Row[] = []
+   let cursor: string | undefined
+
+   do {
+      const page = await privateRequest<BybitRows<Row>>(
+         'mainnet', credentials, endpoint, { searchParams: { ...query, limit: RECORD_LIMIT, cursor } })
+      records.push(...page.rows)
+      cursor = page.rows.length < RECORD_LIMIT ? undefined : page.nextPageCursor || undefined
+   } while (cursor)
+
+   return records
+}
+
+export async function fetchDepositRecords(
+   credentials: Credentials, startTime: number, endTime: number
+): Promise<BybitDeposit[]> {
+   return await fetchRecords(credentials, depositRecordsEndpoint, { startTime, endTime })
+}
+
+export async function fetchInternalDepositRecords(
+   credentials: Credentials, startTime: number, endTime: number
+): Promise<BybitInternalDeposit[]> {
+   return await fetchRecords(credentials, internalDepositRecordsEndpoint, { startTime, endTime })
+}
+
+export async function fetchWithdrawRecords(
+   credentials: Credentials, startTime: number, endTime: number
+): Promise<BybitWithdrawal[]> {
+   return await fetchRecords(
+      credentials, withdrawRecordsEndpoint, { startTime, endTime, withdrawType: EVERY_WITHDRAW_TYPE })
 }

@@ -19,7 +19,20 @@ export interface ResolvedPair extends PairAssets {
 
 // Keyed by every name Kraken has ever used for a pair — result key, altname and
 // wsname — so a lookup succeeds whichever the export wrote.
-export type PairIndex = Map<string, PairAssets>
+export type PairIndex = Map<string, ResolvedPair>
+
+export interface LivePosition {
+   strategyId: string | null
+   lockType: string
+   yieldSource: string
+   amount: string
+   amountNum: number
+   bonding: string
+   unbonding: string
+   aprLow: number | null
+   aprHigh: number | null
+   unbondingDays: number | null
+}
 
 // What Kraken holds this second, and how much of it an open order has claimed.
 export interface LiveBalance {
@@ -28,6 +41,7 @@ export interface LiveBalance {
    totalNum: number
    hold: string
    holdNum: number
+   positions: LivePosition[]
 }
 
 export interface OpenOrder extends ResolvedPair {
@@ -50,6 +64,11 @@ export interface OpenOrder extends ResolvedPair {
 export type PairPrices = Record<string, number>
 
 export type UsdRates = Record<string, number>
+
+export interface UsdPair {
+   altname: string
+   inverse: boolean
+}
 
 export interface CancelResult {
    count: number

@@ -3,14 +3,26 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asNumber } from '../../../utils/format'
+import { asExactDecimal, asNumber } from '../../../utils/format'
 import SortableHead from '../lib/sortable-head'
-import type { LedgerEntriesResponse } from '../../../types/api'
+import { migrationOf } from './asset-migrations'
+import type { LedgerEntriesResponse, LedgerEntryView } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
 
 // Kraken records ledger times in UTC; rendering them in the browser's zone would
 // silently shift every entry.
 const asUtcTimestamp = (time: number) => new Date(time).toISOString().replace('T', ' ').slice(0, 19)
+
+const assetNote = (entry: LedgerEntryView) => {
+
+   const migration = migrationOf(entry.baseAsset)
+
+   return [
+      entry.asset !== entry.ticker && entry.asset,
+      entry.ticker !== entry.baseAsset && `now ${entry.baseAsset}`,
+      migration && `migrated to ${migration.to} at 1:${migration.ratio}`
+   ].filter(Boolean).join(', ') || undefined
+}
 
 export default function LedgerTable({ entries, sort, onSortChange, onPageChange, onSearchRef }: {
    entries?: LedgerEntriesResponse
@@ -66,16 +78,16 @@ export default function LedgerTable({ entries, sort, onSortChange, onPageChange,
                         </TableCell>
                         <TableCell
                            className="font-medium"
-                           title={entry.asset !== entry.baseAsset ? entry.asset : undefined}>
-                           {entry.baseAsset || entry.asset}
+                           title={assetNote(entry)}>
+                           {entry.ticker || entry.asset}
                         </TableCell>
                         <TableCell
                            className={cn('text-right', entry.amount.startsWith('-') ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
-                           {entry.amount}
+                           {asExactDecimal(entry.amount)}
                         </TableCell>
-                        <TableCell className="text-right text-muted-foreground">{entry.fee}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{asExactDecimal(entry.fee)}</TableCell>
                         <TableCell className="text-right text-muted-foreground">
-                           {entry.balance || '—'}
+                           {entry.balance ? asExactDecimal(entry.balance) : '—'}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{entry.wallet || '—'}</TableCell>
                         <TableCell>

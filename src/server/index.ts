@@ -1,14 +1,16 @@
 import { existsSync, statSync } from 'fs'
 import path from 'path'
 import { createApp } from './app'
-import { allowEnvironmentOverrides } from './environment'
+import { allowEnvironmentOverrides, useProductionData } from './environment'
 import { migrateSecretsToCredentialStore } from './secrets'
 
-const PORT = parseInt(process.env.PORT ?? '3001', 10)
+const PORT = parseInt(process.env.PORT || '0', 10)
 const HOST = process.env.HOST ?? '127.0.0.1'
 const IS_PROD = process.env.NODE_ENV === 'production'
 
 allowEnvironmentOverrides()
+
+if (IS_PROD) useProductionData()
 
 await migrateSecretsToCredentialStore()
 
@@ -44,17 +46,16 @@ if (IS_PROD) {
 }
 
 try {
-   Bun.serve({
+   const server = Bun.serve({
       port: PORT,
       hostname: HOST,
       fetch: app.fetch,
       idleTimeout: 0,
    })
-   console.log(`✓ Server listening on http://${HOST}:${PORT}`)
+   console.log(`✓ Server listening on http://${HOST}:${server.port}`)
 }
 catch (error) {
    if ((error as { code?: string }).code !== 'EADDRINUSE') throw error
-   console.error(`✗ Port ${PORT} is already in use — another instance is running.`)
-   console.error('  Start this one on its own ports: PORT=3011 VITE_PORT=3010 bun run dev')
+   console.error(`✗ Port ${PORT} is already in use.`)
    process.exit(1)
 }

@@ -1,9 +1,16 @@
 import Big from 'big.js'
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
 import { getDatabase } from './database'
-import type { CountRow, MarketRow, TimeRangeRow, TradeListRow, TradeRow, ValueRow } from '../../types/db'
+import RateRepository from './rate-repository'
+import {
+   CONVERTIBLE_QUOTES, DAY_MS, MAX_CARRIED_DAYS, convertOrders, dayOf, isConvertibleQuote, rateLookup
+} from './quote-conversion'
+import type { RateOn } from './quote-conversion'
 import type {
-   Aggregation, AggregationsResponse, AggregationSummary, Order, SummarySide, TradesResponse
+   AssetRangeRow, CountRow, MarketRow, TimeRangeRow, TradeListRow, TradeRow, ValueRow
+} from '../../types/db'
+import type {
+   Aggregation, AggregationsResponse, AggregationSummary, Market, Order, SummarySide, TradesResponse
 } from '../../types/api'
 import type { AggregationFilters, Sort, Trade, TradeFilters } from '../../types/kraken'
 
@@ -63,34 +70,39 @@ export default class TradeRepository {
 
       const insert = this.#db.prepare<void, NamedParams>(upsertStatement)
 
-      this.#db.transaction(() => {
-         for (const trade of trades) {
-            insert.run({
-               $accountId: this.#accountId,
-               $txid: trade.txid,
-               $ordertxid: trade.ordertxid,
-               $orderKey: trade.orderKey,
-               $pair: trade.pair,
-               $pairKey: trade.pairKey,
-               $baseAsset: trade.baseAsset,
-               $quoteAsset: trade.quoteAsset,
-               $time: trade.time,
-               $type: trade.type,
-               $ordertype: trade.ordertype,
-               $price: trade.price,
-               $cost: trade.cost,
-               $fee: trade.fee,
-               $vol: trade.vol,
-               $margin: trade.margin,
-               $misc: trade.misc,
-               $priceNum: Number(trade.price),
-               $costNum: Number(trade.cost),
-               $feeNum: Number(trade.fee),
-               $volNum: Number(trade.vol),
-               $syncedAt: syncedAt
-            })
-         }
-      })()
+      try {
+         this.#db.transaction(() => {
+            for (const trade of trades) {
+               insert.run({
+                  $accountId: this.#accountId,
+                  $txid: trade.txid,
+                  $ordertxid: trade.ordertxid,
+                  $orderKey: trade.orderKey,
+                  $pair: trade.pair,
+                  $pairKey: trade.pairKey,
+                  $baseAsset: trade.baseAsset,
+                  $quoteAsset: trade.quoteAsset,
+                  $time: trade.time,
+                  $type: trade.type,
+                  $ordertype: trade.ordertype,
+                  $price: trade.price,
+                  $cost: trade.cost,
+                  $fee: trade.fee,
+                  $vol: trade.vol,
+                  $margin: trade.margin,
+                  $misc: trade.misc,
+                  $priceNum: Number(trade.price),
+                  $costNum: Number(trade.cost),
+                  $feeNum: Number(trade.fee),
+                  $volNum: Number(trade.vol),
+                  $syncedAt: syncedAt
+               })
+            }
+         })()
+      }
+      finally {
+         insert.finalize()
+      }
    }
 
    countTrades(): number {
@@ -112,10 +124,12 @@ export default class TradeRepository {
 
    queryAggregations({ filters = {}, page = 0, pageSize = 20 }: AggregationsQuery): AggregationsResponse {
 
+      const targetQuote = filters.quote ?? ''
+
       const empty = {
          rows: [], total: 0, page, pageSize,
-         baseAsset: filters.base ?? '', quoteAsset: filters.quote ?? '',
-         quoteAssets: [], summary: emptySummary(), truncated: false
+         baseAsset: filters.base ?? '', quoteAsset: targetQuote,
+         summary: emptySummary(), truncated: false
       }
 
       if (!filters.base) return empty
@@ -141,20 +155,57 @@ export default class TradeRepository {
          : trades
 
       const orders = foldOrders(kept)
+      const rateOn = this.#rateOn(orders, targetQuote)
       const groups = asAggregations(orders)
       const ordered = filters.order === 'asc' ? groups : groups.toReversed()
 
       return {
-         rows: ordered.slice(page * pageSize, (page + 1) * pageSize),
+         rows: ordered.slice(page * pageSize, (page + 1) * pageSize)
+            .map(group => ({ ...group, totals: convertOrders(group.orders, targetQuote, rateOn) })),
          total: ordered.length,
          page,
          pageSize,
          baseAsset: filters.base,
-         quoteAsset: filters.quote ?? '',
-         quoteAssets: [...new Set(groups.flatMap(group => group.quotes.map(quote => quote.quoteAsset)))],
-         summary: asSummary(orders),
+         quoteAsset: targetQuote,
+         summary: asSummary(orders, targetQuote, rateOn),
          truncated
       }
+   }
+
+   #rateOn(orders: Order[], targetQuote: string): RateOn {
+
+      const foreign = orders.filter(order => order.quoteAsset !== targetQuote)
+      const first = foreign[0]
+      const last = foreign[foreign.length - 1]
+
+      if (!first || !last) return rateLookup([])
+
+      const assets = [...new Set([targetQuote, ...foreign.map(order => order.quoteAsset)])]
+         .filter(asset => asset !== '' && asset !== 'USD')
+
+      return rateLookup(new RateRepository()
+         .ratesBetween(assets, dayOf(first.time) - MAX_CARRIED_DAYS * DAY_MS, dayOf(last.time)))
+   }
+
+   quoteAssetRanges(): AssetRangeRow[] {
+
+      const convertible = CONVERTIBLE_QUOTES.map(() => '?').join(', ')
+
+      return this.#db.query<AssetRangeRow, Params>(`
+         WITH span AS (
+            SELECT base_asset, MIN(time) AS first, MAX(time) AS last
+            FROM trade
+            WHERE account_id = ? AND quote_asset IN (${convertible})
+            GROUP BY base_asset
+            HAVING COUNT(DISTINCT quote_asset) > 1)
+         SELECT pair.quote_asset AS asset, MIN(span.first) AS first, MAX(span.last) AS last
+         FROM (
+            SELECT DISTINCT base_asset, quote_asset
+            FROM trade
+            WHERE account_id = ? AND quote_asset IN (${convertible})) pair
+         JOIN span ON span.base_asset = pair.base_asset
+         GROUP BY pair.quote_asset`)
+         .all(this.#accountId, ...CONVERTIBLE_QUOTES, this.#accountId, ...CONVERTIBLE_QUOTES)
    }
 
    // The trades themselves, ungrouped: one row per trade, the way Kraken's export
@@ -191,7 +242,7 @@ export default class TradeRepository {
                  WHERE account_id = ? AND ${name} <> '' ORDER BY value`)
          .all(this.#accountId).map(row => row.value)
 
-      const markets = this.#db.query<MarketRow, Params>(`
+      const tradedPairs = this.#db.query<MarketRow, Params>(`
          SELECT DISTINCT pair_key AS pairKey, base_asset AS baseAsset, quote_asset AS quoteAsset
          FROM trade
          WHERE account_id = ? AND pair_key <> ''
@@ -201,7 +252,8 @@ export default class TradeRepository {
          pairs: column('pair_key'),
          directions: column('type'),
          ordertypes: column('ordertype'),
-         markets
+         markets: foldMarkets(tradedPairs),
+         mergeableQuotes: CONVERTIBLE_QUOTES
       }
    }
 
@@ -239,13 +291,16 @@ interface SideFold {
    orderCount: number
    tradeCount: number
    byQuote: Map<string, QuoteFold>
+   orders: Order[]
 }
+
+type UnconvertedAggregation = Omit<Aggregation, 'totals'>
 
 // Both sides of the whole selection, so the page can show what the range averages
 // out to. Every order in the range counts, not only the ones on the current page,
-// and each side keeps its quote currencies apart the way a run does — the view
-// converts them once it knows which quote to total in.
-function asSummary(orders: Order[]): AggregationSummary {
+// and each side keeps its quote currencies apart the way a run does, next to the
+// totals converted into the quote the selection is shown in.
+function asSummary(orders: Order[], targetQuote: string, rateOn: RateOn): AggregationSummary {
 
    const buy = newSummarySide()
    const sell = newSummarySide()
@@ -257,6 +312,7 @@ function asSummary(orders: Order[]): AggregationSummary {
 
       side.orderCount += 1
       side.tradeCount += order.tradeCount
+      side.orders.push(order)
 
       const totals = side.byQuote.get(order.quoteAsset)
          ?? { volume: Big(0), cost: Big(0), fee: Big(0), netCost: Big(0), decimals: 2 }
@@ -268,14 +324,17 @@ function asSummary(orders: Order[]): AggregationSummary {
       side.byQuote.set(order.quoteAsset, totals)
    }
 
-   return { buy: asSummarySide(buy), sell: asSummarySide(sell) }
+   return {
+      buy: asSummarySide(buy, targetQuote, rateOn),
+      sell: asSummarySide(sell, targetQuote, rateOn)
+   }
 }
 
 function newSummarySide(): SideFold {
-   return { orderCount: 0, tradeCount: 0, byQuote: new Map<string, QuoteFold>() }
+   return { orderCount: 0, tradeCount: 0, byQuote: new Map<string, QuoteFold>(), orders: [] }
 }
 
-function asSummarySide(side: SideFold): SummarySide {
+function asSummarySide(side: SideFold, targetQuote: string, rateOn: RateOn): SummarySide {
    return {
       orderCount: side.orderCount,
       tradeCount: side.tradeCount,
@@ -288,12 +347,13 @@ function asSummarySide(side: SideFold): SummarySide {
          fee: totals.fee.toString(),
          netCost: totals.netCost.toString(),
          price: totals.volume.eq(0) ? '0' : totals.cost.div(totals.volume).toFixed(totals.decimals)
-      }))
+      })),
+      totals: convertOrders(side.orders, targetQuote, rateOn)
    }
 }
 
 function emptySummary(): AggregationSummary {
-   return { buy: asSummarySide(newSummarySide()), sell: asSummarySide(newSummarySide()) }
+   return asSummary([], '', rateLookup([]))
 }
 
 function foldOrders(trades: TradeRow[]): Order[] {
@@ -311,7 +371,7 @@ function foldOrders(trades: TradeRow[]): Order[] {
       .toSorted((a, b) => a.time - b.time || (a.orderKey < b.orderKey ? -1 : 1))
 }
 
-function asAggregations(orders: Order[]): Aggregation[] {
+function asAggregations(orders: Order[]): UnconvertedAggregation[] {
 
    const runs: { direction: string, orders: Order[] }[] = []
 
@@ -324,7 +384,7 @@ function asAggregations(orders: Order[]): Aggregation[] {
    return runs.map(asAggregation)
 }
 
-function asAggregation(run: { direction: string, orders: Order[] }, index: number): Aggregation {
+function asAggregation(run: { direction: string, orders: Order[] }, index: number): UnconvertedAggregation {
 
    const orders = run.orders
    const first = orders[0]!
@@ -364,6 +424,29 @@ function asAggregation(run: { direction: string, orders: Order[] }, index: numbe
       })),
       orders
    }
+}
+
+// A renamed asset was traded under two tickers, which are one market: POL/EUR lists
+// MATIC/EUR as its former name. A market never traded under today's name keeps the
+// one it had, and an unresolved pair has no assets to be grouped by.
+export function foldMarkets(tradedPairs: MarketRow[]): Market[] {
+
+   const markets = new Map<string, MarketRow & { names: string[] }>()
+
+   for (const { pairKey: name, baseAsset, quoteAsset } of tradedPairs) {
+      const pairKey = baseAsset ? `${baseAsset}/${quoteAsset}` : name
+      const market = markets.get(pairKey) ?? { pairKey, baseAsset, quoteAsset, names: [] }
+      market.names.push(name)
+      markets.set(pairKey, market)
+   }
+
+   return [...markets.values()]
+      .map(({ names, ...market }) => {
+         const former = names.filter(name => name !== market.pairKey).join(', ')
+         if (!former) return { ...market, label: market.pairKey }
+         return { ...market, label: names.includes(market.pairKey) ? `${market.pairKey} (ex. ${former})` : former }
+      })
+      .toSorted((a, b) => a.label.localeCompare(b.label))
 }
 
 function asOrder(orderKey: string, trades: TradeRow[]): Order {
@@ -415,7 +498,11 @@ function buildAggregationWhere(accountId: string, filters: AggregationFilters) {
    const conditions = ['account_id = ?', 'base_asset = ?']
    const params: Params = [accountId, filters.base ?? '']
 
-   if (filters.quote && !filters.includeAllQuotes) {
+   if (filters.includeAllQuotes && isConvertibleQuote(filters.quote)) {
+      conditions.push(`quote_asset IN (${CONVERTIBLE_QUOTES.map(() => '?').join(', ')})`)
+      params.push(...CONVERTIBLE_QUOTES)
+   }
+   else if (filters.quote) {
       conditions.push('quote_asset = ?')
       params.push(filters.quote)
    }

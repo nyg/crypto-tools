@@ -1,21 +1,42 @@
 import Big from 'big.js'
 import * as resource from './resource'
+import { candlesFromKLines, usdRatesFromKLines } from './klines'
+import { depositRecord, fiatRecord, withdrawalRecord } from './funding'
 import {
-   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet
+   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, tradeFees
 } from './spot'
 import type { Credentials } from '../../../types/credentials'
 import type { TradingPair, TradingPairs } from '../../../types/market'
 import type {
    Candlestick, FiatDeposit, PairRates, SpotBalances, StakingBalances
 } from '../../../types/binance'
-import type { BinanceEnvironment } from '../../../types/binance-api'
+import type { BinanceEnvironment, BinanceFiatOrder } from '../../../types/binance-api'
+import type { UsdRateRow } from '../../../types/db'
+import type { FundingKind, FundingRecord, FundingWindow } from '../../../types/funding'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, WalletCoin
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
+   SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 const UNKNOWN_ORDER = -2011
 const NO_SUCH_ORDER = -2013
+
+const DAY_MS = 86400000
+
+const KLINE_LIMIT = 1000
+
+const HISTORY_LIMIT = 1000
+
+async function everyPage<Row>(fetchPage: (offset: number) => Promise<Row[]>): Promise<Row[]> {
+
+   const rows: Row[] = []
+
+   for (;;) {
+      const page = await fetchPage(rows.length)
+      rows.push(...page)
+      if (page.length < HISTORY_LIMIT) return rows
+   }
+}
 
 export default class BinanceAPI {
 
@@ -61,6 +82,32 @@ export default class BinanceAPI {
          rates[ticker.symbol] = Big(ticker.price)
          return rates
       }, {})
+   }
+
+   async fetchUsdRateHistory({ asset, symbol, from, to, today }: {
+      asset: string
+      symbol: string
+      from: number
+      to: number
+      today: number
+   }): Promise<UsdRateRow[]> {
+
+      const rows: UsdRateRow[] = []
+      let startTime = from
+
+      while (startTime <= to) {
+         const klines = await resource.fetchKLines(symbol, '1d', startTime, to + DAY_MS - 1, KLINE_LIMIT)
+         rows.push(...usdRatesFromKLines({ asset, klines, today }))
+         const last = klines.at(-1)?.[0]
+         if (klines.length < KLINE_LIMIT || last === undefined) break
+         startTime = last + DAY_MS
+      }
+
+      return rows
+   }
+
+   async fetchSpotCandles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      return candlesFromKLines(await resource.fetchRecentKLines(symbol, interval, KLINE_LIMIT))
    }
 
    async fetchCandlestickData(
@@ -135,6 +182,36 @@ export default class BinanceAPI {
       return deposits
    }
 
+   /* Deposits and withdrawals */
+
+   async fetchDeposits({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      const deposits = await everyPage(offset => resource.fetchDepositHistory(
+         this.#authenticated, { startTime: from, endTime: to, offset, limit: HISTORY_LIMIT }))
+      return deposits.map(depositRecord)
+   }
+
+   async fetchWithdrawals({ from, to }: FundingWindow): Promise<FundingRecord[]> {
+      const withdrawals = await everyPage(offset => resource.fetchWithdrawHistory(
+         this.#authenticated, { startTime: from, endTime: to, offset, limit: HISTORY_LIMIT }))
+      return withdrawals.map(withdrawalRecord)
+   }
+
+   async fetchFiatMovements(kind: FundingKind, { from, to }: FundingWindow): Promise<FundingRecord[]> {
+
+      const orders: BinanceFiatOrder[] = []
+
+      for (let pageIndex = 1; ; pageIndex++) {
+         const { data, total } = await resource.fetchFiatFunding(
+            this.#authenticated,
+            { transactionType: kind === 'deposit' ? 0 : 1, fromDate: from, toDate: to, pageIndex })
+
+         orders.push(...data)
+         if (data.length === 0 || orders.length >= total) break
+      }
+
+      return orders.map(order => fiatRecord(order, kind))
+   }
+
    /* Spot trading for portfolios */
 
    async fetchSpotMarkets(): Promise<SpotMarket[]> {
@@ -151,6 +228,10 @@ export default class BinanceAPI {
       return spotAccount(await resource.fetchAccount(this.#environment, this.#authenticated), fallbackId)
    }
 
+   async fetchTradeFees(symbol: string): Promise<TradeFees> {
+      return tradeFees(await resource.fetchCommission(this.#environment, this.#authenticated, symbol))
+   }
+
    async fetchSpotWallet(): Promise<WalletCoin[]> {
       return spotWallet(await resource.fetchAccount(this.#environment, this.#authenticated))
    }
@@ -161,6 +242,19 @@ export default class BinanceAPI {
          side: side === 'buy' ? 'BUY' : 'SELL',
          type: 'MARKET',
          ...(unit === 'base' ? { quantity: amount } : { quoteOrderQty: amount }),
+         newClientOrderId: clientOrderId,
+         newOrderRespType: 'ACK'
+      })
+      return String(orderId)
+   }
+
+   async placeLimitOrder({ clientOrderId, symbol, side, quantity, price }: LimitOrderRequest): Promise<string> {
+      const { orderId } = await resource.createOrder(this.#environment, this.#authenticated, {
+         symbol,
+         side: side === 'buy' ? 'BUY' : 'SELL',
+         type: 'LIMIT_MAKER',
+         quantity,
+         price,
          newClientOrderId: clientOrderId,
          newOrderRespType: 'ACK'
       })

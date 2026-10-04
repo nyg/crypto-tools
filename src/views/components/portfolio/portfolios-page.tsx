@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
+import useSWR from 'swr'
 import { toast } from 'sonner'
-import { formatDistanceToNow } from 'date-fns'
 import { Loader2Icon, PlusIcon, RefreshCwIcon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
 import usePersistentState from '../../lib/use-persistent-state'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../lib/credentials-alert'
+import LoadingSpinner from '../lib/loading-spinner'
+import TimeAgo from '../lib/time-ago'
 import AccountSummary from './account-summary'
 import AdjustDialog from './adjust-dialog'
 import ArchiveDialog from './archive-dialog'
@@ -26,9 +28,10 @@ import type { PlanTarget } from './plan-dialog'
 import { asQuantity, asQuoteAmount } from './format'
 import type {
    AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioOverviewResponse,
-   PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary
+   PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary, PortfolioSupertrendResponse
 } from '../../../types/api'
 import type { VenueId } from '../../../types/portfolio'
+import type { Sort } from '../../../types/kraken'
 
 export interface PortfolioVenue {
    id: VenueId
@@ -67,6 +70,8 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
       useMutation<PortfolioArchiveResponse, PortfolioArchiveRequest>(`${apiBase}/archive`)
    const { trigger: acknowledgeStop } =
       useMutation<PortfolioStopAckResponse, PortfolioStopAckRequest>(`${apiBase}/stops/ack`)
+   const { data: supertrend, isLoading: isLoadingSupertrend, mutate: fetchSupertrend } =
+      useSWR<PortfolioSupertrendResponse>(configured && live ? `${apiBase}/supertrend` : null, { revalidateOnFocus: false })
 
    const [editing, setEditing] = useState<{ portfolio: PortfolioSummary | null } | null>(null)
    const [depositing, setDepositing] = useState<PortfolioSummary | null>(null)
@@ -76,8 +81,14 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
    const [archiving, setArchiving] = useState<PortfolioSummary | null>(null)
    const [adjusting, setAdjusting] = useState<AccountCoin | null>(null)
    const [watchingRun, setWatchingRun] = useState(false)
+   const [holdingsSort, setHoldingsSort] = usePersistentState<Sort>('portfolios.holdings.sort', {})
 
-   const refresh = () => fetchOverview().catch(() => {})
+   const loadOverview = () => fetchOverview().catch(() => {})
+
+   const refresh = () => {
+      fetchSupertrend()
+      return loadOverview()
+   }
 
    const fetchedFor = useRef<string | null>(null)
 
@@ -85,7 +96,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
       if (!configured || fetchedFor.current === venue) return
       fetchedFor.current = venue
       reset()
-      refresh()
+      loadOverview()
    }, [venue, configured])
 
    const rebalance = (portfolio: PortfolioSummary) =>
@@ -112,7 +123,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
       <div className="flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
          {overview?.fetchedAt &&
             <span title={`${asLocalTimestamp(overview.fetchedAt)} · ${asUtcTimestamp(overview.fetchedAt)} UTC`}>
-               Last fetched from {label}: {formatDistanceToNow(overview.fetchedAt)} ago
+               Last fetched from {label}: <TimeAgo time={overview.fetchedAt} />
             </span>}
          <Button
             variant="ghost"
@@ -148,7 +159,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
 
    return (
       <Layout name="Portfolios" trailing={liveStatus}>
-         <div className="space-y-6">
+         <div className="flex grow flex-col gap-6">
 
             <div className="flex flex-wrap items-center justify-between gap-3">
                {venueToggle}
@@ -169,7 +180,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
                   <AlertDescription>{String(error)}</AlertDescription>
                </Alert>}
 
-            {isMutating && !overview && <Loader2Icon className="size-5 animate-spin text-muted-foreground" />}
+            {isMutating && !overview && <LoadingSpinner />}
 
             {overview && !overview.key.canTrade &&
                <Alert variant="destructive">
@@ -275,7 +286,10 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
                <PortfolioCard
                   key={portfolio.id}
                   portfolio={portfolio}
+                  supertrend={live ? { levels: supertrend?.levels, loading: isLoadingSupertrend } : undefined}
                   busy={busy}
+                  sort={holdingsSort}
+                  onSortChange={setHoldingsSort}
                   onDeposit={() => setDepositing(portfolio)}
                   onWithdraw={() => setWithdrawing(portfolio)}
                   onRebalance={() => rebalance(portfolio)}
@@ -291,6 +305,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
             quoteAsset={current.quoteAsset}
             open={editing !== null}
             portfolio={editing?.portfolio ?? null}
+            supertrend={live ? supertrend?.levels : undefined}
             onOpenChange={open => !open && setEditing(null)}
             onSaved={() => {
                setEditing(null)

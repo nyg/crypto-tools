@@ -2,7 +2,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asNumber } from '../../../utils/format'
+import { asExactDecimal, asNumber } from '../../../utils/format'
 import SortableHead from '../lib/sortable-head'
 import type { TradesResponse } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
@@ -87,10 +87,10 @@ export default function TradeTable({
                            {Number(trade.margin) !== 0 && <Badge variant="outline">margin</Badge>}
                         </div>
                      </TableCell>
-                     <TableCell className="text-right">{trade.volume}</TableCell>
-                     <TableCell className="text-right">{trade.price}</TableCell>
-                     <TableCell className="text-right">{trade.cost}</TableCell>
-                     <TableCell className="text-right text-muted-foreground">{trade.fee}</TableCell>
+                     <TableCell className="text-right">{asExactDecimal(trade.volume)}</TableCell>
+                     <TableCell className="text-right">{asExactDecimal(trade.price)}</TableCell>
+                     <TableCell className="text-right">{asExactDecimal(trade.cost)}</TableCell>
+                     <TableCell className="text-right text-muted-foreground">{asExactDecimal(trade.fee)}</TableCell>
                      <TableCell>
                         <button
                            type="button"

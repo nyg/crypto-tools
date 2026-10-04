@@ -1,11 +1,11 @@
 import Big from 'big.js'
 import { HttpRequesterError } from '../../errors'
 import type {
-   BinanceAccount, BinanceBookTicker, BinanceErrorBody, BinanceExchangeInfo, BinanceOrder,
+   BinanceAccount, BinanceBookTicker, BinanceCommission, BinanceErrorBody, BinanceExchangeInfo, BinanceOrder,
    BinanceSymbol, BinanceTickerPrice, BinanceTrade
 } from '../../../types/binance-api'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderSettlement, SettlementStatus, SpotMarket, SpotPrice, WalletCoin
+   ExchangeAccount, OpenStopOrder, OrderSettlement, SettlementStatus, SpotMarket, SpotPrice, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 const OPEN_STATUSES = ['NEW', 'PENDING_NEW', 'PARTIALLY_FILLED', 'PENDING_CANCEL']
@@ -45,6 +45,16 @@ function spotMarket({ symbol, baseAsset, quoteAsset, quoteAssetPrecision, filter
       minAmount: decimal(notional?.minNotional),
       maxQty: positive(marketLot?.maxQty) ?? decimal(lot?.maxQty),
       maxAmount: decimal(notional?.maxNotional)
+   }
+}
+
+export function tradeFees({ standardCommission, specialCommission, taxCommission }: BinanceCommission): TradeFees {
+   const tiers = [standardCommission, specialCommission, taxCommission]
+   const rateFor = (liquidity: 'taker' | 'maker', side: 'buyer' | 'seller') =>
+      tiers.reduce((sum, tier) => sum.plus(tier?.[liquidity] || 0).plus(tier?.[side] || 0), Big(0)).toFixed()
+   return {
+      taker: { buy: rateFor('taker', 'buyer'), sell: rateFor('taker', 'seller') },
+      maker: { buy: rateFor('maker', 'buyer'), sell: rateFor('maker', 'seller') }
    }
 }
 

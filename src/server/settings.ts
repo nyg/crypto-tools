@@ -2,14 +2,22 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSy
 import path from 'path'
 import { resolveDataDir } from './db/paths'
 import { accountIdFor } from './db/entry-key'
-import { environmentOverridesEnabled } from './environment'
+import { dataProfile, environmentOverridesEnabled } from './environment'
 import { messageOf } from './errors'
+import type { DataProfile } from './environment'
 import type { Provider } from '../types/credentials'
 import type { SecretField, StoredProvider, StoredSettings } from '../types/settings'
 
 type ProviderConfig = { hasSecret: boolean, label: string }
 
+export type SettingsState = 'missing' | 'blank' | 'data'
+
 const SETTINGS_VERSION = 2
+
+const SETTINGS_NAMES: Record<DataProfile, string> = {
+   production: 'settings.json',
+   development: 'settings-dev.json'
+}
 
 // Object.entries widens the key to string, which loses the provider union every loop
 // below needs to index the settings with.
@@ -35,14 +43,13 @@ const defaults = (): StoredSettings => ({
    anthropic: {}
 })
 
-function settingsPath(): string {
-   const name = process.env.NODE_ENV === 'production' ? 'settings.json' : 'settings-dev.json'
-   return path.join(resolveDataDir(), name)
+function settingsPath(profile: DataProfile = dataProfile()): string {
+   return path.join(resolveDataDir(), SETTINGS_NAMES[profile])
 }
 
-function readFile(): StoredSettings {
+function readFile(profile: DataProfile = dataProfile()): StoredSettings {
    try {
-      const file = settingsPath()
+      const file = settingsPath(profile)
       if (!existsSync(file)) return defaults()
       const stored = JSON.parse(readFileSync(file, 'utf-8')) as Partial<StoredSettings>
       const merged = defaults()
@@ -124,6 +131,19 @@ export function settingsVersion(): number {
    return readFile().version
 }
 
-export function settingsFilePath(): string {
-   return settingsPath()
+export function settingsFilePath(profile: DataProfile = dataProfile()): string {
+   return settingsPath(profile)
+}
+
+export function settingsState(profile: DataProfile): SettingsState {
+   if (!existsSync(settingsPath(profile))) return 'missing'
+
+   const stored = readFile(profile)
+   const holdsKey = entries(providers).some(([id]) => stored[id].apiKey || stored[id].apiSecret)
+
+   return stored.kraken.accountId || holdsKey ? 'data' : 'blank'
+}
+
+export function copySettingsFrom(profile: DataProfile): void {
+   writeFile(readFile(profile))
 }

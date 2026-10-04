@@ -1,18 +1,28 @@
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
-   asDrift, asQuantity, asQuoteAmount, asSignedQuoteAmount, asWeight, profitColor,
+   asDrift, asQuantity, asQuoteAmount, asSignedPercent, asSignedQuoteAmount, asWeight, profitColor,
    showsAsZeroQuoteAmount, stopStatusLabels
 } from './format'
+import { SupertrendCell, SupertrendHead } from './supertrend-cell'
 import SortableHead from '../lib/sortable-head'
 import { numericKey, sortRows } from '../../lib/sort'
+import type { SupertrendColumns } from './supertrend-cell'
 import type { SortKeys } from '../../lib/sort'
 import type { PortfolioHolding, PortfolioSummary } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
 
-const ProfitCell = ({ value, quote }: { value: string | null, quote: string }) =>
-   <TableCell className={cn('text-right', profitColor(value))}>{asSignedQuoteAmount(value, quote)}</TableCell>
+const SUPERTREND_COLUMNS = 2
+
+const ProfitCell = ({ value, percent = null, quote }: { value: string | null, percent?: string | null, quote: string }) =>
+   <TableCell className={cn('text-right', profitColor(value))} title={asSignedQuoteAmount(value, quote)}>
+      {asSignedQuoteAmount(value)}
+      {percent !== null && value !== null && !showsAsZeroQuoteAmount(value) &&
+         <span className="ml-1.5 text-xs">({asSignedPercent(percent)})</span>}
+   </TableCell>
+
+const ValueCell = ({ value, quote }: { value: string | null, quote: string }) =>
+   <TableCell className="text-right" title={asQuoteAmount(value, quote)}>{asQuoteAmount(value)}</TableCell>
 
 const StopCell = ({ holding }: { holding: PortfolioHolding }) =>
    <TableCell className="text-right">
@@ -26,45 +36,59 @@ const StopCell = ({ holding }: { holding: PortfolioHolding }) =>
          </span>}
    </TableCell>
 
-export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSummary }) {
+interface HoldingsTableProps {
+   portfolio: PortfolioSummary
+   supertrend?: SupertrendColumns
+   sort: Sort
+   onSortChange: (sort: Sort) => void
+}
 
-   const [sort, setSort] = useState<Sort>({})
+export default function HoldingsTable({ portfolio, supertrend, sort, onSortChange }: HoldingsTableProps) {
 
    const band = Number(portfolio.band)
    const quote = portfolio.quoteAsset
+   const extraColumns = supertrend ? SUPERTREND_COLUMNS : 0
 
-   const isCashOnly = (holding: PortfolioHolding) => holding.asset === quote && Number(holding.target) === 0
-   const unlessCashOnly = (key: (holding: PortfolioHolding) => number | null) =>
-      (holding: PortfolioHolding) => isCashOnly(holding) ? null : key(holding)
+   const isCash = (holding: PortfolioHolding) => holding.asset === quote
+   const isCashOnly = (holding: PortfolioHolding) => isCash(holding) && Number(holding.target) === 0
 
    const sortKeys: SortKeys<PortfolioHolding> = {
       asset: holding => holding.asset,
-      target: unlessCashOnly(holding => Number(holding.target)),
-      weight: unlessCashOnly(holding => numericKey(holding.weight)),
-      drift: unlessCashOnly(holding => numericKey(holding.drift)),
+      target: holding => Number(holding.target),
+      weight: holding => numericKey(holding.weight),
+      drift: holding => numericKey(holding.drift),
       value: holding => holding.value === null ? null : holding.valueNum,
-      unrealized: unlessCashOnly(holding => numericKey(holding.unrealized)),
+      unrealized: holding => numericKey(holding.unrealized),
       realized: holding => Number(holding.realized)
    }
+
+   const coins = sortRows(portfolio.holdings.filter(holding => !isCash(holding)), sort, sortKeys)
+   const rows = [...coins, ...portfolio.holdings.filter(isCash)]
 
    return (
       <Table className="tabular-nums">
          <TableHeader>
             <TableRow>
-               <SortableHead column="asset" sort={sort} onSortChange={setSort}>Asset</SortableHead>
-               <SortableHead column="target" align="right" sort={sort} onSortChange={setSort}>Target</SortableHead>
+               <SortableHead column="asset" sort={sort} onSortChange={onSortChange}>Asset</SortableHead>
+               <SortableHead column="target" align="right" sort={sort} onSortChange={onSortChange}>Target</SortableHead>
                <TableHead className="text-right">Stop</TableHead>
-               <SortableHead column="weight" align="right" sort={sort} onSortChange={setSort}>Current</SortableHead>
-               <SortableHead column="drift" align="right" sort={sort} onSortChange={setSort}>Drift</SortableHead>
+               <SortableHead column="weight" align="right" sort={sort} onSortChange={onSortChange}>Current</SortableHead>
+               <SortableHead column="drift" align="right" sort={sort} onSortChange={onSortChange}>Drift</SortableHead>
                <TableHead className="text-right">Quantity</TableHead>
                <TableHead className="text-right">Price</TableHead>
-               <SortableHead column="value" align="right" sort={sort} onSortChange={setSort}>Value</SortableHead>
-               <SortableHead column="unrealized" align="right" sort={sort} onSortChange={setSort}>Unrealized</SortableHead>
-               <SortableHead column="realized" align="right" sort={sort} onSortChange={setSort}>Realized</SortableHead>
+               {supertrend && <>
+                  <SupertrendHead timeframe="daily">Supertrend 1D</SupertrendHead>
+                  <SupertrendHead timeframe="weekly">Supertrend 1W</SupertrendHead>
+               </>}
+               <SortableHead column="value" align="right" sort={sort} onSortChange={onSortChange}>
+                  Value<span className="text-xs font-normal text-muted-foreground">{quote}</span>
+               </SortableHead>
+               <SortableHead column="unrealized" align="right" sort={sort} onSortChange={onSortChange}>Unrealized</SortableHead>
+               <SortableHead column="realized" align="right" sort={sort} onSortChange={onSortChange}>Realized</SortableHead>
             </TableRow>
          </TableHeader>
          <TableBody>
-            {sortRows(portfolio.holdings, sort, sortKeys).map(holding => {
+            {rows.map(holding => {
                const untargeted = Number(holding.target) === 0
                if (isCashOnly(holding)) {
                   const realizedShown = !showsAsZeroQuoteAmount(holding.realized)
@@ -75,13 +99,17 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                            {holding.asset}
                            <span className="ml-2 text-xs text-muted-foreground">cash</span>
                         </TableCell>
-                        <TableCell colSpan={6} />
-                        <TableCell className="text-right">{asQuoteAmount(holding.value, quote)}</TableCell>
+                        <TableCell colSpan={6 + extraColumns} />
+                        <ValueCell value={holding.value} quote={quote} />
                         <TableCell />
-                        {realizedShown ? <ProfitCell value={holding.realized} quote={quote} /> : <TableCell />}
+                        {realizedShown
+                           ? <ProfitCell value={holding.realized} percent={holding.realizedPercent} quote={quote} />
+                           : <TableCell />}
                      </TableRow>
                   )
                }
+               const levels = supertrend?.levels?.[`${holding.asset}${quote}`]
+               const levelsLoading = Boolean(supertrend?.loading) && holding.asset !== quote
                const driftColor = holding.drift === null ? undefined : Math.abs(Number(holding.drift)) > band
                   ? 'text-destructive'
                   : 'text-emerald-600 dark:text-emerald-400'
@@ -103,24 +131,30 @@ export default function HoldingsTable({ portfolio }: { portfolio: PortfolioSumma
                      <TableCell className="text-right text-muted-foreground">
                         {holding.price === null ? 'no price' : asQuantity(holding.price)}
                      </TableCell>
-                     <TableCell className="text-right">{asQuoteAmount(holding.value, quote)}</TableCell>
-                     <ProfitCell value={holding.unrealized} quote={quote} />
-                     <ProfitCell value={holding.realized} quote={quote} />
+                     {supertrend && <>
+                        <SupertrendCell
+                           level={levels?.daily} price={holding.price} loading={levelsLoading} timeframe="daily" />
+                        <SupertrendCell
+                           level={levels?.weekly} price={holding.price} loading={levelsLoading} timeframe="weekly" />
+                     </>}
+                     <ValueCell value={holding.value} quote={quote} />
+                     <ProfitCell value={holding.unrealized} percent={holding.unrealizedPercent} quote={quote} />
+                     <ProfitCell value={holding.realized} percent={holding.realizedPercent} quote={quote} />
                   </TableRow>
                )
             })}
             {!showsAsZeroQuoteAmount(portfolio.closedRealized) &&
                <TableRow>
-                  <TableCell colSpan={9} className="text-muted-foreground">Closed positions</TableCell>
-                  <ProfitCell value={portfolio.closedRealized} quote={quote} />
+                  <TableCell colSpan={9 + extraColumns} className="text-muted-foreground">Closed positions</TableCell>
+                  <ProfitCell value={portfolio.closedRealized} percent={portfolio.closedRealizedPercent} quote={quote} />
                </TableRow>}
          </TableBody>
          <TableFooter>
             <TableRow>
-               <TableCell colSpan={7}>Total</TableCell>
-               <TableCell className="text-right">{asQuoteAmount(portfolio.value, quote)}</TableCell>
-               <ProfitCell value={portfolio.unrealized} quote={quote} />
-               <ProfitCell value={portfolio.realized} quote={quote} />
+               <TableCell colSpan={7 + extraColumns}>Total</TableCell>
+               <ValueCell value={portfolio.value} quote={quote} />
+               <ProfitCell value={portfolio.unrealized} percent={portfolio.unrealizedPercent} quote={quote} />
+               <ProfitCell value={portfolio.realized} percent={portfolio.realizedPercent} quote={quote} />
             </TableRow>
          </TableFooter>
       </Table>

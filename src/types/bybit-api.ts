@@ -50,6 +50,12 @@ export interface BybitWalletAccount {
    coin: BybitWalletCoin[]
 }
 
+export interface BybitFeeRate {
+   symbol: string
+   takerFeeRate: string
+   makerFeeRate: string
+}
+
 export interface BybitApiKeyInfo {
    readOnly: number
    permissions: Record<string, string[]>
@@ -81,12 +87,26 @@ export interface BybitStopOrderRequest extends BybitOrderBase {
    triggerPrice: string
 }
 
-export type BybitOrderRequest = BybitMarketOrderRequest | BybitStopOrderRequest
+export interface BybitLimitOrderRequest {
+   category: 'spot'
+   symbol: string
+   side: BybitOrderSide
+   orderType: 'Limit'
+   qty: string
+   price: string
+   timeInForce: 'PostOnly'
+   isLeverage: 0
+   orderLinkId: string
+}
+
+export type BybitOrderRequest = BybitMarketOrderRequest | BybitStopOrderRequest | BybitLimitOrderRequest
+
+export type BybitOrderFilter = 'Order' | 'StopOrder'
 
 export interface BybitCancelRequest {
    category: 'spot'
    symbol: string
-   orderFilter: 'StopOrder'
+   orderFilter: BybitOrderFilter
    orderLinkId: string
 }
 
@@ -124,5 +144,46 @@ export interface BybitExecution {
    execFee: string
    feeCurrency: string
 }
+
+export interface BybitRows<T> {
+   rows: T[]
+   nextPageCursor?: string
+}
+
+export interface BybitDeposit {
+   id?: string
+   txID: string
+   txIndex?: string
+   coin: string
+   chain: string
+   amount: string
+   depositFee?: string
+   status: number
+   successAt: string
+}
+
+export interface BybitInternalDeposit {
+   id: string
+   coin: string
+   amount: string
+   status: number
+   createdTime: string
+}
+
+export interface BybitWithdrawal {
+   withdrawId: string
+   withdrawType: number
+   coin: string
+   chain?: string
+   amount: string
+   withdrawFee?: string
+   status: string
+   createTime: string
+}
+
+// [startTime, open, high, low, close, volume, turnover], newest first
+export type BybitKline = [string, string, string, string, string, string, string]
+
+export type BybitKlineInterval = 'D' | 'W'
 
 export type BybitEnvironment = 'mainnet' | 'demo'

@@ -13,9 +13,7 @@ app.route('/xstocks', xstockRoutes)
 app.route('/portfolios', portfolioRoutes('kraken'))
 
 // What the local ledger cannot know: the balance Kraken holds this second, and how
-// much of it an open order has already claimed. The Balances page reads everything
-// else from the database and asks for this on top, so a stale sync shows up as a
-// difference rather than as a wrong number.
+// much of it an open order has already claimed.
 app.post('/balances', async (c) => withCredentials(c, 'kraken', async ({ credentials }) => {
 
    const krakenAPI = new KrakenAPI(credentials)

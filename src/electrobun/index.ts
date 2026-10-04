@@ -1,13 +1,13 @@
 /// <reference types="bun-types" />
 import { ApplicationMenu, BrowserWindow, BuildConfig, Utils } from 'electrobun/main'
 import { createApp } from '../server/app'
+import { migrateDevelopmentData } from '../server/data-migration'
+import { useProductionData } from '../server/environment'
 import { migrateSecretsToCredentialStore } from '../server/secrets'
 import { systemLocales } from './locale'
 import { handleTitleBarDoubleClick, trackFullScreen } from './title-bar'
 import { resolveInitialWindowState, trackWindowState } from './window-state'
 
-const DEV_API_PORT = Number(process.env.PORT ?? 3001)
-const DEV_SERVER_URL = `http://localhost:${process.env.VITE_PORT ?? 3000}`
 const VIEWS_URL = 'views://main/index.html'
 const ABOUT_ACTION = 'show-about'
 const SHOW_ABOUT_JS = 'window.dispatchEvent(new CustomEvent(\'crypto-tools:show-about\'))'
@@ -24,12 +24,14 @@ type NewWindowOpenListener = {
 type MenuClickEvent = { data?: { action?: string } }
 
 async function resolveUrl(): Promise<string> {
-   if (BuildConfig.getSync().channel !== 'dev') {
+   const vitePort = process.env.VITE_PORT
+   if (BuildConfig.getSync().channel !== 'dev' || !vitePort) {
       return VIEWS_URL
    }
+   const devServerUrl = `http://localhost:${vitePort}`
    try {
-      await fetch(`${DEV_SERVER_URL}/`, { signal: AbortSignal.timeout(1000) })
-      return DEV_SERVER_URL
+      await fetch(`${devServerUrl}/`, { signal: AbortSignal.timeout(1000) })
+      return devServerUrl
    } catch {
       return VIEWS_URL
    }
@@ -38,29 +40,24 @@ async function resolveUrl(): Promise<string> {
 async function main() {
    const url = await resolveUrl()
 
+   if (BuildConfig.getSync().channel !== 'dev') {
+      useProductionData()
+      await migrateDevelopmentData()
+   }
+
    await migrateSecretsToCredentialStore()
 
-   const honoApp = createApp({ desktop: true })
+   const honoApp = createApp({ desktop: true, devServerOrigin: url === VIEWS_URL ? undefined : new URL(url).origin })
 
-   // The dev server proxies /api to a fixed port; a packaged app takes whatever port
-   // the OS hands out, so two Electrobun apps never fight over the same one.
-   const usingDevServer = url === DEV_SERVER_URL
-   let server: ReturnType<typeof Bun.serve>
-   try {
-      server = Bun.serve({
-         port: usingDevServer ? DEV_API_PORT : 0,
-         hostname: '127.0.0.1',
-         fetch: honoApp.fetch,
-         idleTimeout: 0,
-      })
-      console.log(`✓ API server listening on http://127.0.0.1:${server.port}`)
-   }
-   catch (error) {
-      if ((error as { code?: string }).code !== 'EADDRINUSE') throw error
-      console.error(`✗ Port ${DEV_API_PORT} is already in use — another instance is running.`)
-      console.error('  Start this one on its own ports: PORT=3011 VITE_PORT=3010 bun run desktop:dev')
-      process.exit(1)
-   }
+   // Whatever port the OS hands out, so two Electrobun apps never fight over the same one.
+   // The page learns it from the preload, even when Vite serves the page.
+   const server = Bun.serve({
+      port: 0,
+      hostname: '127.0.0.1',
+      fetch: honoApp.fetch,
+      idleTimeout: 0,
+   })
+   console.log(`✓ API server listening on http://127.0.0.1:${server.port}`)
 
    const locales = systemLocales()
    const preload = [

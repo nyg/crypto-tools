@@ -11,8 +11,16 @@ const portfolioHelp = (exchange: string, practice: ReactNode) =>
       Rebalancing and withdrawing preview their orders first and only place spot
       market orders once you confirm. Profit is split per coin at average cost:{' '}
       <b>unrealized</b> is what the coins still held are worth above what they cost, and{' '}
-      <b>realized</b> is what sells brought in above that cost, after fees. A coin you
-      deposit counts at its value on the day it came in.{practice}
+      <b>realized</b> is what sells brought in above that cost, after fees. Each percentage
+      is over the cost of the coins it is about: those still held, or those sold. A coin you
+      deposit counts at its value on the day it came in. <b>Fees paid</b> adds up every
+      order&apos;s fee at the price the order filled at; the two profits already count it.{' '}
+      <b>Supertrend 1D</b> and <b>1W</b>, on a live account, are the prices at which the
+      Supertrend (10, 3) indicator flips on the coin&apos;s daily and weekly {exchange} chart:
+      green and below the price in an uptrend, red and above it in a downtrend. The two
+      percentages beside it are how far the price is beyond the flip price, and how far it
+      has to move back for a close to flip the trend. A price already past the flip price
+      shows <b>flips at close</b>: the trend only changes once the candle closes there.{practice}
    </>
 
 const settingsHelp = (tabs: string) =>
@@ -21,6 +29,16 @@ const settingsHelp = (tabs: string) =>
       operating system&apos;s credential store wherever one is reachable, never uploaded
       anywhere, and used only to sign the calls a page makes on your behalf. Removing a key
       here is enough to cut those tabs off from it.
+   </>
+
+const fundingHelp = (source: ReactNode) =>
+   <>
+      What you moved in and out of the account, one asset at a time. {source} The chart adds up
+      each day&apos;s deposits above the line and its withdrawals below it, and only draws the
+      days something moved, so they sit side by side however far apart they are. A deposit
+      counts what the exchange received and a withdrawal what it sent out; the fee is what the
+      exchange kept on top, and <b>net</b> is deposited less withdrawn. Dates are in your own
+      time zone.
    </>
 
 // What each page is and where its data comes from, keyed by route. Kept in one place
@@ -34,25 +52,26 @@ const pageHelp: Record<string, ReactNode> = {
          Downloads two exports from Kraken — your complete ledger and your trade history —
          and keeps both in a database on this machine, so the other tools can use them
          without querying the API again. Kraken prepares each export in the background, so
-         a first sync can take several minutes. Nothing is uploaded anywhere.
+         a first sync can take several minutes. Each sync then fetches the daily USD rates
+         the Rewards and Fees tabs value your history at: Kraken&apos;s own prices, and the
+         ECB&apos;s reference rates from Frankfurter for fiat. Nothing is uploaded anywhere.
       </>,
 
    '/kraken/balances':
       <>
-         What you hold, rebuilt from the local database the Ledger tab fills, and
-         grouped by <b>where each coin actually sits</b> — your spot wallet, or one
-         of Kraken&apos;s Earn strategies. Coins left in spot that are still being
-         paid are marked <b>Opt-In Rewards</b>, since they keep earning without
-         leaving the wallet they can be traded from. Totals are checked against
-         Kraken live, which also says how much an open order has already reserved.
+         What you hold on Kraken, read live and grouped by <b>where each coin
+         sits</b> — your spot wallet, or one of Kraken&apos;s Earn strategies. Spot
+         coins in <b>Auto Earn</b> keep earning without leaving the wallet they trade
+         from. Totals are checked against the ledger the Ledger tab stores.
       </>,
 
    '/kraken/rewards':
       <>
          Everything Kraken has paid you for staking and earning, per asset and per
          year, read from the local database the Ledger tab fills. Moving coins in and
-         out of an earn position is not income and is left out. Each amount is valued
-         at today&apos;s market price, so the USD figures move with the market.
+         out of an earn position is not income and is left out. The switch above the
+         cards values every reward either <b>when received</b>, at the USD rate of the
+         day it was paid, or <b>today</b>, at the current market price.
       </>,
 
    '/kraken/fees':
@@ -60,12 +79,24 @@ const pageHelp: Record<string, ReactNode> = {
          Everything Kraken has charged you since the account was opened — mostly trade
          fees, but also withdrawal fees and anything else the ledger records — read from
          the local database the Ledger tab fills. Fees are totalled in the asset they were
-         charged in, and converted at today&apos;s rate for the USD column and the share.
+         charged in, and each one is converted at the USD rate of the day it was charged
+         for the cost column and the share.
       </>,
+
+   '/kraken/funding': fundingHelp(
+      <>
+         Read from the ledger the Ledger tab stores, so it is as fresh as the last sync. A withdrawal
+         Kraken reversed is left out, and so is moving coins into staking. The <b>balance</b> line is
+         what you held of the asset right after each movement, in every wallet, added up from the
+         same ledger. It only has a point where something moved, so the whisker on each point
+         shows how low and how high the balance went since the bar before, as trades and rewards
+         changed it.
+      </>),
 
    '/kraken/aggregated-trades':
       <>
-         Your trades for one asset, grouped into runs of buys and sells.
+         Your trades for one asset, grouped into runs of buys and sells. Orders in other fiat
+         currencies and stablecoins can be merged in, each converted at the rate of its own day.
       </>,
 
    '/kraken/open-orders':
@@ -105,6 +136,18 @@ const pageHelp: Record<string, ReactNode> = {
          nothing is shown until you fetch. Locked staking positions are listed with the
          date each one is released and the products they were subscribed to.
       </>,
+
+   '/binance/funding': fundingHelp(
+      <>
+         Read from Binance when you sync and kept in a database on this machine: crypto deposits and
+         withdrawals back to the start, and the fiat ones Binance still serves.
+      </>),
+
+   '/bybit/funding': fundingHelp(
+      <>
+         Read from Bybit when you sync and kept in a database on this machine: crypto deposits and
+         withdrawals, on-chain and between Bybit accounts.
+      </>),
 
    '/kraken/portfolios': portfolioHelp('Kraken', ''),
 

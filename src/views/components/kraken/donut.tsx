@@ -129,7 +129,6 @@ export default function Donut({ slices, colorFor, emptyText }: {
                layout="vertical"
                align="right"
                verticalAlign="middle"
-               width={190}
                itemSorter={null}
                content={<ChartLegendContent
                   nameKey="key"

@@ -27,6 +27,8 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![Kraken Fees](public/screenshot-kraken-fees.png)
 
+**Funding** — what you deposited and withdrew, one asset at a time, crypto or fiat: a bar chart that adds up each day's deposits and withdrawals and only draws the days something moved, both lists side by side with sortable columns, and the totals with the net. Read from the synced ledger, so a withdrawal Kraken reversed and coins moved into staking are left out. A line on the chart shows what you held of the asset right after each movement, with a whisker for how low and how high the balance went since the one before.
+
 **Aggregated Trades**
 
 ![Kraken Aggregated Trades](public/screenshot-kraken-aggregated-trades.png)
@@ -56,6 +58,8 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![Binance Staking](public/screenshot-binance-staking.png)
 
+**Funding** — the same Funding page as on Kraken, from Binance's deposit and withdrawal history, kept in the database on this machine. A first sync walks back to 2017 and takes about four minutes; later ones only read what is new. Binance serves only about the last 90 days of fiat deposits and withdrawals, so older ones are kept from the syncs that saw them. The API key needs Enable Reading only.
+
 **Portfolios** — the same portfolios as on Bybit, in your Binance spot wallet. Stops rest on Binance as `STOP_LOSS` orders. A Testnet switch runs it against the Binance spot testnet with its own keys and test funds. The API key needs Enable Reading and Enable Spot & Margin Trading, and never Enable Withdrawals. Turn off paying fees with BNB: a portfolio only holds its own coins, and a fee charged in BNB would show up in it as a negative BNB holding.
 
 </details>
@@ -69,23 +73,37 @@ A collection of cryptocurrency tools for [Kraken](https://www.kraken.com/), [Bin
 
 ![Bybit Portfolios](public/screenshot-bybit-portfolios.png)
 
-Define baskets of coins with target weights inside one Bybit unified trading account, deposit coins already on the account into them, and withdraw or rebalance with spot market orders. Every order is previewed first and only placed once you confirm; each portfolio's holdings are tracked on this machine from its own deposits and fills, so several portfolios can share one account and trades you make on Bybit yourself never touch them. Each target coin can also carry a stop price: the app rests a spot conditional order on Bybit for the portfolio's holding of that coin, keeps it the right size around every run, deposit and adjustment, and when it fires records the sell, drops the coin from the targets and moves its weight to cash so a rebalance does not buy it straight back. A Demo switch runs the same thing against Bybit's demo trading account. The API key needs the Read and Spot trade permissions, and never the Withdrawal one.
+Define baskets of coins with target weights inside one Bybit unified trading account, deposit coins already on the account into them, and withdraw or rebalance with spot orders. By default each order rests on the book as a post-only limit order one tick inside the spread, so it pays the maker fee, and follows the price for a time you set, never further from the previewed price than the slippage you allow; what has not filled by then is cancelled, and a run can be stopped while it waits. Market orders are the other choice. Every order is previewed first and only placed once you confirm; each portfolio's holdings are tracked on this machine from its own deposits and fills, so several portfolios can share one account and trades you make on Bybit yourself never touch them. Each target coin can also carry a stop price: the app rests a spot conditional order on Bybit for the portfolio's holding of that coin, keeps it the right size around every run, deposit and adjustment, and when it fires records the sell, drops the coin from the targets and moves its weight to cash so a rebalance does not buy it straight back. Next to each coin's price, the Supertrend 1D and 1W columns show where the Supertrend (10, 3) indicator flips on its daily and weekly chart, computed from the exchange's own candles the way TradingView does, with how far the price is beyond that level and how far it has to move back for a close to flip the trend, so a stop can be set against it, and the targets dialog sets every stop to its coin's 1D or 1W level in one click. A Demo switch runs the same thing against Bybit's demo trading account. The API key needs the Read and Spot trade permissions, and never the Withdrawal one.
+
+**Funding** — the same Funding page as on Kraken, from Bybit's crypto deposit and withdrawal records, on-chain and between Bybit accounts, kept in the database on this machine. Fiat, card and P2P funding is not in Bybit's API.
 
 </details>
 
 ## Install
 
-Desktop apps for macOS (Apple Silicon) and Windows (x64). No admin rights needed.
+Desktop apps for macOS (Apple Silicon) and Windows (x64).
 
 ### Installing on macOS
 
-**Manual** — take the `.dmg` from the [latest release](https://github.com/nyg/crypto-tools/releases/latest), open it and drag **Crypto Tools.app** into **Applications**. The app is ad-hoc signed but not notarized, so macOS quarantines it after download and blocks the first launch — as *damaged* or *could not verify*, which mean the same thing and neither of which means the app is broken. Open **System Settings → Privacy & Security**, scroll to the bottom and click **Open Anyway**. Alternatively, remove the quarantine flag yourself:
+**Manual**
+
+Download [`crypto-tools-…-macos-arm64.dmg`](https://github.com/nyg/crypto-tools/releases/latest), open it and drag **Crypto Tools.app** into your **Applications** folder. The app is **not notarized**, so macOS quarantines it after download and blocks the first launch (you may see *"Apple could not verify…"* or *"Crypto Tools.app is damaged"*). To let it through, open **System Settings → Privacy & Security**, scroll to the bottom and click **Open Anyway** next to *"Crypto Tools.app" was blocked to protect your Mac*. Alternatively, remove the quarantine flag yourself using the terminal:
 
 ```sh
 xattr -dr com.apple.quarantine "/Applications/Crypto Tools.app"
 ```
 
-**[Homebrew](https://brew.sh)** — handles the above automatically:
+**[Homebrew](https://brew.sh)**
+
+Homebrew is a package manager for macOS. It handles all of the above automatically.
+
+To install it, open Terminal and run:
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+When it finishes, run the commands it prints under *Next steps* to add `brew` to your `PATH`. Then install the app with:
 
 ```sh
 brew install --cask nyg/tap/crypto-tools
@@ -93,21 +111,28 @@ brew install --cask nyg/tap/crypto-tools
 
 ### Installing on Windows
 
-**Manual** — take the `-setup.exe` from the [latest release](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs per-user to `%LOCALAPPDATA%`, needs no admin rights, and shows no window while it works — the **Crypto Tools** shortcut it leaves on your Desktop and in the Start menu is how you know it finished. The app is not code-signed, so SmartScreen shows *Windows protected your PC*: click **More info → Run anyway**, which it offers to administrators only.
+**Manual**
 
-**[Scoop](https://scoop.sh)** — no admin rights, no SmartScreen prompt, and what standard users need:
+Download [`crypto-tools-…-windows-x64-setup.exe`](https://github.com/nyg/crypto-tools/releases/latest) and run it. It installs to `%LOCALAPPDATA%`, i.e. `C:\Users\<you>\AppData\Local`. The app is not code-signed, so SmartScreen will show *"Windows protected your PC"* on first run — click **More info → Run anyway**. No admin rights are needed, but a company laptop's policy may still block the installer. If it does, use Scoop instead.
+
+**[Scoop](https://scoop.sh)**
+
+Scoop is a package manager for Windows, similar to Homebrew for macOS. Use this install method if your company policy restricts manual installs.
+
+To install it, open PowerShell and run:
 
 ```powershell
-# run in PowerShell
-scoop bucket add nyg https://github.com/nyg/scoop-bucket
-scoop install git crypto-tools
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 ```
 
-If you don't have Scoop: `irm get.scoop.sh | iex`. It installs software in `C:\Users\<YOUR USERNAME>\scoop`.
+Then install the app with:
 
-### Updates
-
-The app tells you when a newer release exists — a dot beside the version in the header, and the details in **About**, reachable by clicking that version. It never replaces itself, so Scoop and Homebrew installs stay under their package manager's control.
+```powershell
+scoop install git
+scoop bucket add nyg https://github.com/nyg/scoop-bucket
+scoop install crypto-tools
+```
 
 ## Run locally
 
@@ -120,7 +145,7 @@ bun install
 bun run dev
 ```
 
-The app is then on http://localhost:3000: `bun run dev` starts the Vite dev server (port 3000) and the Hono API server (port 3001), with `/api` proxied to the latter. API keys are set on each exchange's **Settings** tab, the same as in the installed app.
+`bun run dev` starts the Vite dev server and the Hono API server, with `/api` proxied to the latter. Each takes a free port, so several checkouts run side by side, and Vite prints the address to open. Set `VITE_PORT` or `PORT` to choose one yourself. API keys are set on each exchange's **Settings** tab, the same as in the installed app.
 
 Keys are kept in your operating system's credential store — Keychain on macOS, Credential Manager on Windows, libsecret on Linux — and never leave the machine. Where that store is not reachable they fall back to a `0600` file in the app's data directory, and the Settings tab says which of the two holds each key. Keys saved by an earlier version are moved across the first time this one starts.
 

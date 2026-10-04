@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { HttpRequesterError } from '../../errors'
 import {
-   hasKrakenError, krakenErrors, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, takerFeeRate
+   hasKrakenError, krakenErrors, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, tradeFees
 } from './spot'
 import type { KrakenAssetPairs, KrakenOpenOrder } from '../../../types/kraken-api'
 
@@ -107,14 +107,29 @@ describe('a Kraken order settlement', () => {
    })
 })
 
-describe('the Kraken taker fee', () => {
+describe('the Kraken trade fees', () => {
 
-   test('is the highest rate among the pairs asked about, as a fraction', () => {
-      expect(takerFeeRate({ fees: { XZECZUSD: { fee: '0.2500' }, USDCUSD: { fee: '0.1600' } } })).toBe('0.0025')
+   test('are each pair\'s rates as fractions, under the market symbol, whichever pair name Kraken keys them by', () => {
+      const volume = {
+         fees: { XXBTZUSD: { fee: '0.2500' }, ETHEUR: { fee: '0.1600' } },
+         fees_maker: { XXBTZUSD: { fee: '0.1400' }, ETHEUR: { fee: '0.0000' } }
+      }
+
+      expect(tradeFees(volume, markets)).toEqual({
+         BTCUSD: { taker: { buy: '0.0025', sell: '0.0025' }, maker: { buy: '0.0014', sell: '0.0014' } },
+         ETHEUR: { taker: { buy: '0.0016', sell: '0.0016' }, maker: { buy: '0', sell: '0' } }
+      })
    })
 
-   test('is unknown when Kraken reports no pair', () => {
-      expect(takerFeeRate({})).toBeNull()
+   test('charge a maker the taker rate on a pair with no maker schedule', () => {
+      expect(tradeFees({ fees: { XXBTZUSD: { fee: '0.2500' } } }, markets)).toEqual({
+         BTCUSD: { taker: { buy: '0.0025', sell: '0.0025' }, maker: { buy: '0.0025', sell: '0.0025' } }
+      })
+   })
+
+   test('leave out a pair Kraken reports no rate for or the app does not trade', () => {
+      expect(tradeFees({ fees: { XXBTZUSD: {}, DOGEUSD: { fee: '0.4' } } }, markets)).toEqual({})
+      expect(tradeFees({}, markets)).toEqual({})
    })
 })
 

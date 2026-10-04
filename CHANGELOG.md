@@ -1,6 +1,55 @@
 # Changelog
 
 
+## [1.1.0](https://github.com/nyg/crypto-tools/compare/v1.0.0..v1.1.0) - 2026-10-04
+
+### ⛰️  Features
+
+- [`24ce403`](https://github.com/nyg/crypto-tools/commit/24ce4035aa737040e868c04e080a622ff3f8314f) *(kraken)* Show a renamed asset under the ticker it had at the time ([#336](https://github.com/nyg/crypto-tools/issues/336))
+- [`07cb9df`](https://github.com/nyg/crypto-tools/commit/07cb9df10c8d49c2c93dc899514f05cdf91b22be) *(kraken)* Show active and ended earn strategies on the Rewards page ([#334](https://github.com/nyg/crypto-tools/issues/334))
+- [`d5ca147`](https://github.com/nyg/crypto-tools/commit/d5ca1474c97dda27cc4ec681b0eabf638a765528) Add a Funding page for Kraken, Binance and Bybit ([#331](https://github.com/nyg/crypto-tools/issues/331))
+- [`e34ac35`](https://github.com/nyg/crypto-tools/commit/e34ac35790812358cfcd7fc56f44565f5e2bd17a) *(portfolio)* Refine the Supertrend columns and add realized percentages per coin ([#330](https://github.com/nyg/crypto-tools/issues/330))
+- [`5b5195c`](https://github.com/nyg/crypto-tools/commit/5b5195cb8223ba012aba5abfe1c7b52638a8809b) *(portfolio)* Show Supertrend daily and weekly flip prices ([#329](https://github.com/nyg/crypto-tools/issues/329))
+- [`936f105`](https://github.com/nyg/crypto-tools/commit/936f1056e67a67a0fdf9bf8becb148c4435c9d3a) *(kraken)* Convert merged aggregated trades at the rate of each order's day ([#323](https://github.com/nyg/crypto-tools/issues/323))
+- [`f780e26`](https://github.com/nyg/crypto-tools/commit/f780e2649b0606fe399470ed7d75569a99f5d64d) *(portfolio)* Split profit into realized and unrealized with percentages, add fees paid ([#320](https://github.com/nyg/crypto-tools/issues/320))
+- [`af3cd99`](https://github.com/nyg/crypto-tools/commit/af3cd996fc4f17957e160111d2d6e2348e24ddf0) *(portfolio)* Rebalance modes, per-coin exclusion, targets from current weights ([#315](https://github.com/nyg/crypto-tools/issues/315))
+
+### 🐛 Bug Fixes
+
+- [`056f217`](https://github.com/nyg/crypto-tools/commit/056f217bba960d5b97899ad826b62ae77af71fc9) *(desktop)* Use the production data names and migrate the -dev data once ([#338](https://github.com/nyg/crypto-tools/issues/338))
+- [`897d15b`](https://github.com/nyg/crypto-tools/commit/897d15ba37dad0fabc0969be20f499b8e80080ce) *(kraken)* Keep the digit a suffixed ticker ends in ([#339](https://github.com/nyg/crypto-tools/issues/339))
+- [`13b8719`](https://github.com/nyg/crypto-tools/commit/13b87193f03e7e060e2ee94d373bd6f71da844db) *(kraken)* Resolve the assets of delisted crypto-quoted pairs ([#333](https://github.com/nyg/crypto-tools/issues/333))
+- [`1624f95`](https://github.com/nyg/crypto-tools/commit/1624f95dd6be910f6f8e2480627900ef0b0edb1d) Refuse API requests not addressed to localhost ([#326](https://github.com/nyg/crypto-tools/issues/326))
+- [`e8a0490`](https://github.com/nyg/crypto-tools/commit/e8a049034a2068318c65edd988120b781fe358d1) Free ports for every instance, stricter origins and env overrides ([#321](https://github.com/nyg/crypto-tools/issues/321))
+- [`da704fe`](https://github.com/nyg/crypto-tools/commit/da704feaf85474b203905a5aa03573a5a79be9f7) *(ui)* Center loading spinners in the page, card or dialog they load ([#324](https://github.com/nyg/crypto-tools/issues/324))
+
+### 📚 Documentation
+
+- [`c453220`](https://github.com/nyg/crypto-tools/commit/c453220a6f94d8f8ae9cc3b3f75f892658743554) Give each install method its own paragraph and show how to install Homebrew ([#317](https://github.com/nyg/crypto-tools/issues/317))
+
+### ⚙️ Miscellaneous
+
+- [`ab3b6c3`](https://github.com/nyg/crypto-tools/commit/ab3b6c3a034d52545813e11b37b6076d6f0e97c8) *(deps)* Lock file maintenance ([#319](https://github.com/nyg/crypto-tools/issues/319))
+- [`48cbeda`](https://github.com/nyg/crypto-tools/commit/48cbedab1d92468dc57b581362ce8f160bcb3a40) *(desktop)* Migrate to Electrobun 2.0.2 ([#318](https://github.com/nyg/crypto-tools/issues/318))
+
+## [1.0.0](https://github.com/nyg/crypto-tools/compare/v0.9.1..v1.0.0) - 2026-09-27
+
+### ⛰️  Features
+
+- [`2bab2d8`](https://github.com/nyg/crypto-tools/commit/2bab2d8b5344c2ec17ce975c41dcecdeb776b13d) *(kraken)* Value rewards and fees at the USD rate of their own day ([#313](https://github.com/nyg/crypto-tools/issues/313))
+- [`03e619d`](https://github.com/nyg/crypto-tools/commit/03e619d0bd96ebd97d1de87aee8a266a376e0997) *(kraken)* Monthly and weekly rewards chart, grouped ledger amounts, one-decimal share ([#312](https://github.com/nyg/crypto-tools/issues/312))
+- [`7c4b3d8`](https://github.com/nyg/crypto-tools/commit/7c4b3d86f6e69a2303888b777f3a40fd5bc645cb) *(kraken)* Read balance placement from Kraken Earn instead of the ledger ([#311](https://github.com/nyg/crypto-tools/issues/311))
+- [`838bbc6`](https://github.com/nyg/crypto-tools/commit/838bbc6553c71e1f9680c4e75b22e4cbae87748a) *(portfolio)* Fund out-of-band buys, per-pair fees in the preview, rebalance badge, remembered sort, unrealized % ([#310](https://github.com/nyg/crypto-tools/issues/310))
+- [`f1b8d94`](https://github.com/nyg/crypto-tools/commit/f1b8d94c0df867ca67930b704b99233f7ffcafa1) Unique portfolio coins, sortable tables, fee currency notes, scrollable asset list ([#307](https://github.com/nyg/crypto-tools/issues/307))
+
+### 🐛 Bug Fixes
+
+- [`1d27b30`](https://github.com/nyg/crypto-tools/commit/1d27b30301535aee13b7f279193d59ddd7d6d972) *(portfolio)* Leave room for Kraken's buy fee so cash never goes negative ([#308](https://github.com/nyg/crypto-tools/issues/308))
+
+### 📚 Documentation
+
+- [`0b9bfce`](https://github.com/nyg/crypto-tools/commit/0b9bfce280a359f36413bc6e5ab511f0a0535de8) Explain company-blocked SmartScreen and recommend Scoop on Windows ([#314](https://github.com/nyg/crypto-tools/issues/314))
+
 ## [0.9.1](https://github.com/nyg/crypto-tools/compare/v0.9.0..v0.9.1) - 2026-09-21
 
 ### 🐛 Bug Fixes

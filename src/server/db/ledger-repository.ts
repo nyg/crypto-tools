@@ -2,14 +2,15 @@ import Big from 'big.js'
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
 import { getDatabase } from './database'
 import { entryKeyFor } from './entry-key'
+import { tickerOf } from '../adapters/kraken-api/assets'
 import type {
-   BalanceAmountRow, BalanceCountRow, BalanceRewardRow, CountRow, FeeAssetRow, FeeMonthRow,
-   FeeTypeRow, LedgerEntryRow, OtherAccountRow, RewardPeriodRow, RewardRow, SyncStateRow,
-   SyncStateUpdate, TimeRangeRow, ValueRow
+   AssetRangeRow, BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
+   FeeTypeRow, FundingBalanceRow, FundingLedgerRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
+   SyncStateUpdate, TimeRangeRow, UsdValue, ValueRow, WalletAmountRow
 } from '../../types/db'
 import type {
-   BalancePosition, BalanceSummary, ClearResponse, FeeSummary,
-   LedgerEntriesResponse, LedgerFiltersResponse, RewardSummary
+   BalanceSummary, ClearResponse, FeeSummary, LedgerEntriesResponse, LedgerFiltersResponse,
+   RewardAmount, RewardAsset, RewardStrategy, RewardSummary, RewardTotals
 } from '../../types/api'
 import type { LedgerEntry, LedgerFilters, Sort } from '../../types/kraken'
 
@@ -39,6 +40,70 @@ const isReward = `type IN ('staking', 'earn')
 
 const DAY = 86400000
 
+// The export says which wallet a reward was paid into, never which strategy paid it,
+// so the wallet stands in for the strategy. Auto Earn paid into 'earn / liquid' until
+// November 2025 and into the spot wallet since, hence two wallets for one lock type.
+const paidInto = 'CASE WHEN e.type = \'staking\' THEN \'staking\' ELSE e.wallet END'
+
+const LOCK_TYPES: Record<string, string> = {
+   'staking': 'staking',
+   'spot / main': 'flex',
+   'earn / liquid': 'flex',
+   'earn / flexible': 'instant',
+   'earn / bonded': 'bonded',
+   'earn / locked': 'timed'
+}
+
+const lockTypeOf = (paidInto: string): string => LOCK_TYPES[paidInto] ?? paidInto
+
+// Auto Earn pays weekly and has no wallet of its own to hold a balance in, so two
+// weeks without a payout is the only sign the ledger gives that it was switched off.
+const AUTO_EARN_WINDOW = 14 * DAY
+
+const usdRateJoin = `LEFT JOIN asset_usd_rate r ON r.asset = e.base_asset AND r.day = e.time - e.time % ${DAY}`
+
+const usdRate = '(CASE WHEN e.base_asset = \'USD\' THEN 1.0 ELSE r.rate END)'
+
+const usdValueOf = (amount: string) =>
+   `SUM((${amount}) * ${usdRate}) AS value, TOTAL(CASE WHEN ${usdRate} IS NULL THEN ${amount} ELSE 0 END) AS unvalued`
+
+const rewardNet = 'CAST(e.amount AS REAL) - CAST(e.fee AS REAL)'
+
+const feeAmount = 'CAST(e.fee AS REAL)'
+
+const rewardAmountOf = (row: UsdValue & { total: number }): RewardAmount =>
+   ({ amount: row.total, value: row.value, unvalued: row.unvalued })
+
+function addRewardAmount(total: RewardAmount | undefined, row: RewardAmount): RewardAmount {
+   if (!total) return row
+   return {
+      amount: total.amount + row.amount,
+      value: total.value === null && row.value === null ? null : (total.value ?? 0) + (row.value ?? 0),
+      unvalued: total.unvalued + row.unvalued
+   }
+}
+
+const emptyRewardTotals = ({ first, last }: RewardRow): RewardTotals =>
+   ({ total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first, last, byYear: {} })
+
+function addRewardRow(totals: RewardTotals, row: RewardRow): void {
+   const amount = rewardAmountOf(row)
+   totals.byYear[row.year] = addRewardAmount(totals.byYear[row.year], amount)
+   totals.total = addRewardAmount(totals.total, amount)
+   totals.entries += row.entries
+   totals.first = Math.min(totals.first, row.first)
+   totals.last = Math.max(totals.last, row.last)
+}
+
+function strategyOf(asset: RewardAsset, lockType: string, row: RewardRow): RewardStrategy {
+   const known = asset.strategies.find(strategy => strategy.lockType === lockType)
+   if (known) return known
+
+   const strategy: RewardStrategy = { lockType, active: false, ...emptyRewardTotals(row) }
+   asset.strategies.push(strategy)
+   return strategy
+}
+
 function lastCompletePeriods(now = Date.now()) {
 
    const today = new Date(now)
@@ -51,6 +116,29 @@ function lastCompletePeriods(now = Date.now()) {
       week: { from: thisWeek - 7 * DAY, to: thisWeek - 1 },
       month: { from: Date.UTC(year, month - 1, 1), to: thisMonth - 1 }
    }
+}
+
+const MONTHS_CHARTED = 12
+const WEEKS_CHARTED = 52
+
+function chartedBuckets(now = Date.now()) {
+
+   const today = new Date(now)
+   const [year, month, day] = [today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()]
+
+   const thisWeek = Date.UTC(year, month, day) - ((today.getUTCDay() + 6) % 7) * DAY
+
+   return {
+      months: Array.from({ length: MONTHS_CHARTED },
+         (_, index) => Date.UTC(year, month - MONTHS_CHARTED + 1 + index, 1)),
+      weeks: Array.from({ length: WEEKS_CHARTED },
+         (_, index) => thisWeek - (WEEKS_CHARTED - 1 - index) * 7 * DAY)
+   }
+}
+
+const bucketModifiers = {
+   month: ['start of month'],
+   week: ['start of day', 'weekday 0', '-6 days']
 }
 
 const upsertStatement = `
@@ -82,28 +170,33 @@ export default class LedgerRepository {
 
       const insert = this.#db.prepare<void, NamedParams>(upsertStatement)
 
-      this.#db.transaction(() => {
-         for (const entry of entries) {
-            insert.run({
-               $accountId: this.#accountId,
-               $entryKey: entryKeyFor(entry),
-               $txid: entry.txid,
-               $refid: entry.refid,
-               $time: entry.time,
-               $type: entry.type,
-               $subtype: entry.subtype,
-               $aclass: entry.aclass,
-               $asset: entry.asset,
-               $baseAsset: entry.baseAsset,
-               $wallet: entry.wallet,
-               $amount: entry.amount,
-               $fee: entry.fee,
-               $balance: entry.balance,
-               $amountNum: Number(entry.amount),
-               $syncedAt: syncedAt
-            })
-         }
-      })()
+      try {
+         this.#db.transaction(() => {
+            for (const entry of entries) {
+               insert.run({
+                  $accountId: this.#accountId,
+                  $entryKey: entryKeyFor(entry),
+                  $txid: entry.txid,
+                  $refid: entry.refid,
+                  $time: entry.time,
+                  $type: entry.type,
+                  $subtype: entry.subtype,
+                  $aclass: entry.aclass,
+                  $asset: entry.asset,
+                  $baseAsset: entry.baseAsset,
+                  $wallet: entry.wallet,
+                  $amount: entry.amount,
+                  $fee: entry.fee,
+                  $balance: entry.balance,
+                  $amountNum: Number(entry.amount),
+                  $syncedAt: syncedAt
+               })
+            }
+         })()
+      }
+      finally {
+         insert.finalize()
+      }
    }
 
    countEntries(): number {
@@ -138,7 +231,7 @@ export default class LedgerRepository {
          ORDER BY ${column} ${direction}, entry_key ${direction}
          LIMIT ? OFFSET ?`).all(...params, pageSize, page * pageSize)
 
-      return { rows, total, page, pageSize }
+      return { rows: rows.map(row => ({ ...row, ticker: tickerOf(row.asset) })), total, page, pageSize }
    }
 
    distinctFilters(): LedgerFiltersResponse {
@@ -157,17 +250,19 @@ export default class LedgerRepository {
       const params = built.params
 
       const assets = this.#db.query<FeeAssetRow, Params>(`
-         SELECT base_asset AS asset, SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
-         FROM ledger_entry
+         SELECT e.base_asset AS asset, SUM(${feeAmount}) AS total, COUNT(*) AS entries,
+                ${usdValueOf(feeAmount)}
+         FROM ledger_entry e ${usdRateJoin}
          WHERE ${where}
-         GROUP BY base_asset
-         ORDER BY entries DESC, asset`).all(...params)
+         GROUP BY e.base_asset
+         ORDER BY entries DESC, e.base_asset`).all(...params)
 
       const byType = this.#db.query<FeeTypeRow, Params>(`
-         SELECT base_asset AS asset, type, SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
-         FROM ledger_entry
+         SELECT e.base_asset AS asset, e.type AS type, SUM(${feeAmount}) AS total, COUNT(*) AS entries,
+                ${usdValueOf(feeAmount)}
+         FROM ledger_entry e ${usdRateJoin}
          WHERE ${where}
-         GROUP BY base_asset, type
+         GROUP BY e.base_asset, e.type
          ORDER BY entries DESC`).all(...params)
 
       // Months are the finest bucket returned; quarters and years are rolled up from
@@ -175,12 +270,13 @@ export default class LedgerRepository {
       // time is in milliseconds, and integer division by 1000 gives the seconds
       // strftime expects; 'unixepoch' keeps the bucket in UTC like every other date here.
       const byMonth = this.#db.query<FeeMonthRow, Params>(`
-         SELECT strftime('%Y-%m', time / 1000, 'unixepoch') AS month,
-                base_asset AS asset, type,
-                SUM(CAST(fee AS REAL)) AS total, COUNT(*) AS entries
-         FROM ledger_entry
+         SELECT strftime('%Y-%m', e.time / 1000, 'unixepoch') AS month,
+                e.base_asset AS asset, e.type AS type,
+                SUM(${feeAmount}) AS total, COUNT(*) AS entries,
+                ${usdValueOf(feeAmount)}
+         FROM ledger_entry e ${usdRateJoin}
          WHERE ${where}
-         GROUP BY month, base_asset, type
+         GROUP BY month, e.base_asset, e.type
          ORDER BY month`).all(...params)
 
       return {
@@ -191,53 +287,78 @@ export default class LedgerRepository {
       }
    }
 
-   // One row per asset and year, reshaped into the pivot the page draws. Amounts are
-   // net of the fee, like every other total here, and the year is taken in UTC to match
-   // the timestamps Kraken writes.
-   rewardSummary(): RewardSummary {
+   // One row per asset, wallet and year, reshaped into the pivot the page draws. Amounts
+   // are net of the fee, like every other total here, and the year is taken in UTC to
+   // match the timestamps Kraken writes.
+   rewardSummary(now = Date.now()): RewardSummary {
 
       const rows = this.#db.query<RewardRow, Params>(`
-         SELECT base_asset AS asset,
-                CAST(strftime('%Y', time / 1000, 'unixepoch') AS INTEGER) AS year,
-                SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total,
+         SELECT e.base_asset AS asset,
+                ${paidInto} AS paidInto,
+                CAST(strftime('%Y', e.time / 1000, 'unixepoch') AS INTEGER) AS year,
+                SUM(${rewardNet}) AS total,
                 COUNT(*) AS entries,
-                MIN(time) AS first, MAX(time) AS last
-         FROM ledger_entry
+                MIN(e.time) AS first, MAX(e.time) AS last,
+                ${usdValueOf(rewardNet)}
+         FROM ledger_entry e ${usdRateJoin}
          WHERE account_id = ? AND ${isReward}
-         GROUP BY asset, year
-         ORDER BY asset, year`).all(this.#accountId)
+         GROUP BY e.base_asset, paidInto, year
+         ORDER BY e.base_asset, year`).all(this.#accountId)
 
-      const assets = new Map()
+      const assets = new Map<string, RewardAsset>()
 
       for (const row of rows) {
-         const asset = assets.get(row.asset)
-            ?? { asset: row.asset, total: 0, entries: 0, first: row.first, last: row.last, byYear: {} }
+         const asset: RewardAsset = assets.get(row.asset)
+            ?? { asset: row.asset, ...emptyRewardTotals(row), byMonth: {}, byWeek: {}, strategies: [] }
 
-         asset.byYear[row.year] = (asset.byYear[row.year] ?? 0) + row.total
-         asset.total += row.total
-         asset.entries += row.entries
-         asset.first = Math.min(asset.first, row.first)
-         asset.last = Math.max(asset.last, row.last)
+         addRewardRow(asset, row)
+         addRewardRow(strategyOf(asset, lockTypeOf(row.paidInto), row), row)
          assets.set(row.asset, asset)
       }
 
+      this.#markActiveStrategies(assets.values())
+
       const years = [...new Set(rows.map(row => row.year))].toSorted((a, b) => a - b)
 
-      const periodQuery = this.#db.query<RewardPeriodRow, Params>(`
-         SELECT base_asset AS asset,
-                SUM(CAST(amount AS REAL) - CAST(fee AS REAL)) AS total,
-                COUNT(*) AS entries
-         FROM ledger_entry
-         WHERE account_id = ? AND ${isReward} AND time >= ? AND time <= ?
-         GROUP BY asset
-         ORDER BY asset`)
+      const { months, weeks } = chartedBuckets(now)
 
-      const periods = Object.fromEntries(Object.entries(lastCompletePeriods())
+      const bucketQuery = (modifiers: string[]) => this.#db.query<RewardBucketRow, Params>(`
+         SELECT e.base_asset AS asset,
+                CAST(strftime('%s', e.time / 1000, 'unixepoch', ${modifiers.map(modifier => `'${modifier}'`).join(', ')}) AS INTEGER) * 1000 AS start,
+                SUM(${rewardNet}) AS total,
+                ${usdValueOf(rewardNet)}
+         FROM ledger_entry e ${usdRateJoin}
+         WHERE account_id = ? AND ${isReward} AND e.time >= ?
+         GROUP BY e.base_asset, start`)
+
+      for (const row of bucketQuery(bucketModifiers.month).all(this.#accountId, months[0] ?? 0)) {
+         const asset = assets.get(row.asset)
+         if (asset) asset.byMonth[row.start] = rewardAmountOf(row)
+      }
+
+      for (const row of bucketQuery(bucketModifiers.week).all(this.#accountId, weeks[0] ?? 0)) {
+         const asset = assets.get(row.asset)
+         if (asset) asset.byWeek[row.start] = rewardAmountOf(row)
+      }
+
+      const periodQuery = this.#db.query<RewardPeriodRow, Params>(`
+         SELECT e.base_asset AS asset,
+                SUM(${rewardNet}) AS total,
+                COUNT(*) AS entries,
+                ${usdValueOf(rewardNet)}
+         FROM ledger_entry e ${usdRateJoin}
+         WHERE account_id = ? AND ${isReward} AND e.time >= ? AND e.time <= ?
+         GROUP BY e.base_asset
+         ORDER BY e.base_asset`)
+
+      const periods = Object.fromEntries(Object.entries(lastCompletePeriods(now))
          .map(([name, { from, to }]) =>
             [name, { from, to, assets: periodQuery.all(this.#accountId, from, to) }]))
 
       return {
          years,
+         months,
+         weeks,
          periods,
          assets: [...assets.values()],
          entries: rows.reduce((count, row) => count + row.entries, 0),
@@ -246,7 +367,45 @@ export default class LedgerRepository {
       }
    }
 
-   // What is held right now, per asset and per wallet, rebuilt from the entries
+   #markActiveStrategies(assets: Iterable<RewardAsset>): void {
+
+      const held = this.#heldEarnStrategies()
+      const ledgerEnd = this.entryTimeRange().last ?? 0
+
+      for (const asset of assets) {
+         for (const strategy of asset.strategies) {
+            strategy.active = strategy.lockType === 'flex'
+               ? strategy.last >= ledgerEnd - AUTO_EARN_WINDOW
+               : held.has(`${asset.asset} ${strategy.lockType}`)
+         }
+      }
+   }
+
+   #heldEarnStrategies(): Set<string> {
+
+      const amounts = this.#db.query<WalletAmountRow, Params>(`
+         SELECT base_asset AS baseAsset, wallet, amount, fee
+         FROM ledger_entry WHERE account_id = ? AND wallet LIKE 'earn / %'`).all(this.#accountId)
+
+      const totals = new Map<string, Big>()
+
+      for (const row of amounts) {
+         const key = `${row.baseAsset} ${lockTypeOf(row.wallet)}`
+         totals.set(key, (totals.get(key) ?? Big(0)).plus(row.amount || 0).minus(row.fee || 0))
+      }
+
+      return new Set([...totals].filter(([, total]) => total.gt(0)).map(([key]) => key))
+   }
+
+   valuedAssetRanges(): AssetRangeRow[] {
+      return this.#db.query<AssetRangeRow, Params>(`
+         SELECT base_asset AS asset, MIN(time) AS first, MAX(time) AS last
+         FROM ledger_entry
+         WHERE account_id = ? AND (${nonZeroFee} OR (${isReward}))
+         GROUP BY base_asset`).all(this.#accountId)
+   }
+
+   // What is held right now, per asset, rebuilt from the entries
    // themselves rather than read off Kraken's running balance column: that column is
    // only ever a snapshot of the last row written for a wallet, and says nothing about
    // an asset whose most recent entry was somewhere else.
@@ -259,88 +418,46 @@ export default class LedgerRepository {
    balanceSummary(): BalanceSummary {
 
       const amounts = this.#db.query<BalanceAmountRow, Params>(`
-         SELECT base_asset AS baseAsset, wallet, asset AS rawAsset, amount, fee
+         SELECT base_asset AS baseAsset, amount, fee
          FROM ledger_entry WHERE account_id = ?`).all(this.#accountId)
 
-      const positions = new Map<string, Position>()
-      const keyFor = (row: { baseAsset: string, wallet: string }) => `${row.baseAsset} ${row.wallet}`
+      const totals = new Map<string, Big>()
 
       for (const row of amounts) {
-         const position = positions.get(keyFor(row))
-            ?? { asset: row.baseAsset, wallet: row.wallet, amount: Big(0), rawAssets: new Set() }
-
-         position.amount = position.amount.plus(row.amount || 0).minus(row.fee || 0)
-         position.rawAssets.add(row.rawAsset)
-         positions.set(keyFor(row), position)
-      }
-
-      // Counted separately from the fold: the row count and the first and last time an
-      // asset moved are what SQLite is good at, and neither needs exact arithmetic.
-      for (const row of this.#db.query<BalanceCountRow, Params>(`
-         SELECT base_asset AS baseAsset, wallet, COUNT(*) AS entries,
-                MIN(time) AS first, MAX(time) AS last
-         FROM ledger_entry WHERE account_id = ?
-         GROUP BY base_asset, wallet`).all(this.#accountId)) {
-         const position = positions.get(keyFor(row))
-         if (position) Object.assign(position, { entries: row.entries, first: row.first, last: row.last })
-      }
-
-      // When a wallet last paid out. Kraken now pays Auto Earn rewards straight into
-      // the spot wallet instead of moving the coins, so this is the only thing that
-      // tells a spot position that earns from one that just sits there.
-      for (const row of this.#db.query<BalanceRewardRow, Params>(`
-         SELECT base_asset AS baseAsset, wallet, MAX(time) AS lastRewardAt,
-                COUNT(*) AS rewardEntries
-         FROM ledger_entry
-         WHERE account_id = ? AND ${isReward}
-         GROUP BY base_asset, wallet`).all(this.#accountId)) {
-         const position = positions.get(keyFor(row))
-         if (position) Object.assign(position, { lastRewardAt: row.lastRewardAt, rewardEntries: row.rewardEntries })
-      }
-
-      const assets = new Map<string, { asset: string, total: Big, positions: BalancePosition[] }>()
-
-      for (const position of positions.values()) {
-
-         // An exactly zero position is one that was closed, not a dust holding: the
-         // coins left, and listing it would bury the assets that are still held.
-         if (position.amount.eq(0)) continue
-
-         const asset = assets.get(position.asset)
-            ?? { asset: position.asset, total: Big(0), positions: [] as BalancePosition[] }
-
-         asset.total = asset.total.plus(position.amount)
-         asset.positions.push({
-            wallet: position.wallet,
-            amount: position.amount.toFixed(),
-            amountNum: Number(position.amount),
-            // Sorted so that the plain ticker leads and a legacy staking name (DOT.S)
-            // reads as the footnote it is.
-            rawAssets: [...position.rawAssets].toSorted(),
-            entries: position.entries ?? 0,
-            first: position.first ?? null,
-            last: position.last ?? null,
-            lastRewardAt: position.lastRewardAt ?? null,
-            rewardEntries: position.rewardEntries ?? 0
-         })
-         assets.set(position.asset, asset)
+         const total = totals.get(row.baseAsset) ?? Big(0)
+         totals.set(row.baseAsset, total.plus(row.amount || 0).minus(row.fee || 0))
       }
 
       const range = this.entryTimeRange()
-      const held = [...assets.values()]
 
       return {
-         assets: held.map(asset => ({
-            asset: asset.asset,
-            total: asset.total.toFixed(),
-            totalNum: Number(asset.total),
-            positions: asset.positions.toSorted((a, b) => b.amountNum - a.amountNum)
-         })),
-         positions: held.reduce((count, asset) => count + asset.positions.length, 0),
+         assets: [...totals]
+            .filter(([, total]) => !total.eq(0))
+            .map(([asset, total]) => ({ asset, total: total.toFixed(), totalNum: Number(total) })),
          entries: amounts.length,
          first: range.first,
          last: range.last
       }
+   }
+
+   // A suffixed asset (DOT.P, ETH2.S) is a staking or parachain position: Kraken writes
+   // moving coins into one as a deposit too, and no money crossed the account's edge.
+   fundingEntries(): FundingLedgerRow[] {
+      return this.#db.query<FundingLedgerRow, Params>(`
+         SELECT entry_key AS entryKey, refid, time, type, base_asset AS asset, amount, fee
+         FROM ledger_entry
+         WHERE account_id = ? AND type IN ('deposit', 'withdrawal') AND asset NOT LIKE '%.%'
+         ORDER BY time, entry_key`).all(this.#accountId)
+   }
+
+   fundedAssetEntries(): FundingBalanceRow[] {
+      return this.#db.query<FundingBalanceRow, Params>(`
+         SELECT base_asset AS asset, time, amount, fee
+         FROM ledger_entry
+         WHERE account_id = ? AND base_asset IN (
+            SELECT base_asset FROM ledger_entry
+            WHERE account_id = ? AND type IN ('deposit', 'withdrawal') AND asset NOT LIKE '%.%')
+         ORDER BY time`).all(this.#accountId, this.#accountId)
    }
 
    readSyncState(): SyncStateRow | null {
@@ -418,20 +535,6 @@ export default class LedgerRepository {
          FROM sync_state s
          WHERE s.account_id <> ?`).all(this.#accountId)
    }
-}
-
-// The fold that rebuilds a balance from the entries themselves, before the exact
-// amounts are turned back into the strings the page reads.
-interface Position {
-   asset: string
-   wallet: string
-   amount: Big
-   rawAssets: Set<string>
-   entries?: number
-   first?: number
-   last?: number
-   lastRewardAt?: number
-   rewardEntries?: number
 }
 
 interface EntriesQuery {

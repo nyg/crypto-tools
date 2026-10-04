@@ -1,10 +1,12 @@
 import { httpRequester } from '../http-requester/server-http-requester'
+import { pacer } from '../http-requester/pacer'
 import { authenticator } from './authenticator'
 import type { Credentials } from '../../../types/credentials'
 import type {
-   BinanceAccount, BinanceBookTicker, BinanceEnvironment, BinanceExchangeInfo, BinanceFiatFunding,
-   BinanceKLine, BinanceOrder, BinanceOrderAck, BinanceOrderParams, BinanceOrderReference,
-   BinanceSpotBalance, BinanceStakingPosition, BinanceTickerPrice, BinanceTrade
+   BinanceAccount, BinanceBookTicker, BinanceCommission, BinanceDeposit, BinanceEnvironment, BinanceExchangeInfo,
+   BinanceFiatFunding, BinanceHistoryParams, BinanceKLine, BinanceOrder, BinanceOrderAck, BinanceOrderParams,
+   BinanceOrderReference, BinanceSpotBalance, BinanceStakingPosition, BinanceTickerPrice, BinanceTrade,
+   BinanceWithdrawal
 } from '../../../types/binance-api'
 
 const hosts: Record<BinanceEnvironment, string> = {
@@ -20,6 +22,7 @@ const bookTickerEndpoint = '/api/v3/ticker/bookTicker'
 const klinesEndpoint = '/api/v3/klines' // candlestick data
 
 const accountEndpoint = '/api/v3/account'
+const commissionEndpoint = '/api/v3/account/commission'
 const orderEndpoint = '/api/v3/order'
 const openOrdersEndpoint = '/api/v3/openOrders'
 const myTradesEndpoint = '/api/v3/myTrades'
@@ -27,6 +30,13 @@ const myTradesEndpoint = '/api/v3/myTrades'
 const userAssetEndpoint = '/sapi/v3/asset/getUserAsset'
 const fiatFundingEndpoint = '/sapi/v1/fiat/orders'
 const stakingPositionEndpoint = '/sapi/v1/staking/position'
+const depositHistoryEndpoint = '/sapi/v1/capital/deposit/hisrec'
+const withdrawHistoryEndpoint = '/sapi/v1/capital/withdraw/history'
+
+// Each of these endpoints has its own budget of 180000 weight a minute per account:
+// a withdrawal history call costs 18000 of it and a fiat orders call 45000.
+const paceWithdrawHistory = pacer(6500)
+const paceFiatFunding = pacer(16000)
 
 /* Public endpoints */
 
@@ -56,6 +66,10 @@ export async function fetchKLines(symbol: string, interval: string, startTime: n
       { symbol, interval, startTime, endTime, limit })
 }
 
+export async function fetchRecentKLines(symbol: string, interval: string, limit: number): Promise<BinanceKLine[]> {
+   return await httpRequester.public<BinanceKLine[]>(urlFor(klinesEndpoint), { symbol, interval, limit })
+}
+
 interface FiatFundingParams {
    transactionType: number
    fromDate: number
@@ -74,6 +88,7 @@ export async function fetchSpotBalance(apiCredentials: Credentials): Promise<Bin
 }
 
 export async function fetchFiatFunding(apiCredentials: Credentials, { transactionType, fromDate, toDate, pageIndex = 1, pageSize = 500 }: FiatFundingParams): Promise<BinanceFiatFunding> {
+   await paceFiatFunding()
    return await httpRequester.private<BinanceFiatFunding>(
       urlFor(fiatFundingEndpoint),
       authenticator(apiCredentials),
@@ -86,6 +101,21 @@ export async function fetchFiatFunding(apiCredentials: Credentials, { transactio
             rows: pageSize
          }
       })
+}
+
+export async function fetchDepositHistory(apiCredentials: Credentials, params: BinanceHistoryParams): Promise<BinanceDeposit[]> {
+   return await httpRequester.private<BinanceDeposit[]>(
+      urlFor(depositHistoryEndpoint),
+      authenticator(apiCredentials),
+      { searchParams: { ...params } })
+}
+
+export async function fetchWithdrawHistory(apiCredentials: Credentials, params: BinanceHistoryParams): Promise<BinanceWithdrawal[]> {
+   await paceWithdrawHistory()
+   return await httpRequester.private<BinanceWithdrawal[]>(
+      urlFor(withdrawHistoryEndpoint),
+      authenticator(apiCredentials),
+      { searchParams: { ...params } })
 }
 
 /** Retrieves locked staking positions, ignores flexible and locked DeFi. */
@@ -127,6 +157,10 @@ const tradingRequest = <T>(
 
 export async function fetchAccount(environment: BinanceEnvironment, apiCredentials: Credentials): Promise<BinanceAccount> {
    return await tradingRequest(environment, apiCredentials, accountEndpoint, 'GET', { omitZeroBalances: true })
+}
+
+export async function fetchCommission(environment: BinanceEnvironment, apiCredentials: Credentials, symbol: string): Promise<BinanceCommission> {
+   return await tradingRequest(environment, apiCredentials, commissionEndpoint, 'GET', { symbol })
 }
 
 export async function createOrder(environment: BinanceEnvironment, apiCredentials: Credentials, order: BinanceOrderParams): Promise<BinanceOrderAck> {

@@ -4,7 +4,7 @@ import SelectField from '../lib/select-field'
 import Checkbox from '../lib/checkbox'
 import DateField from '../lib/date-field'
 import { asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
-import type { MarketRow } from '../../../types/db'
+import type { Market } from '../../../types/api'
 
 export interface AggregateFilterValues {
    pairKey: string
@@ -23,9 +23,10 @@ const orderOptions = [
    { value: 'asc', label: 'Oldest first' }
 ]
 
-export default function AggregateFilters({ filters, markets, onChange, onReset }: {
+export default function AggregateFilters({ filters, markets, mergeable, onChange, onReset }: {
    filters: AggregateFilterValues
-   markets: MarketRow[]
+   markets: Market[]
+   mergeable: boolean
    onChange: (filters: AggregateFilterValues) => void
    onReset: () => void
 }) {
@@ -44,7 +45,7 @@ export default function AggregateFilters({ filters, markets, onChange, onReset }
                label="Pair"
                value={filters.pairKey}
                onValueChange={(value) => update({ pairKey: value })}
-               options={markets.map(entry => ({ value: entry.pairKey, label: entry.pairKey }))}
+               options={markets.map(entry => ({ value: entry.pairKey, label: entry.label }))}
                placeholder="Pick a pair"
                searchPlaceholder="Search pairs…"
                emptyText="No pair found." />
@@ -74,7 +75,9 @@ export default function AggregateFilters({ filters, markets, onChange, onReset }
 
             <Checkbox
                name="aggregate-all-quotes"
-               checked={filters.includeAllQuotes}
+               checked={filters.includeAllQuotes && mergeable}
+               disabled={!mergeable}
+               title={mergeable ? undefined : 'Only for a pair quoted in a fiat currency or a stablecoin.'}
                onChange={(e) => update({ includeAllQuotes: e.target.checked })}
                label="Include other fiat currencies and stablecoins" />
 

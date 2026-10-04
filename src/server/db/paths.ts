@@ -1,7 +1,9 @@
 import { existsSync, mkdirSync, renameSync, statSync } from 'fs'
 import os from 'os'
 import path from 'path'
+import { dataProfile } from '../environment'
 import { messageOf } from '../errors'
+import type { DataProfile } from '../environment'
 
 // macOS and Windows name application data folders after the app as the user sees it;
 // the XDG spec wants a lowercase, machine-readable name. Both used to be 'CryptoTools',
@@ -52,10 +54,16 @@ export function resolveDataDir(): string {
    return dir
 }
 
-// Separate file names so `bun run dev` never writes into the installed app's data.
-export function resolveDbPath(): string {
-   const name = process.env.NODE_ENV === 'production' ? 'ledger.db' : 'ledger-dev.db'
-   return path.join(resolveDataDir(), name)
+const DATABASE_NAMES: Record<DataProfile, string> = {
+   production: 'ledger.db',
+   development: 'ledger-dev.db'
+}
+
+// Separate file names so `bun run dev` never writes into the installed app's data. The
+// entry point picks the profile with useProductionData(): NODE_ENV cannot, because the
+// desktop bundler inlines it as 'development' in a released build too.
+export function resolveDbPath(profile: DataProfile = dataProfile()): string {
+   return path.join(resolveDataDir(), DATABASE_NAMES[profile])
 }
 
 export function dbSizeBytes(): number {

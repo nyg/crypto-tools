@@ -1,5 +1,6 @@
 import KrakenAPI from '../../adapters/kraken-api/adapter'
-import { krakenErrors } from '../../adapters/kraken-api/spot'
+import { mondayWeeks } from '../../adapters/kraken-api/ohlc'
+import { hasKrakenError, krakenErrors } from '../../adapters/kraken-api/spot'
 import { accountIdFor } from '../../db/entry-key'
 import { krakenAccountId } from '../../settings'
 import CacheMap from './cache-map'
@@ -8,19 +9,25 @@ import type { HttpRequesterError } from '../../errors'
 import type { Credentials } from '../../../types/credentials'
 import type { KrakenSpotMarket } from '../../../types/kraken'
 import type {
-   ExchangeAccount, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotMarket, SpotPrice,
-   StopOrderRequest, WalletCoin
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
+   SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
 const MARKETS_TTL_MS = 60 * 60 * 1000
+const CANDLES_TTL_MS = 5 * 60 * 1000
+const POST_ONLY_REFUSED = 'EOrder:Post only order'
 const AMBIGUOUS_ERRORS = ['EService:Unavailable', 'EService:Busy', 'EService:Deadline elapsed', 'EGeneral:Internal error']
 
 const markets = new CacheMap<KrakenSpotMarket[]>(MARKETS_TTL_MS)
+const dailyCandles = new CacheMap<SpotCandle[]>(CANDLES_TTL_MS)
 
 export default class KrakenExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 10
    readonly buyFeeInQuote = true
+   // A cancel within 15 s of placing counts several times over against the pair's order
+   // rate limit, and every QueryOrders counts against the API counter.
+   readonly chasePacing = { pollMs: 5000, moveAfterMs: 15000 }
 
    readonly #api: KrakenAPI
    readonly #apiKey: string
@@ -46,14 +53,30 @@ export default class KrakenExchange implements PortfolioExchange {
       return this.#api.fetchSpotPrices(await this.#markets())
    }
 
-   async takerFeeRate(symbols: string[]): Promise<string | null> {
-      const pairs = (await this.#markets()).filter(({ symbol }) => symbols.includes(symbol)).map(({ altname }) => altname)
-      return this.#api.fetchTakerFeeRate(pairs)
+   async candles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
+      const daily = await dailyCandles.get(symbol, async () => {
+         const { altname } = await this.#market(symbol)
+         return this.#api.fetchDailyCandles(altname)
+      })
+      return interval === '1w' ? mondayWeeks(daily) : daily
+   }
+
+   async tradeFees(symbols: string[]): Promise<Record<string, TradeFees>> {
+      return this.#api.fetchTradeFees((await this.#markets()).filter(({ symbol }) => symbols.includes(symbol)))
    }
 
    async placeOrder(order: OrderRequest): Promise<string> {
       const { altname } = await this.#market(order.symbol)
       return this.#api.placeMarketOrder(altname, order)
+   }
+
+   async placeLimitOrder(order: LimitOrderRequest): Promise<string> {
+      const { altname } = await this.#market(order.symbol)
+      return this.#api.placeLimitOrder(altname, order)
+   }
+
+   cancelOrder(lookup: OrderLookup): Promise<void> {
+      return this.#api.cancelOrderIfOpen(lookup)
    }
 
    async settleOrder(lookup: OrderLookup): Promise<OrderSettlement | null> {
@@ -81,6 +104,10 @@ export default class KrakenExchange implements PortfolioExchange {
 
    isAmbiguous(error: HttpRequesterError): boolean {
       return krakenErrors(error).some(message => AMBIGUOUS_ERRORS.includes(message))
+   }
+
+   isPostOnlyRefusal(error: HttpRequesterError): boolean {
+      return hasKrakenError(error, POST_ONLY_REFUSED)
    }
 
    #markets(): Promise<KrakenSpotMarket[]> {

@@ -5,7 +5,10 @@ import tradeRoutes from './kraken-trades'
 import { withAccount, withCredentials } from './with-account'
 import { dbSizeBytes } from '../db/paths'
 import { jobFor, isRunning, requestCancel, startSync } from '../services/kraken-ledger-sync'
+import { refreshUsdRates } from '../services/usd-rate-backfill'
+import { foldLedgerFunding, withBalances } from '../services/funding/kraken-funding'
 import type { RequestBody } from './with-account'
+import type { FundingResponse } from '../../types/api'
 import type { LedgerFilters, Sort } from '../../types/kraken'
 
 // The browser's JSON is unknown until a handler says what it expects of it; these are
@@ -56,14 +59,29 @@ app.post('/entries', async (c) => withAccount(c, ({ body, accountId }) =>
 app.get('/filters', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new LedgerRepository(accountId).distinctFilters())))
 
-app.post('/fees', async (c) => withAccount(c, ({ body, accountId }) =>
-   c.json(new LedgerRepository(accountId).feeSummary(filtersOf(body)))))
+app.post('/fees', async (c) => withAccount(c, ({ body, accountId }) => {
+   const repository = new LedgerRepository(accountId)
+   const ratesPending = refreshUsdRates(accountId)
+   return c.json({ ...repository.feeSummary(filtersOf(body)), ratesPending })
+}))
 
-app.get('/rewards', async (c) => withAccount(c, ({ accountId }) =>
-   c.json(new LedgerRepository(accountId).rewardSummary())))
+app.get('/rewards', async (c) => withAccount(c, ({ accountId }) => {
+   const repository = new LedgerRepository(accountId)
+   const ratesPending = refreshUsdRates(accountId)
+   return c.json({ ...repository.rewardSummary(), ratesPending })
+}))
 
 app.get('/balances', async (c) => withAccount(c, ({ accountId }) =>
    c.json(new LedgerRepository(accountId).balanceSummary())))
+
+app.get('/funding', async (c) => withAccount(c, ({ accountId }) => {
+   const repository = new LedgerRepository(accountId)
+   return c.json({
+      movements: withBalances(foldLedgerFunding(repository.fundingEntries()), repository.fundedAssetEntries()),
+      lastSyncedAt: repository.readSyncState()?.lastSyncedAt ?? null,
+      job: null
+   } satisfies FundingResponse)
+}))
 
 app.post('/clear', async (c) => withAccount(c, ({ accountId }) => {
 

@@ -2,11 +2,9 @@ import { cn } from '@/lib/utils'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { asDecimal } from '../../../utils/format'
 import { asCount } from '../lib/filter-options'
-import { convertQuotes } from '../../lib/quote-conversion'
-import type Big from 'big.js'
-import type { AggregationSummary, QuoteTotals } from '../../../types/api'
+import Big from 'big.js'
+import type { AggregationSummary, ConvertedTotals, QuoteTotals } from '../../../types/api'
 import type { MarketRow } from '../../../types/db'
-import type { RateAt } from '../../lib/quote-conversion'
 
 const decimalsIn = (value: string) => (String(value).split('.')[1] ?? '').length
 
@@ -19,26 +17,35 @@ const NET_FLOOR = 1 / 3
 
 const VWAP_HINT = 'Volume-weighted average price: the average price paid or received per unit, with the bigger orders counting more than the smaller ones.'
 
+const asTotals = (totals: ConvertedTotals) => ({
+   volume: Big(totals.volume),
+   cost: Big(totals.cost),
+   fee: Big(totals.fee),
+   price: totals.price === null ? null : Big(totals.price),
+   converted: totals.converted,
+   missing: totals.unconverted.map(left => left.quoteAsset)
+})
+
 export default function AggregateSummary({
-   summary, market, targetQuote, rateAt, isLoadingRates
+   summary, market, targetQuote, ratesPending
 }: {
    summary?: AggregationSummary
    market?: MarketRow | null
    targetQuote: string
-   rateAt: RateAt
-   isLoadingRates?: boolean
+   ratesPending?: boolean
 }) {
 
    if (!market || !summary) return null
 
-   const bought = convertQuotes(summary.buy.quotes, targetQuote, rateAt)
-   const sold = convertQuotes(summary.sell.quotes, targetQuote, rateAt)
+   const bought = asTotals(summary.buy.totals)
+   const sold = asTotals(summary.sell.totals)
 
    const allQuotes = [...summary.buy.quotes, ...summary.sell.quotes]
 
    if (allQuotes.length === 0) return null
 
-   const missing = isLoadingRates ? [] : [...new Set([...bought.missing, ...sold.missing])]
+   const missing = [...new Set([...bought.missing, ...sold.missing])]
+   const converted = bought.converted || sold.converted
 
    const volume = bought.volume.minus(sold.volume)
    const cost = bought.cost.minus(sold.cost)
@@ -148,9 +155,16 @@ export default function AggregateSummary({
             </TableBody>
          </Table>
 
+         {converted &&
+            <p className="text-xs text-muted-foreground">
+               Orders in another currency are converted to {targetQuote} at the rate of their own day.
+            </p>}
+
          {missing.length > 0 &&
             <p className="text-xs text-muted-foreground">
-               No rate for {missing.join(', ')}, so those orders are left out.
+               {ratesPending
+                  ? `Fetching the daily rates to convert ${missing.join(', ')} to ${targetQuote}, so some orders are left out until then.`
+                  : `No rate to convert ${missing.join(', ')} to ${targetQuote} on the day of some orders, so those orders are left out.`}
             </p>}
 
          <div className="border-t border-border" />

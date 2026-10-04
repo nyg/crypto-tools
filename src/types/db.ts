@@ -1,4 +1,7 @@
-import type { MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, StopStatus } from './portfolio'
+import type { FundingKind, FundingStatus } from './funding'
+import type {
+   Execution, MovementKind, OrderSide, RunKind, RunOrderStatus, RunStatus, SizeUnit, StopStatus
+} from './portfolio'
 import type { XStockType } from './xstock'
 
 // The row shapes the repositories read back out of SQLite. Column names are aliased
@@ -17,8 +20,16 @@ export interface ValueRow {
    value: string
 }
 
+export interface TimeRow {
+   time: number | null
+}
+
 export interface UserVersionRow {
    user_version: number
+}
+
+export interface TableNameRow {
+   name: string
 }
 
 export interface LedgerEntryRow {
@@ -35,7 +46,12 @@ export interface LedgerEntryRow {
    balance: string
 }
 
-export interface FeeAssetRow {
+export interface UsdValue {
+   value: number | null
+   unvalued: number
+}
+
+export interface FeeAssetRow extends UsdValue {
    asset: string
    total: number
    entries: number
@@ -49,8 +65,9 @@ export interface FeeMonthRow extends FeeTypeRow {
    month: string
 }
 
-export interface RewardRow {
+export interface RewardRow extends UsdValue {
    asset: string
+   paidInto: string
    year: number
    total: number
    entries: number
@@ -58,33 +75,41 @@ export interface RewardRow {
    last: number
 }
 
-export interface RewardPeriodRow {
+export interface RewardBucketRow extends UsdValue {
+   asset: string
+   start: number
+   total: number
+}
+
+export interface RewardPeriodRow extends UsdValue {
    asset: string
    total: number
    entries: number
 }
 
-export interface BalanceAmountRow {
-   baseAsset: string
-   wallet: string
-   rawAsset: string
-   amount: string
-   fee: string
+export type UsdRateSource = 'kraken-daily' | 'kraken-weekly' | 'ecb' | 'binance-daily'
+
+export interface UsdRateRow {
+   asset: string
+   day: number
+   rate: number
+   source: UsdRateSource
 }
 
-export interface BalanceCountRow {
-   baseAsset: string
-   wallet: string
-   entries: number
+export interface AssetRangeRow {
+   asset: string
    first: number
    last: number
 }
 
-export interface BalanceRewardRow {
+export interface BalanceAmountRow {
    baseAsset: string
+   amount: string
+   fee: string
+}
+
+export interface WalletAmountRow extends BalanceAmountRow {
    wallet: string
-   lastRewardAt: number
-   rewardEntries: number
 }
 
 export interface SyncStateRow {
@@ -225,6 +250,7 @@ export interface PortfolioRunRow {
    withdrawn: string
    reserve: string
    slippage: string
+   execution: Execution
    error: string | null
    startedAt: number
    finishedAt: number | null
@@ -241,6 +267,7 @@ export interface PortfolioOrderRow {
    quoteAsset: string
    unit: SizeUnit
    requested: string
+   limitPrice: string | null
    orderId: string | null
    status: RunOrderStatus
    base: string
@@ -249,4 +276,38 @@ export interface PortfolioOrderRow {
    error: string | null
    createdAt: number
    updatedAt: number
+}
+
+export interface FundingLedgerRow {
+   entryKey: string
+   refid: string
+   time: number
+   type: FundingKind
+   asset: string
+   amount: string
+   fee: string
+}
+
+export interface FundingBalanceRow {
+   asset: string
+   time: number
+   amount: string
+   fee: string
+}
+
+export interface FundingAccountRow {
+   accountId: string
+   lastSyncedAt: number | null
+}
+
+export interface FundingMovementRow {
+   feed: string
+   movementId: string
+   kind: FundingKind
+   asset: string
+   amount: string
+   fee: string
+   method: string
+   status: FundingStatus
+   time: number
 }

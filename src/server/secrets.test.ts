@@ -77,9 +77,9 @@ interface Account { dataDir: string, service: string }
 
 function account(): Account {
    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-secrets-'))
-   const service = `io.github.nyg.crypto-tools.test.${process.pid}.${services.length}`
+   const service = `io.github.nyg.crypto-tools.test.${process.pid}.${homes.length}`
    homes.push(dataDir)
-   services.push(service)
+   services.push(service, `${service}.dev`)
    return { dataDir, service }
 }
 
@@ -94,7 +94,6 @@ function run(
       stdin: Buffer.from(CHILD),
       env: {
          ...process.env,
-         NODE_ENV: 'production',
          CRYPTO_TOOLS_DATA_DIR: dataDir,
          CRYPTO_TOOLS_KEYCHAIN_SERVICE: service,
          TEST_SECRETS_MODULE: SECRETS_MODULE,
@@ -281,7 +280,7 @@ describe('environment overrides', () => {
       expect(read?.store).toBe('env')
    })
 
-   needsStore('are ignored in a packaged build that never asks', () => {
+   needsStore('are ignored in a packaged build, which never asks', () => {
       const { read } = run([
          { op: 'save', value: { anthropic: { apiKey: 'stored-key' } } },
          { op: 'read', provider: 'anthropic' }

@@ -1,6 +1,6 @@
-import { normalizeAsset } from './assets'
+import { normalizeAsset, tickerOf } from './assets'
 import type { KrakenAssetPairs } from '../../../types/kraken-api'
-import type { PairAssets, PairIndex, ResolvedPair } from '../../../types/kraken'
+import type { PairIndex, ResolvedPair, UsdPair } from '../../../types/kraken'
 
 // The trades export writes the pair the way it was spelled at the time of the trade,
 // which is not consistently any one of the three names AssetPairs returns: old rows
@@ -12,19 +12,24 @@ import type { PairAssets, PairIndex, ResolvedPair } from '../../../types/kraken'
 // which would read the slash as part of the base asset.
 const indexKey = (name: string) => name.toUpperCase().replace('/', '')
 
+// The assets are what the pair is grouped under, and the key is the pair as it was
+// traded: MATIC/EUR is a trade of POL for EUR, and still reads MATIC/EUR.
+const pairOf = (base: string, quote: string): ResolvedPair => ({
+   baseAsset: normalizeAsset(base),
+   quoteAsset: normalizeAsset(quote),
+   pairKey: `${tickerOf(base)}/${tickerOf(quote)}`
+})
+
 export function buildPairIndex(assetPairs: KrakenAssetPairs | undefined): PairIndex {
 
    const index: PairIndex = new Map()
 
    for (const [key, pair] of Object.entries(assetPairs ?? {})) {
 
-      const assets = {
-         baseAsset: normalizeAsset(pair.base),
-         quoteAsset: normalizeAsset(pair.quote)
-      }
+      const resolved = pairOf(pair.base, pair.quote)
 
       for (const name of [key, pair.altname, pair.wsname]) {
-         if (name) index.set(indexKey(name), assets)
+         if (name) index.set(indexKey(name), resolved)
       }
    }
 
@@ -35,20 +40,18 @@ export function buildPairIndex(assetPairs: KrakenAssetPairs | undefined): PairIn
 // XBTUSDT would split as XBTUSD + T.
 const quoteAssets = [
    'USDT', 'USDC', 'ZUSD', 'ZEUR', 'ZGBP', 'ZCAD', 'ZJPY', 'ZAUD', 'ZCHF',
-   'XXBT', 'USD', 'EUR', 'GBP', 'CHF', 'CAD', 'AUD', 'JPY', 'XBT', 'BTC', 'ETH', 'DAI'
+   'XXBT', 'XLTC', 'XNMC', 'USD', 'EUR', 'GBP', 'CHF', 'CAD', 'AUD', 'JPY', 'XBT', 'BTC', 'ETH', 'DAI',
+   'LTC', 'NMC', 'POL'
 ].toSorted((a, b) => b.length - a.length)
 
 // Pairs that have been delisted are gone from AssetPairs entirely, so a trade in one
 // would otherwise lose its assets. Splitting on a known quote ticker recovers most of
 // them; anything left keeps the raw pair, which is still recognisable on screen.
-function splitOnQuote(pair: string): PairAssets | null {
+function splitOnQuote(pair: string): ResolvedPair | null {
 
    for (const quote of quoteAssets) {
       if (pair.length > quote.length && pair.endsWith(quote)) {
-         return {
-            baseAsset: normalizeAsset(pair.slice(0, -quote.length)),
-            quoteAsset: normalizeAsset(quote)
-         }
+         return pairOf(pair.slice(0, -quote.length), quote)
       }
    }
 
@@ -61,8 +64,40 @@ export function resolvePair(pair: string | undefined, index: PairIndex | undefin
    if (raw === '') return { baseAsset: '', quoteAsset: '', pairKey: '' }
 
    const name = indexKey(raw)
-   const assets = index?.get(name) ?? splitOnQuote(name)
-   if (!assets) return { baseAsset: '', quoteAsset: '', pairKey: name }
+   return index?.get(name) ?? splitOnQuote(name) ?? { baseAsset: '', quoteAsset: '', pairKey: name }
+}
 
-   return { ...assets, pairKey: `${assets.baseAsset}/${assets.quoteAsset}` }
+// Matched exactly rather than through normalizeAsset, which strips the digit
+// off Kraken's USD1 stablecoin and would let the thin ETHUSD1 book stand in
+// for ETHUSD.
+const isUsd = (asset: string) => ['USD', 'ZUSD'].includes(asset)
+
+export function usdPairsFor(assetPairs: KrakenAssetPairs | undefined, wanted: Set<string>): Map<string, UsdPair> {
+
+   const tradeable = Object.values(assetPairs ?? {}).filter(pair => {
+      // Darkpool pairs (XBT/USD.d) quote the same asset but trade separately, and
+      // an offline pair has no meaningful last trade.
+      if (!pair.altname || pair.altname.includes('.')) return false
+      return !pair.status || pair.status === 'online'
+   })
+
+   const pairs = new Map<string, UsdPair>()
+
+   for (const pair of tradeable) {
+      if (!isUsd(pair.quote)) continue
+      const baseAsset = normalizeAsset(pair.base)
+      if (wanted.has(baseAsset) && !pairs.has(baseAsset)) {
+         pairs.set(baseAsset, { altname: pair.altname, inverse: false })
+      }
+   }
+
+   for (const pair of tradeable) {
+      if (!isUsd(pair.base)) continue
+      const quoteAsset = normalizeAsset(pair.quote)
+      if (wanted.has(quoteAsset) && !pairs.has(quoteAsset)) {
+         pairs.set(quoteAsset, { altname: pair.altname, inverse: true })
+      }
+   }
+
+   return pairs
 }

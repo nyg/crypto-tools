@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { TriangleAlertIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,7 +19,7 @@ const sortKeys: SortKeys<AccountCoin> = {
 export default function AccountSummary({ overview, label }: { overview: PortfolioOverviewResponse, label: string }) {
 
    const [hideAllocated, setHideAllocated] = usePersistentState('bybit.portfolios.hideAllocated', true)
-   const [sort, setSort] = useState<Sort>({ column: 'value', direction: 'desc' })
+   const [sort, setSort] = usePersistentState<Sort>('portfolios.account.sort', { column: 'value', direction: 'desc' })
 
    const asset = overview.valuationAsset
    const coins = sortRows(hideAllocated

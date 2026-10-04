@@ -18,8 +18,10 @@ export interface SyncCounts {
    skipped: number
 }
 
+export type SyncStepKind = ExportReportType | 'rates'
+
 export interface SyncStep {
-   report: ExportReportType
+   report: SyncStepKind
    phase: SyncStepPhase
    reportId: string | null
    reportStatus: string | null
@@ -72,6 +74,27 @@ export interface XStockJob {
    updatedAt: number
    finishedAt: number | null
    steps: XStockStep[]
+   error: string | null
+   cancelRequested: boolean
+}
+
+export type FundingStepPhase = 'pending' | 'running' | 'done' | 'error' | 'cancelled' | 'skipped'
+
+export interface FundingStep {
+   feed: string
+   label: string
+   phase: FundingStepPhase
+   windows: number
+   windowsDone: number
+   stored: number
+}
+
+export interface FundingJob {
+   phase: JobPhase
+   startedAt: number
+   updatedAt: number
+   finishedAt: number | null
+   steps: FundingStep[]
    error: string | null
    cancelRequested: boolean
 }

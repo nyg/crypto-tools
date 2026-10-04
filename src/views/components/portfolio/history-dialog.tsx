@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { Loader2Icon } from 'lucide-react'
+import LoadingSpinner from '../lib/loading-spinner'
 import { RunOrdersTable } from './run-progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -43,7 +43,7 @@ export default function HistoryDialog({ apiBase, portfolio, onOpenChange }: Hist
                </DialogDescription>
             </DialogHeader>
 
-            {isLoading && <Loader2Icon className="size-5 animate-spin text-muted-foreground" />}
+            {isLoading && <LoadingSpinner />}
 
             {Boolean(error) &&
                <Alert variant="destructive">

@@ -5,6 +5,7 @@ import Big from 'big.js'
 import { toast } from 'sonner'
 import { Loader2Icon, PlusIcon, Trash2Icon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
+import { supertrendStop } from '../../lib/supertrend-stops'
 import Input from '../lib/input'
 import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
@@ -16,8 +17,12 @@ import {
    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
 import type {
-   PortfolioMarketsResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioSummary
+   PortfolioMarketsResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioSummary, SupertrendLevels
 } from '../../../types/api'
+
+type Timeframe = keyof SupertrendLevels
+
+const timeframeLabels: Record<Timeframe, string> = { daily: '1D', weekly: '1W' }
 
 interface TargetRow {
    key: number
@@ -31,6 +36,7 @@ interface EditorProps {
    quoteAsset: string
    open: boolean
    portfolio: PortfolioSummary | null
+   supertrend?: Record<string, SupertrendLevels>
    onOpenChange: (open: boolean) => void
    onSaved: (id: number) => void
 }
@@ -39,6 +45,7 @@ interface EditorFormProps {
    apiBase: string
    quoteAsset: string
    portfolio: PortfolioSummary | null
+   supertrend?: Record<string, SupertrendLevels>
    onCancel: () => void
    onSaved: (id: number) => void
 }
@@ -63,7 +70,34 @@ function splitEqually(rows: TargetRow[]): TargetRow[] {
    return rows.map((entry, index) => ({ ...entry, weight: (index === rows.length - 1 ? last : share).toFixed() }))
 }
 
-function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, onSaved }: EditorFormProps) {
+function currentWeights(portfolio: PortfolioSummary, rows: TargetRow[]): TargetRow[] {
+
+   const quote = portfolio.quoteAsset
+   const keepsCash = rows.some(({ asset }) => asset === quote)
+   const held = portfolio.holdings
+      .filter(({ asset, value }) => value !== null && Big(value).gt(0) && (asset !== quote || keepsCash))
+      .map(({ asset, value }) => ({ asset, value: Big(value!) }))
+   const total = held.reduce((sum, { value }) => sum.plus(value), Big(0))
+   if (total.lte(0)) return rows
+
+   const exact = held.map(({ asset, value }) => ({ asset, weight: value.div(total).times(100) }))
+   const floors = exact.map(({ asset, weight }) => ({ asset, weight: weight.round(2, Big.roundDown), rest: weight.mod(Big('0.01')) }))
+   const missing = Big(100).minus(floors.reduce((sum, { weight }) => sum.plus(weight), Big(0))).div(Big('0.01')).toNumber()
+   const topped = new Set([...floors].sort((left, right) => right.rest.cmp(left.rest)).slice(0, missing).map(({ asset }) => asset))
+   const weights = new Map(floors.map(({ asset, weight }) => [asset, topped.has(asset) ? weight.plus(Big('0.01')) : weight]))
+
+   const kept = rows
+      .filter(({ asset }) => weights.get(asset)?.gt(0))
+      .map(entry => ({ ...entry, weight: weights.get(entry.asset)!.toFixed() }))
+   const listed = new Set(kept.map(({ asset }) => asset))
+   const added = [...weights]
+      .filter(([asset, weight]) => !listed.has(asset) && weight.gt(0))
+      .map(([asset, weight]) => row(asset, weight.toFixed()))
+
+   return [...kept, ...added]
+}
+
+function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, supertrend, onCancel, onSaved }: EditorFormProps) {
 
    const [name, setName] = useState(portfolio?.name ?? '')
    const [quoteAsset, setQuoteAsset] = useState(portfolio?.quoteAsset ?? defaultQuote)
@@ -72,6 +106,7 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
       ? portfolio.targets.map(({ asset, weight, stopPrice }) => row(asset, weight, stopPrice ?? ''))
       : [row('BTC', '50'), row('ETH', '30'), row(defaultQuote, '20')])
    const [error, setError] = useState<string | null>(null)
+   const [stopNote, setStopNote] = useState<string | null>(null)
    const rowActions = useRef<HTMLDivElement>(null)
 
    const { data: markets, isLoading: isLoadingMarkets } =
@@ -93,9 +128,27 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
 
    const sum = sumOf(rows)
    const balanced = sum?.eq(100) ?? false
+   const unpriced = portfolio?.holdings.some(({ value, quantity }) => value === null && Big(quantity).gt(0)) ?? false
 
    const update = (key: number, changes: Partial<TargetRow>) =>
       setRows(current => current.map(entry => entry.key === key ? { ...entry, ...changes } : entry))
+
+   const supertrendStopOf = (asset: string, timeframe: Timeframe) => supertrendStop(
+      supertrend?.[`${asset}${quoteAsset}`]?.[timeframe],
+      portfolio?.holdings.find(holding => holding.asset === asset)?.price ?? null,
+      markets?.markets.find(({ base, quote }) => base === asset && quote === quoteAsset)?.tickStep)
+
+   const stoppable = rows.filter(({ asset }) => asset && asset !== quoteAsset)
+
+   const stopAtSupertrend = (timeframe: Timeframe) => {
+      const stops = new Map(stoppable.map(({ key, asset }) => [key, supertrendStopOf(asset, timeframe)]))
+      const unchanged = stoppable.filter(({ key }) => stops.get(key) === null).map(({ asset }) => asset)
+
+      setRows(current => current.map(entry => ({ ...entry, stopPrice: stops.get(entry.key) ?? entry.stopPrice })))
+      setStopNote(unchanged.length > 0
+         ? `${unchanged.join(', ')}: no ${timeframeLabels[timeframe]} Supertrend below the price, so the stop is left as it is.`
+         : null)
+   }
 
    const addRow = () => {
       flushSync(() => setRows(current => [...current, row()]))
@@ -193,10 +246,38 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
                   <Button size="sm" variant="ghost" disabled={rows.length === 0} onClick={() => setRows(splitEqually)}>
                      Split equally
                   </Button>
+                  {portfolio && portfolio.valueNum > 0 &&
+                     <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={unpriced}
+                        title={unpriced
+                           ? 'A coin the portfolio holds has no price right now, so its weight is unknown.'
+                           : 'Set each weight to what the coin is worth in the portfolio today. Coins it holds none of are removed.'}
+                        onClick={() => setRows(current => currentWeights(portfolio, current))}>
+                        Use current weights
+                     </Button>}
                   <span className={cn('ml-auto text-sm tabular-nums', balanced ? 'text-muted-foreground' : 'text-destructive')}>
                      Total {sum ? `${sum.toFixed()}%` : 'not a number'}
                   </span>
                </div>
+
+               {supertrend &&
+                  <div className="flex flex-wrap items-center gap-2">
+                     <span className="text-sm text-muted-foreground">Set every stop price to the Supertrend:</span>
+                     {(Object.keys(timeframeLabels) as Timeframe[]).map(timeframe =>
+                        <Button
+                           key={timeframe}
+                           size="sm"
+                           variant="outline"
+                           disabled={stoppable.length === 0 || isLoadingMarkets}
+                           title={`Each coin's stop price becomes the price its ${timeframeLabels[timeframe]} Supertrend flips at now. It does not follow the Supertrend afterwards.`}
+                           onClick={() => stopAtSupertrend(timeframe)}>
+                           {timeframeLabels[timeframe]}
+                        </Button>)}
+                  </div>}
+
+               {stopNote && <p className="text-xs text-muted-foreground">{stopNote}</p>}
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -227,7 +308,9 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, onCancel, on
    )
 }
 
-export default function PortfolioEditorDialog({ apiBase, quoteAsset, open, portfolio, onOpenChange, onSaved }: EditorProps) {
+export default function PortfolioEditorDialog({
+   apiBase, quoteAsset, open, portfolio, supertrend, onOpenChange, onSaved
+}: EditorProps) {
    return (
       <Dialog open={open} onOpenChange={onOpenChange}>
          <DialogContent className="flex max-h-[90svh] flex-col sm:max-w-xl">
@@ -237,6 +320,7 @@ export default function PortfolioEditorDialog({ apiBase, quoteAsset, open, portf
                   apiBase={apiBase}
                   quoteAsset={quoteAsset}
                   portfolio={portfolio}
+                  supertrend={supertrend}
                   onCancel={() => onOpenChange(false)}
                   onSaved={onSaved} />}
          </DialogContent>
