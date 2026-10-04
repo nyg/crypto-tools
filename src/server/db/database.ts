@@ -1,10 +1,30 @@
 import { Database } from 'bun:sqlite'
 import { resolveDbPath } from './paths'
+import { digitTickers, normalizeAsset } from '../adapters/kraken-api/assets'
 import type { UserVersionRow } from '../../types/db'
 
 type Migration = (db: Database) => void
 
 let database: Database | null = null
+
+// Only rewrites what differs, so it is appended again whenever digitTickers gains an
+// entry. base_asset is derived from the raw asset, which is stored beside it.
+export function keepTickerDigits(db: Database): void {
+
+   const update = db.prepare<void, [string, string, string]>(`
+      UPDATE ledger_entry SET base_asset = ?
+      WHERE asset LIKE ? AND base_asset <> ?`)
+
+   try {
+      for (const ticker of digitTickers) {
+         const baseAsset = normalizeAsset(ticker)
+         update.run(baseAsset, `${ticker}.%`, baseAsset)
+      }
+   }
+   finally {
+      update.finalize()
+   }
+}
 
 // Each entry adds one schema version. Never edit an applied migration, append a new one.
 const migrations: Migration[] = [
@@ -298,7 +318,9 @@ const migrations: Migration[] = [
          last_synced_at INTEGER,
          PRIMARY KEY (venue, key_id)
       ) STRICT;
-   `)
+   `),
+
+   keepTickerDigits
 ]
 
 function migrate(db: Database) {
