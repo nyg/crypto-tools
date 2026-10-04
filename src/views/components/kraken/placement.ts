@@ -11,10 +11,11 @@ interface PlacementInfo {
 export const SPOT = 'spot'
 export const AUTO_EARN = 'auto-earn'
 export const OTHER = 'other'
+export const STAKING = 'staking'
 
 // The running order every legend, chart and badge sorts by: idle first, then the
 // rewards products roughly by how hard the coins are to get back out.
-export const PLACEMENT_ORDER: Placement[] = [SPOT, AUTO_EARN, 'earn-flexible', 'earn-bonded', 'earn-locked', OTHER]
+export const PLACEMENT_ORDER: Placement[] = [SPOT, AUTO_EARN, 'earn-flexible', 'earn-bonded', 'earn-locked', OTHER, STAKING]
 
 const placements: Record<string, PlacementInfo> = {
    [SPOT]: {
@@ -46,6 +47,11 @@ const placements: Record<string, PlacementInfo> = {
       label: 'Other',
       description: 'Allocated to an Earn strategy of a kind this page does not have a name for yet.',
       earning: true
+   },
+   [STAKING]: {
+      label: 'Staking',
+      description: 'Staked under the product Kraken ran before Earn replaced it in 2024.',
+      earning: true
    }
 }
 
@@ -53,15 +59,18 @@ const lockTypes: Record<string, Placement> = {
    flex: AUTO_EARN,
    instant: 'earn-flexible',
    bonded: 'earn-bonded',
-   timed: 'earn-locked'
+   timed: 'earn-locked',
+   staking: STAKING
 }
 
+export const placementOfLockType = (lockType: string): Placement => lockTypes[lockType] ?? OTHER
+
 export const placementOf = (position: LivePosition): Placement =>
-   position.strategyId === null ? SPOT : lockTypes[position.lockType] ?? OTHER
+   position.strategyId === null ? SPOT : placementOfLockType(position.lockType)
 
 // Unknown lock types keep their raw name rather than all collapsing into one "Other"
 // badge: if Kraken adds a fifth one, it should be visible that it did.
-export function placementLabel(key: Placement, position?: LivePosition): string {
+export function placementLabel(key: Placement, position?: Pick<LivePosition, 'lockType'>): string {
    return key === OTHER ? (position?.lockType || 'Unknown') : (placements[key]?.label ?? key)
 }
 

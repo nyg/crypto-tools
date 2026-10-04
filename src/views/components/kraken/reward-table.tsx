@@ -1,12 +1,15 @@
 import { useState } from 'react'
+import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asAssetAmount, asDollarAmount } from '../../../utils/format'
+import { asAssetAmount, asDollarAmount, asUtcMonthYearDate } from '../../../utils/format'
 import SortIcon from '../lib/sort-icon'
+import { placementColor, placementDescription, placementLabel, placementOfLockType } from './placement'
 import { ValuationTag, otherValuation, usdOf, valuationLabels } from './reward-valuation'
 import type { ReactNode } from 'react'
-import type { RewardAmount, RewardAsset, RewardSummary } from '../../../types/api'
+import type { RewardAmount, RewardAsset, RewardStrategy, RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
 import type { Valuation } from './reward-valuation'
 
@@ -80,6 +83,35 @@ export const RewardCell = ({ amount, rate, valuation }: {
    )
 }
 
+function periodOf({ active, first, last }: RewardStrategy): string {
+   const [from, to] = [asUtcMonthYearDate(first), asUtcMonthYearDate(last)]
+   if (active) return `since ${from}`
+   return from === to ? from : `${from} – ${to}`
+}
+
+const inOrderOfFirstReward = (strategies: RewardStrategy[]) =>
+   strategies.toSorted((a, b) => a.first - b.first)
+
+// Same label and colour as the placement badges on the Balances page, so a strategy
+// reads the same on both. One that has ended keeps its colour but loses the fill.
+function StrategyBadge({ strategy }: { strategy: RewardStrategy }) {
+
+   const key = placementOfLockType(strategy.lockType)
+   const color = placementColor(key)
+
+   return (
+      <Badge
+         variant="outline"
+         className={cn('gap-1.5 font-normal', !strategy.active && 'border-dashed text-muted-foreground')}
+         title={`${strategy.active ? 'Paying' : 'Paid'} ${periodOf(strategy)}. ${placementDescription(key)}`}>
+         <span
+            className={cn('size-2 shrink-0 rounded-[2px]', !strategy.active && 'border')}
+            style={strategy.active ? { backgroundColor: color } : { borderColor: color }} />
+         {placementLabel(key, strategy)}
+      </Badge>
+   )
+}
+
 
 export default function RewardTable({ rewards, rates, valuation }: {
    rewards?: RewardSummary
@@ -91,6 +123,13 @@ export default function RewardTable({ rewards, rates, valuation }: {
    // request and there is nothing to page through. Null until the header is clicked,
    // because the column it starts on is a function of the data, which arrives later.
    const [sort, setSort] = useState<RewardSort | null>(null)
+   const [expanded, setExpanded] = useState(() => new Set<string>())
+
+   const toggle = (asset: string) => setExpanded(current => {
+      const next = new Set(current)
+      if (!next.delete(asset)) next.add(asset)
+      return next
+   })
 
    const years = rewards?.years ?? []
    const assets = rewards?.assets ?? []
@@ -154,6 +193,7 @@ export default function RewardTable({ rewards, rates, valuation }: {
                   <TableHeader>
                      <TableRow>
                         <TableHead>Asset</TableHead>
+                        <TableHead>Strategies</TableHead>
                         {years.map(year =>
                            <SortableHead key={year} column={year} sort={activeSort} onSortChange={setSort}>
                               {year}
@@ -164,21 +204,64 @@ export default function RewardTable({ rewards, rates, valuation }: {
                      </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {rows.map(asset =>
-                        <TableRow key={asset.asset}>
-                           <TableCell className="font-medium">{asset.asset}</TableCell>
-                           {years.map(year =>
-                              <RewardCell
-                                 key={year}
-                                 amount={asset.byYear[year]}
-                                 rate={rateFor(asset.asset)}
-                                 valuation={valuation} />)}
-                           <RewardCell amount={asset.total} rate={rateFor(asset.asset)} valuation={valuation} />
-                        </TableRow>)}
+                     {rows.map(asset => {
+
+                        const strategies = inOrderOfFirstReward(asset.strategies)
+                        const isExpandable = strategies.length > 1
+                        const isExpanded = isExpandable && expanded.has(asset.asset)
+
+                        return [
+                           <TableRow key={asset.asset}>
+                              <TableCell className="font-medium">
+                                 {isExpandable
+                                    ? <button
+                                       type="button"
+                                       className="inline-flex items-center gap-1 hover:text-foreground"
+                                       aria-expanded={isExpanded}
+                                       onClick={() => toggle(asset.asset)}>
+                                       {isExpanded
+                                          ? <ChevronDownIcon className="size-3.5" />
+                                          : <ChevronRightIcon className="size-3.5" />}
+                                       {asset.asset}
+                                    </button>
+                                    : <span className="pl-[1.125rem]">{asset.asset}</span>}
+                              </TableCell>
+                              <TableCell>
+                                 <div className="flex flex-wrap gap-1">
+                                    {strategies.map(strategy =>
+                                       <StrategyBadge key={strategy.lockType} strategy={strategy} />)}
+                                 </div>
+                              </TableCell>
+                              {years.map(year =>
+                                 <RewardCell
+                                    key={year}
+                                    amount={asset.byYear[year]}
+                                    rate={rateFor(asset.asset)}
+                                    valuation={valuation} />)}
+                              <RewardCell amount={asset.total} rate={rateFor(asset.asset)} valuation={valuation} />
+                           </TableRow>,
+
+                           ...(isExpanded ? strategies.map(strategy =>
+                              <TableRow key={`${asset.asset} ${strategy.lockType}`} className="text-muted-foreground">
+                                 <TableCell />
+                                 <TableCell className="pl-6 text-xs">
+                                    {placementLabel(placementOfLockType(strategy.lockType), strategy)}
+                                    <span className="ml-2">{periodOf(strategy)}</span>
+                                 </TableCell>
+                                 {years.map(year =>
+                                    <RewardCell
+                                       key={year}
+                                       amount={strategy.byYear[year]}
+                                       rate={rateFor(asset.asset)}
+                                       valuation={valuation} />)}
+                                 <RewardCell amount={strategy.total} rate={rateFor(asset.asset)} valuation={valuation} />
+                              </TableRow>) : [])
+                        ]
+                     })}
                   </TableBody>
                   <TableFooter>
                      <TableRow>
-                        <TableCell>Total</TableCell>
+                        <TableCell colSpan={2}>Total</TableCell>
                         {years.map(year =>
                            <TableCell key={year} className="text-right">
                               {asDollarAmount(totalFor(asset => asset.byYear[year]))}
@@ -205,6 +288,11 @@ export default function RewardTable({ rewards, rates, valuation }: {
                   of income at the time. Assets Kraken has no USD pair for are shown without a value and
                   left out of the totals.
                </p>}
+
+            <p className="text-xs text-muted-foreground">
+               A strategy with a dashed badge has ended: its Earn wallet held nothing at the
+               ledger&apos;s last entry, or, for Auto Earn, it had not paid for two weeks by then.
+            </p>
 
             {valuation === 'received' && rewards?.ratesPending &&
                <p className="text-xs text-muted-foreground">

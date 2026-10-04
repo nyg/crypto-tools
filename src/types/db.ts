@@ -56,6 +56,7 @@ export interface FeeMonthRow extends FeeTypeRow {
 
 export interface RewardRow extends UsdValue {
    asset: string
+   paidInto: string
    year: number
    total: number
    entries: number
@@ -94,6 +95,10 @@ export interface BalanceAmountRow {
    baseAsset: string
    amount: string
    fee: string
+}
+
+export interface WalletAmountRow extends BalanceAmountRow {
+   wallet: string
 }
 
 export interface SyncStateRow {

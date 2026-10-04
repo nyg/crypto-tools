@@ -5,11 +5,11 @@ import { entryKeyFor } from './entry-key'
 import type {
    AssetRangeRow, BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
    FeeTypeRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
-   SyncStateUpdate, TimeRangeRow, UsdValue, ValueRow
+   SyncStateUpdate, TimeRangeRow, UsdValue, ValueRow, WalletAmountRow
 } from '../../types/db'
 import type {
-   BalanceSummary, ClearResponse, FeeSummary,
-   LedgerEntriesResponse, LedgerFiltersResponse, RewardAmount, RewardAsset, RewardSummary
+   BalanceSummary, ClearResponse, FeeSummary, LedgerEntriesResponse, LedgerFiltersResponse,
+   RewardAmount, RewardAsset, RewardStrategy, RewardSummary, RewardTotals
 } from '../../types/api'
 import type { LedgerEntry, LedgerFilters, Sort } from '../../types/kraken'
 
@@ -39,6 +39,26 @@ const isReward = `type IN ('staking', 'earn')
 
 const DAY = 86400000
 
+// The export says which wallet a reward was paid into, never which strategy paid it,
+// so the wallet stands in for the strategy. Auto Earn paid into 'earn / liquid' until
+// November 2025 and into the spot wallet since, hence two wallets for one lock type.
+const paidInto = 'CASE WHEN e.type = \'staking\' THEN \'staking\' ELSE e.wallet END'
+
+const LOCK_TYPES: Record<string, string> = {
+   'staking': 'staking',
+   'spot / main': 'flex',
+   'earn / liquid': 'flex',
+   'earn / flexible': 'instant',
+   'earn / bonded': 'bonded',
+   'earn / locked': 'timed'
+}
+
+const lockTypeOf = (paidInto: string): string => LOCK_TYPES[paidInto] ?? paidInto
+
+// Auto Earn pays weekly and has no wallet of its own to hold a balance in, so two
+// weeks without a payout is the only sign the ledger gives that it was switched off.
+const AUTO_EARN_WINDOW = 14 * DAY
+
 const usdRateJoin = `LEFT JOIN asset_usd_rate r ON r.asset = e.base_asset AND r.day = e.time - e.time % ${DAY}`
 
 const usdRate = '(CASE WHEN e.base_asset = \'USD\' THEN 1.0 ELSE r.rate END)'
@@ -60,6 +80,27 @@ function addRewardAmount(total: RewardAmount | undefined, row: RewardAmount): Re
       value: total.value === null && row.value === null ? null : (total.value ?? 0) + (row.value ?? 0),
       unvalued: total.unvalued + row.unvalued
    }
+}
+
+const emptyRewardTotals = ({ first, last }: RewardRow): RewardTotals =>
+   ({ total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first, last, byYear: {} })
+
+function addRewardRow(totals: RewardTotals, row: RewardRow): void {
+   const amount = rewardAmountOf(row)
+   totals.byYear[row.year] = addRewardAmount(totals.byYear[row.year], amount)
+   totals.total = addRewardAmount(totals.total, amount)
+   totals.entries += row.entries
+   totals.first = Math.min(totals.first, row.first)
+   totals.last = Math.max(totals.last, row.last)
+}
+
+function strategyOf(asset: RewardAsset, lockType: string, row: RewardRow): RewardStrategy {
+   const known = asset.strategies.find(strategy => strategy.lockType === lockType)
+   if (known) return known
+
+   const strategy: RewardStrategy = { lockType, active: false, ...emptyRewardTotals(row) }
+   asset.strategies.push(strategy)
+   return strategy
 }
 
 function lastCompletePeriods(now = Date.now()) {
@@ -245,13 +286,14 @@ export default class LedgerRepository {
       }
    }
 
-   // One row per asset and year, reshaped into the pivot the page draws. Amounts are
-   // net of the fee, like every other total here, and the year is taken in UTC to match
-   // the timestamps Kraken writes.
+   // One row per asset, wallet and year, reshaped into the pivot the page draws. Amounts
+   // are net of the fee, like every other total here, and the year is taken in UTC to
+   // match the timestamps Kraken writes.
    rewardSummary(now = Date.now()): RewardSummary {
 
       const rows = this.#db.query<RewardRow, Params>(`
          SELECT e.base_asset AS asset,
+                ${paidInto} AS paidInto,
                 CAST(strftime('%Y', e.time / 1000, 'unixepoch') AS INTEGER) AS year,
                 SUM(${rewardNet}) AS total,
                 COUNT(*) AS entries,
@@ -259,23 +301,21 @@ export default class LedgerRepository {
                 ${usdValueOf(rewardNet)}
          FROM ledger_entry e ${usdRateJoin}
          WHERE account_id = ? AND ${isReward}
-         GROUP BY e.base_asset, year
+         GROUP BY e.base_asset, paidInto, year
          ORDER BY e.base_asset, year`).all(this.#accountId)
 
       const assets = new Map<string, RewardAsset>()
 
       for (const row of rows) {
-         const asset = assets.get(row.asset)
-            ?? { asset: row.asset, total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first: row.first, last: row.last, byYear: {}, byMonth: {}, byWeek: {} }
+         const asset: RewardAsset = assets.get(row.asset)
+            ?? { asset: row.asset, ...emptyRewardTotals(row), byMonth: {}, byWeek: {}, strategies: [] }
 
-         const amount = rewardAmountOf(row)
-         asset.byYear[row.year] = addRewardAmount(asset.byYear[row.year], amount)
-         asset.total = addRewardAmount(asset.total, amount)
-         asset.entries += row.entries
-         asset.first = Math.min(asset.first, row.first)
-         asset.last = Math.max(asset.last, row.last)
+         addRewardRow(asset, row)
+         addRewardRow(strategyOf(asset, lockTypeOf(row.paidInto), row), row)
          assets.set(row.asset, asset)
       }
+
+      this.#markActiveStrategies(assets.values())
 
       const years = [...new Set(rows.map(row => row.year))].toSorted((a, b) => a - b)
 
@@ -324,6 +364,36 @@ export default class LedgerRepository {
          first: rows.length > 0 ? Math.min(...rows.map(row => row.first)) : null,
          last: rows.length > 0 ? Math.max(...rows.map(row => row.last)) : null
       }
+   }
+
+   #markActiveStrategies(assets: Iterable<RewardAsset>): void {
+
+      const held = this.#heldEarnStrategies()
+      const ledgerEnd = this.entryTimeRange().last ?? 0
+
+      for (const asset of assets) {
+         for (const strategy of asset.strategies) {
+            strategy.active = strategy.lockType === 'flex'
+               ? strategy.last >= ledgerEnd - AUTO_EARN_WINDOW
+               : held.has(`${asset.asset} ${strategy.lockType}`)
+         }
+      }
+   }
+
+   #heldEarnStrategies(): Set<string> {
+
+      const amounts = this.#db.query<WalletAmountRow, Params>(`
+         SELECT base_asset AS baseAsset, wallet, amount, fee
+         FROM ledger_entry WHERE account_id = ? AND wallet LIKE 'earn / %'`).all(this.#accountId)
+
+      const totals = new Map<string, Big>()
+
+      for (const row of amounts) {
+         const key = `${row.baseAsset} ${lockTypeOf(row.wallet)}`
+         totals.set(key, (totals.get(key) ?? Big(0)).plus(row.amount || 0).minus(row.fee || 0))
+      }
+
+      return new Set([...totals].filter(([, total]) => total.gt(0)).map(([key]) => key))
    }
 
    valuedAssetRanges(): AssetRangeRow[] {

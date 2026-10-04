@@ -2,7 +2,7 @@ import { tradeCount, orderCount, allTradeCount, clearTrades, restoreTrades } fro
 import { mockUsdRateOn } from './usd-rates'
 import type {
    BalanceAsset, BalanceSummary, ClearResponse, FeeSummary,
-   LedgerEntriesResponse, LedgerFiltersResponse, RewardAmount, RewardAsset, RewardSummary,
+   LedgerEntriesResponse, LedgerFiltersResponse, RewardAmount, RewardAsset, RewardStrategy, RewardSummary,
    SyncCancelResponse, SyncStartResponse, SyncStatusResponse
 } from '../../types/api'
 import type { LedgerEntryRow, RewardPeriodRow, SyncStateRow } from '../../types/db'
@@ -198,6 +198,21 @@ function buildEntries() {
 
    push({ txid: 'LLINK1', refid: 'DPLINK', time: recently(500), type: 'deposit',
       asset: 'LINK', baseAsset: 'LINK', amount: '0.02400000', balance: '0.02400000' })
+
+   // A strategy that ended on an asset since sold: nothing is left of it on the Balances
+   // page, only what it paid on the Rewards page.
+   push({ txid: 'LATOM1', refid: 'ALATOM', time: recently(820), type: 'earn', subtype: 'allocation',
+      asset: 'ATOM', baseAsset: 'ATOM', wallet: 'earn / bonded', amount: '150.00000000', balance: '150.00000000' })
+   push({ txid: 'LATOM2', refid: 'RWATOM1', time: recently(760), type: 'earn', subtype: 'reward',
+      asset: 'ATOM', baseAsset: 'ATOM', wallet: 'earn / bonded', amount: '1.90000000', balance: '151.90000000' })
+   push({ txid: 'LATOM3', refid: 'RWATOM2', time: recently(640), type: 'earn', subtype: 'reward',
+      asset: 'ATOM', baseAsset: 'ATOM', wallet: 'earn / bonded', amount: '2.10000000', balance: '154.00000000' })
+   push({ txid: 'LATOM4', refid: 'RWATOM3', time: recently(520), type: 'earn', subtype: 'reward',
+      asset: 'ATOM', baseAsset: 'ATOM', wallet: 'earn / bonded', amount: '1.80000000', balance: '155.80000000' })
+   push({ txid: 'LATOM5', refid: 'RWATOM4', time: recently(430), type: 'earn', subtype: 'reward',
+      asset: 'ATOM', baseAsset: 'ATOM', wallet: 'earn / bonded', amount: '1.70000000', balance: '157.50000000' })
+   push({ txid: 'LATOM6', refid: 'DEATOM', time: recently(410), type: 'earn', subtype: 'deallocation',
+      asset: 'ATOM', baseAsset: 'ATOM', wallet: 'earn / bonded', amount: '-157.50000000', balance: '0.00000000' })
 
    return entries.toSorted((a, b) => a.time - b.time)
 }
@@ -503,6 +518,48 @@ export function ledgerFees(body: { filters?: LedgerFilters } = {}): FeeSummary {
    return { assets, byType, byMonth, entries: charged.length }
 }
 
+const lockTypes: Record<string, string> = {
+   'spot / main': 'flex',
+   'earn / liquid': 'flex',
+   'earn / flexible': 'instant',
+   'earn / bonded': 'bonded',
+   'earn / locked': 'timed'
+}
+
+const AUTO_EARN_WINDOW = 14 * DAY
+
+const lockTypeOf = ({ type, wallet }: MockEntry): string =>
+   type === 'staking' ? 'staking' : lockTypes[wallet] ?? wallet
+
+function strategyOf(asset: RewardAsset, entry: MockEntry): RewardStrategy {
+
+   const lockType = lockTypeOf(entry)
+   const known = asset.strategies.find(strategy => strategy.lockType === lockType)
+   if (known) return known
+
+   const strategy: RewardStrategy = {
+      lockType, active: false, total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first: entry.time, last: entry.time, byYear: {}
+   }
+   asset.strategies.push(strategy)
+   return strategy
+}
+
+function markActiveStrategies(assets: Iterable<RewardAsset>) {
+
+   const ledgerEnd = entries.at(-1)?.time ?? 0
+   const held = new Set(walletBalances()
+      .filter(position => position.wallet.startsWith('earn / ') && position.amount > 0)
+      .map(position => `${position.asset} ${lockTypes[position.wallet] ?? position.wallet}`))
+
+   for (const asset of assets) {
+      for (const strategy of asset.strategies) {
+         strategy.active = strategy.lockType === 'flex'
+            ? strategy.last >= ledgerEnd - AUTO_EARN_WINDOW
+            : held.has(`${asset.asset} ${strategy.lockType}`)
+      }
+   }
+}
+
 // Mirrors LedgerRepository.rewardSummary: the same reward predicate and the same pivot,
 // computed over the fixture.
 export function ledgerRewards(): RewardSummary {
@@ -519,7 +576,14 @@ export function ledgerRewards(): RewardSummary {
       const amount = valuedAmount(entry.baseAsset, entry.time, Number(entry.amount) - Number(entry.fee))
 
       const asset: RewardAsset = assets.get(entry.baseAsset)
-         ?? { asset: entry.baseAsset, total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first: entry.time, last: entry.time, byYear: {}, byMonth: {}, byWeek: {} }
+         ?? { asset: entry.baseAsset, total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first: entry.time, last: entry.time, byYear: {}, byMonth: {}, byWeek: {}, strategies: [] }
+
+      const strategy = strategyOf(asset, entry)
+      strategy.byYear[year] = addAmount(strategy.byYear[year], amount)
+      strategy.total = addAmount(strategy.total, amount)
+      strategy.entries += 1
+      strategy.first = Math.min(strategy.first, entry.time)
+      strategy.last = Math.max(strategy.last, entry.time)
 
       asset.byYear[year] = addAmount(asset.byYear[year], amount)
       if (entry.time >= (months[0] ?? 0)) {
@@ -536,6 +600,8 @@ export function ledgerRewards(): RewardSummary {
       asset.last = Math.max(asset.last, entry.time)
       assets.set(entry.baseAsset, asset)
    }
+
+   markActiveStrategies(assets.values())
 
    const years = [...new Set([...assets.values()].flatMap(asset => Object.keys(asset.byYear).map(Number)))]
       .toSorted((a, b) => a - b)

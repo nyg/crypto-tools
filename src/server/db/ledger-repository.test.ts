@@ -80,6 +80,78 @@ describe('rewardSummary', () => {
    })
 })
 
+describe('reward strategies', () => {
+
+   const DAY = 86400000
+   const now = Date.UTC(2026, 8, 24, 12)
+
+   const strategiesOf = (entries: LedgerEntry[]) => {
+      const repository = new LedgerRepository(`strategies-${entries.map(row => row.txid).join('-')}`)
+      repository.upsertEntries(entries, now)
+      return repository.rewardSummary(now).assets[0]?.strategies
+   }
+
+   test('names a strategy after the wallet its rewards were paid into', () => {
+
+      const strategies = strategiesOf([
+         entry('STAKED', Date.UTC(2023, 4, 1), '1', { type: 'staking', subtype: '', wallet: 'spot / main' }),
+         entry('LIQUID', Date.UTC(2025, 4, 1), '2', { wallet: 'earn / liquid' }),
+         entry('SPOT', Date.UTC(2026, 4, 1), '3', { wallet: 'spot / main' }),
+         entry('LOCKED', Date.UTC(2026, 5, 1), '4', { wallet: 'earn / locked' })
+      ])
+
+      expect(strategies?.map(({ lockType, total, first, last }) => ({ lockType, total, first, last }))).toEqual([
+         { lockType: 'staking', total: unpriced(1), first: Date.UTC(2023, 4, 1), last: Date.UTC(2023, 4, 1) },
+         { lockType: 'flex', total: unpriced(5), first: Date.UTC(2025, 4, 1), last: Date.UTC(2026, 4, 1) },
+         { lockType: 'timed', total: unpriced(4), first: Date.UTC(2026, 5, 1), last: Date.UTC(2026, 5, 1) }
+      ])
+   })
+
+   test('splits each year between the strategies that paid in it', () => {
+
+      const strategies = strategiesOf([
+         entry('BONDED', Date.UTC(2026, 1, 1), '2'),
+         entry('FLEXIBLE', Date.UTC(2026, 2, 1), '3', { wallet: 'earn / flexible' })
+      ])
+
+      expect(strategies?.map(({ lockType, byYear }) => ({ lockType, byYear }))).toEqual(expect.arrayContaining([
+         { lockType: 'bonded', byYear: { 2026: unpriced(2) } },
+         { lockType: 'instant', byYear: { 2026: unpriced(3) } }
+      ]))
+   })
+
+   test('keeps a strategy active for as long as its Earn wallet holds something', () => {
+
+      const allocated = [
+         entry('IN', Date.UTC(2026, 0, 1), '100', { subtype: 'allocation' }),
+         entry('PAID', Date.UTC(2026, 1, 1), '1')
+      ]
+      const emptied = [...allocated, entry('OUT', Date.UTC(2026, 2, 1), '-101', { subtype: 'deallocation' })]
+
+      expect(strategiesOf(allocated)?.[0]?.active).toBe(true)
+      expect(strategiesOf(emptied)?.[0]?.active).toBe(false)
+   })
+
+   test('ends Auto Earn once it has not paid for two weeks before the last entry', () => {
+
+      const paid = entry('PAID', Date.UTC(2026, 8, 1), '1', { wallet: 'spot / main' })
+      const deposit = (txid: string, time: number) =>
+         entry(txid, time, '5', { type: 'deposit', subtype: '', wallet: 'spot / main' })
+
+      expect(strategiesOf([paid, deposit('SOON', paid.time + 14 * DAY)])?.[0]?.active).toBe(true)
+      expect(strategiesOf([paid, deposit('LATE', paid.time + 14 * DAY + 1)])?.[0]?.active).toBe(false)
+   })
+
+   test('never counts what was staked before Earn as active', () => {
+
+      const strategies = strategiesOf([
+         entry('STAKED', now, '1', { type: 'staking', subtype: '', wallet: 'spot / main' })
+      ])
+
+      expect(strategies?.[0]?.active).toBe(false)
+   })
+})
+
 describe('USD valuation', () => {
 
    const now = Date.UTC(2026, 8, 24, 12)
