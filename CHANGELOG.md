@@ -1,6 +1,20 @@
 # Changelog
 
 
+## [1.2.0](https://github.com/nyg/crypto-tools/compare/v1.1.0..v1.2.0) - 2026-10-04
+
+### ⛰️  Features
+
+- [`9f65b82`](https://github.com/nyg/crypto-tools/commit/9f65b82f411456741973d3391ac87e35c2fe509f) *(portfolios)* Rest post-only limit orders by default, keep cash last and set stops from the Supertrend ([#340](https://github.com/nyg/crypto-tools/issues/340))
+
+### 🐛 Bug Fixes
+
+- [`6902bb2`](https://github.com/nyg/crypto-tools/commit/6902bb231adf07de1459e695696a514f175178bf) *(portfolios)* Release what selling a coin out leaves below the lot size ([#341](https://github.com/nyg/crypto-tools/issues/341))
+
+### ⚙️ Miscellaneous
+
+- [`6511e56`](https://github.com/nyg/crypto-tools/commit/6511e56e8ba7fdb31480f95a89a2a1a2e30756ce) *(screenshots)* Add a script that retakes the README screenshots ([#309](https://github.com/nyg/crypto-tools/issues/309))
+
 ## [1.1.0](https://github.com/nyg/crypto-tools/compare/v1.0.0..v1.1.0) - 2026-10-04
 
 ### ⛰️  Features

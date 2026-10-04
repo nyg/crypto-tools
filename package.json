@@ -1,6 +1,6 @@
 {
    "name": "crypto-tools",
-   "version": "1.1.0",
+   "version": "1.2.0",
    "description": "miscellaneous cryptocurrency tools (formerly binance-staking-overview).",
    "type": "module",
    "repository": {
