@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import type { Trade } from '../../types/kraken'
+import type { LedgerEntry, Trade } from '../../types/kraken'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-database-'))
 
@@ -27,6 +27,11 @@ const storedPairs = async (accountId: string, trades: Trade[]) => {
    return () => repository.queryTrades({ sort: { column: 'pair', direction: 'asc' } }).rows
       .map(row => [row.rawPair, row.pair, row.baseAsset, row.quoteAsset])
 }
+
+const storedEntry = (txid: string, asset: string, baseAsset: string): LedgerEntry => ({
+   txid, refid: `R${txid}`, time: Date.UTC(2023, 5, 1), type: 'earn', subtype: 'reward', aclass: 'currency',
+   asset, baseAsset, wallet: 'earn / flexible', amount: '1', fee: '0', balance: ''
+})
 
 beforeAll(() => {
    process.env.CRYPTO_TOOLS_DATA_DIR = dataDir
@@ -86,4 +91,44 @@ test('nameTradesAsTraded gives the stored trades of a renamed asset the pair the
 
    nameTradesAsTraded(getDatabase())
    expect(pairs()).toEqual(renamed)
+})
+
+test('keepTickerDigits moves the stored entries of a suffixed ticker that ends in a digit back under it', async () => {
+
+   const { getDatabase, keepTickerDigits } = await import('./database')
+   const LedgerRepository = (await import('./ledger-repository')).default
+
+   const repository = new LedgerRepository('digits')
+   repository.upsertEntries([
+      storedEntry('A', 'LUNA2.F', 'LUNA'),
+      storedEntry('B', 'LUNA2.S', 'LUNA'),
+      storedEntry('C', 'LUNA2', 'LUNA2'),
+      storedEntry('D', 'LUNA.S', 'LUNA'),
+      storedEntry('E', 'LUNA', 'LUNA'),
+      storedEntry('F', 'USDT0.TEMPO', 'USDT'),
+      storedEntry('G', 'USDT.M', 'USDT'),
+      storedEntry('H', 'ETH2.S', 'ETH'),
+      storedEntry('I', 'DOT28.S', 'DOT')
+   ], syncedAt)
+
+   const baseAssets = () => Object.fromEntries(repository.queryEntries({}).rows
+      .map(row => [row.asset, row.baseAsset]))
+
+   const kept = {
+      'LUNA2.F': 'LUNA2',
+      'LUNA2.S': 'LUNA2',
+      'LUNA2': 'LUNA2',
+      'LUNA.S': 'LUNA',
+      'LUNA': 'LUNA',
+      'USDT0.TEMPO': 'USDT0',
+      'USDT.M': 'USDT',
+      'ETH2.S': 'ETH',
+      'DOT28.S': 'DOT'
+   }
+
+   keepTickerDigits(getDatabase())
+   expect(baseAssets()).toEqual(kept)
+
+   keepTickerDigits(getDatabase())
+   expect(baseAssets()).toEqual(kept)
 })

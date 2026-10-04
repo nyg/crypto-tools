@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 import { resolveDbPath } from './paths'
-import { renamedAssets } from '../adapters/kraken-api/assets'
+import { digitTickers, normalizeAsset, renamedAssets } from '../adapters/kraken-api/assets'
 import { resolvePair } from '../adapters/kraken-api/pairs'
 import type { UserVersionRow, ValueRow } from '../../types/db'
 
@@ -54,6 +54,25 @@ export function nameTradesAsTraded(db: Database): void {
       for (const { value: pair } of pairs) {
          const { baseAsset, quoteAsset, pairKey } = resolvePair(pair, undefined)
          update.run(pairKey, pair, baseAsset, quoteAsset)
+      }
+   }
+   finally {
+      update.finalize()
+   }
+}
+
+// Only rewrites what differs, so it is appended again whenever digitTickers gains an
+// entry. base_asset is derived from the raw asset, which is stored beside it.
+export function keepTickerDigits(db: Database): void {
+
+   const update = db.prepare<void, [string, string, string]>(`
+      UPDATE ledger_entry SET base_asset = ?
+      WHERE asset LIKE ? AND base_asset <> ?`)
+
+   try {
+      for (const ticker of digitTickers) {
+         const baseAsset = normalizeAsset(ticker)
+         update.run(baseAsset, `${ticker}.%`, baseAsset)
       }
    }
    finally {
@@ -357,7 +376,9 @@ const migrations: Migration[] = [
 
    resolveUnresolvedTradePairs,
 
-   nameTradesAsTraded
+   nameTradesAsTraded,
+
+   keepTickerDigits
 ]
 
 function migrate(db: Database) {
