@@ -115,7 +115,7 @@ export default function KrakenAggregatedTrades() {
                   <AggregateTable
                      groups={groups}
                      market={market}
-                     scope={(includeAllQuotes ? market?.baseAsset : market?.pairKey) ?? ''}
+                     scope={(includeAllQuotes ? market?.baseAsset : market?.label) ?? ''}
                      targetQuote={targetQuote}
                      hasTrades={(status?.state?.tradeCount ?? 0) > 0}
                      onPageChange={setPage} />

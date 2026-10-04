@@ -4,6 +4,7 @@ import {
 } from '@/components/ui/chart'
 import SelectField from '../lib/select-field'
 import ComboboxField from '../lib/combobox-field'
+import { assetLabel } from './asset-migrations'
 import { asAssetAmount, asAxisTick, asShortMonthYearDate } from '../../../utils/format'
 import type { ChartConfig } from '@/components/ui/chart'
 import type { FeeSummary } from '../../../types/api'
@@ -123,7 +124,7 @@ export default function FeeChart({
                className="w-40"
                value={asset ?? ''}
                onValueChange={onAssetChange}
-               options={assets.map(value => ({ value, label: value }))}
+               options={assets.map(value => ({ value, label: assetLabel(value) }))}
                searchPlaceholder="Search assets…"
                emptyText="No asset."
                disabled={assets.length === 0} />

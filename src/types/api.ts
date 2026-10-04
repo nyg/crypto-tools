@@ -81,8 +81,14 @@ export interface SyncCancelResponse {
    job: SyncJob | null
 }
 
+// The ticker is the one Kraken wrote the entry under, where baseAsset is the asset it is
+// added up under: an entry from before a rename reads MATIC and counts as POL.
+export interface LedgerEntryView extends LedgerEntryRow {
+   ticker: string
+}
+
 export interface LedgerEntriesResponse extends Page {
-   rows: LedgerEntryRow[]
+   rows: LedgerEntryView[]
 }
 
 export interface LedgerFiltersResponse {
@@ -251,11 +257,17 @@ export interface TradesResponse extends Page {
    rows: TradeListRow[]
 }
 
+// One per base and quote asset. The label lists the pairs it was traded as, since a
+// renamed asset was traded under more than one.
+export interface Market extends MarketRow {
+   label: string
+}
+
 export interface TradeFiltersResponse {
    pairs: string[]
    directions: string[]
    ordertypes: string[]
-   markets: MarketRow[]
+   markets: Market[]
    mergeableQuotes: string[]
 }
 

@@ -19,7 +19,7 @@ export interface ResolvedPair extends PairAssets {
 
 // Keyed by every name Kraken has ever used for a pair — result key, altname and
 // wsname — so a lookup succeeds whichever the export wrote.
-export type PairIndex = Map<string, PairAssets>
+export type PairIndex = Map<string, ResolvedPair>
 
 export interface LivePosition {
    strategyId: string | null

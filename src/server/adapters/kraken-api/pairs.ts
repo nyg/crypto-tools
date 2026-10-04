@@ -1,6 +1,6 @@
-import { normalizeAsset } from './assets'
+import { normalizeAsset, tickerOf } from './assets'
 import type { KrakenAssetPairs } from '../../../types/kraken-api'
-import type { PairAssets, PairIndex, ResolvedPair, UsdPair } from '../../../types/kraken'
+import type { PairIndex, ResolvedPair, UsdPair } from '../../../types/kraken'
 
 // The trades export writes the pair the way it was spelled at the time of the trade,
 // which is not consistently any one of the three names AssetPairs returns: old rows
@@ -12,19 +12,24 @@ import type { PairAssets, PairIndex, ResolvedPair, UsdPair } from '../../../type
 // which would read the slash as part of the base asset.
 const indexKey = (name: string) => name.toUpperCase().replace('/', '')
 
+// The assets are what the pair is grouped under, and the key is the pair as it was
+// traded: MATIC/EUR is a trade of POL for EUR, and still reads MATIC/EUR.
+const pairOf = (base: string, quote: string): ResolvedPair => ({
+   baseAsset: normalizeAsset(base),
+   quoteAsset: normalizeAsset(quote),
+   pairKey: `${tickerOf(base)}/${tickerOf(quote)}`
+})
+
 export function buildPairIndex(assetPairs: KrakenAssetPairs | undefined): PairIndex {
 
    const index: PairIndex = new Map()
 
    for (const [key, pair] of Object.entries(assetPairs ?? {})) {
 
-      const assets = {
-         baseAsset: normalizeAsset(pair.base),
-         quoteAsset: normalizeAsset(pair.quote)
-      }
+      const resolved = pairOf(pair.base, pair.quote)
 
       for (const name of [key, pair.altname, pair.wsname]) {
-         if (name) index.set(indexKey(name), assets)
+         if (name) index.set(indexKey(name), resolved)
       }
    }
 
@@ -42,17 +47,11 @@ const quoteAssets = [
 // Pairs that have been delisted are gone from AssetPairs entirely, so a trade in one
 // would otherwise lose its assets. Splitting on a known quote ticker recovers most of
 // them; anything left keeps the raw pair, which is still recognisable on screen.
-function splitOnQuote(pair: string): PairAssets | null {
+function splitOnQuote(pair: string): ResolvedPair | null {
 
    for (const quote of quoteAssets) {
       if (pair.length > quote.length && pair.endsWith(quote)) {
-         const base = pair.slice(0, -quote.length)
-         const baseAsset = normalizeAsset(base)
-         const quoteAsset = normalizeAsset(quote)
-
-         // MATICPOL swapped a renamed asset for its new ticker, so both sides
-         // normalize to POL: the base keeps the name it traded under.
-         return { baseAsset: baseAsset === quoteAsset ? base : baseAsset, quoteAsset }
+         return pairOf(pair.slice(0, -quote.length), quote)
       }
    }
 
@@ -65,10 +64,7 @@ export function resolvePair(pair: string | undefined, index: PairIndex | undefin
    if (raw === '') return { baseAsset: '', quoteAsset: '', pairKey: '' }
 
    const name = indexKey(raw)
-   const assets = index?.get(name) ?? splitOnQuote(name)
-   if (!assets) return { baseAsset: '', quoteAsset: '', pairKey: name }
-
-   return { ...assets, pairKey: `${assets.baseAsset}/${assets.quoteAsset}` }
+   return index?.get(name) ?? splitOnQuote(name) ?? { baseAsset: '', quoteAsset: '', pairKey: name }
 }
 
 // Matched exactly rather than through normalizeAsset, which strips the digit

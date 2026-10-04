@@ -10,7 +10,7 @@ import type {
    AssetRangeRow, CountRow, MarketRow, TimeRangeRow, TradeListRow, TradeRow, ValueRow
 } from '../../types/db'
 import type {
-   Aggregation, AggregationsResponse, AggregationSummary, Order, SummarySide, TradesResponse
+   Aggregation, AggregationsResponse, AggregationSummary, Market, Order, SummarySide, TradesResponse
 } from '../../types/api'
 import type { AggregationFilters, Sort, Trade, TradeFilters } from '../../types/kraken'
 
@@ -242,7 +242,7 @@ export default class TradeRepository {
                  WHERE account_id = ? AND ${name} <> '' ORDER BY value`)
          .all(this.#accountId).map(row => row.value)
 
-      const markets = this.#db.query<MarketRow, Params>(`
+      const tradedPairs = this.#db.query<MarketRow, Params>(`
          SELECT DISTINCT pair_key AS pairKey, base_asset AS baseAsset, quote_asset AS quoteAsset
          FROM trade
          WHERE account_id = ? AND pair_key <> ''
@@ -252,7 +252,7 @@ export default class TradeRepository {
          pairs: column('pair_key'),
          directions: column('type'),
          ordertypes: column('ordertype'),
-         markets,
+         markets: foldMarkets(tradedPairs),
          mergeableQuotes: CONVERTIBLE_QUOTES
       }
    }
@@ -424,6 +424,29 @@ function asAggregation(run: { direction: string, orders: Order[] }, index: numbe
       })),
       orders
    }
+}
+
+// A renamed asset was traded under two tickers, which are one market: POL/EUR lists
+// MATIC/EUR as its former name. A market never traded under today's name keeps the
+// one it had, and an unresolved pair has no assets to be grouped by.
+export function foldMarkets(tradedPairs: MarketRow[]): Market[] {
+
+   const markets = new Map<string, MarketRow & { names: string[] }>()
+
+   for (const { pairKey: name, baseAsset, quoteAsset } of tradedPairs) {
+      const pairKey = baseAsset ? `${baseAsset}/${quoteAsset}` : name
+      const market = markets.get(pairKey) ?? { pairKey, baseAsset, quoteAsset, names: [] }
+      market.names.push(name)
+      markets.set(pairKey, market)
+   }
+
+   return [...markets.values()]
+      .map(({ names, ...market }) => {
+         const former = names.filter(name => name !== market.pairKey).join(', ')
+         if (!former) return { ...market, label: market.pairKey }
+         return { ...market, label: names.includes(market.pairKey) ? `${market.pairKey} (ex. ${former})` : former }
+      })
+      .toSorted((a, b) => a.label.localeCompare(b.label))
 }
 
 function asOrder(orderKey: string, trades: TradeRow[]): Order {

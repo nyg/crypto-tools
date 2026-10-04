@@ -46,12 +46,27 @@ describe('resolvePair', () => {
       ['XBTLTC', 'BTC', 'LTC'],
       ['XXBTXLTC', 'BTC', 'LTC'],
       ['BTC/NMC', 'BTC', 'NMC'],
-      ['XXBTXNMC', 'BTC', 'NMC'],
-      ['MATIC/POL', 'MATIC', 'POL']
+      ['XXBTXNMC', 'BTC', 'NMC']
    ])('splits the delisted pair %s into %s and %s', (pair, baseAsset, quoteAsset) => {
 
       expect(resolvePair(pair, pairIndex))
          .toEqual({ baseAsset, quoteAsset, pairKey: `${baseAsset}/${quoteAsset}` })
+   })
+
+   test.each([
+      ['MATICEUR', 'POL', 'EUR', 'MATIC/EUR'],
+      ['MATIC/XBT', 'POL', 'BTC', 'MATIC/BTC'],
+      ['MATIC/POL', 'POL', 'POL', 'MATIC/POL'],
+      ['POLEUR', 'POL', 'EUR', 'POL/EUR']
+   ])('groups %s under %s and %s, and keeps %s as the pair it was traded as', (pair, baseAsset, quoteAsset, pairKey) => {
+      expect(resolvePair(pair, pairIndex)).toEqual({ baseAsset, quoteAsset, pairKey })
+   })
+
+   test('names a listed pair of a renamed asset as Kraken lists it', () => {
+
+      const listed = buildPairIndex({ MATICUSD: pair('MATICUSD', 'MATIC', 'ZUSD') })
+
+      expect(resolvePair('MATICUSD', listed)).toEqual({ baseAsset: 'POL', quoteAsset: 'USD', pairKey: 'MATIC/USD' })
    })
 
    test('tries the longest quote first', () => {

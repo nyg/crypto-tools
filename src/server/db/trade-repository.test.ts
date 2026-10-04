@@ -66,7 +66,42 @@ afterAll(async () => {
    fs.rmSync(dataDir, { recursive: true, force: true })
 })
 
+describe('distinctOrderFilters', () => {
+
+   test('lists one market per base and quote asset, labelled with the pairs it was traded as', () => {
+
+      const repository = repositoryOf('markets', [
+         trade('A', 'BTC/USD', monday),
+         trade('B', 'POL/EUR', tuesday),
+         trade('C', 'MATIC/EUR', monday, { baseAsset: 'POL' }),
+         trade('D', 'MATIC/GBP', monday, { baseAsset: 'POL' }),
+         trade('E', 'MATIC/POL', monday, { baseAsset: 'POL' }),
+         trade('F', 'FOOBAR', monday, { baseAsset: '', quoteAsset: '' })
+      ])
+
+      expect(repository.distinctOrderFilters().markets).toEqual([
+         { pairKey: 'BTC/USD', baseAsset: 'BTC', quoteAsset: 'USD', label: 'BTC/USD' },
+         { pairKey: 'FOOBAR', baseAsset: '', quoteAsset: '', label: 'FOOBAR' },
+         { pairKey: 'POL/GBP', baseAsset: 'POL', quoteAsset: 'GBP', label: 'MATIC/GBP' },
+         { pairKey: 'POL/POL', baseAsset: 'POL', quoteAsset: 'POL', label: 'MATIC/POL' },
+         { pairKey: 'POL/EUR', baseAsset: 'POL', quoteAsset: 'EUR', label: 'POL/EUR (ex. MATIC/EUR)' }
+      ])
+   })
+})
+
 describe('queryAggregations', () => {
+
+   test('adds up a renamed asset across the pairs it was traded as, each order under its own', () => {
+
+      const repository = repositoryOf('renamed', [
+         trade('A', 'MATIC/EUR', monday, { baseAsset: 'POL' }),
+         trade('B', 'POL/EUR', tuesday)
+      ])
+
+      const { rows } = repository.queryAggregations({ filters: { base: 'POL', quote: 'EUR', order: 'asc' } })
+
+      expect(rows.flatMap(row => row.orders.map(order => order.pair))).toEqual(['MATIC/EUR', 'POL/EUR'])
+   })
 
    test('merges the same orders into the same runs whichever fiat quote is selected', () => {
 

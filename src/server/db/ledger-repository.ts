@@ -2,6 +2,7 @@ import Big from 'big.js'
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
 import { getDatabase } from './database'
 import { entryKeyFor } from './entry-key'
+import { tickerOf } from '../adapters/kraken-api/assets'
 import type {
    AssetRangeRow, BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
    FeeTypeRow, FundingBalanceRow, FundingLedgerRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
@@ -230,7 +231,7 @@ export default class LedgerRepository {
          ORDER BY ${column} ${direction}, entry_key ${direction}
          LIMIT ? OFFSET ?`).all(...params, pageSize, page * pageSize)
 
-      return { rows, total, page, pageSize }
+      return { rows: rows.map(row => ({ ...row, ticker: tickerOf(row.asset) })), total, page, pageSize }
    }
 
    distinctFilters(): LedgerFiltersResponse {

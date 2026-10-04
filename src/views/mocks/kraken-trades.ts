@@ -447,7 +447,7 @@ export function tradeFilters(): TradeFiltersResponse {
       [...new Set(trades.map(pick))].filter(Boolean).toSorted()
 
    const markets = [...new Map(trades.map(trade =>
-      [trade.pairKey, { pairKey: trade.pairKey, baseAsset: trade.baseAsset, quoteAsset: trade.quoteAsset }]))
+      [trade.pairKey, { pairKey: trade.pairKey, baseAsset: trade.baseAsset, quoteAsset: trade.quoteAsset, label: trade.pairKey }]))
       .values()]
       .toSorted((a, b) => a.pairKey.localeCompare(b.pairKey))
 
