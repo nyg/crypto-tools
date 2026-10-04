@@ -65,6 +65,7 @@ export interface Plan {
    withdraw: Big
    reserve: Big
    orders: PlannedOrder[]
+   soldOut: string[]
    skipped: SkippedAsset[]
    before: Map<string, Big>
    after: Map<string, Big>
@@ -400,6 +401,7 @@ export function planPortfolio(input: PlanInput): Plan {
       withdraw,
       reserve,
       orders: [...orders.filter(({ side }) => side === 'sell'), ...orders.filter(({ side }) => side === 'buy')],
+      soldOut: [...wholly].filter(asset => sold.has(asset)),
       skipped: skipped.filter(({ asset, reason }) => reason !== 'within-band' || !trimmed.has(asset)),
       before: weightsOf(values),
       after: weightsOf(after),
