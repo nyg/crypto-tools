@@ -1,10 +1,32 @@
 import { Database } from 'bun:sqlite'
 import { resolveDbPath } from './paths'
-import type { UserVersionRow } from '../../types/db'
+import { resolvePair } from '../adapters/kraken-api/pairs'
+import type { UserVersionRow, ValueRow } from '../../types/db'
 
 type Migration = (db: Database) => void
 
 let database: Database | null = null
+
+export function resolveUnresolvedTradePairs(db: Database): void {
+
+   const unresolved = db.query<ValueRow, []>(`
+      SELECT DISTINCT pair AS value FROM trade
+      WHERE base_asset = '' AND pair <> ''`).all()
+
+   const update = db.prepare<void, [string, string, string, string]>(`
+      UPDATE trade SET base_asset = ?, quote_asset = ?, pair_key = ?
+      WHERE base_asset = '' AND pair = ?`)
+
+   try {
+      for (const { value: pair } of unresolved) {
+         const { baseAsset, quoteAsset, pairKey } = resolvePair(pair, undefined)
+         if (baseAsset) update.run(baseAsset, quoteAsset, pairKey, pair)
+      }
+   }
+   finally {
+      update.finalize()
+   }
+}
 
 // Each entry adds one schema version. Never edit an applied migration, append a new one.
 const migrations: Migration[] = [
@@ -298,7 +320,9 @@ const migrations: Migration[] = [
          last_synced_at INTEGER,
          PRIMARY KEY (venue, key_id)
       ) STRICT;
-   `)
+   `),
+
+   resolveUnresolvedTradePairs
 ]
 
 function migrate(db: Database) {

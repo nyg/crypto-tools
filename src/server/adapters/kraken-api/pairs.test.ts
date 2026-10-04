@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { usdPairsFor } from './pairs'
+import { buildPairIndex, resolvePair, usdPairsFor } from './pairs'
 import type { KrakenAssetPairs } from '../../../types/kraken-api'
 
 const pair = (altname: string, base: string, quote: string, status = 'online') =>
@@ -26,5 +26,39 @@ describe('usdPairsFor', () => {
          ETH: { altname: 'ETHUSD', inverse: false },
          CAD: { altname: 'USDCAD', inverse: true }
       })
+   })
+})
+
+describe('resolvePair', () => {
+
+   const pairIndex = buildPairIndex(assetPairs)
+
+   test('reads a listed pair from the index, whichever name the export wrote', () => {
+
+      const btcUsd = { baseAsset: 'BTC', quoteAsset: 'USD', pairKey: 'BTC/USD' }
+
+      expect(resolvePair('XXBTZUSD', pairIndex)).toEqual(btcUsd)
+      expect(resolvePair('xbtusd', pairIndex)).toEqual(btcUsd)
+   })
+
+   test.each([
+      ['BTC/LTC', 'BTC', 'LTC'],
+      ['XBTLTC', 'BTC', 'LTC'],
+      ['XXBTXLTC', 'BTC', 'LTC'],
+      ['BTC/NMC', 'BTC', 'NMC'],
+      ['XXBTXNMC', 'BTC', 'NMC'],
+      ['MATIC/POL', 'MATIC', 'POL']
+   ])('splits the delisted pair %s into %s and %s', (pair, baseAsset, quoteAsset) => {
+
+      expect(resolvePair(pair, pairIndex))
+         .toEqual({ baseAsset, quoteAsset, pairKey: `${baseAsset}/${quoteAsset}` })
+   })
+
+   test('tries the longest quote first', () => {
+      expect(resolvePair('LTCUSDT', pairIndex)).toEqual({ baseAsset: 'LTC', quoteAsset: 'USDT', pairKey: 'LTC/USDT' })
+   })
+
+   test('keeps the raw pair when no known quote ends it', () => {
+      expect(resolvePair('FOOBAR', pairIndex)).toEqual({ baseAsset: '', quoteAsset: '', pairKey: 'FOOBAR' })
    })
 })

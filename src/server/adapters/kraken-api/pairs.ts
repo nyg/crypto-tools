@@ -35,7 +35,8 @@ export function buildPairIndex(assetPairs: KrakenAssetPairs | undefined): PairIn
 // XBTUSDT would split as XBTUSD + T.
 const quoteAssets = [
    'USDT', 'USDC', 'ZUSD', 'ZEUR', 'ZGBP', 'ZCAD', 'ZJPY', 'ZAUD', 'ZCHF',
-   'XXBT', 'USD', 'EUR', 'GBP', 'CHF', 'CAD', 'AUD', 'JPY', 'XBT', 'BTC', 'ETH', 'DAI'
+   'XXBT', 'XLTC', 'XNMC', 'USD', 'EUR', 'GBP', 'CHF', 'CAD', 'AUD', 'JPY', 'XBT', 'BTC', 'ETH', 'DAI',
+   'LTC', 'NMC', 'POL'
 ].toSorted((a, b) => b.length - a.length)
 
 // Pairs that have been delisted are gone from AssetPairs entirely, so a trade in one
@@ -45,10 +46,13 @@ function splitOnQuote(pair: string): PairAssets | null {
 
    for (const quote of quoteAssets) {
       if (pair.length > quote.length && pair.endsWith(quote)) {
-         return {
-            baseAsset: normalizeAsset(pair.slice(0, -quote.length)),
-            quoteAsset: normalizeAsset(quote)
-         }
+         const base = pair.slice(0, -quote.length)
+         const baseAsset = normalizeAsset(base)
+         const quoteAsset = normalizeAsset(quote)
+
+         // MATICPOL swapped a renamed asset for its new ticker, so both sides
+         // normalize to POL: the base keeps the name it traded under.
+         return { baseAsset: baseAsset === quoteAsset ? base : baseAsset, quoteAsset }
       }
    }
 
