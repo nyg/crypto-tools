@@ -5,6 +5,7 @@ import SelectField from '../lib/select-field'
 import Input from '../lib/input'
 import DateField from '../lib/date-field'
 import { ANY, withAnyOption, asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
+import { assetLabel } from './asset-migrations'
 
 export interface LedgerFilterValues {
    asset: string
@@ -56,7 +57,7 @@ export default function LedgerFilters({ filters, options, onChange, onReset, sho
                value={filters.asset}
                onValueChange={(value) => update({ asset: value })}
                options={[{ value: '', label: 'All assets' },
-                  ...(options?.assets ?? []).map(asset => ({ value: asset, label: asset }))]}
+                  ...(options?.assets ?? []).map(asset => ({ value: asset, label: assetLabel(asset) }))]}
                placeholder="All assets"
                searchPlaceholder="Search assets…"
                emptyText="No asset found." />

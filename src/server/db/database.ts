@@ -1,10 +1,84 @@
 import { Database } from 'bun:sqlite'
 import { resolveDbPath } from './paths'
-import type { UserVersionRow } from '../../types/db'
+import { digitTickers, normalizeAsset, renamedAssets } from '../adapters/kraken-api/assets'
+import { resolvePair } from '../adapters/kraken-api/pairs'
+import type { UserVersionRow, ValueRow } from '../../types/db'
 
 type Migration = (db: Database) => void
 
 let database: Database | null = null
+
+export function resolveUnresolvedTradePairs(db: Database): void {
+
+   const unresolved = db.query<ValueRow, []>(`
+      SELECT DISTINCT pair AS value FROM trade
+      WHERE base_asset = '' AND pair <> ''`).all()
+
+   const update = db.prepare<void, [string, string, string, string]>(`
+      UPDATE trade SET base_asset = ?, quote_asset = ?, pair_key = ?
+      WHERE base_asset = '' AND pair = ?`)
+
+   try {
+      for (const { value: pair } of unresolved) {
+         const { baseAsset, quoteAsset, pairKey } = resolvePair(pair, undefined)
+         if (baseAsset) update.run(baseAsset, quoteAsset, pairKey, pair)
+      }
+   }
+   finally {
+      update.finalize()
+   }
+}
+
+// Only rewrites what differs, so it is appended again whenever renamedAssets gains an
+// entry. The assets must come out as stored: a pair no known quote ends would
+// otherwise be split in the wrong place.
+export function nameTradesAsTraded(db: Database): void {
+
+   // The first version of resolveUnresolvedTradePairs stored MATIC/POL under MATIC.
+   for (const [former, asset] of Object.entries(renamedAssets)) {
+      db.query<void, string[]>('UPDATE trade SET base_asset = ? WHERE base_asset = ?').run(asset, former)
+   }
+
+   const assets = [...new Set(Object.values(renamedAssets))]
+   const marks = assets.map(() => '?').join(', ')
+
+   const pairs = db.query<ValueRow, string[]>(`
+      SELECT DISTINCT pair AS value FROM trade
+      WHERE base_asset IN (${marks}) OR quote_asset IN (${marks})`).all(...assets, ...assets)
+
+   const update = db.prepare<void, string[]>(`
+      UPDATE trade SET pair_key = ?
+      WHERE pair = ? AND base_asset = ? AND quote_asset = ?`)
+
+   try {
+      for (const { value: pair } of pairs) {
+         const { baseAsset, quoteAsset, pairKey } = resolvePair(pair, undefined)
+         update.run(pairKey, pair, baseAsset, quoteAsset)
+      }
+   }
+   finally {
+      update.finalize()
+   }
+}
+
+// Only rewrites what differs, so it is appended again whenever digitTickers gains an
+// entry. base_asset is derived from the raw asset, which is stored beside it.
+export function keepTickerDigits(db: Database): void {
+
+   const update = db.prepare<void, [string, string, string]>(`
+      UPDATE ledger_entry SET base_asset = ?
+      WHERE asset LIKE ? AND base_asset <> ?`)
+
+   try {
+      for (const ticker of digitTickers) {
+         const baseAsset = normalizeAsset(ticker)
+         update.run(baseAsset, `${ticker}.%`, baseAsset)
+      }
+   }
+   finally {
+      update.finalize()
+   }
+}
 
 // Each entry adds one schema version. Never edit an applied migration, append a new one.
 const migrations: Migration[] = [
@@ -298,7 +372,13 @@ const migrations: Migration[] = [
          last_synced_at INTEGER,
          PRIMARY KEY (venue, key_id)
       ) STRICT;
-   `)
+   `),
+
+   resolveUnresolvedTradePairs,
+
+   nameTradesAsTraded,
+
+   keepTickerDigits
 ]
 
 function migrate(db: Database) {

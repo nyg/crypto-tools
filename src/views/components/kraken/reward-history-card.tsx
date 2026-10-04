@@ -6,6 +6,7 @@ import ComboboxField from '../lib/combobox-field'
 import SelectField from '../lib/select-field'
 import usePersistentState from '../../lib/use-persistent-state'
 import { ValuationTag, usdOf } from './reward-valuation'
+import { assetLabel } from './asset-migrations'
 import {
    asAssetAmount, asAxisTick, asDollarAmount,
    asUtcLongDate, asUtcMonthYearDate, asUtcShortDate, asUtcShortMonthYearDate
@@ -91,7 +92,7 @@ export default function RewardHistoryCard({ rewards, rates, valuation }: {
 
    const options = [
       { value: EVERYTHING, label: 'All assets (USD)' },
-      ...assets.map(row => ({ value: row.asset, label: row.asset }))
+      ...assets.map(row => ({ value: row.asset, label: assetLabel(row.asset) }))
    ]
 
    return (
