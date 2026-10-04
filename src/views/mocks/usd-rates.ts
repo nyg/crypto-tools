@@ -4,7 +4,7 @@ const YEAR = 365 * DAY
 // Roughly the market as of the fixture's writing. CHF has no mocked rate on purpose,
 // so the "no USD pair" path stays visible in mocked mode.
 export const mockUsdPrices: Record<string, number> = {
-   BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, LINK: 12.5, SOL: 148,
+   BTC: 62500, ETH: 3050, DOT: 6.4, ADA: 0.46, LINK: 12.5, SOL: 148, ATOM: 7.8,
    USD: 1, EUR: 1.08, USDT: 1, USDC: 1
 }
 
