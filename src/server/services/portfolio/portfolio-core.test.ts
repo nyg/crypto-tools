@@ -96,6 +96,17 @@ describe('the rebalance planner', () => {
       expect(summary(plan)).toEqual(['sell DOGE 1234.5'])
    })
 
+   test('names the coins it sells out of, not one it only trims or cannot sell', () => {
+      const plan = planPortfolio(input({
+         targets: bigMap({ BTC: '50', USDT: '50' }),
+         holdingsOf: { BTC: '0.03', ETH: '0.2', DOGE: '10', USDT: '0' }
+      }))
+
+      expect(summary(plan)).toEqual(['sell BTC 0.00999', 'sell ETH 0.2'])
+      expect(plan.skipped.map(({ asset, reason }) => `${asset} ${reason}`)).toEqual(['DOGE below-minimum'])
+      expect(plan.soldOut).toEqual(['ETH'])
+   })
+
    test('sells before it buys', () => {
       const plan = planPortfolio(input({ holdingsOf: { BTC: '0.02', USDT: '0' } }))
 
@@ -404,6 +415,7 @@ describe('a withdrawal plan', () => {
       }))
 
       expect(plan.orders.every(({ side }) => side === 'sell')).toBe(true)
+      expect(plan.soldOut).toEqual([])
       expect(plan.shortfall.toFixed()).toBe('0')
       expect(plan.cashAfter.gte(0)).toBe(true)
    })
@@ -432,6 +444,7 @@ describe('a withdrawal plan', () => {
       }))
 
       expect(summary(plan)).toEqual(['sell BTC 0.02', 'sell ETH 0.2'])
+      expect(plan.soldOut).toEqual(['BTC', 'ETH'])
       expect(plan.cashAfter.toFixed()).toBe('0')
    })
 

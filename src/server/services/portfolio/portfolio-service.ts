@@ -4,7 +4,9 @@ import PortfolioRepository from '../../db/portfolio-repository'
 import { HttpRequesterError, messageOf } from '../../errors'
 import { foldHoldings, sameHoldings } from './holdings'
 import { leftBehind, limitFits, limitQuantity, priceBound, restingPrice } from './limit-orders'
-import { buyCost, buyFits, buyScale, DEFAULT_FEE_RATE, feeRateOf, floorTo, orderFee, planPortfolio } from './planner'
+import {
+   buyCost, buyFits, buyScale, DEFAULT_FEE_RATE, feeRateOf, floorTo, orderFee, planPortfolio, sellFits
+} from './planner'
 import { foldPositions } from './positions'
 import { planStops, stopActions } from './stops'
 import { supertrend } from './supertrend'
@@ -60,6 +62,7 @@ interface StoredPlan {
    execution: Execution
    wait: string
    orders: PlannedOrder[]
+   soldOut: string[]
    markets: Map<string, PlanMarket>
    holdings: Map<string, Big>
    expiresAt: number
@@ -110,6 +113,7 @@ const STOPPED = 'The run was stopped.'
 const MOVED = 'Moved with the price.'
 const WOULD_TAKE = 'It would have filled as a taker.'
 const TOO_SMALL = 'What is left is below the minimum order size.'
+const UNSELLABLE = 'Too small to sell.'
 
 const IN_FLIGHT: RunOrderStatus[] = ['pending', 'placed', 'unknown']
 
@@ -948,6 +952,7 @@ export default class PortfolioService {
          execution,
          wait: wait.toFixed(),
          orders: plan.orders,
+         soldOut: plan.soldOut,
          markets: byBase,
          holdings,
          expiresAt: Date.now() + PLAN_TTL_MS
@@ -1094,6 +1099,7 @@ export default class PortfolioService {
          }
 
          await this.#placeBuys(repository, orders.filter(({ side }) => side === 'buy'), stored)
+         await this.#releaseUnsellable(repository, runId, stored)
 
          if (stored.withdraw.gt(0) && !stoppedRuns.has(runId)) {
             const cash = this.#holdingsOf(repository, stored.portfolioId).get(stored.quote) ?? ZERO
@@ -1125,6 +1131,40 @@ export default class PortfolioService {
          catch (caught) {
             console.error('Could not place the stop orders after the run:', caught)
          }
+      }
+   }
+
+   async #releaseUnsellable(repository: PortfolioRepository, runId: string, stored: StoredPlan): Promise<void> {
+
+      const sells = attemptsBySeq(repository.runOrders(runId).filter(({ side }) => side === 'sell'))
+      const holdings = this.#holdingsOf(repository, stored.portfolioId)
+
+      const left = stored.soldOut.flatMap(asset => {
+         const market = stored.markets.get(asset)!
+         const quantity = holdings.get(asset) ?? ZERO
+         const filled = sells
+            .filter(attempts => attempts[0]!.baseAsset === asset)
+            .every(attempts => statusOf(attempts) === 'filled')
+         const sellable = sellFits(market, floorTo(quantity, market.baseStep))
+         return filled && quantity.gt(0) && !sellable ? [{ asset, quantity, market }] : []
+      })
+
+      if (left.length === 0) return
+
+      let prices: Record<string, SpotPrice> = {}
+      try {
+         prices = await this.#exchange.prices()
+      }
+      catch (error) {
+         console.warn('Could not price what was too small to sell, using the preview prices:', this.#describe(error))
+      }
+
+      for (const { asset, quantity, market } of left) {
+         const price = priceIn(prices, asset, stored.quote) ?? market.last
+         repository.addMovement({
+            portfolioId: stored.portfolioId, kind: 'withdraw', asset, amount: quantity.times(-1).toFixed(),
+            value: decimal(quantity.times(price)), note: UNSELLABLE
+         })
       }
    }
 

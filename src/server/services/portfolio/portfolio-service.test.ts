@@ -1055,6 +1055,97 @@ describe('limit orders', () => {
    })
 })
 
+describe('a coin sold out of a portfolio', () => {
+
+   const lots = new FakeExchange()
+   lots.accountId = 'sold-out'
+   const portfolios = () => new PortfolioService(venue, lots)
+
+   const btcOf = (portfolio: { holdings: { asset: string, quantity: string }[] }) =>
+      portfolio.holdings.find(({ asset }) => asset === 'BTC')
+
+   const releasesOf = async (portfolioId: number) =>
+      (await portfolios().history({ portfolioId })).movements
+         .filter(({ kind, asset }) => kind === 'withdraw' && asset === 'BTC')
+         .map(({ amount, value, note }) => ({ amount, value, note }))
+
+   async function overviewOf(portfolioId: number) {
+      const overview = await portfolios().overview()
+      return { overview, portfolio: overview.portfolios.find(({ id }) => id === portfolioId)! }
+   }
+
+   async function untargetedBtc(name: string): Promise<number> {
+      const portfolio = { name, quoteAsset: 'USDT', band: '1' }
+      const { id } = await portfolios().save({ ...portfolio, targets: [{ asset: 'BTC', weight: '100' }] })
+      await portfolios().deposit({ portfolioId: id, asset: 'USDT', amount: '123' })
+
+      const plan = await portfolios().plan({ portfolioId: id, kind: 'rebalance', execution: 'market' })
+      await finished((await portfolios().execute({ planId: plan.planId })).run.id, portfolios())
+      await portfolios().save({ ...portfolio, id, targets: [{ asset: 'USDT', weight: '100' }] })
+
+      expect(btcOf((await overviewOf(id)).portfolio)!.quantity).toBe('0.00245754')
+      return id
+   }
+
+   test('gives back what a withdrawal of everything leaves below the lot size', async () => {
+      const portfolioId = await untargetedBtc('Emptied')
+
+      const plan = await portfolios().plan({ portfolioId, kind: 'withdraw', all: true, execution: 'market' })
+      expect(plan.orders.map(({ side, asset, amount }) => `${side} ${asset} ${amount}`)).toEqual(['sell BTC 0.002457'])
+
+      const run = await finished((await portfolios().execute({ planId: plan.planId })).run.id, portfolios())
+      expect(run).toMatchObject({ status: 'done', withdrawn: '122.72715' })
+
+      const { overview, portfolio } = await overviewOf(portfolioId)
+      expect(portfolio.holdings.map(({ asset }) => asset)).toEqual(['USDT'])
+      expect(overview.coins.find(({ asset }) => asset === 'BTC')!.allocated).toBe('0')
+      expect(await releasesOf(portfolioId)).toEqual([{ amount: '-0.00000054', value: '0.027', note: 'Too small to sell.' }])
+
+      expect(portfolio.value).toBe('0')
+      expect(portfolio.netInvested).toBe('0.24585')
+      expect(portfolio.profit).toBe('-0.24585')
+      expect(portfolio.unrealized).toBe('0')
+      expect(portfolio.realized).toBe(portfolio.profit)
+      expect(portfolio.closedRealized).toBe(portfolio.profit)
+   })
+
+   test('gives it back after a rebalance sells a coin that is no longer a target', async () => {
+      const portfolioId = await untargetedBtc('Rebalanced')
+
+      const plan = await portfolios().plan({ portfolioId, kind: 'rebalance' })
+      const run = await finished((await portfolios().execute({ planId: plan.planId })).run.id, portfolios())
+      expect(run.orders.map(({ side, status, base }) => `${side} ${status} ${base}`)).toEqual(['sell filled 0.002457'])
+
+      const { portfolio } = await overviewOf(portfolioId)
+      expect(portfolio.holdings.map(({ asset }) => asset)).toEqual(['USDT'])
+      expect(await releasesOf(portfolioId)).toHaveLength(1)
+      expect(Big(portfolio.realized).plus(portfolio.unrealized).minus(portfolio.profit).abs().lte('0.00000001')).toBe(true)
+   })
+
+   test('keeps the coin when its sell only partly filled, even if what is left cannot be sold', async () => {
+      const portfolioId = await untargetedBtc('Half sold')
+      lots.fillsLimits = false
+
+      try {
+         const plan = await portfolios().plan({ portfolioId, kind: 'withdraw', all: true, wait: '1' })
+         const runId = (await portfolios().execute({ planId: plan.planId })).run.id
+         await until(() => lots.limits.size === 1)
+         lots.fillLimit([...lots.limits.keys()][0]!, '0.0024')
+
+         const run = await finished(runId, portfolios())
+         expect(run.status).toBe('partial')
+         expect(run.orders[0]).toMatchObject({ side: 'sell', status: 'partial', base: '0.0024' })
+
+         const { portfolio } = await overviewOf(portfolioId)
+         expect(btcOf(portfolio)!.quantity).toBe('0.00005754')
+         expect(await releasesOf(portfolioId)).toEqual([])
+      }
+      finally {
+         lots.fillsLimits = true
+      }
+   })
+})
+
 describe('reconciliation', () => {
 
    test('marks a run the server no longer tracks as interrupted', async () => {
