@@ -43,10 +43,7 @@ export default function ChartDialog({ venueLabel, chartExchange, pair, onOpenCha
          <DialogContent className="sm:max-w-5xl">
             <DialogHeader>
                <DialogTitle>{pair?.asset}/{pair?.quote} on {venueLabel}</DialogTitle>
-               <DialogDescription>
-                  {symbol} on TradingView. Every chart opens on the timeframe and with the indicator picked
-                  here; what you change inside the chart itself lasts until it closes.
-               </DialogDescription>
+               <DialogDescription className="sr-only">TradingView chart of {symbol}.</DialogDescription>
             </DialogHeader>
             <div className="flex flex-wrap items-center gap-4">
                <Tabs
@@ -60,7 +57,7 @@ export default function ChartDialog({ venueLabel, chartExchange, pair, onOpenCha
                   name="chart-supertrend"
                   checked={settings.supertrend}
                   onChange={event => setSettings(current => ({ ...current, supertrend: event.target.checked }))}
-                  label="Supertrend (10, 3)" />
+                  label="Supertrend" />
             </div>
             {pair &&
                <div className="h-[65svh] overflow-hidden rounded-lg border border-border">
