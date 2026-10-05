@@ -5,8 +5,16 @@ import { useTheme } from '@/lib/theme'
 const SCRIPT_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
 const LOAD_TIMEOUT = 8000
 const SYMBOL_DEBOUNCE = 700
+const HOURLY = '60'
+const NO_STUDIES: readonly string[] = []
 
-function TradingViewChart({ symbol }: { symbol: string }) {
+interface TradingViewChartProps {
+   symbol: string
+   interval?: string
+   studies?: readonly string[]
+}
+
+function TradingViewChart({ symbol, interval = HOURLY, studies = NO_STUDIES }: TradingViewChartProps) {
 
    const containerRef = useRef<HTMLDivElement>(null)
    const [failed, setFailed] = useState(false)
@@ -38,7 +46,8 @@ function TradingViewChart({ symbol }: { symbol: string }) {
       script.innerHTML = JSON.stringify({
          autosize: true,
          symbol: activeSymbol,
-         interval: '60',
+         interval,
+         studies,
          timezone: 'Etc/UTC',
          theme,
          style: '1',
@@ -56,7 +65,7 @@ function TradingViewChart({ symbol }: { symbol: string }) {
          clearTimeout(timer)
          container.innerHTML = ''
       }
-   }, [activeSymbol, theme])
+   }, [activeSymbol, theme, interval, studies])
 
    if (!activeSymbol) {
       return (
