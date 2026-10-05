@@ -12,6 +12,7 @@ import TimeAgo from '../lib/time-ago'
 import AccountSummary from './account-summary'
 import AdjustDialog from './adjust-dialog'
 import ArchiveDialog from './archive-dialog'
+import ChartDialog from './chart-dialog'
 import DepositDialog from './deposit-dialog'
 import HistoryDialog from './history-dialog'
 import PlanDialog from './plan-dialog'
@@ -24,6 +25,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { asLocalTimestamp, asLongDate, asUtcTimestamp } from '../../../utils/format'
+import type { ChartPair } from './chart-dialog'
 import type { PlanTarget } from './plan-dialog'
 import { asQuantity, asQuoteAmount } from './format'
 import type {
@@ -40,6 +42,7 @@ export interface PortfolioVenue {
    apiBase: string
    live: boolean
    quoteAsset: string
+   chartExchange: string
    wallet: string
    fees: string
    setup: ReactNode
@@ -80,6 +83,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
    const [viewingHistory, setViewingHistory] = useState<PortfolioSummary | null>(null)
    const [archiving, setArchiving] = useState<PortfolioSummary | null>(null)
    const [adjusting, setAdjusting] = useState<AccountCoin | null>(null)
+   const [charting, setCharting] = useState<ChartPair | null>(null)
    const [watchingRun, setWatchingRun] = useState(false)
    const [holdingsSort, setHoldingsSort] = usePersistentState<Sort>('portfolios.holdings.sort', {})
 
@@ -295,7 +299,8 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
                   onRebalance={() => rebalance(portfolio)}
                   onEdit={() => setEditing({ portfolio })}
                   onHistory={() => setViewingHistory(portfolio)}
-                  onArchive={() => setArchiving(portfolio)} />)}
+                  onArchive={() => setArchiving(portfolio)}
+                  onChart={asset => setCharting({ asset, quote: portfolio.quoteAsset })} />)}
 
             {overview && <AccountSummary overview={overview} label={label} />}
          </div>
@@ -328,12 +333,18 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
             }} />
 
          <WithdrawDialog
+            apiBase={apiBase}
             venueLabel={label}
             portfolio={withdrawing}
             onOpenChange={open => !open && setWithdrawing(null)}
             onPreview={(portfolio, request) => {
                setWithdrawing(null)
                setPlanning({ portfolio, request })
+            }}
+            onWithdrawn={(portfolio, asset, amount) => {
+               setWithdrawing(null)
+               refresh()
+               toast.success(`${amount} ${asset} withdrawn from ${portfolio.name}.`)
             }} />
 
          <PlanDialog
@@ -376,6 +387,12 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
                setAdjusting(null)
                refresh()
             }} />
+
+         <ChartDialog
+            venueLabel={label}
+            chartExchange={current.chartExchange}
+            pair={charting}
+            onOpenChange={open => !open && setCharting(null)} />
 
          <Dialog open={watchingRun && Boolean(overview?.activeRun)} onOpenChange={setWatchingRun}>
             <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">

@@ -129,7 +129,7 @@ export default function RunProgress({ apiBase, runId, quoteAsset, onDone }: RunP
                   variant="outline"
                   className="ml-auto"
                   disabled={isStopping || run.stopping}
-                  title="Cancels the order on the book and places no more. What has filled stays filled."
+                  title="Cancels the orders on the book and places no more. What has filled stays filled."
                   onClick={stopRun}>
                   <SquareIcon /> {run.stopping ? 'Stopping…' : 'Stop'}
                </Button>}

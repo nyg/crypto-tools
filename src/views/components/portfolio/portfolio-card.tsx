@@ -23,6 +23,7 @@ interface PortfolioCardProps {
    onEdit: () => void
    onHistory: () => void
    onArchive: () => void
+   onChart: (asset: string) => void
 }
 
 const Stat = ({ label, children, className }: { label: string, children: ReactNode, className?: string }) =>
@@ -38,10 +39,12 @@ const ProfitStat = ({ label, value, percent, quote }: { label: string, value: st
    </Stat>
 
 export default function PortfolioCard({
-   portfolio, supertrend, busy, sort, onSortChange, onDeposit, onWithdraw, onRebalance, onEdit, onHistory, onArchive
+   portfolio, supertrend, busy, sort, onSortChange, onDeposit, onWithdraw, onRebalance, onEdit, onHistory, onArchive,
+   onChart
 }: PortfolioCardProps) {
 
    const empty = Number(portfolio.value) === 0
+   const holdsNothing = portfolio.holdings.every(({ quantity }) => Number(quantity) <= 0)
    const armedStops = portfolio.stops.filter(({ status }) => status === 'placed').length
    const brokenStops = portfolio.stops.filter(({ status }) => status === 'failed' || status === 'missing')
 
@@ -96,7 +99,7 @@ export default function PortfolioCard({
                   <Button size="sm" variant="outline" disabled={busy} onClick={onDeposit}>
                      <CirclePlusIcon /> Deposit
                   </Button>
-                  <Button size="sm" variant="outline" disabled={busy || empty} onClick={onWithdraw}>
+                  <Button size="sm" variant="outline" disabled={busy || holdsNothing} onClick={onWithdraw}>
                      <CircleMinusIcon /> Withdraw
                   </Button>
                   <Button size="sm" disabled={busy || empty} onClick={onRebalance}>
@@ -114,7 +117,12 @@ export default function PortfolioCard({
                </div>
             </div>
             {portfolio.holdings.length > 0 &&
-               <HoldingsTable portfolio={portfolio} supertrend={supertrend} sort={sort} onSortChange={onSortChange} />}
+               <HoldingsTable
+                  portfolio={portfolio}
+                  supertrend={supertrend}
+                  sort={sort}
+                  onSortChange={onSortChange}
+                  onChart={onChart} />}
          </CardContent>
       </Card>
    )

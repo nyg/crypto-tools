@@ -33,6 +33,7 @@ export default function portfolioRoutes(venueId: VenueId): Hono {
    app.post('/archive', handle((service, body) => service.archive(body)))
    app.post('/deposit', handle((service, body) => service.deposit(body)))
    app.post('/adjust', handle((service, body) => service.adjust(body)))
+   app.post('/withdraw', handle((service, body) => service.withdraw(body)))
    app.post('/plan', handle((service, body) => service.plan(body)))
    app.post('/execute', handle((service, body) => service.execute(body)))
    app.post('/run', handle((service, body) => service.run(body)))

@@ -2,6 +2,7 @@ import Big from 'big.js'
 import { randomUUID } from 'crypto'
 import PortfolioRepository from '../../db/portfolio-repository'
 import { HttpRequesterError, messageOf } from '../../errors'
+import CacheMap from './cache-map'
 import { foldHoldings, sameHoldings } from './holdings'
 import { leftBehind, limitFits, limitQuantity, priceBound, restingPrice } from './limit-orders'
 import {
@@ -74,12 +75,18 @@ interface Context {
    lockKey: string
 }
 
+interface Pace {
+   poll: () => Promise<unknown>
+   prices: () => Promise<Record<string, SpotPrice>>
+}
+
 interface Chase {
    runId: string
    market: PlanMarket
    bound: Big
    deadline: number
    wait: string
+   pace: Pace
 }
 
 interface Rested {
@@ -98,6 +105,7 @@ const SETTLE_ATTEMPTS = 20
 const SETTLE_DELAY_MS = 500
 const FEE_GRACE_ATTEMPTS = 6
 const STOP_RETRY_MS = 15 * 60 * 1000
+const BOOK_TTL_MS = 1000
 
 const plans = new Map<string, StoredPlan>()
 const busyAccounts = new Set<string>()
@@ -214,8 +222,8 @@ function planMarkets(markets: SpotMarket[], prices: Record<string, SpotPrice>, q
       }))
 }
 
-function groupBy<T>(rows: T[], key: (row: T) => number): Map<number, T[]> {
-   const groups = new Map<number, T[]>()
+function groupBy<T, K>(rows: T[], key: (row: T) => K): Map<K, T[]> {
+   const groups = new Map<K, T[]>()
    for (const row of rows) groups.set(key(row), [...groups.get(key(row)) ?? [], row])
    return groups
 }
@@ -239,11 +247,8 @@ const filledIn = (order: PortfolioOrderRow, settlement: OrderSettlement | null) 
 const attemptStatus = (settlement: OrderSettlement): RunOrderStatus =>
    settlement.status === 'filled' ? 'filled' : executed(settlement) ? 'partial' : 'cancelled'
 
-function attemptsBySeq(orders: PortfolioOrderRow[]): PortfolioOrderRow[][] {
-   const attempts = new Map<number, PortfolioOrderRow[]>()
-   for (const order of orders) attempts.set(order.seq, [...attempts.get(order.seq) ?? [], order])
-   return [...attempts.values()]
-}
+const attemptsBySeq = (orders: PortfolioOrderRow[]): PortfolioOrderRow[][] =>
+   [...groupBy(orders, ({ seq }) => seq).values()]
 
 function statusOf(attempts: PortfolioOrderRow[]): RunOrderStatus {
    const last = attempts.at(-1)!
@@ -882,6 +887,30 @@ export default class PortfolioService {
       return { movement: movementView(movement) }
    }
 
+   async withdraw(body: RequestBody): Promise<PortfolioMovementResponse> {
+
+      const { repository, lockKey } = await this.#context()
+      if (busyAccounts.has(lockKey)) throw new PortfolioError(409, 'Wait for the running orders to finish first.')
+
+      const portfolio = this.#requirePortfolio(repository, body.portfolioId)
+      const asset = assetOf(body.asset)
+      const held = this.#holdingsOf(repository, portfolio.id).get(asset) ?? ZERO
+      if (held.lte(0)) throw new PortfolioError(400, `${portfolio.name} holds no ${asset || 'such coin'}.`)
+
+      const amount = body.all === true ? held : parsePositive(body.amount, 'The amount')
+      if (amount.gt(held)) throw new PortfolioError(400, `${portfolio.name} only holds ${held.toFixed()} ${asset}.`)
+
+      const prices = await this.#exchange.prices()
+      const price = priceIn(prices, asset, portfolio.quoteAsset) ?? ZERO
+      const movement = repository.addMovement({
+         portfolioId: portfolio.id, kind: 'withdraw', asset,
+         amount: amount.times(-1).toFixed(), value: decimal(amount.times(price))
+      })
+
+      this.#syncStopsDetached(lockKey, repository, [portfolio.id])
+      return { movement: movementView(movement) }
+   }
+
    async plan(body: RequestBody): Promise<PortfolioPlanResponse> {
 
       const { account, repository } = await this.#context()
@@ -1093,12 +1122,10 @@ export default class PortfolioService {
          await this.#cancelStops(lockKey, repository, stored.portfolioId)
 
          const orders = repository.runOrders(runId)
+         const pace = this.#pace()
 
-         for (const order of orders.filter(({ side }) => side === 'sell')) {
-            await this.#fill(repository, order, stored)
-         }
-
-         await this.#placeBuys(repository, orders.filter(({ side }) => side === 'buy'), stored)
+         await this.#fillAll(repository, orders.filter(({ side }) => side === 'sell'), stored, pace)
+         await this.#placeBuys(repository, orders.filter(({ side }) => side === 'buy'), stored, pace)
          await this.#releaseUnsellable(repository, runId, stored)
 
          if (stored.withdraw.gt(0) && !stoppedRuns.has(runId)) {
@@ -1168,9 +1195,44 @@ export default class PortfolioService {
       }
    }
 
-   async #placeBuys(repository: PortfolioRepository, buys: PortfolioOrderRow[], stored: StoredPlan): Promise<void> {
+   #pace(): Pace {
+      const { pollMs, pollsTakeTurns } = this.#exchange.chasePacing
+      const book = new CacheMap<Record<string, SpotPrice>>(BOOK_TTL_MS)
+      let turn = 0
+
+      return {
+         prices: () => book.get(this.#venue.id, () => this.#exchange.prices()),
+         poll: () => {
+            if (!pollsTakeTurns) return delay(pollMs)
+            turn = Math.max(Date.now(), turn) + pollMs
+            return delay(turn - Date.now())
+         }
+      }
+   }
+
+   async #fillAll(repository: PortfolioRepository, orders: PortfolioOrderRow[], stored: StoredPlan, pace: Pace): Promise<void> {
+
+      const together = stored.execution === 'limit' || !this.#exchange.chasePacing.pollsTakeTurns
+      const lanes = together ? [...groupBy(orders, ({ symbol }) => symbol).values()] : [orders]
+
+      // Every lane is waited for, even after one throws: the run must not end, and the
+      // stops must not go back, while another lane still has an order on the book.
+      const outcomes = await Promise.allSettled(lanes.map(async lane => {
+         for (const order of lane) await this.#fill(repository, order, stored, pace)
+      }))
+
+      const failed = outcomes.find(outcome => outcome.status === 'rejected')
+      if (failed) throw failed.reason
+   }
+
+   async #placeBuys(repository: PortfolioRepository, buys: PortfolioOrderRow[], stored: StoredPlan, pace: Pace): Promise<void> {
 
       if (buys.length === 0) return
+
+      if (stoppedRuns.has(buys[0]!.runId)) {
+         for (const { orderLinkId } of buys) repository.markOrder(orderLinkId, { status: 'skipped', error: STOPPED })
+         return
+      }
 
       const cash = this.#holdingsOf(repository, stored.portfolioId).get(stored.quote) ?? ZERO
       const wallet = await this.#exchange.wallet()
@@ -1180,7 +1242,7 @@ export default class PortfolioService {
          Big(requested), feeRateOf(stored.feeRates, DEFAULT_FEE_RATE, baseAsset, 'buy'), this.#exchange.buyFeeInQuote)), ZERO)
       const scale = buyScale(budget, cost)
 
-      for (const order of buys) {
+      const sized = buys.flatMap(order => {
          const market = stored.markets.get(order.baseAsset)!
          const amount = floorTo(Big(order.requested).times(scale), market.quoteStep)
 
@@ -1190,27 +1252,29 @@ export default class PortfolioService {
                requested: amount.toFixed(),
                error: scale.lt(1) ? 'Not enough cash was left after the sells.' : 'Below the minimum order size.'
             })
-            continue
+            return []
          }
 
          const resized = { ...order, requested: amount.toFixed() }
          if (resized.requested !== order.requested) {
             repository.markOrder(order.orderLinkId, { status: 'pending', requested: resized.requested })
          }
-         await this.#fill(repository, resized, stored)
-      }
+         return [resized]
+      })
+
+      await this.#fillAll(repository, sized, stored, pace)
    }
 
-   async #fill(repository: PortfolioRepository, order: PortfolioOrderRow, stored: StoredPlan): Promise<void> {
+   async #fill(repository: PortfolioRepository, order: PortfolioOrderRow, stored: StoredPlan, pace: Pace): Promise<void> {
       if (stoppedRuns.has(order.runId)) {
          repository.markOrder(order.orderLinkId, { status: 'skipped', error: STOPPED })
          return
       }
-      if (stored.execution === 'limit') await this.#chase(repository, order, stored)
+      if (stored.execution === 'limit') await this.#chase(repository, order, stored, pace)
       else await this.#placeAndSettle(repository, order, stored.slippage)
    }
 
-   async #chase(repository: PortfolioRepository, planned: PortfolioOrderRow, stored: StoredPlan): Promise<void> {
+   async #chase(repository: PortfolioRepository, planned: PortfolioOrderRow, stored: StoredPlan, pace: Pace): Promise<void> {
 
       const market = stored.markets.get(planned.baseAsset)!
       const preview = stored.orders[planned.seq - 1]!.price
@@ -1219,7 +1283,8 @@ export default class PortfolioService {
          market,
          bound: priceBound(planned.side, preview, Big(stored.slippage), market.tickStep),
          deadline: Date.now() + Number(stored.wait) * 1000,
-         wait: stored.wait
+         wait: stored.wait,
+         pace
       }
 
       let order = planned
@@ -1293,9 +1358,9 @@ export default class PortfolioService {
       return Date.now() >= deadline ? `Not filled within ${wait} s.` : null
    }
 
-   async #desiredPrice(order: PortfolioOrderRow, { market, bound }: Chase): Promise<Big | null> {
+   async #desiredPrice(order: PortfolioOrderRow, { market, bound, pace }: Chase): Promise<Big | null> {
       try {
-         const price = (await this.#exchange.prices())[order.symbol]
+         const price = (await pace.prices())[order.symbol]
          const book = { bid: Big(price?.bid || 0), ask: Big(price?.ask || 0) }
          return restingPrice(order.side, book, market.tickStep, bound)
       }
@@ -1351,12 +1416,11 @@ export default class PortfolioService {
 
    async #rest(order: PortfolioOrderRow, price: Big, remaining: Big, chase: Chase): Promise<Rested> {
 
-      const { pollMs, moveAfterMs } = this.#exchange.chasePacing
-      const movableAt = Date.now() + moveAfterMs
+      const movableAt = Date.now() + this.#exchange.chasePacing.moveAfterMs
       let failures = 0
 
       for (;;) {
-         await delay(pollMs)
+         await chase.pace.poll()
 
          const settlement = await this.#peek(order)
 

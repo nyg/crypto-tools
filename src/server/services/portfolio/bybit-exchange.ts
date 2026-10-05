@@ -25,7 +25,7 @@ export default class BybitExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
    readonly buyFeeInQuote = false
-   readonly chasePacing = { pollMs: 3000, moveAfterMs: 3000 }
+   readonly chasePacing = { pollMs: 3000, moveAfterMs: 3000, pollsTakeTurns: false }
 
    readonly #api: BybitAPI
    readonly #accountKey: string

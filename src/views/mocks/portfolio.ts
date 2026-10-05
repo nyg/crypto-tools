@@ -5,8 +5,8 @@ import type {
    PortfolioPlanOrder, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun, PortfolioRunOrder, PortfolioRunRequest,
    PortfolioRunResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioStopAckRequest,
    PortfolioStopAckResponse, PortfolioStopFill, PortfolioStopState, PortfolioStopSyncRequest,
-   PortfolioStopSyncResponse, PortfolioSummary, PortfolioSupertrendResponse, PortfolioTarget, SupertrendLevel,
-   SupertrendLevels
+   PortfolioStopSyncResponse, PortfolioSummary, PortfolioSupertrendResponse, PortfolioTarget,
+   PortfolioWithdrawRequest, SupertrendLevel, SupertrendLevels
 } from '../../types/api'
 import type { Execution, VenueId } from '../../types/portfolio'
 
@@ -457,6 +457,25 @@ function adjust(venue: VenueId, request?: PortfolioMovementRequest): PortfolioMo
    return { movement }
 }
 
+function withdraw(venue: VenueId, request?: PortfolioWithdrawRequest): PortfolioMovementResponse | Promise<never> {
+   const state = stateOf(venue)
+   const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
+   if (!portfolio || !request) return reject('This portfolio does not exist.')
+
+   const held = portfolio.holdings[request.asset] ?? 0
+   if (held <= 0) return reject(`${portfolio.name} holds no ${request.asset}.`)
+
+   const amount = request.all ? held : Number(request.amount)
+   if (amount > held) return reject(`${portfolio.name} only holds ${fixed(held)} ${request.asset}.`)
+
+   const movement = addMovement(state, portfolio, {
+      kind: 'withdraw', asset: request.asset, amount: fixed(-amount),
+      value: fixed(amount * (prices[request.asset] ?? 0)), orderLinkId: null, note: ''
+   })
+   if (request.all) delete portfolio.holdings[request.asset]
+   return { movement }
+}
+
 function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResponse | Promise<never> {
    const state = stateOf(venue)
    const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
@@ -603,7 +622,10 @@ function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRunOr
    const buy = order.side === 'buy'
    const fee = (buy ? quantity : value) * feeRates[execution]
 
-   if (buy) portfolio.costs[base] = (portfolio.costs[base] ?? 0) + value
+   if (buy) {
+      portfolio.costs[base] = (portfolio.costs[base] ?? 0) + value - fee * price
+      portfolio.realized[base] = (portfolio.realized[base] ?? 0) - fee * price
+   }
    else dispose(portfolio, base, quantity, value - fee)
    portfolio.fees += buy ? fee * price : fee
 
@@ -636,12 +658,15 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
    }
 
    if (current.running && portfolio) {
-      const next = current.orders.find(({ status }) => status === 'pending' || status === 'placed')
-      if (next && entry.polls > 1) {
-         if (current.execution === 'limit' && next.status === 'pending') rest(portfolio, next)
-         else fill(state, portfolio, next, current.execution)
+      const open = current.orders.filter(({ status }) => status === 'pending' || status === 'placed')
+      const together = open.filter(({ side }) => side === open[0]?.side)
+      if (open.length > 0 && entry.polls > 1) {
+         for (const order of together) {
+            if (current.execution === 'limit' && order.status === 'pending') rest(portfolio, order)
+            else fill(state, portfolio, order, current.execution)
+         }
       }
-      else if (!next) {
+      else if (open.length === 0) {
          const withdraw = Number(current.withdraw)
          if (withdraw > 0) {
             const cash = portfolio.holdings[portfolio.quoteAsset] ?? 0
@@ -704,6 +729,7 @@ export const portfolioRoutes: Record<string, (params?: Body) => unknown> = Objec
       [`${base}/archive`, (params?: Body) => archive(venue, arg(params))],
       [`${base}/deposit`, (params?: Body) => deposit(venue, arg(params))],
       [`${base}/adjust`, (params?: Body) => adjust(venue, arg(params))],
+      [`${base}/withdraw`, (params?: Body) => withdraw(venue, arg(params))],
       [`${base}/plan`, (params?: Body) => plan(venue, arg(params))],
       [`${base}/execute`, (params?: Body) => execute(venue, arg(params))],
       [`${base}/run`, (params?: Body) => run(venue, arg(params))],

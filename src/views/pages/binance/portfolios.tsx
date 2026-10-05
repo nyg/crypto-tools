@@ -17,6 +17,7 @@ export default function BinancePortfolios() {
                apiBase: '/api/binance/portfolios',
                live: true,
                quoteAsset: 'USDT',
+               chartExchange: 'BINANCE',
                wallet: 'spot wallet',
                fees: BINANCE_FEES,
                setup: <>Create a Binance API key with Enable Reading and Enable Spot & Margin Trading, and add it in <SettingsLink group="Binance" /> under Binance.</>
@@ -28,6 +29,7 @@ export default function BinancePortfolios() {
                apiBase: '/api/binance/testnet/portfolios',
                live: false,
                quoteAsset: 'USDT',
+               chartExchange: 'BINANCE',
                wallet: 'testnet account',
                fees: BINANCE_FEES,
                setup: <>Log in to testnet.binance.vision, generate an HMAC API key there, and add it in <SettingsLink group="Binance" /> under Binance testnet.</>,

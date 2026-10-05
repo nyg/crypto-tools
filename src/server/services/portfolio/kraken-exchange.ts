@@ -26,8 +26,9 @@ export default class KrakenExchange implements PortfolioExchange {
    readonly balanceDecimals = 10
    readonly buyFeeInQuote = true
    // A cancel within 15 s of placing counts several times over against the pair's order
-   // rate limit, and every QueryOrders counts against the API counter.
-   readonly chasePacing = { pollMs: 5000, moveAfterMs: 15000 }
+   // rate limit, and every QueryOrders counts against the API counter, which is one for the
+   // whole account: orders resting side by side are checked in turn, not each at this pace.
+   readonly chasePacing = { pollMs: 5000, moveAfterMs: 15000, pollsTakeTurns: true }
 
    readonly #api: KrakenAPI
    readonly #apiKey: string

@@ -41,9 +41,10 @@ interface HoldingsTableProps {
    supertrend?: SupertrendColumns
    sort: Sort
    onSortChange: (sort: Sort) => void
+   onChart: (asset: string) => void
 }
 
-export default function HoldingsTable({ portfolio, supertrend, sort, onSortChange }: HoldingsTableProps) {
+export default function HoldingsTable({ portfolio, supertrend, sort, onSortChange, onChart }: HoldingsTableProps) {
 
    const band = Number(portfolio.band)
    const quote = portfolio.quoteAsset
@@ -116,7 +117,15 @@ export default function HoldingsTable({ portfolio, supertrend, sort, onSortChang
                return (
                   <TableRow key={holding.asset}>
                      <TableCell className="font-medium">
-                        {holding.asset}
+                        {isCash(holding)
+                           ? holding.asset
+                           : <button
+                              type="button"
+                              className="cursor-pointer underline-offset-4 hover:underline"
+                              title={`Show the ${holding.asset}/${quote} chart`}
+                              onClick={() => onChart(holding.asset)}>
+                              {holding.asset}
+                           </button>}
                         {untargeted && <span className="ml-2 text-xs text-muted-foreground">not a target</span>}
                      </TableCell>
                      <TableCell className="text-right">{asWeight(holding.target)}</TableCell>
