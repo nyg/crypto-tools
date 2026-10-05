@@ -532,15 +532,27 @@ describe('folding positions', () => {
       expect(btc.realized.toFixed()).toBe('149.3')
    })
 
-   test('folds a buy fee paid in the coin into its average cost', () => {
+   test('realizes a buy fee paid in the coin at its cost, leaving the average cost of the rest alone', () => {
       const { coins } = foldPositions('USDT',
          [movement(2, 'fee', 'BTC', '-0.00001', '0', 'buy-1')],
          [order(1, 'buy-1', 'buy', '0.01', '500')])
 
       const btc = coins.get('BTC')!
       expect(btc.quantity.toFixed()).toBe('0.00999')
-      expect(btc.cost.toFixed()).toBe('500')
-      expect(btc.realized.toFixed()).toBe('0')
+      expect(btc.cost.toFixed()).toBe('499.5')
+      expect(btc.realized.toFixed()).toBe('-0.5')
+      expect(btc.disposedCost.toFixed()).toBe('0')
+   })
+
+   test('realizes nothing for a fee in a coin the portfolio does not hold, which it then owes', () => {
+      const { coins } = foldPositions('USDT',
+         [movement(2, 'fee', 'MNT', '-0.5', '0.4', 'buy-1')],
+         [order(1, 'buy-1', 'buy', '0.01', '500')])
+
+      const mnt = coins.get('MNT')!
+      expect(mnt.quantity.toFixed()).toBe('-0.5')
+      expect(mnt.cost.toFixed()).toBe('0')
+      expect(mnt.realized.toFixed()).toBe('0')
    })
 
    test('applies a fee with its order even when it was recorded after later events', () => {
@@ -550,8 +562,8 @@ describe('folding positions', () => {
 
       const btc = coins.get('BTC')!
       expect(btc.quantity.toFixed()).toBe('0.005')
-      expect(btc.cost.toFixed()).toBe('500')
-      expect(btc.realized.toFixed()).toBe('-200')
+      expect(btc.cost.toFixed()).toBe('250')
+      expect(btc.realized.toFixed()).toBe('-450')
    })
 
    test('costs a deposited coin at its value on the day it came in', () => {

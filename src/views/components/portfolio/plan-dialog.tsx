@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import Big from 'big.js'
 import { toast } from 'sonner'
@@ -71,6 +71,13 @@ const executionOptions: { value: Execution, label: string }[] = [
 ]
 
 const DEFAULT_WAIT_SECONDS = '120'
+const PREVIEW_DEBOUNCE_MS = 600
+
+type PlanChanges = Pick<PortfolioPlanRequest, 'mode' | 'exclude' | 'execution' | 'amount'>
+
+const otherExecution = (execution: Execution): Execution => execution === 'limit' ? 'market' : 'limit'
+
+const leftToWithdraw = (run: PortfolioRun) => Big(run.withdraw).minus(run.withdrawn)
 
 const feeRateTitles: Record<Execution, string> = {
    limit: 'Your maker fee rate on this pair, as the exchange reports it.',
@@ -218,11 +225,15 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
    const [execution, setExecution] = useState<Execution>(target.request.execution ?? 'limit')
    const [wait, setWait] = useState(target.request.wait ?? DEFAULT_WAIT_SECONDS)
    const [exclude, setExclude] = useState<string[]>(target.request.exclude ?? [])
+   const [amount, setAmount] = useState(target.request.amount)
+   const [previewed, setPreviewed] = useState({ band, slippage, wait })
    const [confirming, setConfirming] = useState(false)
    const [runId, setRunId] = useState<string | null>(null)
+   const [unfinished, setUnfinished] = useState<PortfolioRun | null>(null)
    const [expiredPlan, setExpiredPlan] = useState<string | null>(null)
+   const latestPreview = useRef(0)
 
-   const { data: plan, error: planError, trigger: preview, isMutating: isPlanning } =
+   const { data: plan, error: planError, trigger: preview, isMutating: isPlanning, reset: clearPlan } =
       useMutation<PortfolioPlanResponse, PortfolioPlanRequest>(`${apiBase}/plan`)
    const { trigger: execute, isMutating: isExecuting } =
       useMutation<PortfolioRunResponse, PortfolioExecuteRequest>(`${apiBase}/execute`)
@@ -231,10 +242,19 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
 
    const quote = target.portfolio.quoteAsset
    const expired = Boolean(plan) && expiredPlan === plan?.planId
+   const stale = previewed.band !== band || previewed.slippage !== slippage || previewed.wait !== wait
 
-   const requestPlan = (changes: Pick<PortfolioPlanRequest, 'mode' | 'exclude' | 'execution'> = {}) =>
-      preview({ ...target.request, band: band || undefined, slippage, mode, exclude, execution, wait, ...changes })
+   const requestPlan = (changes: PlanChanges = {}) => {
+      const asked = { band, slippage, wait }
+      const request = ++latestPreview.current
+      return preview({
+         ...target.request, amount, band: band || undefined, slippage, mode, exclude, execution, wait, ...changes
+      })
+         .then(() => {
+            if (request === latestPreview.current) setPreviewed(asked)
+         })
          .catch(() => {})
+   }
 
    const changeMode = (value: string) => {
       const next = modeOptions.find(option => option.value === value)?.value ?? 'full'
@@ -259,6 +279,12 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
    }, [])
 
    useEffect(() => {
+      if (!stale) return
+      const timer = setTimeout(() => requestPlan(), PREVIEW_DEBOUNCE_MS)
+      return () => clearTimeout(timer)
+   }, [band, slippage, wait])
+
+   useEffect(() => {
       if (!plan) return
       const timer = setTimeout(() => setExpiredPlan(plan.planId), Math.max(0, plan.expiresAt - Date.now()))
       return () => clearTimeout(timer)
@@ -277,11 +303,24 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
       }
    }
 
+   const withdrawsAmount = target.request.kind === 'withdraw' && !target.request.all
+
    const finished = (run: PortfolioRun) => {
       const message = `${target.portfolio.name}: ${runStatusLabels[run.status].toLowerCase()}.`
       if (run.status === 'done') toast.success(message)
       else toast.warning(message)
+      if (run.status !== 'done' && (!withdrawsAmount || leftToWithdraw(run).gt(0))) setUnfinished(run)
       onFinished()
+   }
+
+   const retry = (run: PortfolioRun, next: Execution) => {
+      const left = withdrawsAmount ? leftToWithdraw(run).toFixed() : undefined
+      setExecution(next)
+      setAmount(left)
+      setRunId(null)
+      setUnfinished(null)
+      clearPlan()
+      requestPlan({ execution: next, amount: left })
    }
 
    const close = () => {
@@ -300,13 +339,23 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                <DialogTitle>{title} {target.portfolio.name} on {venueLabel}</DialogTitle>
                <DialogDescription>
                   {runId
-                     ? 'The orders are placed one after the other: sells first, then buys sized to the cash the sells actually raised.'
+                     ? 'Sells first, then buys sized to the cash the sells actually raised.'
                      : plan ? describePlan(plan) : 'Working out the orders…'}
                </DialogDescription>
             </DialogHeader>
 
             {runId
-               ? <RunProgress apiBase={apiBase} runId={runId} quoteAsset={quote} onDone={finished} />
+               ? <div className="space-y-4">
+                  <RunProgress key={runId} apiBase={apiBase} runId={runId} quoteAsset={quote} onDone={finished} />
+                  {unfinished &&
+                     <Alert>
+                        <AlertDescription>
+                           Not everything went through. Try what is left again with {unfinished.execution} orders,
+                           or switch to {otherExecution(unfinished.execution)} orders: either way the orders are
+                           previewed again before anything is placed.
+                        </AlertDescription>
+                     </Alert>}
+               </div>
                : <div className="space-y-4">
                   <div className="flex flex-wrap items-end gap-3">
                      {target.request.kind === 'rebalance' &&
@@ -387,10 +436,18 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                <Button variant="outline" disabled={isExecuting} onClick={close}>
                   {runId ? 'Close' : 'Cancel'}
                </Button>
+               {unfinished && <>
+                  <Button variant="outline" onClick={() => retry(unfinished, otherExecution(unfinished.execution))}>
+                     Switch to {otherExecution(unfinished.execution)} orders
+                  </Button>
+                  <Button onClick={() => retry(unfinished, unfinished.execution)}>
+                     <RefreshCwIcon /> Retry with {unfinished.execution} orders
+                  </Button>
+               </>}
                {!runId && plan && (hasOrders || plan.kind === 'withdraw') &&
                   <Button
                      variant={live ? 'destructive' : 'default'}
-                     disabled={!canExecute || isPlanning}
+                     disabled={!canExecute || isPlanning || stale}
                      onClick={() => setConfirming(true)}>
                      {hasOrders
                         ? `Place ${asCount(plan.orders.length, 'order')}`

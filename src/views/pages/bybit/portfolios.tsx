@@ -17,6 +17,7 @@ export default function BybitPortfolios() {
                apiBase: '/api/bybit/portfolios',
                live: true,
                quoteAsset: 'USDT',
+               chartExchange: 'BYBIT',
                wallet: 'unified trading account',
                fees: BYBIT_FEES,
                setup: <>Create a Bybit API key with the Read and Spot trade permissions, and add it in <SettingsLink group="Bybit" /> under Bybit.</>
@@ -28,6 +29,7 @@ export default function BybitPortfolios() {
                apiBase: '/api/bybit/demo/portfolios',
                live: false,
                quoteAsset: 'USDT',
+               chartExchange: 'BYBIT',
                wallet: 'unified trading account',
                fees: BYBIT_FEES,
                setup: <>Switch Bybit to demo trading, create an API key there, and add it in <SettingsLink group="Bybit" /> under Bybit demo trading.</>,

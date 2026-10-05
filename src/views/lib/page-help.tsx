@@ -11,10 +11,12 @@ const portfolioHelp = (exchange: string, practice: ReactNode) =>
       Rebalancing and withdrawing preview their orders first and only place spot
       market orders once you confirm. Profit is split per coin at average cost:{' '}
       <b>unrealized</b> is what the coins still held are worth above what they cost, and{' '}
-      <b>realized</b> is what sells brought in above that cost, after fees. Each percentage
-      is over the cost of the coins it is about: those still held, or those sold. A coin you
-      deposit counts at its value on the day it came in. <b>Fees paid</b> adds up every
-      order&apos;s fee at the price the order filled at; the two profits already count it.{' '}
+      <b>realized</b> is what sells brought in above that cost, less every fee paid. Each
+      percentage is over the cost of the coins it is about: those still held, or those sold. A
+      coin you deposit counts at its value on the day it came in, and one you withdraw as it
+      is, without selling it, at its value on the day it leaves. <b>Fees paid</b> adds up every
+      order&apos;s fee at the price the order filled at; the realized profit already counts
+      it. A coin&apos;s name opens its chart on TradingView.{' '}
       <b>Supertrend 1D</b> and <b>1W</b>, on a live account, are the prices at which the
       Supertrend (10, 3) indicator flips on the coin&apos;s daily and weekly {exchange} chart:
       green and below the price in an uptrend, red and above it in a downtrend. The two

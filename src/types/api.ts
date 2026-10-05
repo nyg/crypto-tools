@@ -518,6 +518,13 @@ export interface PortfolioMovementRequest {
    note?: string
 }
 
+export interface PortfolioWithdrawRequest {
+   portfolioId: number
+   asset: string
+   amount?: string
+   all?: boolean
+}
+
 export interface PortfolioMovement {
    id: number
    kind: MovementKind

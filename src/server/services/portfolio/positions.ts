@@ -61,12 +61,17 @@ export function foldPositions(quote: string, movements: PositionMovement[], orde
       position.cost = position.cost.plus(cost)
    }
 
-   const dispose = (asset: string, quantity: Big, proceeds: Big) => {
-      const position = positionOf(asset)
+   const release = (position: Position, quantity: Big): Big => {
       const share = position.quantity.gt(quantity) ? quantity.div(position.quantity) : ONE
       const released = position.cost.times(share)
       position.quantity = position.quantity.minus(quantity)
       position.cost = position.cost.minus(released)
+      return released
+   }
+
+   const dispose = (asset: string, quantity: Big, proceeds: Big) => {
+      const position = positionOf(asset)
+      const released = release(position, quantity)
       position.disposedCost = position.disposedCost.plus(released)
       position.realized = position.realized.plus(proceeds.minus(released))
    }
@@ -97,7 +102,7 @@ export function foldPositions(quote: string, movements: PositionMovement[], orde
       else unvaluedFees.add(fee.asset)
       if (fee.asset !== quote) {
          const position = positionOf(fee.asset)
-         position.quantity = position.quantity.minus(amount)
+         position.realized = position.realized.minus(release(position, amount))
       }
       else if (order) {
          const position = positionOf(order.baseAsset)

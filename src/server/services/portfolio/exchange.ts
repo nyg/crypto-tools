@@ -7,6 +7,7 @@ import type {
 export interface ChasePacing {
    pollMs: number
    moveAfterMs: number
+   pollsTakeTurns: boolean
 }
 
 export interface PortfolioExchange {

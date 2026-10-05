@@ -28,7 +28,7 @@ export default class BinanceExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
    readonly buyFeeInQuote = false
-   readonly chasePacing = { pollMs: 3000, moveAfterMs: 3000 }
+   readonly chasePacing = { pollMs: 3000, moveAfterMs: 3000, pollsTakeTurns: false }
 
    readonly #api: BinanceAPI
    readonly #environment: BinanceEnvironment
