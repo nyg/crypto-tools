@@ -1,3 +1,4 @@
+import { ChartCandlestickIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
@@ -121,10 +122,11 @@ export default function HoldingsTable({ portfolio, supertrend, sort, onSortChang
                            ? holding.asset
                            : <button
                               type="button"
-                              className="cursor-pointer underline-offset-4 hover:underline"
+                              className="group inline-flex cursor-pointer items-center gap-1.5 align-bottom underline-offset-4 hover:underline"
                               title={`Show the ${holding.asset}/${quote} chart`}
                               onClick={() => onChart(holding.asset)}>
                               {holding.asset}
+                              <ChartCandlestickIcon className="size-3.5 text-muted-foreground group-hover:text-foreground" />
                            </button>}
                         {untargeted && <span className="ml-2 text-xs text-muted-foreground">not a target</span>}
                      </TableCell>
