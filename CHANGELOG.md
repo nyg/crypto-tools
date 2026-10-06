@@ -1,6 +1,16 @@
 # Changelog
 
 
+## [1.3.0](https://github.com/nyg/crypto-tools/compare/v1.2.0..v1.3.0) - 2026-10-06
+
+### ⛰️  Features
+
+- [`71e7b13`](https://github.com/nyg/crypto-tools/commit/71e7b137525dfceb39fbee9e0d0e5da74c8fab96) *(portfolios)* Mark coins with a chart icon and open their chart daily with Supertrend, remembering the choice ([#343](https://github.com/nyg/crypto-tools/issues/343))
+
+### 🐛 Bug Fixes
+
+- [`f3f9904`](https://github.com/nyg/crypto-tools/commit/f3f99045957a458246bd304816af096d7bb75d41) *(portfolios)* Place orders side by side, retry unfilled runs, withdraw a coin as it is and realize fees when paid ([#342](https://github.com/nyg/crypto-tools/issues/342))
+
 ## [1.2.0](https://github.com/nyg/crypto-tools/compare/v1.1.0..v1.2.0) - 2026-10-04
 
 ### ⛰️  Features
