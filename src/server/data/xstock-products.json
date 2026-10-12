@@ -1,7 +1,13 @@
 {
-   "generatedAt": "2026-09-21",
+   "generatedAt": "2026-10-12",
    "source": "api.xstocks.fi, assets.backed.fi, documents.backed.fi",
    "products": {
+      "AAL": {
+         "symbol": "AALx",
+         "isin": "CH1588662259",
+         "underlyingIsin": "US02376R1023",
+         "slug": "american-airlines-xstock"
+      },
       "AAOI": {
          "symbol": "AAOIx",
          "isin": "CH1588658612",
