@@ -1,7 +1,13 @@
 {
-   "generatedAt": "2026-09-21",
+   "generatedAt": "2026-10-12",
    "source": "stockanalysis.com, nasdaqtrader.com",
    "listings": {
+      "AAL": {
+         "name": "American Airlines Group, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "AAOI": {
          "name": "Applied Optoelectronics, Inc.",
          "exchange": "",
