@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import Big from 'big.js'
-import { addFill, closedStatus, fillOf, maxBuy, noFill, sizeInstantOrder, sizeRest, summaryOf, wireFill } from './instant-order'
+import { addFill, closedStatus, feeAssetOf, fillOf, maxAmount, noFill, sizeInstantOrder, sizeRest, summaryOf, wireFill } from './instant-order'
 import type { PlanMarket } from '../portfolio/planner'
 
 const btc = (bid: string, ask: string, overrides: Partial<Record<keyof PlanMarket, string>> = {}): PlanMarket => {
@@ -38,14 +38,31 @@ describe('sizing an instant limit order', () => {
    })
 })
 
-describe('the most an order can buy', () => {
+describe('the fee of an instant limit order', () => {
 
-   test('leaves room for a fee charged in the cash on top of the order', () => {
-      expect(maxBuy(Big('1000'), Big('0.0025'), true, Big('0.01')).toFixed()).toBe('997.5')
+   test('is in the quote asset on either side by default where the exchange lets the order choose', () => {
+      const kraken = { choosesFeeAsset: true, buyFeeInQuote: true }
+
+      expect(feeAssetOf('buy', undefined, kraken)).toBe('quote')
+      expect(feeAssetOf('sell', undefined, kraken)).toBe('quote')
+      expect(feeAssetOf('sell', 'base', kraken)).toBe('base')
    })
 
-   test('spends all of the cash where the fee comes out of the coin bought', () => {
-      expect(maxBuy(Big('1000'), Big('0.001'), false, Big('0.01')).toFixed()).toBe('1000')
+   test('is in the coin received where the exchange decides', () => {
+      const bybit = { buyFeeInQuote: false }
+
+      expect(feeAssetOf('buy', 'quote', bybit)).toBe('base')
+      expect(feeAssetOf('sell', 'base', bybit)).toBe('quote')
+   })
+
+   test('leaves room in what the order spends when it is charged on top of it', () => {
+      expect(maxAmount('buy', Big('1000'), Big('0.0025'), 'quote', Big('0.01')).toFixed()).toBe('997.5')
+      expect(maxAmount('sell', Big('2'), Big('0.0025'), 'base', Big('0.0001')).toFixed()).toBe('1.995')
+   })
+
+   test('spends everything when it comes out of the coin received', () => {
+      expect(maxAmount('buy', Big('1000'), Big('0.001'), 'base', Big('0.01')).toFixed()).toBe('1000')
+      expect(maxAmount('sell', Big('2'), Big('0.001'), 'quote', Big('0.0001')).toFixed()).toBe('2')
    })
 })
 

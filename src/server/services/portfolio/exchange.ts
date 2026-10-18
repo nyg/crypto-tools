@@ -13,6 +13,7 @@ export interface ChasePacing {
 export interface PortfolioExchange {
    readonly balanceDecimals: number
    readonly buyFeeInQuote: boolean
+   readonly choosesFeeAsset?: boolean
    readonly chasePacing: ChasePacing
    account(): Promise<ExchangeAccount>
    wallet(): Promise<WalletCoin[]>

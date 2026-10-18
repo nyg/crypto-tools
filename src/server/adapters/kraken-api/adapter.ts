@@ -387,7 +387,7 @@ export default class KrakenAPI {
       return response.result.txid[0] ?? ''
    }
 
-   async placeLimitOrder(pair: string, { clientOrderId, side, quantity, price }: LimitOrderRequest): Promise<string> {
+   async placeLimitOrder(pair: string, { clientOrderId, side, quantity, price, feeAsset }: LimitOrderRequest): Promise<string> {
       const response = await resource.addOrder(this.#authenticated, {
          pair,
          type: side,
@@ -395,7 +395,7 @@ export default class KrakenAPI {
          volume: quantity,
          price,
          cl_ord_id: clientOrderId,
-         oflags: 'fciq,post'
+         oflags: feeAsset === 'base' ? 'fcib,post' : 'fciq,post'
       })
       return response.result.txid[0] ?? ''
    }

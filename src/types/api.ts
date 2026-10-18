@@ -11,7 +11,7 @@ import type { FundingJob, JobPhase, StartedJob, SyncJob, XStockJob } from './job
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
 import type {
-   Execution, FeeAmount, MovementKind, OrderLookup, OrderSide, RebalanceMode, RunKind, RunOrderStatus, RunStatus,
+   Execution, FeeAmount, FeeAsset, MovementKind, OrderLookup, OrderSide, RebalanceMode, RunKind, RunOrderStatus, RunStatus,
    SizeUnit, SkipReason, StopSkipReason, StopStatus, VenueId
 } from './portfolio'
 import type { XStockListingType } from './xstock'
@@ -725,7 +725,9 @@ export interface InstantOrderAccountResponse {
    quote: string
    freeBase: string
    freeQuote: string
-   maxBuy: string
+   choosesFeeAsset: boolean
+   feeAssets: Record<OrderSide, FeeAsset>
+   max: Record<OrderSide, Record<FeeAsset, string>>
    baseStep: string
    minQty: string
    minAmount: string
@@ -737,6 +739,7 @@ export interface InstantOrderPlaceRequest {
    side: OrderSide
    unit: SizeUnit
    amount: string
+   feeAsset?: FeeAsset
    follow: boolean
    maxMovePercent: string
 }
@@ -748,6 +751,7 @@ export interface InstantOrder {
    quote: string
    side: OrderSide
    quantity: string
+   feeAsset: FeeAsset
    placedAt: number
 }
 

@@ -3,7 +3,7 @@ import { makerPrice } from '../portfolio/limit-orders'
 import { floorTo } from '../portfolio/planner'
 import type { PlanMarket } from '../portfolio/planner'
 import type { InstantOrderFill, InstantOrderStatus } from '../../../types/api'
-import type { FeeAmount, OrderSettlement, OrderSide, SizeUnit } from '../../../types/portfolio'
+import type { FeeAmount, FeeAsset, OrderSettlement, OrderSide, SizeUnit } from '../../../types/portfolio'
 
 export type Sizing = { price: Big, quantity: Big } | { refusal: string }
 
@@ -26,8 +26,20 @@ export function sizeInstantOrder(side: OrderSide, unit: SizeUnit, amount: Big, m
    return sizeRest(unit === 'base' ? amount : amount.div(price), price, market)
 }
 
-export const maxBuy = (freeQuote: Big, makerRate: Big, feeInQuote: boolean, quoteStep: Big): Big =>
-   floorTo(feeInQuote ? freeQuote.div(Big(1).plus(makerRate)) : freeQuote, quoteStep)
+interface FeeRules {
+   choosesFeeAsset?: boolean
+   buyFeeInQuote: boolean
+}
+
+export function feeAssetOf(side: OrderSide, chosen: FeeAsset | undefined, { choosesFeeAsset, buyFeeInQuote }: FeeRules): FeeAsset {
+   if (choosesFeeAsset) return chosen ?? 'quote'
+   return side === 'sell' || buyFeeInQuote ? 'quote' : 'base'
+}
+
+const spentAsset = (side: OrderSide): FeeAsset => side === 'buy' ? 'quote' : 'base'
+
+export const maxAmount = (side: OrderSide, free: Big, makerRate: Big, feeAsset: FeeAsset, step: Big): Big =>
+   floorTo(feeAsset === spentAsset(side) ? free.div(Big(1).plus(makerRate)) : free, step)
 
 export interface Fill {
    base: Big

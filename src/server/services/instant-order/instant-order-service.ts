@@ -2,7 +2,7 @@ import Big from 'big.js'
 import { HttpRequesterError, messageOf } from '../../errors'
 import { makerPrice } from '../portfolio/limit-orders'
 import { DEFAULT_FEE_RATE, planMarket } from '../portfolio/planner'
-import { maxBuy, sizeInstantOrder } from './instant-order'
+import { feeAssetOf, maxAmount, sizeInstantOrder } from './instant-order'
 import InstantOrderTracker, { newClientOrderId, trackerOf } from './instant-order-tracker'
 import type { PortfolioExchange } from '../portfolio/exchange'
 import type { PlanMarket } from '../portfolio/planner'
@@ -12,7 +12,7 @@ import type {
    InstantOrderAccountResponse, InstantOrderActionResponse, InstantOrderBookResponse, InstantOrderMarketsResponse,
    InstantOrderPlaceResponse, InstantOrderState, InstantOrderStatusResponse, TrackedInstantOrder
 } from '../../../types/api'
-import type { OrderSide, SizeUnit, SpotMarket, TradeFees } from '../../../types/portfolio'
+import type { FeeAsset, OrderSide, SizeUnit, SpotMarket, TradeFees } from '../../../types/portfolio'
 
 export type InstantOrderErrorStatus = 400 | 409 | 502
 
@@ -86,16 +86,22 @@ export default class InstantOrderService {
       const market = await this.#market(body.symbol)
       const [wallet, fees] = await Promise.all([this.#exchange.wallet(), this.#tradeFees(market.symbol)])
       const freeOf = (asset: string) => Big(wallet.find(coin => coin.asset === asset)?.free || 0)
+      const freeBase = freeOf(market.base)
       const freeQuote = freeOf(market.quote)
-      const makerBuy = Big(fees?.maker.buy ?? DEFAULT_FEE_RATE)
+      const maxOf = (side: OrderSide, feeAsset: FeeAsset) => maxAmount(
+         side, side === 'buy' ? freeQuote : freeBase, Big(fees?.maker[side] ?? DEFAULT_FEE_RATE), feeAsset,
+         Big((side === 'buy' ? market.quoteStep : market.baseStep) || 0)).toFixed()
+      const maxFor = (side: OrderSide) => ({ base: maxOf(side, 'base'), quote: maxOf(side, 'quote') })
 
       return {
          fetchedAt: Date.now(),
          base: market.base,
          quote: market.quote,
-         freeBase: freeOf(market.base).toFixed(),
+         freeBase: freeBase.toFixed(),
          freeQuote: freeQuote.toFixed(),
-         maxBuy: maxBuy(freeQuote, makerBuy, this.#exchange.buyFeeInQuote, Big(market.quoteStep || 0)).toFixed(),
+         choosesFeeAsset: this.#exchange.choosesFeeAsset ?? false,
+         feeAssets: { buy: feeAssetOf('buy', undefined, this.#exchange), sell: feeAssetOf('sell', undefined, this.#exchange) },
+         max: { buy: maxFor('buy'), sell: maxFor('sell') },
          baseStep: market.baseStep,
          minQty: market.minQty,
          minAmount: market.minAmount,
@@ -111,6 +117,8 @@ export default class InstantOrderService {
       const { side, unit, amount, follow } = body
       if (!isSide(side)) throw new InstantOrderError(400, 'Buy or sell?')
       if (!isUnit(unit)) throw new InstantOrderError(400, 'The amount is neither in the base nor in the quote asset.')
+      if (body.feeAsset !== undefined && !isUnit(body.feeAsset)) throw new InstantOrderError(400, 'The fee is neither in the base nor in the quote asset.')
+      const feeAsset = feeAssetOf(side, body.feeAsset, this.#exchange)
       if (!isPositive(amount)) throw new InstantOrderError(400, 'The amount must be a positive number.')
       const maxMove = follow === true ? movePercentOf(body.maxMovePercent) : null
 
@@ -124,13 +132,13 @@ export default class InstantOrderService {
          const clientOrderId = newClientOrderId()
          const order = {
             id: clientOrderId, symbol: market.symbol, base: market.base, quote: market.quote, side,
-            quantity: sizing.quantity.toFixed(), placedAt: Date.now()
+            quantity: sizing.quantity.toFixed(), feeAsset, placedAt: Date.now()
          }
 
          let orderId: string | null = null
          try {
             orderId = await this.#exchange.placeLimitOrder({
-               clientOrderId, symbol: market.symbol, side, quantity: order.quantity, price: sizing.price.toFixed()
+               clientOrderId, symbol: market.symbol, side, quantity: order.quantity, price: sizing.price.toFixed(), feeAsset
             }) || null
          }
          catch (error) {

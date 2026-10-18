@@ -65,13 +65,20 @@ function account(venue: VenueId, request?: InstantOrderSymbolRequest): InstantOr
    const market = marketOf(venue, request?.symbol)
    const wallet = stateOf(venue).wallet
    const freeQuote = wallet[market?.quote ?? ''] ?? 0
+   const freeBase = wallet[market?.base ?? ''] ?? 0
+   const kept = (free: number, decimals: number) => (Math.floor(free / (1 + Number(MAKER_FEE)) * 10 ** decimals) / 10 ** decimals).toFixed(decimals)
    return {
       fetchedAt: Date.now(),
       base: market?.base ?? '',
       quote: market?.quote ?? '',
-      freeBase: String(wallet[market?.base ?? ''] ?? 0),
+      freeBase: String(freeBase),
       freeQuote: String(freeQuote),
-      maxBuy: (Math.floor(freeQuote * 100) / 100).toFixed(2),
+      choosesFeeAsset: venue === 'kraken',
+      feeAssets: { buy: venue === 'kraken' ? 'quote' : 'base', sell: 'quote' },
+      max: {
+         buy: { base: freeQuote.toFixed(2), quote: kept(freeQuote, 2) },
+         sell: { base: kept(freeBase, 6), quote: String(freeBase) }
+      },
       baseStep: '0.000001',
       minQty: '0.000001',
       minAmount: '5',
@@ -133,7 +140,8 @@ function place(venue: VenueId, request?: InstantOrderPlaceRequest): InstantOrder
 
    const order: InstantOrder = {
       id: `io${Date.now().toString(36)}`, symbol: market.symbol, base: market.base, quote: market.quote,
-      side: request.side, quantity: String(quantity), placedAt: Date.now()
+      side: request.side, quantity: String(quantity), placedAt: Date.now(),
+      feeAsset: request.feeAsset ?? (venue === 'kraken' || request.side === 'sell' ? 'quote' : 'base')
    }
    orders.set(order.id, {
       venue, order, price, following: request.follow, moves: 0, cancelledAt: null,

@@ -280,7 +280,7 @@ export default class InstantOrderTracker {
          try {
             const orderId = await this.#exchange.placeLimitOrder({
                clientOrderId: lookup.clientOrderId, symbol: market.symbol, side: this.order.side,
-               quantity: sizing.quantity.toFixed(), price: sizing.price.toFixed()
+               quantity: sizing.quantity.toFixed(), price: sizing.price.toFixed(), feeAsset: this.order.feeAsset
             })
             this.#started({ ...lookup, orderId: orderId || null }, sizing.price, Boolean(orderId))
             return

@@ -17,7 +17,7 @@ import type {
    InstantOrderAccountResponse, InstantOrderBookResponse, InstantOrderPlaceRequest,
    InstantOrderPlaceResponse, PortfolioMarket, TrackedInstantOrder
 } from '../../../types/api'
-import type { OrderSide, SizeUnit } from '../../../types/portfolio'
+import type { FeeAsset, OrderSide, SizeUnit } from '../../../types/portfolio'
 
 const BOOK_REFRESH_MS = 3000
 
@@ -44,6 +44,7 @@ export default function OrderForm({ apiBase, venueLabel, market, following, onFo
    const [side, setSide] = useState<OrderSide>('buy')
    const [unit, setUnit] = useState<SizeUnit>('quote')
    const [amount, setAmount] = useState('')
+   const [feeChoice, setFeeChoice] = useState<FeeAsset>('quote')
    const [error, setError] = useState<string | null>(null)
 
    const { data: book, error: bookError } = useSWR<InstantOrderBookResponse>(
@@ -57,17 +58,24 @@ export default function OrderForm({ apiBase, venueLabel, market, following, onFo
    const sized = Number(amount) > 0 && price ? Big(amount) : null
    const quantity = sized && price ? floorTo(unit === 'base' ? sized : sized.div(price), account?.baseStep ?? '0') : null
    const fees = account?.fees?.[side]
+   const feeAsset = account?.choosesFeeAsset ? feeChoice : account?.feeAssets[side] ?? 'quote'
+   const feeCoin = feeAsset === 'base' ? base : quote
+   const fee = quantity && price && fees
+      ? (feeAsset === 'base' ? quantity : quantity.times(price)).times(fees.maker)
+      : null
 
    const max = () => {
       if (!account) return
       setUnit(side === 'buy' ? 'quote' : 'base')
-      setAmount(side === 'buy' ? account.maxBuy : account.freeBase)
+      setAmount(account.max[side][feeAsset])
    }
 
    const submit = async () => {
       setError(null)
       try {
-         const tracked = await place({ symbol, side, unit, amount, ...following })
+         const tracked = await place({
+            symbol, side, unit, amount, ...following, ...account?.choosesFeeAsset ? { feeAsset } : {}
+         })
          setAmount('')
          onPlaced(tracked)
          refreshAccount()
@@ -120,6 +128,14 @@ export default function OrderForm({ apiBase, venueLabel, market, following, onFo
                   value={unit}
                   onValueChange={value => setUnit(value as SizeUnit)}
                   options={[{ value: 'base', label: base }, { value: 'quote', label: quote }]} />
+               {account?.choosesFeeAsset &&
+                  <SelectField
+                     name="instant-fee-asset"
+                     label="Fee in"
+                     className="w-28"
+                     value={feeChoice}
+                     onValueChange={value => setFeeChoice(value as FeeAsset)}
+                     options={[{ value: 'base', label: base }, { value: 'quote', label: quote }]} />}
                <Button variant="outline" type="button" disabled={!account} onClick={max}>Max</Button>
             </div>
 
@@ -131,8 +147,12 @@ export default function OrderForm({ apiBase, venueLabel, market, following, onFo
                <Field label="Total">
                   {quantity && price ? `≈ ${asQuantity(quantity.times(price).toFixed())} ${quote}` : '—'}
                </Field>
-               <Field label="Fee">
-                  {fees ? `${asPercentage(Number(fees.maker))} maker, not ${asPercentage(Number(fees.taker))} taker` : '—'}
+               <Field label={`Fee, in ${feeCoin}`}>
+                  <span className="block">{fee ? `≈ ${asQuantity(fee.toFixed())} ${feeCoin}` : '—'}</span>
+                  {fees &&
+                     <span className="block text-xs text-muted-foreground">
+                        {asPercentage(Number(fees.maker))} maker, not {asPercentage(Number(fees.taker))} taker
+                     </span>}
                </Field>
             </div>
 

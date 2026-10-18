@@ -24,6 +24,7 @@ class FakeExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
    readonly buyFeeInQuote = true
+   readonly choosesFeeAsset: boolean
    readonly chasePacing = { pollMs: 2, moveAfterMs: 0, pollsTakeTurns: false }
    readonly orders = new Map<string, FakeOrder>()
    readonly amended: string[] = []
@@ -33,7 +34,8 @@ class FakeExchange implements PortfolioExchange {
    failure: HttpRequesterError | null = null
    closesAfterChecks = 0
 
-   constructor({ amends = false } = {}) {
+   constructor({ amends = false, choosesFeeAsset = true } = {}) {
+      this.choosesFeeAsset = choosesFeeAsset
       if (amends) {
          this.amendLimitPrice = async ({ clientOrderId }, price) => {
             this.amended.push(price)
@@ -223,6 +225,27 @@ describe('placing an instant limit order', () => {
       expect(state).toMatchObject({ status: 'unknown', current: { orderId: null }, price: '100.49' })
    })
 
+   test('charges the fee in the asset picked, and keeps it for the rest placed again', async () => {
+      const exchange = new FakeExchange()
+      const service = serviceOver(exchange)
+      const tracked = await service.place({ ...buy('1'), side: 'sell', feeAsset: 'base' })
+      exchange.fill(tracked.order.id, '0.4')
+      exchange.book = { last: '99', bid: '99', ask: '99.5' }
+
+      await service.reprice(bodyOf(tracked))
+
+      expect(tracked.order.feeAsset).toBe('base')
+      expect(exchange.placedOrders().map(({ feeAsset }) => feeAsset)).toEqual(['base', 'base'])
+   })
+
+   test('charges the fee where the exchange decides when it lets the order choose nothing', async () => {
+      const exchange = new FakeExchange({ choosesFeeAsset: false })
+
+      const { order } = await serviceOver(exchange).place({ ...buy('1'), side: 'sell', feeAsset: 'base' })
+
+      expect(order.feeAsset).toBe('quote')
+   })
+
    test('refuses an amount that is not a positive number, a pair the exchange does not list and a follow with no limit', async () => {
       const service = serviceOver(new FakeExchange())
 
@@ -337,7 +360,11 @@ describe('checking on instant limit orders', () => {
    test('reads the free balances and keeps a buy\'s fee in the cash within them', async () => {
       const account = await serviceOver(new FakeExchange()).account({ symbol: 'SOLUSD' })
 
-      expect(account).toMatchObject({ freeBase: '2', freeQuote: '1002', maxBuy: '1000', fees: { buy: { maker: '0.002', taker: '0.004' } } })
+      expect(account).toMatchObject({
+         freeBase: '2', freeQuote: '1002', choosesFeeAsset: true, feeAssets: { buy: 'quote', sell: 'quote' },
+         max: { buy: { quote: '1000', base: '1002' }, sell: { base: '1.99', quote: '2' } },
+         fees: { buy: { maker: '0.002', taker: '0.004' } }
+      })
    })
 
    test('picks up an order placed before the server started again from what the page kept', async () => {
