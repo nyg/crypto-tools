@@ -187,3 +187,27 @@ export type BybitKline = [string, string, string, string, string, string, string
 export type BybitKlineInterval = 'D' | 'W'
 
 export type BybitEnvironment = 'mainnet' | 'demo'
+
+export interface BybitStreamBook {
+   s: string
+   b?: [string, string][]
+   a?: [string, string][]
+}
+
+export interface BybitStreamOrder {
+   category?: string
+   orderId: string
+   orderLinkId?: string
+   orderStatus: string
+   cumExecQty?: string
+   cumExecValue?: string
+}
+
+export interface BybitStreamMessage {
+   op?: string
+   success?: boolean
+   req_id?: string
+   topic?: string
+   type?: string
+   data?: unknown
+}

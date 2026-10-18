@@ -3,10 +3,11 @@ import Big from 'big.js'
 import { HttpRequesterError } from '../../errors'
 import InstantOrderService, { InstantOrderError } from './instant-order-service'
 import type { PortfolioExchange } from '../portfolio/exchange'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
 import type { Venue } from '../portfolio/venues'
 import type { InstantOrderState, TrackedInstantOrder } from '../../../types/api'
 import type {
-   ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderSettlement, SpotCandle, SpotMarket,
+   ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderSettlement, SpotCandle, SpotMarket,
    SpotPrice, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
@@ -20,12 +21,39 @@ interface FakeOrder {
    postOnlyRefused?: boolean
 }
 
+class FakeStream<T> {
+
+   readonly listeners = new Set<StreamListener<T>>()
+   live = true
+
+   watch(listener: StreamListener<T>): StreamSubscription {
+      this.listeners.add(listener)
+      if (this.live) queueMicrotask(() => listener.onLive(true))
+      const watched = () => this.live && this.listeners.has(listener)
+      return {
+         get live() {
+            return watched()
+         },
+         close: () => this.listeners.delete(listener)
+      }
+   }
+
+   push(value: T): void {
+      for (const listener of this.listeners) listener.onEvent(value)
+   }
+
+   drop(): void {
+      this.live = false
+      for (const listener of this.listeners) listener.onLive(false)
+   }
+}
+
 class FakeExchange implements PortfolioExchange {
 
    readonly balanceDecimals = 8
    readonly buyFeeInQuote = true
    readonly choosesFeeAsset: boolean
-   readonly chasePacing = { pollMs: 2, moveAfterMs: 0, pollsTakeTurns: false }
+   readonly chasePacing: { pollMs: number, moveAfterMs: number, pollsTakeTurns: boolean }
    readonly orders = new Map<string, FakeOrder>()
    readonly amended: string[] = []
    amendLimitPrice?: (order: OrderLookup, price: string) => Promise<void>
@@ -33,9 +61,22 @@ class FakeExchange implements PortfolioExchange {
    refusals = 0
    failure: HttpRequesterError | null = null
    closesAfterChecks = 0
+   priceReads = 0
+   checks = 0
+   bookStream?: FakeStream<SpotPrice>
+   orderStream?: FakeStream<OrderEvent>
+   watchBook?: (market: SpotMarket, listener: StreamListener<SpotPrice>) => StreamSubscription
+   watchOrders?: (listener: StreamListener<OrderEvent>) => StreamSubscription
 
-   constructor({ amends = false, choosesFeeAsset = true } = {}) {
+   constructor({ amends = false, choosesFeeAsset = true, streams = false, pollMs = 2, moveAfterMs = 0 } = {}) {
       this.choosesFeeAsset = choosesFeeAsset
+      this.chasePacing = { pollMs, moveAfterMs, pollsTakeTurns: false }
+      if (streams) {
+         const bookStream = this.bookStream = new FakeStream<SpotPrice>()
+         const orderStream = this.orderStream = new FakeStream<OrderEvent>()
+         this.watchBook = (_, listener) => bookStream.watch(listener)
+         this.watchOrders = listener => orderStream.watch(listener)
+      }
       if (amends) {
          this.amendLimitPrice = async ({ clientOrderId }, price) => {
             this.amended.push(price)
@@ -52,6 +93,16 @@ class FakeExchange implements PortfolioExchange {
       const order = this.orders.get(clientOrderId)!
       order.filled = order.filled.plus(base)
       order.closed = order.filled.gte(order.request.quantity)
+   }
+
+   pushBook(book: SpotPrice): void {
+      this.book = book
+      this.bookStream!.push(book)
+   }
+
+   pushOrder(clientOrderId: string): void {
+      const { orderId, filled, closed, request } = this.orders.get(clientOrderId)!
+      this.orderStream!.push({ clientOrderId, orderId, closed, base: filled.toFixed(), quote: filled.times(request.price).toFixed() })
    }
 
    placedOrders(): LimitOrderRequest[] {
@@ -77,6 +128,7 @@ class FakeExchange implements PortfolioExchange {
    }
 
    async prices(): Promise<Record<string, SpotPrice>> {
+      this.priceReads++
       const book = this.books.length > 1 ? this.books.shift()! : this.books[0]!
       return { SOLUSD: book }
    }
@@ -110,6 +162,7 @@ class FakeExchange implements PortfolioExchange {
    }
 
    async settleOrder({ clientOrderId }: OrderLookup): Promise<OrderSettlement | null> {
+      this.checks++
       const order = this.orders.get(clientOrderId)
       if (!order) return null
       const closed = order.closed && this.closesAfterChecks-- <= 0
@@ -376,5 +429,90 @@ describe('checking on instant limit orders', () => {
       const state = await stateAfter(serviceOver(exchange), kept)
 
       expect(state).toMatchObject({ status: 'open', filled: '0.5', following: false })
+   })
+})
+
+describe('following the price over the exchange streams', () => {
+
+   const quietly = { amends: true, streams: true, pollMs: 60000 }
+
+   test('moves the order on a book change and learns that it filled from the order stream, without polling', async () => {
+      const exchange = new FakeExchange(quietly)
+      const service = serviceOver(exchange)
+      const tracked = await service.place(buy('1', { follow: true, maxMovePercent: '1' }))
+      await until(() => exchange.checks === 1)
+      const pricesBefore = exchange.priceReads
+
+      exchange.pushBook({ last: '100.7', bid: '100.7', ask: '100.9' })
+      await until(() => exchange.amended.includes('100.89'))
+      exchange.fill(tracked.order.id, '1')
+      exchange.pushOrder(tracked.order.id)
+      await until(() => stateAfter(service, tracked).then(state => state.status === 'filled'))
+
+      expect(exchange.priceReads).toBe(pricesBefore)
+      expect(exchange.checks).toBe(2)
+      expect(exchange.bookStream!.listeners.size).toBe(0)
+      expect(exchange.orderStream!.listeners.size).toBe(0)
+   })
+
+   test('shows what a resting order filled as the order stream reports it', async () => {
+      const exchange = new FakeExchange(quietly)
+      const service = serviceOver(exchange)
+      const tracked = await service.place(buy('1', { follow: true, maxMovePercent: '1' }))
+      await until(() => exchange.checks === 1)
+
+      exchange.fill(tracked.order.id, '0.3')
+      exchange.pushOrder(tracked.order.id)
+
+      expect(await stateAfter(service, tracked)).toMatchObject({ status: 'open', filled: '0.3', following: true })
+      expect(exchange.checks).toBe(1)
+      await service.cancel(bodyOf(tracked))
+   })
+
+   test('waits until the order may move before following a book change', async () => {
+      const exchange = new FakeExchange({ ...quietly, moveAfterMs: 80 })
+      const service = serviceOver(exchange)
+      const tracked = await service.place(buy('1', { follow: true, maxMovePercent: '1' }))
+
+      exchange.pushBook({ last: '100.7', bid: '100.7', ask: '100.9' })
+      await new Promise(resolve => setTimeout(resolve, 20))
+      expect(exchange.amended).toEqual([])
+      await until(() => exchange.amended.includes('100.89'))
+
+      await service.cancel(bodyOf(tracked))
+   })
+
+   test('places the rest again when the order stream reports a post-only order cancelled', async () => {
+      const exchange = new FakeExchange({ streams: true, pollMs: 60000 })
+      const service = serviceOver(exchange)
+      const tracked = await service.place(buy('1', { follow: true, maxMovePercent: '1' }))
+      await until(() => exchange.checks === 1)
+      exchange.fill(tracked.order.id, '0.25')
+
+      Object.assign(exchange.orders.get(tracked.order.id)!, { closed: true, postOnlyRefused: true })
+      exchange.pushOrder(tracked.order.id)
+      await until(() => exchange.orders.size === 2)
+      const { state } = await service.cancel(bodyOf(tracked))
+
+      expect(exchange.placedOrders().at(-1)).toMatchObject({ quantity: '0.75' })
+      expect(state).toMatchObject({ filled: '0.25', status: 'partial' })
+   })
+
+   test('falls back to polling the book and the order when the streams drop', async () => {
+      const exchange = new FakeExchange({ amends: true, streams: true, pollMs: 10 })
+      const service = serviceOver(exchange)
+      const tracked = await service.place(buy('1', { follow: true, maxMovePercent: '1' }))
+      await until(() => exchange.checks === 1)
+      await new Promise(resolve => setTimeout(resolve, 50))
+      expect(exchange.checks).toBe(1)
+
+      exchange.bookStream!.drop()
+      exchange.orderStream!.drop()
+      exchange.book = { last: '100.7', bid: '100.7', ask: '100.9' }
+      await until(() => exchange.amended.includes('100.89'))
+      exchange.fill(tracked.order.id, '1')
+      await until(() => stateAfter(service, tracked).then(state => state.status === 'filled'))
+
+      expect(exchange.checks).toBeGreaterThan(2)
    })
 })

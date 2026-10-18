@@ -1,15 +1,18 @@
 import KrakenAPI from '../../adapters/kraken-api/adapter'
 import { mondayWeeks } from '../../adapters/kraken-api/ohlc'
 import { hasKrakenError, krakenErrors } from '../../adapters/kraken-api/spot'
+import { krakenBookProtocol, krakenOrderProtocol, krakenStreamSymbol } from '../../adapters/kraken-api/streams'
+import SocketHub, { ORDERS, sharedHub } from '../../adapters/websocket/socket-hub'
 import { accountIdFor } from '../../db/entry-key'
 import { krakenAccountId } from '../../settings'
 import CacheMap from './cache-map'
 import type { PortfolioExchange } from './exchange'
 import type { HttpRequesterError } from '../../errors'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
 import type { Credentials } from '../../../types/credentials'
 import type { KrakenSpotMarket } from '../../../types/kraken'
 import type {
-   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderRequest, OrderSettlement,
    SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
@@ -20,6 +23,8 @@ const AMBIGUOUS_ERRORS = ['EService:Unavailable', 'EService:Busy', 'EService:Dea
 
 const markets = new CacheMap<KrakenSpotMarket[]>(MARKETS_TTL_MS)
 const dailyCandles = new CacheMap<SpotCandle[]>(CANDLES_TTL_MS)
+const bookHub = new SocketHub(krakenBookProtocol())
+const orderHubs = new Map<string, SocketHub<OrderEvent>>()
 
 export default class KrakenExchange implements PortfolioExchange {
 
@@ -101,6 +106,15 @@ export default class KrakenExchange implements PortfolioExchange {
 
    async openStopOrders(): Promise<OpenStopOrder[]> {
       return this.#api.fetchOpenStops(await this.#markets())
+   }
+
+   watchBook(market: SpotMarket, listener: StreamListener<SpotPrice>): StreamSubscription {
+      return bookHub.watch(krakenStreamSymbol(market), listener)
+   }
+
+   watchOrders(listener: StreamListener<OrderEvent>): StreamSubscription {
+      return sharedHub(orderHubs, this.#apiKey, () => new SocketHub(krakenOrderProtocol(() => this.#api.fetchWebSocketsToken())))
+         .watch(ORDERS, listener)
    }
 
    describeError(error: HttpRequesterError): string {

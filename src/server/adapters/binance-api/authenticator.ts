@@ -46,3 +46,9 @@ function authenticatorFunction(credentials: Credentials): Authenticator {
 }
 
 export const authenticator = authenticatorFunction
+
+export function signedStreamParams({ apiKey, apiSecret }: Credentials, timestamp = Date.now()) {
+   const params = { apiKey, timestamp: String(timestamp) }
+   const signature = createHmac('sha256', apiSecret).update(new URLSearchParams(params).toString()).digest('hex')
+   return { ...params, signature }
+}

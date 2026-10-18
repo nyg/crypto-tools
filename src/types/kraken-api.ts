@@ -208,3 +208,35 @@ export interface KrakenOrderBatchParams {
    userref?: number | null
    orders: KrakenOrderBatchOrder[]
 }
+
+export interface KrakenWebSocketsToken {
+   token: string
+   expires: number
+}
+
+// WebSocket v2 writes prices and quantities as JSON numbers.
+export interface KrakenStreamTicker {
+   symbol: string
+   bid?: number
+   ask?: number
+   last?: number
+}
+
+export interface KrakenStreamExecution {
+   order_id: string
+   cl_ord_id?: string
+   exec_type?: string
+   order_status?: string
+   cum_qty?: number
+   cum_cost?: number
+}
+
+export interface KrakenStreamMessage {
+   channel?: string
+   type?: string
+   data?: unknown[]
+   method?: string
+   success?: boolean
+   symbol?: string
+   result?: { channel?: string, symbol?: string }
+}

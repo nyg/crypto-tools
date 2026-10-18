@@ -9,7 +9,7 @@ import type {
    KrakenAmendOrderParams, KrakenAmendOrderResult, KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenEarnAllocations,
    KrakenEarnStrategies, KrakenExportStatus, KrakenExtendedBalance, KrakenOpenOrders,
    KrakenOhlc, KrakenOrderBatchParams, KrakenOrderFilter, KrakenOrderReference, KrakenQueriedOrders,
-   KrakenResponse, KrakenTicker, KrakenTradeVolume
+   KrakenResponse, KrakenTicker, KrakenTradeVolume, KrakenWebSocketsToken
 } from '../../../types/kraken-api'
 
 const apiUrl = 'https://api.kraken.com'
@@ -30,6 +30,7 @@ const queryOrdersEndpoint = '/0/private/QueryOrders'
 const cancelOrderEndpoint = '/0/private/CancelOrder'
 const cancelOrderBatchEndpoint = '/0/private/CancelOrderBatch'
 const tradeVolumeEndpoint = '/0/private/TradeVolume'
+const webSocketsTokenEndpoint = '/0/private/GetWebSocketsToken'
 const earnAllocationsEndpoint = '/0/private/Earn/Allocations'
 const earnStrategiesEndpoint = '/0/private/Earn/Strategies'
 
@@ -110,6 +111,10 @@ export async function queryOrders(apiCredentials: Credentials, txids: string[]):
 
 export async function fetchTradeVolume(apiCredentials: Credentials, pairs: string[]): Promise<KrakenResponse<KrakenTradeVolume>> {
    return await privateRequest(urlFor(tradeVolumeEndpoint), apiCredentials, { bodyParams: { pair: pairs.join(',') } })
+}
+
+export async function fetchWebSocketsToken(apiCredentials: Credentials): Promise<KrakenResponse<KrakenWebSocketsToken>> {
+   return await privateRequest(urlFor(webSocketsTokenEndpoint), apiCredentials)
 }
 
 export async function fetchEarnAllocations(apiCredentials: Credentials): Promise<KrakenResponse<KrakenEarnAllocations>> {

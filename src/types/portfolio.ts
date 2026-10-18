@@ -111,6 +111,14 @@ export interface OrderSettlement {
    postOnlyRefused?: boolean
 }
 
+export interface OrderEvent {
+   clientOrderId: string
+   orderId: string
+   closed: boolean
+   base: string | null
+   quote: string | null
+}
+
 export type SkipReason =
    'within-band' | 'below-minimum' | 'no-market' | 'unpriced' | 'no-free-balance' | 'no-cash'
    | 'excluded' | 'no-sells' | 'no-buys'

@@ -432,6 +432,10 @@ export default class KrakenAPI {
       return openStops((await resource.fetchOpenOrders(this.#authenticated)).result?.open ?? {}, markets)
    }
 
+   async fetchWebSocketsToken(): Promise<string> {
+      return (await resource.fetchWebSocketsToken(this.#authenticated)).result.token
+   }
+
    async fetchSettlement(lookup: OrderLookup, quoteAsset: string): Promise<OrderSettlement | null> {
       const found = lookup.orderId ? await this.#queriedOrder(lookup.orderId) : await this.#orderByClientId(lookup.clientOrderId)
       return found ? settlementOf(found.txid, found.order, quoteAsset) : null

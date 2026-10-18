@@ -1,6 +1,7 @@
 import type { HttpRequesterError } from '../../errors'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
 import type {
-   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderRequest, OrderSettlement,
    SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
@@ -29,6 +30,8 @@ export interface PortfolioExchange {
    placeStopOrder(order: StopOrderRequest): Promise<string>
    cancelStopOrder(order: OrderLookup): Promise<void>
    openStopOrders(): Promise<OpenStopOrder[]>
+   watchBook?(market: SpotMarket, listener: StreamListener<SpotPrice>): StreamSubscription
+   watchOrders?(listener: StreamListener<OrderEvent>): StreamSubscription
    describeError(error: HttpRequesterError): string
    isAmbiguous(error: HttpRequesterError): boolean
    isPostOnlyRefusal(error: HttpRequesterError): boolean

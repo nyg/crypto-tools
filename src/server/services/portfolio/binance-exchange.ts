@@ -1,13 +1,16 @@
 import BinanceAPI from '../../adapters/binance-api/adapter'
 import { binanceError } from '../../adapters/binance-api/spot'
 import { accountIdFor } from '../../db/entry-key'
+import { binanceBookProtocol, binanceOrderProtocol } from '../../adapters/binance-api/streams'
+import SocketHub, { ORDERS, sharedHub } from '../../adapters/websocket/socket-hub'
 import CacheMap from './cache-map'
 import type { PortfolioExchange } from './exchange'
 import type { HttpRequesterError } from '../../errors'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
 import type { Credentials } from '../../../types/credentials'
 import type { BinanceEnvironment } from '../../../types/binance-api'
 import type {
-   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderRequest, OrderSettlement,
    SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
@@ -23,6 +26,8 @@ const accounts = new CacheMap<ExchangeAccount>(ACCOUNT_TTL_MS)
 const markets = new CacheMap<SpotMarket[]>(MARKETS_TTL_MS)
 const fees = new CacheMap<TradeFees>(FEES_TTL_MS)
 const candles = new CacheMap<SpotCandle[]>(CANDLES_TTL_MS)
+const bookHubs = new Map<string, SocketHub<SpotPrice>>()
+const orderHubs = new Map<string, SocketHub<OrderEvent>>()
 
 export default class BinanceExchange implements PortfolioExchange {
 
@@ -33,11 +38,13 @@ export default class BinanceExchange implements PortfolioExchange {
    readonly #api: BinanceAPI
    readonly #environment: BinanceEnvironment
    readonly #apiKey: string
+   readonly #credentials: Credentials
 
    constructor(environment: BinanceEnvironment, credentials: Credentials) {
       this.#api = new BinanceAPI(credentials, environment)
       this.#environment = environment
       this.#apiKey = credentials.apiKey
+      this.#credentials = credentials
    }
 
    account(): Promise<ExchangeAccount> {
@@ -93,6 +100,17 @@ export default class BinanceExchange implements PortfolioExchange {
 
    openStopOrders(): Promise<OpenStopOrder[]> {
       return this.#api.fetchOpenStops()
+   }
+
+   watchBook({ symbol }: SpotMarket, listener: StreamListener<SpotPrice>): StreamSubscription {
+      return sharedHub(bookHubs, this.#environment, () => new SocketHub(binanceBookProtocol(this.#environment)))
+         .watch(symbol, listener)
+   }
+
+   watchOrders(listener: StreamListener<OrderEvent>): StreamSubscription {
+      return sharedHub(orderHubs, `${this.#environment}:${this.#apiKey}`,
+         () => new SocketHub(binanceOrderProtocol(this.#environment, this.#credentials)))
+         .watch(ORDERS, listener)
    }
 
    describeError(error: HttpRequesterError): string {
