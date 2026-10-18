@@ -10,7 +10,7 @@ import type {
 } from '../../types/api'
 import type { Execution, VenueId } from '../../types/portfolio'
 
-const prices: Record<string, number> = {
+export const prices: Record<string, number> = {
    USD: 1, EUR: 1.08, USDT: 1, USDC: 1, BTC: 64250, ETH: 3120, SOL: 152.4, SUI: 3.18, TAO: 418, ENA: 0.92, DOGE: 0.14, XRP: 0.58
 }
 
@@ -169,7 +169,7 @@ function seed(venue: VenueId): VenueState {
 }
 
 const states = new Map<VenueId, VenueState>()
-const stateOf = (venue: VenueId) => {
+export const stateOf = (venue: VenueId) => {
    if (!states.has(venue)) states.set(venue, seed(venue))
    return states.get(venue)!
 }
@@ -326,7 +326,7 @@ const supertrend = (venue: VenueId): PortfolioSupertrendResponse => ({
          ])))
 })
 
-const markets = (venue: VenueId): PortfolioMarketsResponse => ({
+export const markets = (venue: VenueId): PortfolioMarketsResponse => ({
    quoteAssets: quoteAssets[venue],
    markets: Object.keys(prices)
       .filter(asset => !quoteAssets[venue].includes(asset))

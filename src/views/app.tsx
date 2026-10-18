@@ -4,10 +4,12 @@ import './styles/global.css'
 import { fetcher } from './lib/fetcher'
 import Home from './pages/home'
 import BinanceFunding from './pages/binance/funding'
+import BinanceInstantOrder from './pages/binance/instant-order'
 import BinancePortfolios from './pages/binance/portfolios'
 import BinanceSettings from './pages/binance/settings'
 import BinanceStaking from './pages/binance/staking'
 import BybitFunding from './pages/bybit/funding'
+import BybitInstantOrder from './pages/bybit/instant-order'
 import BybitPortfolios from './pages/bybit/portfolios'
 import BybitSettings from './pages/bybit/settings'
 import KrakenBalances from './pages/kraken/balances'
@@ -17,6 +19,7 @@ import KrakenFunding from './pages/kraken/funding'
 import KrakenLedger from './pages/kraken/ledger'
 import KrakenOpenOrders from './pages/kraken/open-orders'
 import KrakenOrderBatch from './pages/kraken/order-batch'
+import KrakenInstantOrder from './pages/kraken/instant-order'
 import KrakenPortfolios from './pages/kraken/portfolios'
 import KrakenRewards from './pages/kraken/rewards'
 import KrakenSettings from './pages/kraken/settings'
@@ -36,8 +39,10 @@ export default function App() {
                <Route path="/" element={<Home />} />
                <Route path="/binance/staking" element={<BinanceStaking />} />
                <Route path="/binance/funding" element={<BinanceFunding />} />
+               <Route path="/binance/instant-order" element={<BinanceInstantOrder />} />
                <Route path="/binance/portfolios" element={<BinancePortfolios />} />
                <Route path="/binance/settings" element={<BinanceSettings />} />
+               <Route path="/bybit/instant-order" element={<BybitInstantOrder />} />
                <Route path="/bybit/portfolios" element={<BybitPortfolios />} />
                <Route path="/bybit/funding" element={<BybitFunding />} />
                <Route path="/bybit/settings" element={<BybitSettings />} />
@@ -47,6 +52,7 @@ export default function App() {
                <Route path="/kraken/funding" element={<KrakenFunding />} />
                <Route path="/kraken/ledger" element={<KrakenLedger />} />
                <Route path="/kraken/open-orders" element={<KrakenOpenOrders />} />
+               <Route path="/kraken/instant-order" element={<KrakenInstantOrder />} />
                <Route path="/kraken/order-batch" element={<KrakenOrderBatch />} />
                <Route path="/kraken/portfolios" element={<KrakenPortfolios />} />
                <Route path="/kraken/rewards" element={<KrakenRewards />} />

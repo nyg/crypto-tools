@@ -4,6 +4,8 @@ export type OrderSide = 'buy' | 'sell'
 
 export type SizeUnit = 'base' | 'quote'
 
+export type FeeAsset = 'base' | 'quote'
+
 export interface SpotMarket {
    symbol: string
    base: string
@@ -72,6 +74,7 @@ export interface LimitOrderRequest {
    side: OrderSide
    quantity: string
    price: string
+   feeAsset?: FeeAsset
 }
 
 export interface OrderLookup {

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ComponentType, ReactNode } from 'react'
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { Loader2Icon, PlusIcon, RefreshCwIcon } from 'lucide-react'
@@ -9,6 +8,7 @@ import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../lib/credentials-alert'
 import LoadingSpinner from '../lib/loading-spinner'
 import TimeAgo from '../lib/time-ago'
+import VenueTabs, { useVenue } from '../lib/venue-tabs'
 import AccountSummary from './account-summary'
 import AdjustDialog from './adjust-dialog'
 import ArchiveDialog from './archive-dialog'
@@ -23,8 +23,8 @@ import WithdrawDialog from './withdraw-dialog'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { asLocalTimestamp, asLongDate, asUtcTimestamp } from '../../../utils/format'
+import type { ExchangeLayout, ExchangeVenue } from '../lib/venue-tabs'
 import type { ChartPair } from './chart-dialog'
 import type { PlanTarget } from './plan-dialog'
 import { asQuantity, asQuoteAmount } from './format'
@@ -32,28 +32,19 @@ import type {
    AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioOverviewResponse,
    PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary, PortfolioSupertrendResponse
 } from '../../../types/api'
-import type { VenueId } from '../../../types/portfolio'
 import type { Sort } from '../../../types/kraken'
 
-export interface PortfolioVenue {
-   id: VenueId
-   tab: string
-   label: string
-   apiBase: string
-   live: boolean
+export interface PortfolioVenue extends ExchangeVenue {
    quoteAsset: string
    chartExchange: string
    wallet: string
    fees: string
-   setup: ReactNode
    note?: string
    stopsNote?: string
 }
 
-export type PortfolioLayout = ComponentType<{ children: ReactNode, name: string, trailing?: ReactNode }>
-
 interface PortfoliosPageProps {
-   layout: PortfolioLayout
+   layout: ExchangeLayout
    storageKey: string
    venues: [PortfolioVenue, ...PortfolioVenue[]]
 }
@@ -62,9 +53,9 @@ const EXPIRY_WARNING_MS = 14 * 24 * 60 * 60 * 1000
 
 export default function PortfoliosPage({ layout: Layout, storageKey, venues }: PortfoliosPageProps) {
 
-   const [venueId, setVenueId] = usePersistentState<VenueId>(storageKey, venues[0].id)
-   const current = venues.find(({ id }) => id === venueId) ?? venues[0]
-   const { id: venue, label, apiBase, live } = current
+   const [current, setVenueId] = useVenue(storageKey, venues)
+   const { id: venue, label, live } = current
+   const apiBase = `${current.apiRoot}/portfolios`
    const { configured, unreachable, isLoading: isLoadingSettings } = useProvider(venue)
 
    const { data: overview, error, trigger: fetchOverview, isMutating, reset } =
@@ -116,12 +107,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
       }
    }
 
-   const venueToggle = venues.length > 1 &&
-      <Tabs value={venue} onValueChange={value => setVenueId(value as VenueId)}>
-         <TabsList>
-            {venues.map(({ id, tab }) => <TabsTrigger key={id} value={id}>{tab}</TabsTrigger>)}
-         </TabsList>
-      </Tabs>
+   const venueToggle = <VenueTabs venues={venues} value={venue} onValueChange={setVenueId} />
 
    const liveStatus = (
       <div className="flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">

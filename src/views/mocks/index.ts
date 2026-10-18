@@ -9,6 +9,7 @@ import {
 import { tradeAggregations, tradeRows, tradeFilters } from './kraken-trades'
 import { aggregateBalance } from './binance'
 import { fundingRoutes } from './funding'
+import { instantOrderRoutes } from './instant-order'
 import { portfolioRoutes } from './portfolio'
 import type { InstallInfo, LatestRelease } from '../../types/api'
 import type { MaskedSettings } from '../../types/settings'
@@ -50,6 +51,7 @@ const mockRoutes: Record<string, MockRoute> = {
    '/api/kraken/ledger/trades/filters': () => tradeFilters(),
    '/api/binance/aggregate-balance': () => aggregateBalance,
    ...portfolioRoutes,
+   ...instantOrderRoutes,
    ...fundingRoutes,
    '/api/settings': () => mockSettings(false),
    '/api/settings?reveal=true': () => mockSettings(true),

@@ -13,6 +13,7 @@ export interface ChasePacing {
 export interface PortfolioExchange {
    readonly balanceDecimals: number
    readonly buyFeeInQuote: boolean
+   readonly choosesFeeAsset?: boolean
    readonly chasePacing: ChasePacing
    account(): Promise<ExchangeAccount>
    wallet(): Promise<WalletCoin[]>
@@ -22,6 +23,7 @@ export interface PortfolioExchange {
    tradeFees?(symbols: string[]): Promise<Record<string, TradeFees>>
    placeOrder(order: OrderRequest): Promise<string>
    placeLimitOrder(order: LimitOrderRequest): Promise<string>
+   amendLimitPrice?(order: OrderLookup, price: string): Promise<void>
    cancelOrder(order: OrderLookup): Promise<void>
    settleOrder(order: OrderLookup): Promise<OrderSettlement | null>
    placeStopOrder(order: StopOrderRequest): Promise<string>

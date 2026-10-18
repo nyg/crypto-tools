@@ -11,8 +11,8 @@ import type { FundingJob, JobPhase, StartedJob, SyncJob, XStockJob } from './job
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
 import type {
-   Execution, FeeAmount, MovementKind, OrderSide, RebalanceMode, RunKind, RunOrderStatus, RunStatus, SizeUnit,
-   SkipReason, StopSkipReason, StopStatus, VenueId
+   Execution, FeeAmount, FeeAsset, MovementKind, OrderLookup, OrderSide, RebalanceMode, RunKind, RunOrderStatus, RunStatus,
+   SizeUnit, SkipReason, StopSkipReason, StopStatus, VenueId
 } from './portfolio'
 import type { XStockListingType } from './xstock'
 
@@ -696,6 +696,112 @@ export type FundingSyncResponse = StartedJob<FundingJob>
 
 export interface FundingCancelResponse {
    job: FundingJob | null
+}
+
+export interface InstantOrderMarketsResponse {
+   markets: PortfolioMarket[]
+}
+
+export interface InstantOrderSymbolRequest {
+   symbol: string
+}
+
+export interface InstantOrderBookResponse {
+   fetchedAt: number
+   bid: string
+   ask: string
+   buyPrice: string | null
+   sellPrice: string | null
+}
+
+export interface InstantOrderFees {
+   maker: string
+   taker: string
+}
+
+export interface InstantOrderAccountResponse {
+   fetchedAt: number
+   base: string
+   quote: string
+   freeBase: string
+   freeQuote: string
+   choosesFeeAsset: boolean
+   feeAssets: Record<OrderSide, FeeAsset>
+   max: Record<OrderSide, Record<FeeAsset, string>>
+   baseStep: string
+   minQty: string
+   minAmount: string
+   fees: Record<OrderSide, InstantOrderFees> | null
+}
+
+export interface InstantOrderPlaceRequest {
+   symbol: string
+   side: OrderSide
+   unit: SizeUnit
+   amount: string
+   feeAsset?: FeeAsset
+   follow: boolean
+   maxMovePercent: string
+}
+
+export interface InstantOrder {
+   id: string
+   symbol: string
+   base: string
+   quote: string
+   side: OrderSide
+   quantity: string
+   feeAsset: FeeAsset
+   placedAt: number
+}
+
+export interface InstantOrderFill {
+   base: string
+   quote: string
+   fees: FeeAmount[]
+}
+
+export type InstantOrderStatus = 'open' | 'filled' | 'partial' | 'cancelled' | 'unknown'
+
+export interface InstantOrderState {
+   current: OrderLookup
+   price: string
+   status: InstantOrderStatus
+   following: boolean
+   bound: string | null
+   moves: number
+   closed: InstantOrderFill
+   filled: string
+   averagePrice: string
+   fees: FeeAmount[]
+   reason: string
+}
+
+export interface TrackedInstantOrder {
+   order: InstantOrder
+   state: InstantOrderState
+}
+
+export type InstantOrderPlaceResponse = TrackedInstantOrder
+
+export interface InstantOrderStatusRequest {
+   orders: TrackedInstantOrder[]
+}
+
+export interface InstantOrderStatusResponse {
+   fetchedAt: number
+   states: Record<string, InstantOrderState>
+}
+
+export type InstantOrderActionRequest = TrackedInstantOrder
+
+export interface InstantOrderFollowRequest extends TrackedInstantOrder {
+   follow: boolean
+   maxMovePercent: string
+}
+
+export interface InstantOrderActionResponse {
+   state: InstantOrderState
 }
 
 export type { JobPhase }

@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { ArrowDownUpIcon, CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, PieChartIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+import { ArrowDownUpIcon, BadgePercentIcon, CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, PieChartIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
 import type { Provider } from '../../types/credentials'
 
 
@@ -37,6 +37,13 @@ const portfolios = (exchange: string): Tool => ({
    title: 'Portfolios',
    description: 'Keep baskets of coins at their target weights: deposit, withdraw and rebalance with market orders.',
    icon: PieChartIcon
+})
+
+const instantOrder = (exchange: string): Tool => ({
+   href: `/${exchange}/instant-order`,
+   title: 'Instant Limit Order',
+   description: 'Buy or sell a spot pair with a post-only limit order the app prices one tick inside the spread, at the maker fee.',
+   icon: BadgePercentIcon
 })
 
 const funding = (exchange: string, readsLedger = false): Tool => ({
@@ -99,6 +106,7 @@ export const toolGroups: ToolGroup[] = [
             description: 'Create a series of limit orders for a trading pair in one go.',
             icon: LayersIcon
          },
+         instantOrder('kraken'),
          portfolios('kraken'),
          {
             href: '/kraken/xstocks',
@@ -119,13 +127,14 @@ export const toolGroups: ToolGroup[] = [
             icon: CoinsIcon
          },
          funding('binance'),
+         instantOrder('binance'),
          portfolios('binance')
       ],
       settings: { href: '/binance/settings', providers: ['binance', 'binanceTestnet'] }
    },
    {
       name: 'Bybit',
-      tools: [portfolios('bybit'), funding('bybit')],
+      tools: [portfolios('bybit'), instantOrder('bybit'), funding('bybit')],
       settings: { href: '/bybit/settings', providers: ['bybit', 'bybitDemo'] }
    },
    {

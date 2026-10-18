@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import type { OrderSide, RebalanceMode, SizeUnit, SkipReason } from '../../../types/portfolio'
+import type { OrderSide, RebalanceMode, SizeUnit, SkipReason, SpotMarket, SpotPrice } from '../../../types/portfolio'
 
 export const DEFAULT_FEE_RATE = Big('0.001')
 
@@ -17,6 +17,25 @@ export interface PlanMarket {
    minAmount: Big
    maxQty: Big
    maxAmount: Big
+}
+
+export function planMarket(market: SpotMarket, price: SpotPrice | undefined): PlanMarket {
+   const last = Big(price?.last || 0)
+   return {
+      symbol: market.symbol,
+      base: market.base,
+      quote: market.quote,
+      last,
+      bid: Big(price?.bid || last),
+      ask: Big(price?.ask || last),
+      baseStep: Big(market.baseStep || 0),
+      quoteStep: Big(market.quoteStep || 0),
+      tickStep: Big(market.tickStep || 0),
+      minQty: Big(market.minQty || 0),
+      minAmount: Big(market.minAmount || 0),
+      maxQty: Big(market.maxQty || 0),
+      maxAmount: Big(market.maxAmount || 0)
+   }
 }
 
 export interface PlanInput {

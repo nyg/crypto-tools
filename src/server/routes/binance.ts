@@ -4,6 +4,7 @@ import BinanceAPI from '../adapters/binance-api/adapter'
 import BinanceGatewayAPI from '../adapters/binance-gateway-api/adapter'
 import RateFinder from '../services/rate-finder'
 import fundingRoutes from './funding'
+import instantOrderRoutes from './instant-orders'
 import portfolioRoutes from './portfolios'
 import { withCredentials } from './with-account'
 import { HttpRequesterError } from '../errors'
@@ -12,8 +13,10 @@ import type { SpotBalances, StakingBalances, StakingProducts } from '../../types
 const app = new Hono()
 
 app.route('/portfolios', portfolioRoutes('binance'))
+app.route('/instant-orders', instantOrderRoutes('binance'))
 app.route('/funding', fundingRoutes('binance'))
 app.route('/testnet/portfolios', portfolioRoutes('binanceTestnet'))
+app.route('/testnet/instant-orders', instantOrderRoutes('binanceTestnet'))
 
 app.post('/aggregate-balance', async (c) => withCredentials(c, 'binance', async ({ credentials }) => {
 

@@ -14,18 +14,23 @@ export const priceBound = (side: OrderSide, preview: Big, slippagePercent: Big, 
    ? floorTo(preview.times(HUNDRED.plus(slippagePercent)).div(HUNDRED), tick)
    : ceilTo(preview.times(HUNDRED.minus(slippagePercent)).div(HUNDRED), tick)
 
-export function restingPrice(side: OrderSide, { bid, ask }: Book, tick: Big, bound: Big): Big | null {
+export function makerPrice(side: OrderSide, { bid, ask }: Book, tick: Big): Big | null {
 
    if (bid.lte(0) || ask.lte(0)) return null
 
    if (side === 'buy') {
       const underAsk = tick.gt(0) ? floorTo(ask.minus(tick), tick) : bid
-      const price = underAsk.gt(bound) ? bound : underAsk
-      return price.gt(0) ? price : null
+      return underAsk.gt(0) ? underAsk : null
    }
 
-   const overBid = tick.gt(0) ? ceilTo(bid.plus(tick), tick) : ask
-   return overBid.lt(bound) ? bound : overBid
+   return tick.gt(0) ? ceilTo(bid.plus(tick), tick) : ask
+}
+
+export function restingPrice(side: OrderSide, book: Book, tick: Big, bound: Big): Big | null {
+   const price = makerPrice(side, book, tick)
+   if (!price) return null
+   if (side === 'buy') return price.gt(bound) ? bound : price
+   return price.lt(bound) ? bound : price
 }
 
 export const leftBehind = (side: OrderSide, resting: Big, desired: Big): boolean =>
