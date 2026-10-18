@@ -38,3 +38,7 @@ function authenticatorFunction({ apiKey, apiSecret }: Credentials): Authenticato
 }
 
 export const authenticator = authenticatorFunction
+
+export function streamAuth({ apiKey, apiSecret }: Credentials, expires = Date.now() + Number(RECV_WINDOW)) {
+   return { op: 'auth', args: [apiKey, expires, signature(apiSecret, `GET/realtime${expires}`)] }
+}

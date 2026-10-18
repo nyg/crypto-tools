@@ -1,11 +1,14 @@
 import BybitAPI from '../../adapters/bybit-api/adapter'
+import { bybitBookProtocol, bybitOrderProtocol } from '../../adapters/bybit-api/streams'
+import SocketHub, { ORDERS, sharedHub } from '../../adapters/websocket/socket-hub'
 import CacheMap from './cache-map'
 import type { PortfolioExchange } from './exchange'
 import type { HttpRequesterError } from '../../errors'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
 import type { Credentials } from '../../../types/credentials'
 import type { BybitEnvironment } from '../../../types/bybit-api'
 import type {
-   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
+   CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderRequest, OrderSettlement,
    SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
 
@@ -18,6 +21,8 @@ const POST_ONLY_REFUSED = 170218
 const accounts = new CacheMap<ExchangeAccount>(ACCOUNT_TTL_MS)
 const markets = new CacheMap<SpotMarket[]>(MARKETS_TTL_MS)
 const candles = new CacheMap<SpotCandle[]>(CANDLES_TTL_MS)
+const bookHub = new SocketHub(bybitBookProtocol())
+const orderHubs = new Map<string, SocketHub<OrderEvent>>()
 
 type BybitErrorBody = { retCode?: number, retMsg?: string } | string | undefined
 
@@ -29,10 +34,14 @@ export default class BybitExchange implements PortfolioExchange {
 
    readonly #api: BybitAPI
    readonly #accountKey: string
+   readonly #environment: BybitEnvironment
+   readonly #credentials: Credentials
 
    constructor(environment: BybitEnvironment, credentials: Credentials) {
       this.#api = new BybitAPI(environment, credentials)
       this.#accountKey = `${environment}:${credentials.apiKey}`
+      this.#environment = environment
+      this.#credentials = credentials
    }
 
    account(): Promise<ExchangeAccount> {
@@ -85,6 +94,15 @@ export default class BybitExchange implements PortfolioExchange {
 
    openStopOrders(): Promise<OpenStopOrder[]> {
       return this.#api.fetchOpenStops()
+   }
+
+   watchBook({ symbol }: SpotMarket, listener: StreamListener<SpotPrice>): StreamSubscription {
+      return bookHub.watch(symbol, listener)
+   }
+
+   watchOrders(listener: StreamListener<OrderEvent>): StreamSubscription {
+      return sharedHub(orderHubs, this.#accountKey, () => new SocketHub(bybitOrderProtocol(this.#environment, this.#credentials)))
+         .watch(ORDERS, listener)
    }
 
    describeError(error: HttpRequesterError): string {

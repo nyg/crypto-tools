@@ -200,3 +200,28 @@ export interface BinanceSimpleEarnParams {
    pageSize: number
    simpleEarnType: string
 }
+
+export interface BinanceStreamBookTicker {
+   s?: string
+   b?: string
+   a?: string
+}
+
+export interface BinanceExecutionReport {
+   e: 'executionReport'
+   s: string
+   c: string
+   C?: string
+   i: number
+   X: string
+   z?: string
+   Z?: string
+}
+
+export interface BinanceStreamMessage {
+   id?: string
+   status?: number
+   result?: unknown
+   error?: unknown
+   event?: { e?: string }
+}

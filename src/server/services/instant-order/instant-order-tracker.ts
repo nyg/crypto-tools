@@ -7,9 +7,10 @@ import { addFill, closedStatus, fillOf, noFill, sizeRest, summaryOf, wireFill } 
 import type { Fill } from './instant-order'
 import type { PortfolioExchange } from '../portfolio/exchange'
 import type { PlanMarket } from '../portfolio/planner'
+import type { StreamSubscription } from '../../adapters/websocket/socket-hub'
 import type { Venue } from '../portfolio/venues'
 import type { InstantOrder, InstantOrderState, InstantOrderStatus, TrackedInstantOrder } from '../../../types/api'
-import type { OrderLookup, OrderSettlement, SpotMarket } from '../../../types/portfolio'
+import type { OrderEvent, OrderLookup, OrderSettlement, SpotMarket, SpotPrice } from '../../../types/portfolio'
 
 const MAX_REFUSALS = 3
 const MAX_MISSES = 5
@@ -38,6 +39,8 @@ function register(tracker: InstantOrderTracker): InstantOrderTracker {
 
 // Kraken counts every order check against one counter for the whole account, so the
 // orders it follows side by side are checked in turn rather than each at this pace.
+// Only while its order stream is down: with the stream up, an order is checked when
+// the exchange says it closed.
 function turnOf(venue: Venue, exchange: PortfolioExchange): Promise<unknown> {
    const { pollMs, pollsTakeTurns } = exchange.chasePacing
    if (!pollsTakeTurns) return delay(pollMs)
@@ -74,6 +77,18 @@ export default class InstantOrderTracker {
    #misses = 0
    #movableAt = 0
    #lock: Promise<unknown> = Promise.resolve()
+   #bookStream: StreamSubscription | null = null
+   #orderStream: StreamSubscription | null = null
+   #streamedBook: SpotPrice | null = null
+   #placing: string | null = null
+   #placingClosed = false
+   #woken = false
+   #checkDue = false
+   #wake: (() => void) | null = null
+   #timer: ReturnType<typeof setTimeout> | null = null
+   #timerAt = 0
+   #turnPending = false
+   #running = false
 
    private constructor(venue: Venue, exchange: PortfolioExchange, market: SpotMarket, order: InstantOrder, state: InstantOrderState) {
       this.#venue = venue
@@ -141,6 +156,7 @@ export default class InstantOrderTracker {
 
    cancel(): Promise<InstantOrderState> {
       this.#following = false
+      this.#poke(false)
       return this.#serial(async () => {
          if (this.#phase === 'between') this.#finish('')
          if (this.#phase !== 'live') return this.state
@@ -160,26 +176,107 @@ export default class InstantOrderTracker {
    follow(on: boolean, maxMovePercent: Big): InstantOrderState {
       if (!on || this.#phase === 'done') {
          this.#following = false
+         this.#poke(false)
          return this.state
       }
       this.#bound = priceBound(this.order.side, this.#attempt.price, maxMovePercent, Big(this.#market.tickStep || 0))
-      if (!this.#following) {
-         this.#following = true
-         void this.#run()
-      }
+      this.#following = true
+      if (!this.#running) void this.#run()
       return this.state
    }
 
    async #run(): Promise<void> {
-      while (this.#following && this.#phase !== 'done') {
-         await turnOf(this.#venue, this.#exchange)
-         await this.#serial(async () => {
-            if (!this.#following || this.#phase === 'done') return
-            if (this.#phase === 'between') return this.#placeRest()
-            await this.#check()
-            if (this.#phase === 'live' && this.#status === 'open') await this.#move(false)
-         }).catch(error => console.warn('Could not follow order', this.order.id, this.#describe(error)))
+      this.#running = true
+      this.#watch()
+      try {
+         while (this.#following && this.#phase !== 'done') {
+            const check = await this.#nextTurn()
+            await this.#serial(async () => {
+               if (!this.#following || this.#phase === 'done') return
+               if (this.#phase === 'live' && check) await this.#check()
+               if (this.#phase === 'between') await this.#placeRest()
+               else if (this.#phase === 'live' && this.#status === 'open') await this.#move(false)
+            }).catch(error => console.warn('Could not follow order', this.order.id, this.#describe(error)))
+         }
       }
+      finally {
+         this.#unwatch()
+         this.#running = false
+      }
+   }
+
+   #watch(): void {
+      this.#bookStream = this.#exchange.watchBook?.(this.#market, {
+         onEvent: book => {
+            this.#streamedBook = book
+            this.#poke(false)
+         },
+         onLive: live => {
+            if (!live) this.#streamedBook = null
+            this.#poke(false)
+         }
+      }) ?? null
+      this.#orderStream = this.#exchange.watchOrders?.({
+         onEvent: event => this.#heard(event),
+         onLive: () => this.#poke(true)
+      }) ?? null
+   }
+
+   #unwatch(): void {
+      this.#bookStream?.close()
+      this.#orderStream?.close()
+      this.#bookStream = this.#orderStream = this.#streamedBook = null
+      if (this.#timer) clearTimeout(this.#timer)
+      this.#timer = null
+   }
+
+   #heard(event: OrderEvent): void {
+      const { clientOrderId, orderId } = this.#attempt.lookup
+      if (event.clientOrderId && event.clientOrderId === this.#placing) this.#placingClosed ||= event.closed
+      if (event.clientOrderId !== clientOrderId && (!orderId || event.orderId !== orderId)) return
+      if (event.closed) return this.#poke(true)
+      if (this.#phase !== 'live' || event.base === null || event.quote === null) return
+      const known = this.#live ?? { averagePrice: '0', fees: {}, reason: '' }
+      this.#live = { ...known, orderId: event.orderId, status: 'open', base: event.base, quote: event.quote }
+   }
+
+   async #nextTurn(): Promise<boolean> {
+      const { pollMs } = this.#exchange.chasePacing
+      if (!this.#orderStream?.live || !this.#confirmed) this.#awaitTurn()
+      else if (!this.#bookStream?.live || this.#phase === 'between') this.#arm(Date.now() + pollMs)
+      if (this.#movableAt > Date.now()) this.#arm(this.#movableAt)
+
+      if (!this.#woken) await new Promise<void>(resolve => { this.#wake = resolve })
+      const check = this.#checkDue
+      this.#woken = this.#checkDue = false
+      return check
+   }
+
+   #awaitTurn(): void {
+      if (this.#turnPending) return
+      this.#turnPending = true
+      void turnOf(this.#venue, this.#exchange).then(() => {
+         this.#turnPending = false
+         this.#poke(true)
+      })
+   }
+
+   #arm(at: number): void {
+      if (this.#timer && this.#timerAt <= at) return
+      if (this.#timer) clearTimeout(this.#timer)
+      this.#timerAt = at
+      this.#timer = setTimeout(() => {
+         this.#timer = null
+         this.#poke(false)
+      }, Math.max(0, at - Date.now()))
+   }
+
+   #poke(check: boolean): void {
+      this.#checkDue ||= check
+      this.#woken = true
+      const wake = this.#wake
+      this.#wake = null
+      wake?.()
    }
 
    #serial<T>(work: () => Promise<T>): Promise<T> {
@@ -277,6 +374,8 @@ export default class InstantOrderTracker {
          if ('refusal' in sizing) return this.#finish(`What is left is too small to place again. ${sizing.refusal}`)
 
          const lookup = { symbol: market.symbol, clientOrderId: newClientOrderId(), orderId: null }
+         this.#placing = lookup.clientOrderId
+         this.#placingClosed = false
          try {
             const orderId = await this.#exchange.placeLimitOrder({
                clientOrderId: lookup.clientOrderId, symbol: market.symbol, side: this.order.side,
@@ -297,6 +396,8 @@ export default class InstantOrderTracker {
    }
 
    #started(lookup: OrderLookup, price: Big, confirmed: boolean): void {
+      if (this.#placingClosed) this.#poke(true)
+      this.#placing = null
       this.#attempt = { lookup, price }
       this.#phase = 'live'
       this.#status = confirmed ? 'open' : 'unknown'
@@ -314,6 +415,7 @@ export default class InstantOrderTracker {
       this.#status = closedStatus(Big(this.order.quantity), this.#closed.base)
       this.#reason = this.#status === 'filled' ? '' : reason
       this.finishedAt = Date.now()
+      this.#poke(false)
    }
 
    #remaining(): Big {
@@ -327,7 +429,8 @@ export default class InstantOrderTracker {
    }
 
    async #planMarket(): Promise<PlanMarket> {
-      return planMarket(this.#market, (await this.#exchange.prices())[this.#market.symbol])
+      const streamed = this.#bookStream?.live ? this.#streamedBook : null
+      return planMarket(this.#market, streamed ?? (await this.#exchange.prices())[this.#market.symbol])
    }
 
    #describe(error: unknown): string {
