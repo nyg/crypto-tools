@@ -1,6 +1,17 @@
 # Changelog
 
 
+## [1.4.0](https://github.com/nyg/crypto-tools/compare/v1.3.0..v1.4.0) - 2026-10-18
+
+### ⛰️  Features
+
+- [`21effd2`](https://github.com/nyg/crypto-tools/commit/21effd27e6b3f3adc98412562e7763608a9064bd) *(trade)* Follow instant limit orders over exchange WebSocket streams ([#346](https://github.com/nyg/crypto-tools/issues/346))
+- [`981cc87`](https://github.com/nyg/crypto-tools/commit/981cc872acf54cfe146a8f321896765b9b504e71) *(trade)* Add an Instant Limit Order page for Kraken, Bybit and Binance ([#345](https://github.com/nyg/crypto-tools/issues/345))
+
+### ⚙️ Miscellaneous
+
+- [`812d544`](https://github.com/nyg/crypto-tools/commit/812d544adcfda4a2b9c64b459809d9d817a3b053) *(xstocks)* Refresh the reference data ([#344](https://github.com/nyg/crypto-tools/issues/344))
+
 ## [1.3.0](https://github.com/nyg/crypto-tools/compare/v1.2.0..v1.3.0) - 2026-10-06
 
 ### ⛰️  Features
