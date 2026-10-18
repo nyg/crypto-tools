@@ -70,7 +70,7 @@ export default function OrderForm({ apiBase, venueLabel, market, onPlaced }: Ord
    }
 
    return (
-      <Card>
+      <Card className="w-full max-w-xl">
          <CardHeader>
             <CardTitle>{base}/{quote}</CardTitle>
             <CardDescription>
@@ -82,7 +82,7 @@ export default function OrderForm({ apiBase, venueLabel, market, onPlaced }: Ord
          </CardHeader>
          <CardContent className="space-y-4">
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3">
                <Field label="Best bid">{book ? asExactDecimal(book.bid) : '—'}</Field>
                <Field label="Best ask">{book ? asExactDecimal(book.ask) : '—'}</Field>
                <Field label={`Free ${base}`}>{account ? asQuantity(account.freeBase) : '—'}</Field>
@@ -113,7 +113,7 @@ export default function OrderForm({ apiBase, venueLabel, market, onPlaced }: Ord
                <Button variant="outline" type="button" disabled={!account} onClick={max}>Max</Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3">
                <Field label={side === 'buy' ? 'Limit price, under the ask' : 'Limit price, over the bid'}>
                   <span className="font-medium">{price ? `${asExactDecimal(price)} ${quote}` : '—'}</span>
                </Field>
