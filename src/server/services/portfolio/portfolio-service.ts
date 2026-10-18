@@ -6,7 +6,7 @@ import CacheMap from './cache-map'
 import { foldHoldings, sameHoldings } from './holdings'
 import { leftBehind, limitFits, limitQuantity, priceBound, restingPrice } from './limit-orders'
 import {
-   buyCost, buyFits, buyScale, DEFAULT_FEE_RATE, feeRateOf, floorTo, orderFee, planPortfolio, sellFits
+   buyCost, buyFits, buyScale, DEFAULT_FEE_RATE, feeRateOf, floorTo, orderFee, planMarket, planPortfolio, sellFits
 } from './planner'
 import { foldPositions } from './positions'
 import { planStops, stopActions } from './stops'
@@ -201,25 +201,7 @@ function priceIn(prices: Record<string, SpotPrice>, asset: string, quote: string
 function planMarkets(markets: SpotMarket[], prices: Record<string, SpotPrice>, quote: string): Map<string, PlanMarket> {
    return new Map(markets
       .filter(market => market.quote === quote)
-      .map(market => {
-         const price = prices[market.symbol]
-         const last = Big(price?.last || 0)
-         return [market.base, {
-            symbol: market.symbol,
-            base: market.base,
-            quote: market.quote,
-            last,
-            bid: Big(price?.bid || last),
-            ask: Big(price?.ask || last),
-            baseStep: Big(market.baseStep || 0),
-            quoteStep: Big(market.quoteStep || 0),
-            tickStep: Big(market.tickStep || 0),
-            minQty: Big(market.minQty || 0),
-            minAmount: Big(market.minAmount || 0),
-            maxQty: Big(market.maxQty || 0),
-            maxAmount: Big(market.maxAmount || 0)
-         }]
-      }))
+      .map(market => [market.base, planMarket(market, prices[market.symbol])]))
 }
 
 function groupBy<T, K>(rows: T[], key: (row: T) => K): Map<K, T[]> {

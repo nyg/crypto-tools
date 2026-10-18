@@ -1,30 +1,19 @@
 import { Hono } from 'hono'
-import type { Context } from 'hono'
 import PortfolioService, { PortfolioError } from '../services/portfolio/portfolio-service'
-import { venues } from '../services/portfolio/venues'
 import { TargetError } from '../services/portfolio/targets'
-import { withCredentials } from './with-account'
-import type { RequestBody } from './with-account'
+import venueHandler from './venue-handler'
 import type { VenueId } from '../../types/portfolio'
 
-type Action = (service: PortfolioService, body: RequestBody) => Promise<unknown>
+const refusalOf = (error: unknown) => {
+   if (error instanceof PortfolioError) return { status: error.status, message: error.message }
+   if (error instanceof TargetError) return { status: 400 as const, message: error.message }
+   return null
+}
 
 export default function portfolioRoutes(venueId: VenueId): Hono {
 
-   const venue = venues[venueId]
    const app = new Hono()
-
-   const handle = (action: Action) => (c: Context) =>
-      withCredentials(c, venue.provider, async ({ body, credentials }) => {
-         try {
-            return c.json(await action(new PortfolioService(venue, venue.exchange(credentials)), body))
-         }
-         catch (error) {
-            if (error instanceof PortfolioError) return c.json({ error: error.message }, error.status)
-            if (error instanceof TargetError) return c.json({ error: error.message }, 400)
-            throw error
-         }
-      })
+   const handle = venueHandler(venueId, (venue, exchange) => new PortfolioService(venue, exchange), refusalOf)
 
    app.post('/overview', handle(service => service.overview()))
    app.get('/markets', handle(service => service.markets()))

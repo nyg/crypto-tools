@@ -11,8 +11,8 @@ import type { FundingJob, JobPhase, StartedJob, SyncJob, XStockJob } from './job
 import type { LiveBalance, OpenOrder, PairPrices, UsdRates } from './kraken'
 import type { TradingPairs } from './market'
 import type {
-   Execution, FeeAmount, MovementKind, OrderSide, RebalanceMode, RunKind, RunOrderStatus, RunStatus, SizeUnit,
-   SkipReason, StopSkipReason, StopStatus, VenueId
+   Execution, FeeAmount, MovementKind, OrderLookup, OrderSide, RebalanceMode, RunKind, RunOrderStatus, RunStatus,
+   SizeUnit, SkipReason, StopSkipReason, StopStatus, VenueId
 } from './portfolio'
 import type { XStockListingType } from './xstock'
 
@@ -696,6 +696,88 @@ export type FundingSyncResponse = StartedJob<FundingJob>
 
 export interface FundingCancelResponse {
    job: FundingJob | null
+}
+
+export interface InstantOrderMarketsResponse {
+   markets: PortfolioMarket[]
+}
+
+export interface InstantOrderSymbolRequest {
+   symbol: string
+}
+
+export interface InstantOrderBookResponse {
+   fetchedAt: number
+   bid: string
+   ask: string
+   buyPrice: string | null
+   sellPrice: string | null
+}
+
+export interface InstantOrderFees {
+   maker: string
+   taker: string
+}
+
+export interface InstantOrderAccountResponse {
+   fetchedAt: number
+   base: string
+   quote: string
+   freeBase: string
+   freeQuote: string
+   maxBuy: string
+   baseStep: string
+   minQty: string
+   minAmount: string
+   fees: Record<OrderSide, InstantOrderFees> | null
+}
+
+export interface InstantOrderPlaceRequest {
+   symbol: string
+   side: OrderSide
+   unit: SizeUnit
+   amount: string
+}
+
+export interface InstantOrder extends OrderLookup {
+   base: string
+   quote: string
+   side: OrderSide
+   quantity: string
+   price: string
+   placedAt: number
+}
+
+export interface InstantOrderPlaceResponse {
+   order: InstantOrder
+}
+
+export type InstantOrderStatus = 'open' | 'filled' | 'partial' | 'cancelled' | 'unknown'
+
+export interface InstantOrderState {
+   orderId: string | null
+   status: InstantOrderStatus
+   filled: string
+   averagePrice: string
+   fees: FeeAmount[]
+   reason: string
+}
+
+export interface InstantOrderStatusRequest {
+   orders: OrderLookup[]
+}
+
+export interface InstantOrderStatusResponse {
+   fetchedAt: number
+   states: Record<string, InstantOrderState>
+}
+
+export interface InstantOrderCancelRequest {
+   order: OrderLookup
+}
+
+export interface InstantOrderCancelResponse {
+   state: InstantOrderState
 }
 
 export type { JobPhase }
