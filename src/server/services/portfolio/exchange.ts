@@ -22,6 +22,7 @@ export interface PortfolioExchange {
    tradeFees?(symbols: string[]): Promise<Record<string, TradeFees>>
    placeOrder(order: OrderRequest): Promise<string>
    placeLimitOrder(order: LimitOrderRequest): Promise<string>
+   amendLimitPrice?(order: OrderLookup, price: string): Promise<void>
    cancelOrder(order: OrderLookup): Promise<void>
    settleOrder(order: OrderLookup): Promise<OrderSettlement | null>
    placeStopOrder(order: StopOrderRequest): Promise<string>

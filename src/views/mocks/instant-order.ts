@@ -1,13 +1,14 @@
 import { markets, prices, stateOf } from './portfolio'
 import type {
-   InstantOrder, InstantOrderAccountResponse, InstantOrderBookResponse, InstantOrderCancelRequest,
-   InstantOrderCancelResponse, InstantOrderMarketsResponse, InstantOrderPlaceRequest, InstantOrderPlaceResponse,
-   InstantOrderState, InstantOrderStatusRequest, InstantOrderStatusResponse, InstantOrderSymbolRequest
+   InstantOrder, InstantOrderAccountResponse, InstantOrderActionRequest, InstantOrderActionResponse,
+   InstantOrderBookResponse, InstantOrderFollowRequest, InstantOrderMarketsResponse, InstantOrderPlaceRequest,
+   InstantOrderPlaceResponse, InstantOrderState, InstantOrderStatusRequest, InstantOrderStatusResponse,
+   InstantOrderSymbolRequest
 } from '../../types/api'
 import type { VenueId } from '../../types/portfolio'
 
 const TICK = 0.01
-const FILLS_AFTER_MS = 12_000
+const FILLS_AFTER_MS = 30_000
 const MAKER_FEE = '0.0004'
 const TAKER_FEE = '0.001'
 
@@ -20,7 +21,12 @@ const roots: Record<VenueId, string> = {
 }
 
 interface MockOrder {
+   venue: VenueId
    order: InstantOrder
+   price: number
+   following: boolean
+   bound: number | null
+   moves: number
    cancelledAt: number | null
 }
 
@@ -37,6 +43,11 @@ function bookOf(venue: VenueId, symbol?: string) {
    const drift = Math.sin(Date.now() / 20_000) * mid * 0.0005
    const bid = ticks(mid + drift)
    return { bid, ask: bid + 4 * TICK }
+}
+
+const makerPriceOf = (venue: VenueId, symbol: string, side: 'buy' | 'sell') => {
+   const { bid, ask } = bookOf(venue, symbol)
+   return side === 'buy' ? ask - TICK : bid + TICK
 }
 
 function book(venue: VenueId, request?: InstantOrderSymbolRequest): InstantOrderBookResponse {
@@ -71,58 +82,98 @@ function account(venue: VenueId, request?: InstantOrderSymbolRequest): InstantOr
    }
 }
 
-function place(venue: VenueId, request?: InstantOrderPlaceRequest): InstantOrderPlaceResponse | Promise<never> {
-   const market = marketOf(venue, request?.symbol)
-   if (!market || !request) return Promise.reject('No such market.')
+const boundOf = (side: 'buy' | 'sell', price: number, percent: string) =>
+   ticks(price * (1 + (side === 'buy' ? 1 : -1) * Number(percent) / 100))
 
-   const { bid, ask } = bookOf(venue, market.symbol)
-   const price = request.side === 'buy' ? ask - TICK : bid + TICK
-   const amount = Number(request.amount)
-   const quantity = Math.floor((request.unit === 'base' ? amount : amount / price) * 1e6) / 1e6
-   if (quantity * price < 5) return Promise.reject(`Below the ${market.symbol} minimum of 0.000001 ${market.base} and 5 ${market.quote}.`)
-
-   const clientOrderId = `io${Date.now().toString(36)}`
-   const order: InstantOrder = {
-      clientOrderId, orderId: `mock-${orders.size + 1}`, symbol: market.symbol, base: market.base, quote: market.quote,
-      side: request.side, quantity: String(quantity), price: asPrice(price), placedAt: Date.now()
-   }
-   orders.set(clientOrderId, { order, cancelledAt: null })
-   return { order }
+function follow(entry: MockOrder): void {
+   if (!entry.following) return
+   const desired = makerPriceOf(entry.venue, entry.order.symbol, entry.order.side)
+   const capped = entry.bound === null ? desired
+      : entry.order.side === 'buy' ? Math.min(desired, entry.bound) : Math.max(desired, entry.bound)
+   const behind = entry.order.side === 'buy' ? capped > entry.price : capped < entry.price
+   if (!behind) return
+   entry.price = capped
+   entry.moves++
 }
 
 function stateOfOrder(clientOrderId: string): InstantOrderState {
-   const entry = orders.get(clientOrderId)
-   if (!entry) return { orderId: null, status: 'unknown', filled: '0', averagePrice: '0', fees: [], reason: '' }
+   const entry = orders.get(clientOrderId)!
+   follow(entry)
 
    const { order, cancelledAt } = entry
    const share = Math.min(1, ((cancelledAt ?? Date.now()) - order.placedAt) / FILLS_AFTER_MS)
-   const filled = Number(order.quantity) * (share < 0.5 ? 0 : share)
+   const filled = Number(order.quantity) * (share < 0.4 ? 0 : share)
    const status = share >= 1 ? 'filled' : cancelledAt ? filled > 0 ? 'partial' : 'cancelled' : 'open'
-   const fee = filled * Number(order.price) * Number(MAKER_FEE)
+   const fee = filled * entry.price * Number(MAKER_FEE)
+   if (status !== 'open') entry.following = false
 
    return {
-      orderId: order.orderId,
+      current: { symbol: order.symbol, clientOrderId: order.id, orderId: `mock-${order.id}` },
+      price: asPrice(entry.price),
       status,
+      following: entry.following,
+      bound: entry.bound === null ? null : asPrice(entry.bound),
+      moves: entry.moves,
+      closed: { base: '0', quote: '0', fees: [] },
       filled: filled.toFixed(6),
-      averagePrice: filled > 0 ? order.price : '0',
+      averagePrice: filled > 0 ? asPrice(entry.price) : '0',
       fees: fee > 0 ? [{ asset: order.quote, amount: fee.toFixed(4) }] : [],
       reason: status === 'cancelled' || status === 'partial' ? 'User requested' : ''
    }
 }
 
+function place(venue: VenueId, request?: InstantOrderPlaceRequest): InstantOrderPlaceResponse | Promise<never> {
+   const market = marketOf(venue, request?.symbol)
+   if (!market || !request) return Promise.reject('No such market.')
+
+   const price = makerPriceOf(venue, market.symbol, request.side)
+   const amount = Number(request.amount)
+   const quantity = Math.floor((request.unit === 'base' ? amount : amount / price) * 1e6) / 1e6
+   if (quantity * price < 5) return Promise.reject(`Below the ${market.symbol} minimum of 0.000001 ${market.base} and 5 ${market.quote}.`)
+
+   const order: InstantOrder = {
+      id: `io${Date.now().toString(36)}`, symbol: market.symbol, base: market.base, quote: market.quote,
+      side: request.side, quantity: String(quantity), placedAt: Date.now()
+   }
+   orders.set(order.id, {
+      venue, order, price, following: request.follow, moves: 0, cancelledAt: null,
+      bound: request.follow ? boundOf(request.side, price, request.maxMovePercent) : null
+   })
+   return { order, state: stateOfOrder(order.id) }
+}
+
+const known = (request?: InstantOrderActionRequest) => orders.get(request?.order.id ?? '')
+
 function status(request?: InstantOrderStatusRequest): InstantOrderStatusResponse {
    return {
       fetchedAt: Date.now(),
-      states: Object.fromEntries((request?.orders ?? []).map(({ clientOrderId }) => [clientOrderId, stateOfOrder(clientOrderId)]))
+      states: Object.fromEntries((request?.orders ?? [])
+         .filter(({ order }) => orders.has(order.id))
+         .map(({ order }) => [order.id, stateOfOrder(order.id)]))
    }
 }
 
-function cancel(request?: InstantOrderCancelRequest): InstantOrderCancelResponse {
-   const clientOrderId = request?.order.clientOrderId ?? ''
-   const entry = orders.get(clientOrderId)
-   if (entry && stateOfOrder(clientOrderId).status === 'open') entry.cancelledAt = Date.now()
-   return { state: stateOfOrder(clientOrderId) }
+function action(request: InstantOrderActionRequest | undefined, change: (entry: MockOrder) => void): InstantOrderActionResponse | Promise<never> {
+   const entry = known(request)
+   if (!entry) return Promise.reject('The mock forgot this order when the page reloaded.')
+   if (stateOfOrder(entry.order.id).status === 'open') change(entry)
+   return { state: stateOfOrder(entry.order.id) }
 }
+
+const cancel = (request?: InstantOrderActionRequest) => action(request, entry => {
+   entry.cancelledAt = Date.now()
+   entry.following = false
+})
+
+const reprice = (request?: InstantOrderActionRequest) => action(request, entry => {
+   entry.price = makerPriceOf(entry.venue, entry.order.symbol, entry.order.side)
+   entry.moves++
+})
+
+const followOrder = (request?: InstantOrderFollowRequest) => action(request, entry => {
+   entry.following = Boolean(request?.follow)
+   entry.bound = entry.following ? boundOf(entry.order.side, entry.price, request?.maxMovePercent ?? '1') : entry.bound
+})
 
 type Body = { arg?: unknown }
 const arg = <T>(params?: Body) => params?.arg as T | undefined
@@ -134,5 +185,7 @@ export const instantOrderRoutes: Record<string, (params?: Body) => unknown> = Ob
       [`${root}/account`, (params?: Body) => account(venue, arg(params))],
       [`${root}/place`, (params?: Body) => place(venue, arg(params))],
       [`${root}/status`, (params?: Body) => status(arg(params))],
-      [`${root}/cancel`, (params?: Body) => cancel(arg(params))]
+      [`${root}/cancel`, (params?: Body) => cancel(arg(params))],
+      [`${root}/reprice`, (params?: Body) => reprice(arg(params))],
+      [`${root}/follow`, (params?: Body) => followOrder(arg(params))]
    ]))

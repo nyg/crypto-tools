@@ -157,6 +157,15 @@ export interface KrakenAddOrderResult {
    txid: string[]
 }
 
+export type KrakenAmendOrderParams = KrakenOrderReference & {
+   limit_price: string
+   post_only: boolean
+}
+
+export interface KrakenAmendOrderResult {
+   amend_id: string
+}
+
 export interface KrakenCancelResult {
    count?: number
 }

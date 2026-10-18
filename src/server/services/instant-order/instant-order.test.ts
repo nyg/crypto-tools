@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import Big from 'big.js'
-import { maxBuy, sizeInstantOrder, stateOf } from './instant-order'
+import { addFill, closedStatus, fillOf, maxBuy, noFill, sizeInstantOrder, sizeRest, summaryOf, wireFill } from './instant-order'
 import type { PlanMarket } from '../portfolio/planner'
-import type { OrderSettlement } from '../../../types/portfolio'
 
 const btc = (bid: string, ask: string, overrides: Partial<Record<keyof PlanMarket, string>> = {}): PlanMarket => {
    const values = { baseStep: '0.0001', quoteStep: '0.01', tickStep: '0.1', minQty: '0.0001', minAmount: '5', maxQty: '100', maxAmount: '0', ...overrides }
@@ -50,27 +49,34 @@ describe('the most an order can buy', () => {
    })
 })
 
-describe('the state of an instant limit order', () => {
+describe('placing what is left of an order', () => {
 
-   const settlement = (overrides: Partial<OrderSettlement>): OrderSettlement => ({
-      orderId: 'O1', status: 'open', base: '0', quote: '0', averagePrice: '0', fees: {}, reason: '', ...overrides
+   test('floors the rest to the lot size at the new price', () => {
+      expect(sized(sizeRest(Big('0.61234'), Big('50000'), btc('50000', '50010')))).toEqual({ price: '50000', quantity: '0.6123' })
    })
 
-   test('tells an order closed with part of it filled from one closed with nothing filled', () => {
-      expect(stateOf(settlement({ status: 'partial', base: '0.2' })).status).toBe('partial')
-      expect(stateOf(settlement({ status: 'rejected', base: '0' })).status).toBe('cancelled')
-      expect(stateOf(settlement({ status: 'filled', base: '1' })).status).toBe('filled')
+   test('refuses a rest below the minimum', () => {
+      expect(sizeRest(Big('0.00005'), Big('50000'), btc('50000', '50010'))).toHaveProperty('refusal')
+   })
+})
+
+describe('what an order filled across its attempts', () => {
+
+   test('adds up the base, the quote and each fee asset of every attempt', () => {
+      const fill = addFill(addFill(noFill(), { base: '0.4', quote: '40', fees: { USD: '0.1' } }), { base: '0.6', quote: '61.2', fees: { USD: '0.2' } })
+
+      expect(summaryOf(fill)).toEqual({ filled: '1', averagePrice: '101.2', fees: [{ asset: 'USD', amount: '0.3' }] })
    })
 
-   test('says why when the exchange cancelled a post-only order that would have taken', () => {
-      expect(stateOf(settlement({ status: 'rejected', postOnlyRefused: true })).reason).toMatch(/taken liquidity/)
+   test('survives the round trip through the page', () => {
+      const fill = addFill(noFill(), { base: '0.4', quote: '40', fees: { SOL: '0.0004' } })
+
+      expect(wireFill(fillOf(wireFill(fill)))).toEqual(wireFill(fill))
    })
 
-   test('lists the fees charged', () => {
-      expect(stateOf(settlement({ status: 'filled', base: '1', fees: { USDT: '0.5' } })).fees).toEqual([{ asset: 'USDT', amount: '0.5' }])
-   })
-
-   test('is unknown while the exchange has no such order', () => {
-      expect(stateOf(null, 'Not found')).toMatchObject({ status: 'unknown', orderId: null, reason: 'Not found' })
+   test('tells a filled order from one closed with part or nothing filled', () => {
+      expect(closedStatus(Big('1'), Big('1'))).toBe('filled')
+      expect(closedStatus(Big('1'), Big('0.4'))).toBe('partial')
+      expect(closedStatus(Big('1'), Big('0'))).toBe('cancelled')
    })
 })

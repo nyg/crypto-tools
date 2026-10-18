@@ -414,6 +414,11 @@ export default class KrakenAPI {
       return response.result.txid[0] ?? ''
    }
 
+   async amendLimitPrice({ clientOrderId, orderId }: OrderLookup, price: string): Promise<void> {
+      const reference = orderId ? { txid: orderId } : { cl_ord_id: clientOrderId }
+      await resource.amendOrder(this.#authenticated, { ...reference, limit_price: price, post_only: true })
+   }
+
    async cancelOrderIfOpen({ clientOrderId, orderId }: OrderLookup): Promise<void> {
       try {
          await resource.cancelOrder(this.#authenticated, orderId ? { txid: orderId } : { cl_ord_id: clientOrderId })

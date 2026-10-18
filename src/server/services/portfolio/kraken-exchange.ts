@@ -76,6 +76,10 @@ export default class KrakenExchange implements PortfolioExchange {
       return this.#api.placeLimitOrder(altname, order)
    }
 
+   amendLimitPrice(lookup: OrderLookup, price: string): Promise<void> {
+      return this.#api.amendLimitPrice(lookup, price)
+   }
+
    cancelOrder(lookup: OrderLookup): Promise<void> {
       return this.#api.cancelOrderIfOpen(lookup)
    }

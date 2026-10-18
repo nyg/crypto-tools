@@ -6,7 +6,7 @@ import type { Credentials } from '../../../types/credentials'
 import type { ExportReportType, ExportRequest } from '../../../types/kraken'
 import type {
    KrakenAddExportResult, KrakenAddOrderBatchResult, KrakenAddOrderParams, KrakenAddOrderResult,
-   KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenEarnAllocations,
+   KrakenAmendOrderParams, KrakenAmendOrderResult, KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenEarnAllocations,
    KrakenEarnStrategies, KrakenExportStatus, KrakenExtendedBalance, KrakenOpenOrders,
    KrakenOhlc, KrakenOrderBatchParams, KrakenOrderFilter, KrakenOrderReference, KrakenQueriedOrders,
    KrakenResponse, KrakenTicker, KrakenTradeVolume
@@ -22,6 +22,7 @@ const ohlcEndpoint = '/0/public/OHLC'
 
 const addOrderEndpoint = '/0/private/AddOrder'
 const addOrderBatchEndpoint = '/0/private/AddOrderBatch'
+const amendOrderEndpoint = '/0/private/AmendOrder'
 const balanceExtendedEndpoint = '/0/private/BalanceEx'
 const openOrdersEndpoint = '/0/private/OpenOrders'
 const closedOrdersEndpoint = '/0/private/ClosedOrders'
@@ -122,6 +123,10 @@ export async function fetchEarnStrategies(apiCredentials: Credentials): Promise<
 
 export async function addOrder(apiCredentials: Credentials, order: KrakenAddOrderParams): Promise<KrakenResponse<KrakenAddOrderResult>> {
    return await privateRequest(urlFor(addOrderEndpoint), apiCredentials, { bodyParams: order })
+}
+
+export async function amendOrder(apiCredentials: Credentials, amend: KrakenAmendOrderParams): Promise<KrakenResponse<KrakenAmendOrderResult>> {
+   return await privateRequest(urlFor(amendOrderEndpoint), apiCredentials, { bodyParams: amend })
 }
 
 /* Export report endpoints, used to fetch the full ledger and trade history in one go */

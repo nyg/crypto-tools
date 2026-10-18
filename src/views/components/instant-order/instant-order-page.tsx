@@ -13,15 +13,15 @@ import OrdersTable, { isClosed, remainingOf } from './orders-table'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ExchangeLayout, ExchangeVenue } from '../lib/venue-tabs'
+import type { FollowSettings } from './order-form'
 import type { TrackedOrder } from './orders-table'
 import type {
-   InstantOrder, InstantOrderCancelRequest, InstantOrderCancelResponse, InstantOrderMarketsResponse,
-   InstantOrderPlaceRequest, InstantOrderPlaceResponse, InstantOrderState, InstantOrderStatusResponse
+   InstantOrderActionRequest, InstantOrderActionResponse, InstantOrderFollowRequest, InstantOrderMarketsResponse,
+   InstantOrderPlaceRequest, InstantOrderPlaceResponse, InstantOrderState, InstantOrderStatusResponse, TrackedInstantOrder
 } from '../../../types/api'
 import type { VenueId } from '../../../types/portfolio'
 
-const STATUS_REFRESH_MS = 5000
-const UNKNOWN_FOR_MS = 5 * 60 * 1000
+const STATUS_REFRESH_MS = 3000
 const KEPT_ORDERS = 20
 
 interface InstantOrderPageProps {
@@ -30,10 +30,7 @@ interface InstantOrderPageProps {
    venues: [ExchangeVenue, ...ExchangeVenue[]]
 }
 
-const lookupOf = ({ symbol, clientOrderId, orderId }: InstantOrder) => ({ symbol, clientOrderId, orderId })
-
-const needsChecking = ({ order, state }: TrackedOrder) =>
-   state?.status === 'open' || (!state || state.status === 'unknown') && Date.now() - order.placedAt < UNKNOWN_FOR_MS
+const tracking = ({ order, state }: TrackedOrder): TrackedInstantOrder => ({ order, state })
 
 const messageOf = (reason: unknown, fallback: string) => typeof reason === 'string' ? reason : fallback
 
@@ -45,7 +42,8 @@ export default function InstantOrderPage({ layout: Layout, storageKey, venues }:
    const { configured, unreachable, isLoading: isLoadingSettings } = useProvider(venue)
 
    const [symbols, setSymbols] = usePersistentState<Partial<Record<VenueId, string>>>('instantOrders.symbol', {})
-   const [tracked, setTracked] = usePersistentState<Partial<Record<VenueId, TrackedOrder[]>>>('instantOrders.orders', {})
+   const [tracked, setTracked] = usePersistentState<Partial<Record<VenueId, TrackedOrder[]>>>('instantOrders.tracked', {})
+   const [following, setFollowing] = usePersistentState<FollowSettings>('instantOrders.follow', { follow: true, maxMovePercent: '1' })
    const [busy, setBusy] = useState<string | null>(null)
 
    const orders = tracked[venue] ?? []
@@ -55,34 +53,39 @@ export default function InstantOrderPage({ layout: Layout, storageKey, venues }:
    const { data: markets, error: marketsError } =
       useSWR<InstantOrderMarketsResponse>(configured ? `${apiBase}/markets` : null, { revalidateOnFocus: false })
    const { trigger: place } = useMutation<InstantOrderPlaceResponse, InstantOrderPlaceRequest>(`${apiBase}/place`)
-   const { trigger: cancel } = useMutation<InstantOrderCancelResponse, InstantOrderCancelRequest>(`${apiBase}/cancel`)
+   const { trigger: cancel } = useMutation<InstantOrderActionResponse, InstantOrderActionRequest>(`${apiBase}/cancel`)
+   const { trigger: reprice } = useMutation<InstantOrderActionResponse, InstantOrderActionRequest>(`${apiBase}/reprice`)
+   const { trigger: follow } = useMutation<InstantOrderActionResponse, InstantOrderFollowRequest>(`${apiBase}/follow`)
 
    const { mutate } = useSWRConfig()
    const refreshAccount = () => mutate(key => Array.isArray(key) && key[0] === `${apiBase}/account`)
 
-   const checking = orders.filter(needsChecking).map(({ order }) => lookupOf(order))
+   const settle = (id: string, state: InstantOrderState | undefined) =>
+      state && setOrders(list => list.map(entry => entry.order.id === id ? { ...entry, state } : entry))
+
+   const open = orders.filter(entry => !isClosed(entry)).map(tracking)
    useSWR<InstantOrderStatusResponse>(
-      configured && checking.length > 0 ? [`${apiBase}/status`, { orders: checking }] : null, {
+      configured && open.length > 0 ? [`${apiBase}/status`, { orders: open }] : null, {
          refreshInterval: STATUS_REFRESH_MS,
          onSuccess: ({ states }) => {
             if (Object.values(states).some(({ status }) => status !== 'open' && status !== 'unknown')) refreshAccount()
-            setOrders(list => list.map(entry => withState(entry, states[entry.order.clientOrderId])))
+            for (const [id, state] of Object.entries(states)) settle(id, state)
          }
       })
 
    const symbol = symbols[venue]
    const market = markets?.markets.find(entry => entry.symbol === symbol)
 
-   const track = (order: InstantOrder) =>
-      setOrders(list => [{ order, state: null }, ...list])
+   const track = (entry: TrackedInstantOrder) =>
+      setOrders(list => [entry, ...list])
 
-   const settle = (clientOrderId: string, state: InstantOrderState) =>
-      setOrders(list => list.map(entry => entry.order.clientOrderId === clientOrderId ? withState(entry, state) : entry))
-
-   const act = async (entry: TrackedOrder, work: () => Promise<void>) => {
-      setBusy(entry.order.clientOrderId)
+   const act = async (entry: TrackedOrder, work: () => Promise<void>, failure: string) => {
+      setBusy(entry.order.id)
       try {
          await work()
+      }
+      catch (reason) {
+         toast.error(messageOf(reason, failure))
       }
       finally {
          setBusy(null)
@@ -90,43 +93,28 @@ export default function InstantOrderPage({ layout: Layout, storageKey, venues }:
    }
 
    const cancelOrder = (entry: TrackedOrder) => act(entry, async () => {
-      try {
-         settle(entry.order.clientOrderId, (await cancel({ order: lookupOf(entry.order) })).state)
-         refreshAccount()
-      }
-      catch (reason) {
-         toast.error(messageOf(reason, 'The order could not be cancelled.'))
-      }
-   })
+      settle(entry.order.id, (await cancel(tracking(entry))).state)
+      refreshAccount()
+   }, 'The order could not be cancelled.')
 
-   const replace = (entry: TrackedOrder) => act(entry, async () => {
-      try {
-         let latest = entry
-         if (!isClosed(entry)) {
-            const { state } = await cancel({ order: lookupOf(entry.order) })
-            settle(entry.order.clientOrderId, state)
-            latest = withState(entry, state)
-            if (!isClosed(latest)) {
-               toast.error(`${label} has not closed the order yet: try again in a moment.`)
-               return
-            }
-         }
-         const rest = remainingOf(latest)
-         if (rest.lte(0)) return
-         const { order } = await place({ symbol: entry.order.symbol, side: entry.order.side, unit: 'base', amount: rest.toFixed() })
-         setOrders(list => [
-            { order, state: null },
-            ...list.map(item => item.order.clientOrderId === entry.order.clientOrderId ? { ...item, replaced: true } : item)
-         ])
-         refreshAccount()
-      }
-      catch (reason) {
-         toast.error(messageOf(reason, 'The order could not be placed again.'))
-      }
-   })
+   const repriceOrder = (entry: TrackedOrder) => act(entry, async () => {
+      settle(entry.order.id, (await reprice(tracking(entry))).state)
+   }, 'The order could not be re-priced.')
+
+   const followOrder = (entry: TrackedOrder, on: boolean) => act(entry, async () => {
+      settle(entry.order.id, (await follow({ ...tracking(entry), follow: on, maxMovePercent: following.maxMovePercent })).state)
+   }, 'The order could not follow the price.')
+
+   const placeRest = (entry: TrackedOrder) => act(entry, async () => {
+      const placed = await place({
+         symbol: entry.order.symbol, side: entry.order.side, unit: 'base', amount: remainingOf(entry).toFixed(), ...following
+      })
+      setOrders(list => [placed, ...list.map(item => item.order.id === entry.order.id ? { ...item, replaced: true } : item)])
+      refreshAccount()
+   }, 'The rest could not be placed.')
 
    const dismiss = (entry: TrackedOrder) =>
-      setOrders(list => list.filter(({ order }) => order.clientOrderId !== entry.order.clientOrderId))
+      setOrders(list => list.filter(({ order }) => order.id !== entry.order.id))
 
    const venueTabs = <VenueTabs venues={venues} value={venue} onValueChange={setVenueId} />
 
@@ -164,7 +152,14 @@ export default function InstantOrderPage({ layout: Layout, storageKey, venues }:
                         options={markets.markets.map(({ symbol, base, quote }) => ({ value: symbol, label: `${base}/${quote}` }))} />
 
                      {market &&
-                        <OrderForm key={`${venue}:${market.symbol}`} apiBase={apiBase} venueLabel={label} market={market} onPlaced={track} />}
+                        <OrderForm
+                           key={`${venue}:${market.symbol}`}
+                           apiBase={apiBase}
+                           venueLabel={label}
+                           market={market}
+                           following={following}
+                           onFollowingChange={setFollowing}
+                           onPlaced={track} />}
                   </>}
 
             {orders.length > 0 &&
@@ -173,16 +168,17 @@ export default function InstantOrderPage({ layout: Layout, storageKey, venues }:
                      <CardTitle>Orders placed here</CardTitle>
                   </CardHeader>
                   <CardContent>
-                     <OrdersTable orders={orders} busy={busy} onCancel={cancelOrder} onReplace={replace} onDismiss={dismiss} />
+                     <OrdersTable
+                        orders={orders}
+                        busy={busy}
+                        onCancel={cancelOrder}
+                        onReprice={repriceOrder}
+                        onFollow={followOrder}
+                        onPlaceRest={placeRest}
+                        onDismiss={dismiss} />
                   </CardContent>
                </Card>}
          </div>
       </Layout>
    )
-}
-
-function withState(entry: TrackedOrder, state: InstantOrderState | undefined): TrackedOrder {
-   if (!state) return entry
-   if (state.status === 'unknown' && entry.state && entry.state.status !== 'unknown') return entry
-   return { ...entry, order: { ...entry.order, orderId: entry.order.orderId ?? state.orderId }, state }
 }

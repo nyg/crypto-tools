@@ -3,6 +3,7 @@ import Big from 'big.js'
 import useSWR from 'swr'
 import { Loader2Icon } from 'lucide-react'
 import useMutation from '../../lib/use-mutation'
+import Checkbox from '../lib/checkbox'
 import Field from '../lib/field'
 import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
@@ -13,24 +14,31 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { asExactDecimal, asPercentage } from '../../../utils/format'
 import { asQuantity } from '../portfolio/format'
 import type {
-   InstantOrder, InstantOrderAccountResponse, InstantOrderBookResponse, InstantOrderPlaceRequest,
-   InstantOrderPlaceResponse, PortfolioMarket
+   InstantOrderAccountResponse, InstantOrderBookResponse, InstantOrderPlaceRequest,
+   InstantOrderPlaceResponse, PortfolioMarket, TrackedInstantOrder
 } from '../../../types/api'
 import type { OrderSide, SizeUnit } from '../../../types/portfolio'
 
 const BOOK_REFRESH_MS = 3000
 
+export interface FollowSettings {
+   follow: boolean
+   maxMovePercent: string
+}
+
 interface OrderFormProps {
    apiBase: string
    venueLabel: string
    market: PortfolioMarket
-   onPlaced: (order: InstantOrder) => void
+   following: FollowSettings
+   onFollowingChange: (following: FollowSettings) => void
+   onPlaced: (tracked: TrackedInstantOrder) => void
 }
 
 const floorTo = (value: Big, step: string) =>
    Big(step).gt(0) ? value.div(step).round(0, Big.roundDown).times(step) : value
 
-export default function OrderForm({ apiBase, venueLabel, market, onPlaced }: OrderFormProps) {
+export default function OrderForm({ apiBase, venueLabel, market, following, onFollowingChange, onPlaced }: OrderFormProps) {
 
    const { symbol, base, quote } = market
    const [side, setSide] = useState<OrderSide>('buy')
@@ -59,9 +67,9 @@ export default function OrderForm({ apiBase, venueLabel, market, onPlaced }: Ord
    const submit = async () => {
       setError(null)
       try {
-         const { order } = await place({ symbol, side, unit, amount })
+         const tracked = await place({ symbol, side, unit, amount, ...following })
          setAmount('')
-         onPlaced(order)
+         onPlaced(tracked)
          refreshAccount()
       }
       catch (reason) {
@@ -74,10 +82,12 @@ export default function OrderForm({ apiBase, venueLabel, market, onPlaced }: Ord
          <CardHeader>
             <CardTitle>{base}/{quote}</CardTitle>
             <CardDescription>
-               The app sets the price: one tick inside the spread, on your side of it, and placed post-only, so
-               it rests on the {venueLabel} book as a maker order and pays the maker fee. If the book moves onto
-               that price before the order lands, {venueLabel} refuses it rather than fill it as a taker, and the
-               app prices it again.
+               The app sets the price: one tick inside the spread, on your side of it, and placed post-only, so it
+               rests on the {venueLabel} book as a maker order and pays the maker fee. If the book moves onto that
+               price before the order lands, {venueLabel} refuses it rather than fill it as a taker, and the app
+               prices it again. Following the price moves the order back inside the spread whenever the market
+               moves away from it, never further from the first price than you allow: Kraken amends the order in
+               place, keeping what it filled, and the other exchanges cancel it and place what is left.
             </CardDescription>
          </CardHeader>
          <CardContent className="space-y-4">
@@ -126,12 +136,28 @@ export default function OrderForm({ apiBase, venueLabel, market, onPlaced }: Ord
                </Field>
             </div>
 
+            <div className="flex flex-wrap items-end gap-3">
+               <Checkbox
+                  name="instant-follow"
+                  className="h-9"
+                  checked={following.follow}
+                  onChange={event => onFollowingChange({ ...following, follow: event.target.checked })}
+                  label="Follow the price until it fills" />
+               {following.follow &&
+                  <NumericInput
+                     name="instant-max-move"
+                     label="At most this far, in %"
+                     className="w-40"
+                     value={following.maxMovePercent}
+                     onChange={event => onFollowingChange({ ...following, maxMovePercent: event.target.value })} />}
+            </div>
+
             {(error || bookError) &&
                <Alert variant="destructive">
                   <AlertDescription>{error ?? (typeof bookError === 'string' ? bookError : 'The book could not be read.')}</AlertDescription>
                </Alert>}
 
-            <Button disabled={isPlacing || !sized} onClick={submit}>
+            <Button disabled={isPlacing || !sized || (following.follow && !(Number(following.maxMovePercent) > 0))} onClick={submit}>
                {isPlacing && <Loader2Icon className="animate-spin" />}
                {side === 'buy' ? 'Buy' : 'Sell'} {base}
             </Button>

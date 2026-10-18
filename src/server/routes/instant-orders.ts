@@ -17,6 +17,8 @@ export default function instantOrderRoutes(venueId: VenueId): Hono {
    app.post('/place', handle((service, body) => service.place(body)))
    app.post('/status', handle((service, body) => service.status(body)))
    app.post('/cancel', handle((service, body) => service.cancel(body)))
+   app.post('/reprice', handle((service, body) => service.reprice(body)))
+   app.post('/follow', handle((service, body) => service.follow(body)))
 
    return app
 }

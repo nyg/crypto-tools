@@ -737,34 +737,51 @@ export interface InstantOrderPlaceRequest {
    side: OrderSide
    unit: SizeUnit
    amount: string
+   follow: boolean
+   maxMovePercent: string
 }
 
-export interface InstantOrder extends OrderLookup {
+export interface InstantOrder {
+   id: string
+   symbol: string
    base: string
    quote: string
    side: OrderSide
    quantity: string
-   price: string
    placedAt: number
 }
 
-export interface InstantOrderPlaceResponse {
-   order: InstantOrder
+export interface InstantOrderFill {
+   base: string
+   quote: string
+   fees: FeeAmount[]
 }
 
 export type InstantOrderStatus = 'open' | 'filled' | 'partial' | 'cancelled' | 'unknown'
 
 export interface InstantOrderState {
-   orderId: string | null
+   current: OrderLookup
+   price: string
    status: InstantOrderStatus
+   following: boolean
+   bound: string | null
+   moves: number
+   closed: InstantOrderFill
    filled: string
    averagePrice: string
    fees: FeeAmount[]
    reason: string
 }
 
+export interface TrackedInstantOrder {
+   order: InstantOrder
+   state: InstantOrderState
+}
+
+export type InstantOrderPlaceResponse = TrackedInstantOrder
+
 export interface InstantOrderStatusRequest {
-   orders: OrderLookup[]
+   orders: TrackedInstantOrder[]
 }
 
 export interface InstantOrderStatusResponse {
@@ -772,11 +789,14 @@ export interface InstantOrderStatusResponse {
    states: Record<string, InstantOrderState>
 }
 
-export interface InstantOrderCancelRequest {
-   order: OrderLookup
+export type InstantOrderActionRequest = TrackedInstantOrder
+
+export interface InstantOrderFollowRequest extends TrackedInstantOrder {
+   follow: boolean
+   maxMovePercent: string
 }
 
-export interface InstantOrderCancelResponse {
+export interface InstantOrderActionResponse {
    state: InstantOrderState
 }
 
