@@ -1,5 +1,5 @@
 {
-   "generatedAt": "2026-10-19",
+   "generatedAt": "2026-10-26",
    "source": "stockanalysis.com, nasdaqtrader.com",
    "listings": {
       "A": {
@@ -3182,6 +3182,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "L": {
+         "name": "Loews Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "LAD": {
          "name": "Lithia Motors, Inc.",
          "exchange": "",
@@ -3236,6 +3242,18 @@
          "type": "stock",
          "subtype": ""
       },
+      "LHX": {
+         "name": "L3Harris Technologies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LII": {
+         "name": "Lennox International, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "LIN": {
          "name": "Linde plc",
          "exchange": "",
@@ -3272,6 +3290,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "LMT": {
+         "name": "Lockheed Martin Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "LNC": {
          "name": "Lincoln National Corporation",
          "exchange": "",
@@ -3280,6 +3304,12 @@
       },
       "LNG": {
          "name": "Cheniere Energy, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LNT": {
+         "name": "Alliant Energy Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3296,6 +3326,18 @@
          "type": "stock",
          "subtype": ""
       },
+      "LOW": {
+         "name": "Lowe's Companies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LPLA": {
+         "name": "LPL Financial Holdings Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "LPX": {
          "name": "Louisiana-Pacific Corporation",
          "exchange": "",
@@ -3308,8 +3350,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "LSCC": {
+         "name": "Lattice Semiconductor Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "LSTR": {
          "name": "Landstar System, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LUV": {
+         "name": "Southwest Airlines Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "LVS": {
+         "name": "Las Vegas Sands Corp.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3332,6 +3392,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "LYV": {
+         "name": "Live Nation Entertainment, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "M": {
          "name": "Macy's Inc",
          "exchange": "",
@@ -3344,14 +3410,32 @@
          "type": "stock",
          "subtype": ""
       },
+      "MAA": {
+         "name": "Mid-America Apartment Communities, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MANH": {
          "name": "Manhattan Associates, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
       },
+      "MAR": {
+         "name": "Marriott International",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MARA": {
          "name": "MARA Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MAS": {
+         "name": "Masco Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3368,8 +3452,38 @@
          "type": "stock",
          "subtype": ""
       },
+      "MCHP": {
+         "name": "Microchip Technology Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MCK": {
+         "name": "McKesson Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MCO": {
+         "name": "Moody's Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MDB": {
+         "name": "MongoDB, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MDGL": {
          "name": "Madrigal Pharmaceuticals, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MDLZ": {
+         "name": "Mondelez International, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3388,6 +3502,12 @@
       },
       "MEDP": {
          "name": "Medpace Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MET": {
+         "name": "MetLife, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3428,8 +3548,50 @@
          "type": "stock",
          "subtype": ""
       },
+      "MKC": {
+         "name": "McCormick & Company, Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MKL": {
+         "name": "Markel Group Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MKSI": {
+         "name": "MKS Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MKTX": {
          "name": "MarketAxess Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MLI": {
+         "name": "Mueller Industries, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MLM": {
+         "name": "Martin Marietta Materials, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MMM": {
+         "name": "3M Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MO": {
+         "name": "Altria Group, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3464,8 +3626,20 @@
          "type": "stock",
          "subtype": ""
       },
+      "MPC": {
+         "name": "Marathon Petroleum Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MPT": {
          "name": "Medical Properties Trust, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MPWR": {
+         "name": "Monolithic Power Systems, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3488,14 +3662,32 @@
          "type": "stock",
          "subtype": ""
       },
+      "MRSH": {
+         "name": "Marsh",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MRVL": {
          "name": "Marvell Technology, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
       },
+      "MS": {
+         "name": "Morgan Stanley",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MSA": {
          "name": "MSA Safety Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MSCI": {
+         "name": "MSCI Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3512,6 +3704,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "MSI": {
+         "name": "Motorola Solutions, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MSM": {
          "name": "MSC Industrial Direct Company, Inc.",
          "exchange": "",
@@ -3524,8 +3722,20 @@
          "type": "stock",
          "subtype": ""
       },
+      "MTB": {
+         "name": "M&T Bank Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MTCH": {
          "name": "Match Group, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MTD": {
+         "name": "Mettler-Toledo International, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3544,6 +3754,18 @@
       },
       "MTN": {
          "name": "Vail Resorts, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MTSI": {
+         "name": "MACOM Technology Solutions Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "MTZ": {
+         "name": "MasTec, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3572,8 +3794,38 @@
          "type": "stock",
          "subtype": ""
       },
+      "NBIX": {
+         "name": "Neurocrine Biosciences, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "NCLH": {
          "name": "Norwegian Cruise Line Holdings Ltd.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NDAQ": {
+         "name": "Nasdaq, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NDSN": {
+         "name": "Nordson Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NEE": {
+         "name": "NextEra Energy, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NEM": {
+         "name": "Newmont Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3602,10 +3854,28 @@
          "type": "stock",
          "subtype": ""
       },
+      "NI": {
+         "name": "NiSource Inc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NKE": {
+         "name": "Nike, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "NLR": {
          "name": "VanEck Uranium and Nuclear ETF",
          "exchange": "",
          "type": "etf",
+         "subtype": ""
+      },
+      "NLY": {
+         "name": "Annaly Capital Management Inc.",
+         "exchange": "",
+         "type": "stock",
          "subtype": ""
       },
       "NNN": {
@@ -3614,8 +3884,62 @@
          "type": "stock",
          "subtype": ""
       },
+      "NOC": {
+         "name": "Northrop Grumman Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "NOV": {
          "name": "NOV Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NOW": {
+         "name": "ServiceNow, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NRG": {
+         "name": "NRG Energy, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NSC": {
+         "name": "Norfolk Southern Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NTAP": {
+         "name": "NetApp, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NTNX": {
+         "name": "Nutanix, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NTRA": {
+         "name": "Natera, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NTRS": {
+         "name": "Northern Trust Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "NUE": {
+         "name": "Nucor Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3668,8 +3992,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "NYT": {
+         "name": "The New York Times Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "O": {
+         "name": "Realty Income Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "OC": {
          "name": "Owens Corning Inc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ODFL": {
+         "name": "Old Dominion Freight Line, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3686,8 +4028,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "OHI": {
+         "name": "Omega Healthcare Investors, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "OKE": {
+         "name": "ONEOK, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "OKLO": {
          "name": "Oklo Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "OKTA": {
+         "name": "Okta, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3710,14 +4070,32 @@
          "type": "stock",
          "subtype": ""
       },
+      "OMC": {
+         "name": "Omnicom Group Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "OMF": {
          "name": "OneMain Holdings, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
       },
+      "ON": {
+         "name": "ON Semiconductor Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "ONDS": {
          "name": "Ondas Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ONTO": {
+         "name": "Onto Innovation Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3740,8 +4118,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "ORLY": {
+         "name": "O'Reilly Automotive, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "OSK": {
          "name": "Oshkosh Corporation (Holding Company)Common Stock",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "OTIS": {
+         "name": "Otis Worldwide Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "OVV": {
+         "name": "Ovintiv Inc. (DE)",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3752,8 +4148,20 @@
          "type": "stock",
          "subtype": ""
       },
+      "OXY": {
+         "name": "Occidental Petroleum Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "OZK": {
          "name": "Bank OZK",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "P": {
+         "name": "Everpure, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3788,8 +4196,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "PAYX": {
+         "name": "Paychex, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "PB": {
          "name": "Prosperity Bancshares, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PCAR": {
+         "name": "PACCAR Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PCG": {
+         "name": "Pacific Gas & Electric Co.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3812,8 +4238,20 @@
          "type": "stock",
          "subtype": ""
       },
+      "PEG": {
+         "name": "Public Service Enterprise Group Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "PEGA": {
          "name": "Pegasystems Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PEN": {
+         "name": "Penumbra, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3830,8 +4268,32 @@
          "type": "stock",
          "subtype": ""
       },
+      "PFG": {
+         "name": "Principal Financial Group Inc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PFGC": {
+         "name": "Performance Food Group Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "PG": {
          "name": "The Procter & Gamble Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PGR": {
+         "name": "The Progressive Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PH": {
+         "name": "Parker-Hannifin Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3842,8 +4304,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "PINS": {
+         "name": "Pinterest, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PKG": {
+         "name": "Packaging Corporation of America",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "PL": {
          "name": "Planet Labs PBC",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PLD": {
+         "name": "Prologis, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3866,8 +4346,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "PNC": {
+         "name": "The PNC Financial Services Group, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PNFP": {
+         "name": "Pinnacle Financial Partners, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "PNR": {
          "name": "Pentair plc. Ordinary Share",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PNW": {
+         "name": "Pinnacle West Capital Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3902,11 +4400,29 @@
          "type": "stock",
          "subtype": ""
       },
+      "PPG": {
+         "name": "PPG Industries, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PPL": {
+         "name": "PPL Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "PPLT": {
          "name": "abrdn Physical Platinum Shares ETF",
          "exchange": "",
          "type": "etf",
          "subtype": "commodity-trust"
+      },
+      "PR": {
+         "name": "Permian Resources Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
       },
       "PRI": {
          "name": "Primerica, Inc.",
@@ -3926,8 +4442,32 @@
          "type": "stock",
          "subtype": ""
       },
+      "PRU": {
+         "name": "Prudential Financial, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PSA": {
+         "name": "Public Storage",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "PSN": {
          "name": "Parsons Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PSX": {
+         "name": "Phillips 66",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "PTC": {
+         "name": "PTC Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3950,6 +4490,18 @@
          "type": "stock",
          "subtype": ""
       },
+      "Q": {
+         "name": "Qnity Electronics, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "QCOM": {
+         "name": "QUALCOMM Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "QNT": {
          "name": "Quantinuum Inc.",
          "exchange": "",
@@ -3964,6 +4516,12 @@
       },
       "QS": {
          "name": "QuantumScape Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "QSR": {
+         "name": "Restaurant Brands International Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3988,6 +4546,12 @@
       },
       "RAL": {
          "name": "Ralliant Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RBA": {
+         "name": "RB Global, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4022,6 +4586,24 @@
          "type": "stock",
          "subtype": ""
       },
+      "RDDT": {
+         "name": "Reddit, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "REG": {
+         "name": "Regency Centers Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "REGN": {
+         "name": "Regeneron Pharmaceuticals, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "REXR": {
          "name": "Rexford Industrial Realty, Inc.",
          "exchange": "",
@@ -4034,8 +4616,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "RF": {
+         "name": "Regions Financial Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RGA": {
+         "name": "Reinsurance Group of America, Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "RGEN": {
          "name": "Repligen Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RGLD": {
+         "name": "Royal Gold, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4058,8 +4658,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "RIVN": {
+         "name": "Rivian Automotive, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RJF": {
+         "name": "Raymond James Financial, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "RKT": {
          "name": "Rocket Companies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RL": {
+         "name": "Ralph Lauren Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4076,8 +4694,62 @@
          "type": "stock",
          "subtype": ""
       },
+      "RMD": {
+         "name": "ResMed Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "RNG": {
          "name": "RingCentral, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RNR": {
+         "name": "RenaissanceRe Holdings Ltd.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ROIV": {
+         "name": "Roivant Sciences Ltd.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ROK": {
+         "name": "Rockwell Automation, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ROKU": {
+         "name": "Roku, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ROL": {
+         "name": "Rollins, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ROP": {
+         "name": "Roper Technologies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ROST": {
+         "name": "Ross Stores, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RPM": {
+         "name": "RPM International Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4090,6 +4762,36 @@
       },
       "RRC": {
          "name": "Range Resources Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RRX": {
+         "name": "Regal Rexnord Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RS": {
+         "name": "Reliance, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RSG": {
+         "name": "Republic Services, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RTX": {
+         "name": "RTX Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "RVMD": {
+         "name": "Revolution Medicines, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4114,6 +4816,12 @@
       },
       "S": {
          "name": "SentinelOne, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SAIA": {
+         "name": "Saia, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4148,8 +4856,26 @@
          "type": "stock",
          "subtype": "preferred"
       },
+      "SBAC": {
+         "name": "SBA Communications Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "SBET": {
          "name": "Sharplink, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SBUX": {
+         "name": "Starbucks Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SCCO": {
+         "name": "Southern Copper Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4158,6 +4884,12 @@
          "name": "Schwab International Equity ETF",
          "exchange": "",
          "type": "etf",
+         "subtype": ""
+      },
+      "SCHW": {
+         "name": "The Charles Schwab Corporation",
+         "exchange": "",
+         "type": "stock",
          "subtype": ""
       },
       "SCI": {
@@ -4196,6 +4928,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "SGI": {
+         "name": "Somnigroup International Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "SGOV": {
          "name": "iShares 0-3 Month Treasury Bond ETF",
          "exchange": "",
@@ -4214,6 +4952,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "SHW": {
+         "name": "The Sherwin-Williams Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "SIRI": {
          "name": "SiriusXM Holdings Inc.",
          "exchange": "",
@@ -4228,6 +4972,12 @@
       },
       "SITM": {
          "name": "SiTime Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SJM": {
+         "name": "The J.M. Smucker Company",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4298,6 +5048,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "SNA": {
+         "name": "Snap-On Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "SNDK": {
          "name": "Sandisk Corporation",
          "exchange": "",
@@ -4306,6 +5062,42 @@
       },
       "SNDR": {
          "name": "Schneider National, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SNOW": {
+         "name": "Snowflake Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SNPS": {
+         "name": "Synopsys, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SNX": {
+         "name": "TD SYNNEX Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SO": {
+         "name": "The Southern Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SOFI": {
+         "name": "SoFi Technologies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SOLS": {
+         "name": "Solstice Advanced Materials Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4340,6 +5132,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "SPG": {
+         "name": "Simon Property Group, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "SPXC": {
          "name": "SPX Technologies, Inc.",
          "exchange": "",
@@ -4352,6 +5150,12 @@
          "type": "etf",
          "subtype": ""
       },
+      "SRE": {
+         "name": "DBA Sempra",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "SSB": {
          "name": "SouthState Bank Corporation",
          "exchange": "",
@@ -4360,6 +5164,12 @@
       },
       "SSD": {
          "name": "Simpson Manufacturing Company, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SSNC": {
+         "name": "SS&C Technologies Holdings, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4376,6 +5186,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "STLD": {
+         "name": "Steel Dynamics, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "STRC": {
          "name": "Strategy Inc. Variable Rate Series A Perpetual Stretch Preferred Stock",
          "exchange": "",
@@ -4388,14 +5204,56 @@
          "type": "stock",
          "subtype": ""
       },
+      "STT": {
+         "name": "State Street Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "STWD": {
          "name": "STARWOOD PROPERTY TRUST, INC. Starwood Property Trust Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
       },
+      "STZ": {
+         "name": "Constellation Brands, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SUI": {
+         "name": "Sun Communities, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "SW": {
          "name": "Smurfit WestRock plc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SWK": {
+         "name": "Stanley Black & Decker, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SYF": {
+         "name": "Synchrony Financial",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SYK": {
+         "name": "Stryker Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SYY": {
+         "name": "Sysco Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4412,14 +5270,38 @@
          "type": "etf",
          "subtype": "bond"
       },
+      "TDG": {
+         "name": "Transdigm Group Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TDY": {
+         "name": "Teledyne Technologies Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TE": {
          "name": "T1 Energy Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
       },
+      "TEAM": {
+         "name": "Atlassian Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TER": {
          "name": "Teradyne, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TFC": {
+         "name": "Truist Financial Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4436,6 +5318,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "THC": {
+         "name": "Tenet Healthcare Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "THG": {
          "name": "Hanover Insurance Group Inc",
          "exchange": "",
@@ -4448,6 +5336,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "TJX": {
+         "name": "The TJX Companies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TKO": {
          "name": "TKO Group Holdings, Inc.",
          "exchange": "",
@@ -4456,6 +5350,12 @@
       },
       "TKR": {
          "name": "The Timken Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TLN": {
+         "name": "Talen Energy Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4478,6 +5378,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "TOL": {
+         "name": "Toll Brothers, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TONX": {
          "name": "TON Strategy Company",
          "exchange": "",
@@ -4496,6 +5402,18 @@
          "type": "stock",
          "subtype": ""
       },
+      "TPL": {
+         "name": "Texas Pacific Land Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TPR": {
+         "name": "Tapestry, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TQQQ": {
          "name": "ProShares UltraPro QQQ",
          "exchange": "",
@@ -4508,6 +5426,42 @@
          "type": "stock",
          "subtype": ""
       },
+      "TRGP": {
+         "name": "Targa Resources, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TRMB": {
+         "name": "Trimble Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TROW": {
+         "name": "T. Rowe Price Group, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TRU": {
+         "name": "TransUnion",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TRV": {
+         "name": "The Travelers Companies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TSCO": {
+         "name": "Tractor Supply Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TSLA": {
          "name": "Tesla, Inc.",
          "exchange": "",
@@ -4516,6 +5470,12 @@
       },
       "TSM": {
          "name": "Taiwan Semiconductor Manufacturing Company Limited",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TSN": {
+         "name": "Tyson Foods, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4550,8 +5510,32 @@
          "type": "stock",
          "subtype": ""
       },
+      "TTWO": {
+         "name": "Take-Two Interactive Software, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TW": {
+         "name": "Tradeweb Markets Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TWLO": {
+         "name": "Twilio Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TWST": {
          "name": "Twist Bioscience Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TXN": {
+         "name": "Texas Instruments Incorporated",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4562,14 +5546,38 @@
          "type": "stock",
          "subtype": ""
       },
+      "TXT": {
+         "name": "Textron Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "TYL": {
+         "name": "Tyler Technologies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "U": {
          "name": "Unity Software Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
       },
+      "UAL": {
+         "name": "United Airlines Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "UBER": {
          "name": "Uber Technologies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "UDR": {
+         "name": "UDR, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4604,8 +5612,32 @@
          "type": "stock",
          "subtype": ""
       },
+      "ULTA": {
+         "name": "Ulta Beauty, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "UNH": {
          "name": "UnitedHealth Group Incorporated",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "UNM": {
+         "name": "Unum Group",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "UNP": {
+         "name": "Union Pacific Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "UPS": {
+         "name": "United Parcel Service, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4616,8 +5648,26 @@
          "type": "etf",
          "subtype": ""
       },
+      "URI": {
+         "name": "United Rentals, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "USAR": {
          "name": "USA Rare Earth, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "USB": {
+         "name": "U.S. Bancorp",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "USFD": {
+         "name": "US Foods Holding Corp.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4626,6 +5676,12 @@
          "name": "Franklin U.S. Equity Index ETF",
          "exchange": "",
          "type": "etf",
+         "subtype": ""
+      },
+      "UTHR": {
+         "name": "United Therapeutics Corporation",
+         "exchange": "",
+         "type": "stock",
          "subtype": ""
       },
       "UUUU": {
@@ -4642,6 +5698,12 @@
       },
       "VCX": {
          "name": "Fundrise Growth Tech Fund, LLC",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VEEV": {
+         "name": "Veeva Systems Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4664,6 +5726,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "VICI": {
+         "name": "VICI Properties Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "VICR": {
          "name": "Vicor Corporation",
          "exchange": "",
@@ -4676,6 +5744,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "VIK": {
+         "name": "Viking Holdings Ltd",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "VIRT": {
          "name": "Virtu Financial, Inc.",
          "exchange": "",
@@ -4684,6 +5758,24 @@
       },
       "VKTX": {
          "name": "Viking Therapeutics, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VLO": {
+         "name": "Valero Energy Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VLTO": {
+         "name": "Veralto Corp",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VMC": {
+         "name": "Vulcan Materials Company (Holding Company)",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4724,8 +5816,26 @@
          "type": "stock",
          "subtype": ""
       },
+      "VRSK": {
+         "name": "Verisk Analytics, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VRSN": {
+         "name": "VeriSign, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "VRT": {
          "name": "Vertiv Holdings Co",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VRTX": {
+         "name": "Vertex Pharmaceuticals Incorporated",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4748,6 +5858,18 @@
          "type": "etf",
          "subtype": ""
       },
+      "VTR": {
+         "name": "Ventas, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "VTRS": {
+         "name": "Viatris Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "VUG": {
          "name": "Vanguard Growth ETF",
          "exchange": "",
@@ -4766,8 +5888,20 @@
          "type": "etf",
          "subtype": ""
       },
+      "VZ": {
+         "name": "Verizon Communications Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "W": {
          "name": "Wayfair Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WAB": {
+         "name": "Westinghouse Air Brake Technologies Corporation",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4778,8 +5912,44 @@
          "type": "stock",
          "subtype": ""
       },
+      "WAT": {
+         "name": "Waters Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "WBD": {
          "name": "Warner Bros. Discovery, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WCC": {
+         "name": "WESCO International, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WDAY": {
+         "name": "Workday, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WDC": {
+         "name": "Western Digital Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WEC": {
+         "name": "WEC Energy Group, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WELL": {
+         "name": "Welltower Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4792,6 +5962,12 @@
       },
       "WEX": {
          "name": "WEX Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WFC": {
+         "name": "Wells Fargo & Company",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4826,6 +6002,18 @@
          "type": "stock",
          "subtype": ""
       },
+      "WM": {
+         "name": "Waste Management, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WMB": {
+         "name": "The Williams Companies, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "WMS": {
          "name": "Advanced Drainage Systems, Inc.",
          "exchange": "",
@@ -4838,6 +6026,18 @@
          "type": "stock",
          "subtype": ""
       },
+      "WPC": {
+         "name": "W. P. Carey Inc. REIT",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WRB": {
+         "name": "W.R. Berkley Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "WRLD": {
          "name": "World Acceptance Corporation",
          "exchange": "",
@@ -4846,6 +6046,24 @@
       },
       "WSC": {
          "name": "WillScot Holdings Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WSM": {
+         "name": "Williams-Sonoma, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WSO": {
+         "name": "Watsco, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WST": {
+         "name": "West Pharmaceutical Services, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4892,6 +6110,18 @@
          "type": "stock",
          "subtype": ""
       },
+      "WWD": {
+         "name": "Woodward, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WY": {
+         "name": "Weyerhaeuser Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "WYFI": {
          "name": "WhiteFiber, Inc.",
          "exchange": "",
@@ -4906,6 +6136,12 @@
       },
       "XE": {
          "name": "X-Energy, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "XEL": {
+         "name": "Xcel Energy Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4928,8 +6164,26 @@
          "type": "etf",
          "subtype": ""
       },
+      "XPO": {
+         "name": "XPO, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "XRX": {
          "name": "Xerox Holdings Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "XYL": {
+         "name": "Xylem Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "XYZ": {
+         "name": "Block, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4946,14 +6200,50 @@
          "type": "etf",
          "subtype": ""
       },
+      "YUM": {
+         "name": "Yum! Brands, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "Z": {
          "name": "Zillow Group, Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
       },
+      "ZBH": {
+         "name": "Zimmer Biomet Holdings, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ZBRA": {
+         "name": "Zebra Technologies Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "ZION": {
          "name": "Zions Bancorporation N.A.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ZM": {
+         "name": "Zoom Communications, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ZS": {
+         "name": "Zscaler, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ZTS": {
+         "name": "Zoetis Inc.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
