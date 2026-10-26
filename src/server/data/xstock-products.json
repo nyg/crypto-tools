@@ -1,5 +1,5 @@
 {
-   "generatedAt": "2026-10-19",
+   "generatedAt": "2026-10-26",
    "source": "api.xstocks.fi, assets.backed.fi, documents.backed.fi",
    "products": {
       "AAL": {
@@ -3236,6 +3236,18 @@
          "underlyingIsin": "US5370081045",
          "slug": "littelfuse-xstock"
       },
+      "LHX": {
+         "symbol": "LHXx",
+         "isin": "CH1580493695",
+         "underlyingIsin": "US5024311095",
+         "slug": "l3harris-technologies-xstock"
+      },
+      "LII": {
+         "symbol": "LIIx",
+         "isin": "CH1580495948",
+         "underlyingIsin": "US5261071071",
+         "slug": "lennox-international-xstock"
+      },
       "LINE": {
          "symbol": "LINEx",
          "isin": "CH1588662127",
@@ -3272,6 +3284,12 @@
          "underlyingIsin": "US5324571083",
          "slug": "eli-lilly-xstock"
       },
+      "LMT": {
+         "symbol": "LMTx",
+         "isin": "CH1580492812",
+         "underlyingIsin": "US5398301094",
+         "slug": "lockheed-martin-xstock"
+      },
       "LNC": {
          "symbol": "LNCx",
          "isin": "CH1588662655",
@@ -3283,6 +3301,12 @@
          "isin": "CH1500008870",
          "underlyingIsin": "US16411R2085",
          "slug": "cheniere-energy-xstock"
+      },
+      "LNT": {
+         "symbol": "LNTx",
+         "isin": "CH1580495740",
+         "underlyingIsin": "US0188021085",
+         "slug": "alliant-energy-xstock"
       },
       "LOAR": {
          "symbol": "LOARx",
@@ -3296,6 +3320,18 @@
          "underlyingIsin": "US38526M1062",
          "slug": "grand-canyon-education-xstock"
       },
+      "LOW": {
+         "symbol": "LOWx",
+         "isin": "CH1580492713",
+         "underlyingIsin": "US5486611073",
+         "slug": "lowes-companies-xstock"
+      },
+      "LPLA": {
+         "symbol": "LPLAx",
+         "isin": "CH1580495245",
+         "underlyingIsin": "US50212V1008",
+         "slug": "lpl-financial-xstock"
+      },
       "LPX": {
          "symbol": "LPXx",
          "isin": "CH1588663836",
@@ -3308,11 +3344,29 @@
          "underlyingIsin": "US5128073062",
          "slug": "lam-research-corporation-xstock"
       },
+      "LSCC": {
+         "symbol": "LSCCx",
+         "isin": "CH1580495583",
+         "underlyingIsin": "US5184151042",
+         "slug": "lattice-semiconductor-xstock"
+      },
       "LSTR": {
          "symbol": "LSTRx",
          "isin": "CH1588663315",
          "underlyingIsin": "US5150981018",
          "slug": "landstar-system-xstock"
+      },
+      "LUV": {
+         "symbol": "LUVx",
+         "isin": "CH1580495492",
+         "underlyingIsin": "US8447411088",
+         "slug": "southwest-airlines-xstock"
+      },
+      "LVS": {
+         "symbol": "LVSx",
+         "isin": "CH1580496201",
+         "underlyingIsin": "US5178341070",
+         "slug": "las-vegas-sands-xstock"
       },
       "LW": {
          "symbol": "LWx",
@@ -3332,6 +3386,24 @@
          "underlyingIsin": "US55087P1049",
          "slug": "lyft-xstock"
       },
+      "LYV": {
+         "symbol": "LYVx",
+         "isin": "CH1580494784",
+         "underlyingIsin": "US5380341090",
+         "slug": "live-nation-entertainment-xstock"
+      },
+      "L": {
+         "symbol": "Lx",
+         "isin": "CH1580495765",
+         "underlyingIsin": "US5404241086",
+         "slug": "loews-xstock"
+      },
+      "MAA": {
+         "symbol": "MAAx",
+         "isin": "CH1580496060",
+         "underlyingIsin": "US59522J1034",
+         "slug": "mid-america-apartment-communities-xstock"
+      },
       "MANH": {
          "symbol": "MANHx",
          "isin": "CH1588661277",
@@ -3343,6 +3415,18 @@
          "isin": "CH1473121064",
          "underlyingIsin": "US5657881067",
          "slug": "mara-xstock"
+      },
+      "MAR": {
+         "symbol": "MARx",
+         "isin": "CH1580493026",
+         "underlyingIsin": "US5719032022",
+         "slug": "marriott-international-xstock"
+      },
+      "MAS": {
+         "symbol": "MASx",
+         "isin": "CH1580496177",
+         "underlyingIsin": "US5745991068",
+         "slug": "masco-xstock"
       },
       "MAT": {
          "symbol": "MATx",
@@ -3362,11 +3446,41 @@
          "underlyingIsin": "US5801351017",
          "slug": "mcdonalds-xstock"
       },
+      "MCHP": {
+         "symbol": "MCHPx",
+         "isin": "CH1580493794",
+         "underlyingIsin": "US5950171042",
+         "slug": "microchip-technology-xstock"
+      },
+      "MCK": {
+         "symbol": "MCKx",
+         "isin": "CH1580492911",
+         "underlyingIsin": "US58155Q1031",
+         "slug": "mckesson-xstock"
+      },
+      "MCO": {
+         "symbol": "MCOx",
+         "isin": "CH1580493364",
+         "underlyingIsin": "US6153691059",
+         "slug": "moodys-xstock"
+      },
+      "MDB": {
+         "symbol": "MDBx",
+         "isin": "CH1580494792",
+         "underlyingIsin": "US60937P1066",
+         "slug": "mongodb-xstock"
+      },
       "MDGL": {
          "symbol": "MDGLx",
          "isin": "CH1588661418",
          "underlyingIsin": "US5588681057",
          "slug": "madrigal-pharmaceuticals-xstock"
+      },
+      "MDLZ": {
+         "symbol": "MDLZx",
+         "isin": "CH1580493141",
+         "underlyingIsin": "US6092071058",
+         "slug": "mondelez-international-xstock"
       },
       "MDT": {
          "symbol": "MDTx",
@@ -3398,6 +3512,12 @@
          "underlyingIsin": "US75134P6007",
          "slug": "ramaco-resources-xstock"
       },
+      "MET": {
+         "symbol": "METx",
+         "isin": "CH1580493935",
+         "underlyingIsin": "US59156R1086",
+         "slug": "metlife-xstock"
+      },
       "MFP": {
          "symbol": "MFPx",
          "isin": "CH1588664909",
@@ -3422,11 +3542,47 @@
          "underlyingIsin": "US5962781010",
          "slug": "the-middleby-xstock"
       },
+      "MKC": {
+         "symbol": "MKCx",
+         "isin": "CH1580496862",
+         "underlyingIsin": "US5797802064",
+         "slug": "mccormick-xstock"
+      },
+      "MKL": {
+         "symbol": "MKLx",
+         "isin": "CH1580495328",
+         "underlyingIsin": "US5705351048",
+         "slug": "markel-xstock"
+      },
+      "MKSI": {
+         "symbol": "MKSIx",
+         "isin": "CH1580495054",
+         "underlyingIsin": "US55306N1046",
+         "slug": "mks-xstock"
+      },
       "MKTX": {
          "symbol": "MKTXx",
          "isin": "CH1588663554",
          "underlyingIsin": "US57060D1081",
          "slug": "marketaxess-xstock"
+      },
+      "MLI": {
+         "symbol": "MLIx",
+         "isin": "CH1580496276",
+         "underlyingIsin": "US6247561029",
+         "slug": "mueller-industries-xstock"
+      },
+      "MLM": {
+         "symbol": "MLMx",
+         "isin": "CH1580494412",
+         "underlyingIsin": "US5732841060",
+         "slug": "martin-marietta-materials-xstock"
+      },
+      "MMM": {
+         "symbol": "MMMx",
+         "isin": "CH1580493067",
+         "underlyingIsin": "US88579Y1010",
+         "slug": "3m-xstock"
       },
       "MOD": {
          "symbol": "MODx",
@@ -3452,11 +3608,29 @@
          "underlyingIsin": "US61945C1036",
          "slug": "the-mosaic-xstock"
       },
+      "MO": {
+         "symbol": "MOx",
+         "isin": "CH1580492754",
+         "underlyingIsin": "US02209S1033",
+         "slug": "altria-xstock"
+      },
+      "MPC": {
+         "symbol": "MPCx",
+         "isin": "CH1580493240",
+         "underlyingIsin": "US56585A1025",
+         "slug": "marathon-petroleum-xstock"
+      },
       "MPT": {
          "symbol": "MPTx",
          "isin": "CH1588664446",
          "underlyingIsin": "US58463J3041",
          "slug": "medical-properties-trust-xstock"
+      },
+      "MPWR": {
+         "symbol": "MPWRx",
+         "isin": "CH1580493190",
+         "underlyingIsin": "US6098391054",
+         "slug": "monolithic-power-systems-xstock"
       },
       "MP": {
          "symbol": "MPx",
@@ -3482,6 +3656,12 @@
          "underlyingIsin": "US6011371027",
          "slug": "millrose-properties-xstock"
       },
+      "MRSH": {
+         "symbol": "MRSHx",
+         "isin": "CH1580493083",
+         "underlyingIsin": "US5717481023",
+         "slug": "marsh-xstock"
+      },
       "MRVL": {
          "symbol": "MRVLx",
          "isin": "CH1436219658",
@@ -3493,6 +3673,12 @@
          "isin": "CH1588662903",
          "underlyingIsin": "US5534981064",
          "slug": "msa-safety-xstock"
+      },
+      "MSCI": {
+         "symbol": "MSCIx",
+         "isin": "CH1580494040",
+         "underlyingIsin": "US55354G1004",
+         "slug": "msci-xstock"
       },
       "MSFT": {
          "symbol": "MSFTx",
@@ -3506,6 +3692,12 @@
          "underlyingIsin": "US55825T1034",
          "slug": "madison-square-garden-sports-xstock"
       },
+      "MSI": {
+         "symbol": "MSIx",
+         "isin": "CH1580493430",
+         "underlyingIsin": "US6200763075",
+         "slug": "motorola-solutions-xstock"
+      },
       "MSM": {
          "symbol": "MSMx",
          "isin": "CH1588663125",
@@ -3517,6 +3709,18 @@
          "isin": "CH1436219633",
          "underlyingIsin": "US5949724083",
          "slug": "microstrategy-xstock"
+      },
+      "MS": {
+         "symbol": "MSx",
+         "isin": "CH1564487424",
+         "underlyingIsin": "US6174464486",
+         "slug": "morgan-stanley-xstock"
+      },
+      "MTB": {
+         "symbol": "MTBx",
+         "isin": "CH1580494479",
+         "underlyingIsin": "US55261F1049",
+         "slug": "m-t-bank-xstock"
       },
       "MTCH": {
          "symbol": "MTCHx",
@@ -3530,6 +3734,12 @@
          "underlyingIsin": "US5764852050",
          "slug": "matador-resources-xstock"
       },
+      "MTD": {
+         "symbol": "MTDx",
+         "isin": "CH1580495195",
+         "underlyingIsin": "US5926881054",
+         "slug": "mettler-toledo-international-xstock"
+      },
       "MTG": {
          "symbol": "MTGx",
          "isin": "CH1588663307",
@@ -3541,6 +3751,18 @@
          "isin": "CH1588663653",
          "underlyingIsin": "US91879Q1094",
          "slug": "vail-resorts-xstock"
+      },
+      "MTSI": {
+         "symbol": "MTSIx",
+         "isin": "CH1580495062",
+         "underlyingIsin": "US55405Y1001",
+         "slug": "macom-technology-solutions-xstock"
+      },
+      "MTZ": {
+         "symbol": "MTZx",
+         "isin": "CH1580495310",
+         "underlyingIsin": "US5763231090",
+         "slug": "mastec-xstock"
       },
       "MUSA": {
          "symbol": "MUSAx",
@@ -3572,11 +3794,41 @@
          "underlyingIsin": "NL0009805522",
          "slug": "nebius-xstock"
       },
+      "NBIX": {
+         "symbol": "NBIXx",
+         "isin": "CH1580496219",
+         "underlyingIsin": "US64125C1099",
+         "slug": "neurocrine-biosciences-xstock"
+      },
       "NCLH": {
          "symbol": "NCLHx",
          "isin": "CH1588662705",
          "underlyingIsin": "USG667211043",
          "slug": "norwegian-cruise-line-xstock"
+      },
+      "NDAQ": {
+         "symbol": "NDAQx",
+         "isin": "CH1580494123",
+         "underlyingIsin": "US6311031081",
+         "slug": "nasdaq-inc-xstock"
+      },
+      "NDSN": {
+         "symbol": "NDSNx",
+         "isin": "CH1580496110",
+         "underlyingIsin": "US6556631025",
+         "slug": "nordson-xstock"
+      },
+      "NEE": {
+         "symbol": "NEEx",
+         "isin": "CH1564487531",
+         "underlyingIsin": "US65339F1012",
+         "slug": "nextera-energy-xstock"
+      },
+      "NEM": {
+         "symbol": "NEMx",
+         "isin": "CH1580492762",
+         "underlyingIsin": "US6516391066",
+         "slug": "newmont-xstock"
       },
       "NET": {
          "symbol": "NETx",
@@ -3602,11 +3854,29 @@
          "underlyingIsin": "US64110L1061",
          "slug": "netflix-xstock"
       },
+      "NI": {
+         "symbol": "NIx",
+         "isin": "CH1580495351",
+         "underlyingIsin": "US65473P1057",
+         "slug": "nisource-xstock"
+      },
+      "NKE": {
+         "symbol": "NKEx",
+         "isin": "CH1580493810",
+         "underlyingIsin": "US6541061031",
+         "slug": "nike-xstock"
+      },
       "NLR": {
          "symbol": "NLRx",
          "isin": "CH1564487242",
          "underlyingIsin": "US92189F6016",
          "slug": "vaneck-uranium-and-nuclear-xstock"
+      },
+      "NLY": {
+         "symbol": "NLYx",
+         "isin": "CH1580496102",
+         "underlyingIsin": "US0357108390",
+         "slug": "annaly-capital-management-xstock"
       },
       "NNN": {
          "symbol": "NNNx",
@@ -3614,11 +3884,65 @@
          "underlyingIsin": "US6374171063",
          "slug": "nnn-reit-xstock"
       },
+      "NOC": {
+         "symbol": "NOCx",
+         "isin": "CH1580493299",
+         "underlyingIsin": "US6668071029",
+         "slug": "northrop-grumman-xstock"
+      },
       "NOV": {
          "symbol": "NOVx",
          "isin": "CH1588662911",
          "underlyingIsin": "US62955J1034",
          "slug": "nov-xstock"
+      },
+      "NOW": {
+         "symbol": "NOWx",
+         "isin": "CH1580492820",
+         "underlyingIsin": "US81762P1021",
+         "slug": "servicenow-xstock"
+      },
+      "NRG": {
+         "symbol": "NRGx",
+         "isin": "CH1580494909",
+         "underlyingIsin": "US6293775085",
+         "slug": "nrg-energy-xstock"
+      },
+      "NSC": {
+         "symbol": "NSCx",
+         "isin": "CH1580493380",
+         "underlyingIsin": "US6558441084",
+         "slug": "norfolk-southern-xstock"
+      },
+      "NTAP": {
+         "symbol": "NTAPx",
+         "isin": "CH1580494511",
+         "underlyingIsin": "US64110D1046",
+         "slug": "netapp-xstock"
+      },
+      "NTNX": {
+         "symbol": "NTNXx",
+         "isin": "CH1580496706",
+         "underlyingIsin": "US67059N1081",
+         "slug": "nutanix-xstock"
+      },
+      "NTRA": {
+         "symbol": "NTRAx",
+         "isin": "CH1580494727",
+         "underlyingIsin": "US6323071042",
+         "slug": "natera-xstock"
+      },
+      "NTRS": {
+         "symbol": "NTRSx",
+         "isin": "CH1580494537",
+         "underlyingIsin": "US6658591044",
+         "slug": "northern-trust-xstock"
+      },
+      "NUE": {
+         "symbol": "NUEx",
+         "isin": "CH1580493620",
+         "underlyingIsin": "US6703461052",
+         "slug": "nucor-xstock"
       },
       "NVDA": {
          "symbol": "NVDAx",
@@ -3668,11 +3992,23 @@
          "underlyingIsin": "US65290E1010",
          "slug": "nextpower-xstock"
       },
+      "NYT": {
+         "symbol": "NYTx",
+         "isin": "CH1580496961",
+         "underlyingIsin": "US6501111073",
+         "slug": "new-york-times-xstock"
+      },
       "OC": {
          "symbol": "OCx",
          "isin": "CH1588661483",
          "underlyingIsin": "US6907421019",
          "slug": "owens-corning-xstock"
+      },
+      "ODFL": {
+         "symbol": "ODFLx",
+         "isin": "CH1580494032",
+         "underlyingIsin": "US6795801009",
+         "slug": "old-dominion-freight-line-xstock"
       },
       "OGE": {
          "symbol": "OGEx",
@@ -3686,11 +4022,29 @@
          "underlyingIsin": "US68622V1061",
          "slug": "organon-xstock"
       },
+      "OHI": {
+         "symbol": "OHIx",
+         "isin": "CH1580496540",
+         "underlyingIsin": "US6819361006",
+         "slug": "omega-healthcare-investors-xstock"
+      },
+      "OKE": {
+         "symbol": "OKEx",
+         "isin": "CH1580493752",
+         "underlyingIsin": "US6826801036",
+         "slug": "oneok-xstock"
+      },
       "OKLO": {
          "symbol": "OKLOx",
          "isin": "CH1473121056",
          "underlyingIsin": "US02156V1098",
          "slug": "oklo-xstock"
+      },
+      "OKTA": {
+         "symbol": "OKTAx",
+         "isin": "CH1580495666",
+         "underlyingIsin": "US6792951054",
+         "slug": "okta-xstock"
       },
       "OLED": {
          "symbol": "OLEDx",
@@ -3710,6 +4064,12 @@
          "underlyingIsin": "US6806652052",
          "slug": "olin-xstock"
       },
+      "OMC": {
+         "symbol": "OMCx",
+         "isin": "CH1580495229",
+         "underlyingIsin": "US6819191064",
+         "slug": "omnicom-xstock"
+      },
       "OMF": {
          "symbol": "OMFx",
          "isin": "CH1588662937",
@@ -3721,6 +4081,18 @@
          "isin": "CH1500008912",
          "underlyingIsin": "US68236H2040",
          "slug": "ondas-xstock"
+      },
+      "ONTO": {
+         "symbol": "ONTOx",
+         "isin": "CH1580496037",
+         "underlyingIsin": "US6833441057",
+         "slug": "onto-innovation-xstock"
+      },
+      "ON": {
+         "symbol": "ONx",
+         "isin": "CH1580493885",
+         "underlyingIsin": "US6821891057",
+         "slug": "on-semiconductor-xstock"
       },
       "OPEN": {
          "symbol": "OPENx",
@@ -3740,11 +4112,29 @@
          "underlyingIsin": "US6802231042",
          "slug": "old-republic-international-xstock"
       },
+      "ORLY": {
+         "symbol": "ORLYx",
+         "isin": "CH1580493216",
+         "underlyingIsin": "US67103H1077",
+         "slug": "oreilly-automotive-xstock"
+      },
       "OSK": {
          "symbol": "OSKx",
          "isin": "CH1588662069",
          "underlyingIsin": "US6882392011",
          "slug": "oshkosh-xstock"
+      },
+      "OTIS": {
+         "symbol": "OTISx",
+         "isin": "CH1580494743",
+         "underlyingIsin": "US68902V1070",
+         "slug": "otis-worldwide-xstock"
+      },
+      "OVV": {
+         "symbol": "OVVx",
+         "isin": "CH1580496144",
+         "underlyingIsin": "US69047Q1022",
+         "slug": "ovintiv-xstock"
       },
       "OWL": {
          "symbol": "OWLx",
@@ -3752,11 +4142,23 @@
          "underlyingIsin": "US09581B1035",
          "slug": "blue-owl-capital-xstock"
       },
+      "OXY": {
+         "symbol": "OXYx",
+         "isin": "CH1580494263",
+         "underlyingIsin": "US6745991058",
+         "slug": "occidental-petroleum-xstock"
+      },
       "OZK": {
          "symbol": "OZKx",
          "isin": "CH1588663695",
          "underlyingIsin": "US06417N1037",
          "slug": "bank-ozk-xstock"
+      },
+      "O": {
+         "symbol": "Ox",
+         "isin": "CH1580493703",
+         "underlyingIsin": "US7561091049",
+         "slug": "realty-income-xstock"
       },
       "PAG": {
          "symbol": "PAGx",
@@ -3788,11 +4190,29 @@
          "underlyingIsin": "US70432V1026",
          "slug": "paycom-software-xstock"
       },
+      "PAYX": {
+         "symbol": "PAYXx",
+         "isin": "CH1580494503",
+         "underlyingIsin": "US7043261079",
+         "slug": "paychex-xstock"
+      },
       "PB": {
          "symbol": "PBx",
          "isin": "CH1588664826",
          "underlyingIsin": "US7436061052",
          "slug": "prosperity-bancshares-xstock"
+      },
+      "PCAR": {
+         "symbol": "PCARx",
+         "isin": "CH1580493547",
+         "underlyingIsin": "US6937181088",
+         "slug": "paccar-xstock"
+      },
+      "PCG": {
+         "symbol": "PCGx",
+         "isin": "CH1580494370",
+         "underlyingIsin": "US69331C1080",
+         "slug": "pg-e-xstock"
       },
       "PCOR": {
          "symbol": "PCORx",
@@ -3818,6 +4238,18 @@
          "underlyingIsin": "US7055731035",
          "slug": "pegasystems-xstock"
       },
+      "PEG": {
+         "symbol": "PEGx",
+         "isin": "CH1580494172",
+         "underlyingIsin": "US7445731067",
+         "slug": "public-service-enterprise-xstock"
+      },
+      "PEN": {
+         "symbol": "PENx",
+         "isin": "CH1580496912",
+         "underlyingIsin": "US70975L1070",
+         "slug": "penumbra-xstock"
+      },
       "PEP": {
          "symbol": "PEPx",
          "isin": "CH1436219401",
@@ -3830,6 +4262,24 @@
          "underlyingIsin": "US7170811035",
          "slug": "pfizer-xstock"
       },
+      "PFGC": {
+         "symbol": "PFGCx",
+         "isin": "CH1580496078",
+         "underlyingIsin": "US71377A1034",
+         "slug": "performance-food-xstock"
+      },
+      "PFG": {
+         "symbol": "PFGx",
+         "isin": "CH1580495203",
+         "underlyingIsin": "US74251V1026",
+         "slug": "principal-financial-xstock"
+      },
+      "PGR": {
+         "symbol": "PGRx",
+         "isin": "CH1580492747",
+         "underlyingIsin": "US7433151039",
+         "slug": "progressive-xstock"
+      },
       "PG": {
          "symbol": "PGx",
          "isin": "CH1436219344",
@@ -3841,6 +4291,30 @@
          "isin": "CH1588664693",
          "underlyingIsin": "US7458671010",
          "slug": "pultegroup-xstock"
+      },
+      "PH": {
+         "symbol": "PHx",
+         "isin": "CH1580492770",
+         "underlyingIsin": "US7010941042",
+         "slug": "parker-hannifin-xstock"
+      },
+      "PINS": {
+         "symbol": "PINSx",
+         "isin": "CH1580496714",
+         "underlyingIsin": "US72352L1061",
+         "slug": "pinterest-xstock"
+      },
+      "PKG": {
+         "symbol": "PKGx",
+         "isin": "CH1580495617",
+         "underlyingIsin": "US6951561090",
+         "slug": "packaging-corp-of-america-xstock"
+      },
+      "PLD": {
+         "symbol": "PLDx",
+         "isin": "CH1580492697",
+         "underlyingIsin": "US74340W1036",
+         "slug": "prologis-xstock"
       },
       "PLNT": {
          "symbol": "PLNTx",
@@ -3866,11 +4340,29 @@
          "underlyingIsin": "US7181721090",
          "slug": "philip-morris-xstock"
       },
+      "PNC": {
+         "symbol": "PNCx",
+         "isin": "CH1580492994",
+         "underlyingIsin": "US6934751057",
+         "slug": "pnc-financial-services-xstock"
+      },
+      "PNFP": {
+         "symbol": "PNFPx",
+         "isin": "CH1580496433",
+         "underlyingIsin": "US72348N1090",
+         "slug": "pinnacle-financial-partners-xstock"
+      },
       "PNR": {
          "symbol": "PNRx",
          "isin": "CH1580497332",
          "underlyingIsin": "IE00BLS09M33",
          "slug": "pentair-xstock"
+      },
+      "PNW": {
+         "symbol": "PNWx",
+         "isin": "CH1580496771",
+         "underlyingIsin": "US7234841010",
+         "slug": "pinnacle-west-capital-xstock"
       },
       "PODD": {
          "symbol": "PODDx",
@@ -3902,11 +4394,23 @@
          "underlyingIsin": "US72147K1088",
          "slug": "pilgrims-pride-xstock"
       },
+      "PPG": {
+         "symbol": "PPGx",
+         "isin": "CH1580494834",
+         "underlyingIsin": "US6935061076",
+         "slug": "ppg-industries-xstock"
+      },
       "PPLT": {
          "symbol": "PPLTx",
          "isin": "CH1500008565",
          "underlyingIsin": "US0032601066",
          "slug": "abrdn-physical-platinum-shares-xstock"
+      },
+      "PPL": {
+         "symbol": "PPLx",
+         "isin": "CH1580494925",
+         "underlyingIsin": "US69351T1060",
+         "slug": "ppl-xstock"
       },
       "PRIM": {
          "symbol": "PRIMx",
@@ -3926,11 +4430,41 @@
          "underlyingIsin": "US7416231022",
          "slug": "primo-brands-xstock"
       },
+      "PRU": {
+         "symbol": "PRUx",
+         "isin": "CH1580494271",
+         "underlyingIsin": "US7443201022",
+         "slug": "prudential-financial-xstock"
+      },
+      "PR": {
+         "symbol": "PRx",
+         "isin": "CH1580496649",
+         "underlyingIsin": "US71424F1057",
+         "slug": "permian-resources-xstock"
+      },
+      "PSA": {
+         "symbol": "PSAx",
+         "isin": "CH1580493877",
+         "underlyingIsin": "US74460D1090",
+         "slug": "public-storage-xstock"
+      },
       "PSN": {
          "symbol": "PSNx",
          "isin": "CH1588663752",
          "underlyingIsin": "US70202L1026",
          "slug": "parsons-xstock"
+      },
+      "PSX": {
+         "symbol": "PSXx",
+         "isin": "CH1580493372",
+         "underlyingIsin": "US7185461040",
+         "slug": "phillips-66-xstock"
+      },
+      "PTC": {
+         "symbol": "PTCx",
+         "isin": "CH1580496490",
+         "underlyingIsin": "US69370C1009",
+         "slug": "ptc-xstock"
       },
       "PVH": {
          "symbol": "PVHx",
@@ -3950,6 +4484,18 @@
          "underlyingIsin": "US70450Y1038",
          "slug": "paypal-xstock"
       },
+      "P": {
+         "symbol": "Px",
+         "isin": "CH1580495294",
+         "underlyingIsin": "US74624M1027",
+         "slug": "everpure-xstock"
+      },
+      "QCOM": {
+         "symbol": "QCOMx",
+         "isin": "CH1564487457",
+         "underlyingIsin": "US7475251036",
+         "slug": "qualcomm-xstock"
+      },
       "QNT": {
          "symbol": "QNTx",
          "isin": "CH1588665179",
@@ -3961,6 +4507,12 @@
          "isin": "CH1436219724",
          "underlyingIsin": "US46090E1038",
          "slug": "nasdaq-xstock"
+      },
+      "QSR": {
+         "symbol": "QSRx",
+         "isin": "CH1580497118",
+         "underlyingIsin": "US76131D1037",
+         "slug": "restaurant-brands-international-xstock"
       },
       "QS": {
          "symbol": "QSx",
@@ -3980,11 +4532,23 @@
          "underlyingIsin": "NL0010696654",
          "slug": "uniqure-xstock"
       },
+      "Q": {
+         "symbol": "Qx",
+         "isin": "CH1580494487",
+         "underlyingIsin": "US74743L1008",
+         "slug": "qnity-electronics-xstock"
+      },
       "RAL": {
          "symbol": "RALx",
          "isin": "CH1588664529",
          "underlyingIsin": "US7509401086",
          "slug": "ralliant-xstock"
+      },
+      "RBA": {
+         "symbol": "RBAx",
+         "isin": "CH1580497167",
+         "underlyingIsin": "US74935Q1076",
+         "slug": "rb-global-xstock"
       },
       "RBC": {
          "symbol": "RBCx",
@@ -4016,6 +4580,24 @@
          "underlyingIsin": "LR0008862868",
          "slug": "royal-caribbean-xstock"
       },
+      "RDDT": {
+         "symbol": "RDDTx",
+         "isin": "CH1580495278",
+         "underlyingIsin": "US75734B1008",
+         "slug": "reddit-xstock"
+      },
+      "REGN": {
+         "symbol": "REGNx",
+         "isin": "CH1580493539",
+         "underlyingIsin": "US75886F1075",
+         "slug": "regeneron-pharmaceuticals-xstock"
+      },
+      "REG": {
+         "symbol": "REGx",
+         "isin": "CH1580496359",
+         "underlyingIsin": "US7588491032",
+         "slug": "regency-centers-xstock"
+      },
       "REXR": {
          "symbol": "REXRx",
          "isin": "CH1588662572",
@@ -4028,11 +4610,29 @@
          "underlyingIsin": "US76171L1061",
          "slug": "reynolds-consumer-products-xstock"
       },
+      "RF": {
+         "symbol": "RFx",
+         "isin": "CH1580495120",
+         "underlyingIsin": "US7591EP1005",
+         "slug": "regions-financial-xstock"
+      },
+      "RGA": {
+         "symbol": "RGAx",
+         "isin": "CH1580496474",
+         "underlyingIsin": "US7593516047",
+         "slug": "reinsurance-group-of-america-xstock"
+      },
       "RGEN": {
          "symbol": "RGENx",
          "isin": "CH1588661897",
          "underlyingIsin": "US7599161095",
          "slug": "repligen-xstock"
+      },
+      "RGLD": {
+         "symbol": "RGLDx",
+         "isin": "CH1580495815",
+         "underlyingIsin": "US7802871084",
+         "slug": "royal-gold-xstock"
       },
       "RHI": {
          "symbol": "RHIx",
@@ -4052,6 +4652,18 @@
          "underlyingIsin": "US64828T2015",
          "slug": "rithm-capital-xstock"
       },
+      "RIVN": {
+         "symbol": "RIVNx",
+         "isin": "CH1580496664",
+         "underlyingIsin": "US76954A1034",
+         "slug": "rivian-automotive-xstock"
+      },
+      "RJF": {
+         "symbol": "RJFx",
+         "isin": "CH1580494826",
+         "underlyingIsin": "US7547301090",
+         "slug": "raymond-james-financial-xstock"
+      },
       "RKT": {
          "symbol": "RKTx",
          "isin": "CH1588664677",
@@ -4064,17 +4676,77 @@
          "underlyingIsin": "US7496071074",
          "slug": "rli-xstock"
       },
+      "RL": {
+         "symbol": "RLx",
+         "isin": "CH1580496136",
+         "underlyingIsin": "US7512121010",
+         "slug": "ralph-lauren-xstock"
+      },
       "RMBS": {
          "symbol": "RMBSx",
          "isin": "CH1588662002",
          "underlyingIsin": "US7509171069",
          "slug": "rambus-xstock"
       },
+      "RMD": {
+         "symbol": "RMDx",
+         "isin": "CH1580494768",
+         "underlyingIsin": "US7611521078",
+         "slug": "resmed-xstock"
+      },
       "RNG": {
          "symbol": "RNGx",
          "isin": "CH1588663604",
          "underlyingIsin": "US76680R2067",
          "slug": "ringcentral-xstock"
+      },
+      "RNR": {
+         "symbol": "RNRx",
+         "isin": "CH1580497316",
+         "underlyingIsin": "USG7496G1034",
+         "slug": "renaissancere-xstock"
+      },
+      "ROIV": {
+         "symbol": "ROIVx",
+         "isin": "CH1580497324",
+         "underlyingIsin": "USG762791014",
+         "slug": "roivant-sciences-xstock"
+      },
+      "ROKU": {
+         "symbol": "ROKUx",
+         "isin": "CH1580495823",
+         "underlyingIsin": "US77543R1023",
+         "slug": "roku-xstock"
+      },
+      "ROK": {
+         "symbol": "ROKx",
+         "isin": "CH1580493828",
+         "underlyingIsin": "US7739031091",
+         "slug": "rockwell-automation-xstock"
+      },
+      "ROL": {
+         "symbol": "ROLx",
+         "isin": "CH1580496425",
+         "underlyingIsin": "US7757111049",
+         "slug": "rollins-xstock"
+      },
+      "ROP": {
+         "symbol": "ROPx",
+         "isin": "CH1580494404",
+         "underlyingIsin": "US7766961061",
+         "slug": "roper-technologies-xstock"
+      },
+      "ROST": {
+         "symbol": "ROSTx",
+         "isin": "CH1580493232",
+         "underlyingIsin": "US7782961038",
+         "slug": "ross-stores-xstock"
+      },
+      "RPM": {
+         "symbol": "RPMx",
+         "isin": "CH1580496516",
+         "underlyingIsin": "US7496851038",
+         "slug": "rpm-international-xstock"
       },
       "RPRX": {
          "symbol": "RPRXx",
@@ -4087,6 +4759,36 @@
          "isin": "CH1588662101",
          "underlyingIsin": "US75281A1097",
          "slug": "range-resources-xstock"
+      },
+      "RRX": {
+         "symbol": "RRXx",
+         "isin": "CH1580496318",
+         "underlyingIsin": "US7587501039",
+         "slug": "regal-rexnord-xstock"
+      },
+      "RSG": {
+         "symbol": "RSGx",
+         "isin": "CH1580494081",
+         "underlyingIsin": "US7607591002",
+         "slug": "republic-services-xstock"
+      },
+      "RS": {
+         "symbol": "RSx",
+         "isin": "CH1580495450",
+         "underlyingIsin": "US7595091023",
+         "slug": "reliance-xstock"
+      },
+      "RTX": {
+         "symbol": "RTXx",
+         "isin": "CH1564487432",
+         "underlyingIsin": "US75513E1010",
+         "slug": "rtx-xstock"
+      },
+      "RVMD": {
+         "symbol": "RVMDx",
+         "isin": "CH1580494719",
+         "underlyingIsin": "US76155X1000",
+         "slug": "revolution-medicines-xstock"
       },
       "RVTY": {
          "symbol": "RVTYx",
@@ -4111,6 +4813,12 @@
          "isin": "CH1588662119",
          "underlyingIsin": "US7835491082",
          "slug": "ryder-system-xstock"
+      },
+      "SAIA": {
+         "symbol": "SAIAx",
+         "isin": "CH1580496730",
+         "underlyingIsin": "US78709Y1055",
+         "slug": "saia-xstock"
       },
       "SAIC": {
          "symbol": "SAICx",
@@ -4142,17 +4850,41 @@
          "underlyingIsin": "US8629452017",
          "slug": "strive-inc-series-a-preferred-xstock"
       },
+      "SBAC": {
+         "symbol": "SBACx",
+         "isin": "CH1580495534",
+         "underlyingIsin": "US78410G1040",
+         "slug": "sba-communications-xstock"
+      },
       "SBET": {
          "symbol": "SBETx",
          "isin": "CH1473121122",
          "underlyingIsin": "US8200144058",
          "slug": "sharplink-gaming-xstock"
       },
+      "SBUX": {
+         "symbol": "SBUXx",
+         "isin": "CH1580492788",
+         "underlyingIsin": "US8552441094",
+         "slug": "starbucks-xstock"
+      },
+      "SCCO": {
+         "symbol": "SCCOx",
+         "isin": "CH1580496045",
+         "underlyingIsin": "US84265V1052",
+         "slug": "southern-copper-xstock"
+      },
       "SCHF": {
          "symbol": "SCHFx",
          "isin": "CH1500008466",
          "underlyingIsin": "US8085248057",
          "slug": "schwab-international-equity-xstock"
+      },
+      "SCHW": {
+         "symbol": "SCHWx",
+         "isin": "CH1564487572",
+         "underlyingIsin": "US8085131055",
+         "slug": "charles-schwab-xstock"
       },
       "SCI": {
          "symbol": "SCIx",
@@ -4190,6 +4922,12 @@
          "underlyingIsin": "US8606301021",
          "slug": "stifel-financial-xstock"
       },
+      "SGI": {
+         "symbol": "SGIx",
+         "isin": "CH1580496250",
+         "underlyingIsin": "US88023U1016",
+         "slug": "somnigroup-international-xstock"
+      },
       "SGOV": {
          "symbol": "SGOVx",
          "isin": "CH1500008805",
@@ -4208,6 +4946,12 @@
          "underlyingIsin": "US83601L1026",
          "slug": "sotera-health-xstock"
       },
+      "SHW": {
+         "symbol": "SHWx",
+         "isin": "CH1580493265",
+         "underlyingIsin": "US8243481061",
+         "slug": "sherwin-williams-xstock"
+      },
       "SIRI": {
          "symbol": "SIRIx",
          "isin": "CH1588662077",
@@ -4225,6 +4969,12 @@
          "isin": "CH1588664487",
          "underlyingIsin": "US82982T1060",
          "slug": "sitime-xstock"
+      },
+      "SJM": {
+         "symbol": "SJMx",
+         "isin": "CH1580496953",
+         "underlyingIsin": "US8326964058",
+         "slug": "j-m-smucker-xstock"
       },
       "SKHY": {
          "symbol": "SKHYx",
@@ -4292,6 +5042,12 @@
          "underlyingIsin": "US8168501018",
          "slug": "semtech-xstock"
       },
+      "SNA": {
+         "symbol": "SNAx",
+         "isin": "CH1580495641",
+         "underlyingIsin": "US8330341012",
+         "slug": "snap-on-xstock"
+      },
       "SNDK": {
          "symbol": "SNDKx",
          "isin": "CH1500008748",
@@ -4303,6 +5059,36 @@
          "isin": "CH1588663331",
          "underlyingIsin": "US80689H1023",
          "slug": "schneider-national-xstock"
+      },
+      "SNOW": {
+         "symbol": "SNOWx",
+         "isin": "CH1580493133",
+         "underlyingIsin": "US8334451098",
+         "slug": "snowflake-xstock"
+      },
+      "SNPS": {
+         "symbol": "SNPSx",
+         "isin": "CH1580493059",
+         "underlyingIsin": "US8716071076",
+         "slug": "synopsys-xstock"
+      },
+      "SNX": {
+         "symbol": "SNXx",
+         "isin": "CH1580495443",
+         "underlyingIsin": "US87162W1009",
+         "slug": "td-synnex-xstock"
+      },
+      "SOFI": {
+         "symbol": "SOFIx",
+         "isin": "CH1580495542",
+         "underlyingIsin": "US83406F1021",
+         "slug": "sofi-technologies-xstock"
+      },
+      "SOLS": {
+         "symbol": "SOLSx",
+         "isin": "CH1580496508",
+         "underlyingIsin": "US83443Q1031",
+         "slug": "solstice-advanced-materials-xstock"
       },
       "SON": {
          "symbol": "SONx",
@@ -4322,6 +5108,12 @@
          "underlyingIsin": "US4642875235",
          "slug": "ishares-semiconductor-xstock"
       },
+      "SO": {
+         "symbol": "SOx",
+         "isin": "CH1580492887",
+         "underlyingIsin": "US8425871071",
+         "slug": "southern-xstock"
+      },
       "SPCE": {
          "symbol": "SPCEx",
          "isin": "CH1473121361",
@@ -4333,6 +5125,12 @@
          "isin": "CH1564487366",
          "underlyingIsin": "US84615Q1031",
          "slug": "spacex-xstock"
+      },
+      "SPG": {
+         "symbol": "SPGx",
+         "isin": "CH1580493398",
+         "underlyingIsin": "US8288061091",
+         "slug": "simon-property-xstock"
       },
       "SPXC": {
          "symbol": "SPXCx",
@@ -4346,6 +5144,12 @@
          "underlyingIsin": "US78462F1030",
          "slug": "sp500-xstock"
       },
+      "SRE": {
+         "symbol": "SREx",
+         "isin": "CH1580493612",
+         "underlyingIsin": "US8168511090",
+         "slug": "sempra-xstock"
+      },
       "SSB": {
          "symbol": "SSBx",
          "isin": "CH1588661830",
@@ -4357,6 +5161,12 @@
          "isin": "CH1588662762",
          "underlyingIsin": "US8290731053",
          "slug": "simpson-manufacturing-xstock"
+      },
+      "SSNC": {
+         "symbol": "SSNCx",
+         "isin": "CH1580496409",
+         "underlyingIsin": "US78467J1007",
+         "slug": "ss-c-technologies-xstock"
       },
       "STAG": {
          "symbol": "STAGx",
@@ -4370,6 +5180,12 @@
          "underlyingIsin": "IE00BFY8C754",
          "slug": "steris-xstock"
       },
+      "STLD": {
+         "symbol": "STLDx",
+         "isin": "CH1580494354",
+         "underlyingIsin": "US8581191009",
+         "slug": "steel-dynamics-xstock"
+      },
       "STRC": {
          "symbol": "STRCx",
          "isin": "CH1500008482",
@@ -4382,17 +5198,59 @@
          "underlyingIsin": "US8592411016",
          "slug": "sterling-infrastructure-xstock"
       },
+      "STT": {
+         "symbol": "STTx",
+         "isin": "CH1580493976",
+         "underlyingIsin": "US8574771031",
+         "slug": "state-street-xstock"
+      },
       "STWD": {
          "symbol": "STWDx",
          "isin": "CH1588663414",
          "underlyingIsin": "US85571B1052",
          "slug": "starwood-property-trust-xstock"
       },
+      "STZ": {
+         "symbol": "STZx",
+         "isin": "CH1580495500",
+         "underlyingIsin": "US21036P1084",
+         "slug": "constellation-brands-xstock"
+      },
+      "SUI": {
+         "symbol": "SUIx",
+         "isin": "CH1580496235",
+         "underlyingIsin": "US8666741041",
+         "slug": "sun-communities-xstock"
+      },
+      "SWK": {
+         "symbol": "SWKx",
+         "isin": "CH1580496615",
+         "underlyingIsin": "US8545021011",
+         "slug": "stanley-black-decker-xstock"
+      },
       "SW": {
          "symbol": "SWx",
          "isin": "CH1580497134",
          "underlyingIsin": "IE00028FXN24",
          "slug": "smurfit-westrock-xstock"
+      },
+      "SYF": {
+         "symbol": "SYFx",
+         "isin": "CH1580495005",
+         "underlyingIsin": "US87165B1035",
+         "slug": "synchrony-financial-xstock"
+      },
+      "SYK": {
+         "symbol": "SYKx",
+         "isin": "CH1580492853",
+         "underlyingIsin": "US8636671013",
+         "slug": "stryker-xstock"
+      },
+      "SYY": {
+         "symbol": "SYYx",
+         "isin": "CH1580494289",
+         "underlyingIsin": "US8718291078",
+         "slug": "sysco-xstock"
       },
       "S": {
          "symbol": "Sx",
@@ -4412,6 +5270,24 @@
          "underlyingIsin": "US46138G8886",
          "slug": "tbll-xstock"
       },
+      "TDG": {
+         "symbol": "TDGx",
+         "isin": "CH1580493356",
+         "underlyingIsin": "US8936411003",
+         "slug": "transdigm-xstock"
+      },
+      "TDY": {
+         "symbol": "TDYx",
+         "isin": "CH1580494677",
+         "underlyingIsin": "US8793601050",
+         "slug": "teledyne-technologies-xstock"
+      },
+      "TEAM": {
+         "symbol": "TEAMx",
+         "isin": "CH1580496243",
+         "underlyingIsin": "US0494681010",
+         "slug": "atlassian-xstock"
+      },
       "TER": {
          "symbol": "TERx",
          "isin": "CH1500008698",
@@ -4423,6 +5299,12 @@
          "isin": "CH1588658653",
          "underlyingIsin": "US35834F1049",
          "slug": "t1-energy-xstock"
+      },
+      "TFC": {
+         "symbol": "TFCx",
+         "isin": "CH1580493588",
+         "underlyingIsin": "US89832Q1094",
+         "slug": "truist-financial-xstock"
       },
       "TFSL": {
          "symbol": "TFSLx",
@@ -4436,6 +5318,12 @@
          "underlyingIsin": "US8793691069",
          "slug": "teleflex-xstock"
       },
+      "THC": {
+         "symbol": "THCx",
+         "isin": "CH1580496169",
+         "underlyingIsin": "US88033G4073",
+         "slug": "tenet-healthcare-xstock"
+      },
       "THG": {
          "symbol": "THGx",
          "isin": "CH1588662739",
@@ -4448,6 +5336,12 @@
          "underlyingIsin": "US8851601018",
          "slug": "thor-industries-xstock"
       },
+      "TJX": {
+         "symbol": "TJXx",
+         "isin": "CH1564487515",
+         "underlyingIsin": "US8725401090",
+         "slug": "tjx-companies-xstock"
+      },
       "TKO": {
          "symbol": "TKOx",
          "isin": "CH1588664719",
@@ -4459,6 +5353,12 @@
          "isin": "CH1588662408",
          "underlyingIsin": "US8873891043",
          "slug": "the-timken-xstock"
+      },
+      "TLN": {
+         "symbol": "TLNx",
+         "isin": "CH1580497217",
+         "underlyingIsin": "US87422Q1094",
+         "slug": "talen-energy-xstock"
       },
       "TMO": {
          "symbol": "TMOx",
@@ -4478,6 +5378,12 @@
          "underlyingIsin": "US8941641024",
          "slug": "travel-leisure-xstock"
       },
+      "TOL": {
+         "symbol": "TOLx",
+         "isin": "CH1580496342",
+         "underlyingIsin": "US8894781033",
+         "slug": "toll-brothers-xstock"
+      },
       "TONX": {
          "symbol": "TONXx",
          "isin": "CH1173294211",
@@ -4496,6 +5402,18 @@
          "underlyingIsin": "US8726571016",
          "slug": "tpg-xstock"
       },
+      "TPL": {
+         "symbol": "TPLx",
+         "isin": "CH1580495526",
+         "underlyingIsin": "US88262P1021",
+         "slug": "texas-pacific-land-xstock"
+      },
+      "TPR": {
+         "symbol": "TPRx",
+         "isin": "CH1580494560",
+         "underlyingIsin": "US8760301072",
+         "slug": "tapestry-xstock"
+      },
       "TQQQ": {
          "symbol": "TQQQx",
          "isin": "CH1436219757",
@@ -4508,6 +5426,42 @@
          "underlyingIsin": "US89531P1057",
          "slug": "trex-xstock"
       },
+      "TRGP": {
+         "symbol": "TRGPx",
+         "isin": "CH1580493729",
+         "underlyingIsin": "US87612G1013",
+         "slug": "targa-resources-xstock"
+      },
+      "TRMB": {
+         "symbol": "TRMBx",
+         "isin": "CH1580496938",
+         "underlyingIsin": "US8962391004",
+         "slug": "trimble-xstock"
+      },
+      "TROW": {
+         "symbol": "TROWx",
+         "isin": "CH1580495286",
+         "underlyingIsin": "US74144T1088",
+         "slug": "t-rowe-price-xstock"
+      },
+      "TRU": {
+         "symbol": "TRUx",
+         "isin": "CH1580496631",
+         "underlyingIsin": "US89400J1079",
+         "slug": "transunion-xstock"
+      },
+      "TRV": {
+         "symbol": "TRVx",
+         "isin": "CH1580493471",
+         "underlyingIsin": "US89417E1091",
+         "slug": "the-travelers-companies-xstock"
+      },
+      "TSCO": {
+         "symbol": "TSCOx",
+         "isin": "CH1580496029",
+         "underlyingIsin": "US8923561067",
+         "slug": "tractor-supply-xstock"
+      },
       "TSLA": {
          "symbol": "TSLAx",
          "isin": "CH1436219252",
@@ -4519,6 +5473,12 @@
          "isin": "CH1473121247",
          "underlyingIsin": "US8740391003",
          "slug": "tsmc-xstock"
+      },
+      "TSN": {
+         "symbol": "TSNx",
+         "isin": "CH1580496086",
+         "underlyingIsin": "US9024941034",
+         "slug": "tyson-foods-xstock"
       },
       "TTC": {
          "symbol": "TTCx",
@@ -4544,11 +5504,23 @@
          "underlyingIsin": "US87305R1095",
          "slug": "ttm-technologies-xstock"
       },
+      "TTWO": {
+         "symbol": "TTWOx",
+         "isin": "CH1580494206",
+         "underlyingIsin": "US8740541094",
+         "slug": "take-two-interactive-software-xstock"
+      },
       "TT": {
          "symbol": "TTx",
          "isin": "CH1580492861",
          "underlyingIsin": "IE00BK9ZQ967",
          "slug": "trane-technologies-xstock"
+      },
+      "TWLO": {
+         "symbol": "TWLOx",
+         "isin": "CH1580494735",
+         "underlyingIsin": "US90138F1021",
+         "slug": "twilio-xstock"
       },
       "TWST": {
          "symbol": "TWSTx",
@@ -4556,17 +5528,53 @@
          "underlyingIsin": "US90184D1000",
          "slug": "twist-bioscience-xstock"
       },
+      "TW": {
+         "symbol": "TWx",
+         "isin": "CH1580496946",
+         "underlyingIsin": "US8926721064",
+         "slug": "tradeweb-markets-xstock"
+      },
+      "TXN": {
+         "symbol": "TXNx",
+         "isin": "CH1564487408",
+         "underlyingIsin": "US8825081040",
+         "slug": "texas-instruments-xstock"
+      },
       "TXRH": {
          "symbol": "TXRHx",
          "isin": "CH1588661186",
          "underlyingIsin": "US8826811098",
          "slug": "texas-roadhouse-xstock"
       },
+      "TXT": {
+         "symbol": "TXTx",
+         "isin": "CH1580496003",
+         "underlyingIsin": "US8832031012",
+         "slug": "textron-xstock"
+      },
+      "TYL": {
+         "symbol": "TYLx",
+         "isin": "CH1580496722",
+         "underlyingIsin": "US9022521051",
+         "slug": "tyler-technologies-xstock"
+      },
+      "UAL": {
+         "symbol": "UALx",
+         "isin": "CH1580494230",
+         "underlyingIsin": "US9100471096",
+         "slug": "united-airlines-xstock"
+      },
       "UBER": {
          "symbol": "UBERx",
          "isin": "CH1473121114",
          "underlyingIsin": "US90353T1007",
          "slug": "uber-xstock"
+      },
+      "UDR": {
+         "symbol": "UDRx",
+         "isin": "CH1580496672",
+         "underlyingIsin": "US9026531049",
+         "slug": "udr-xstock"
       },
       "UGI": {
          "symbol": "UGIx",
@@ -4598,11 +5606,35 @@
          "underlyingIsin": "US9037311076",
          "slug": "ul-solutions-xstock"
       },
+      "ULTA": {
+         "symbol": "ULTAx",
+         "isin": "CH1580495484",
+         "underlyingIsin": "US90384S3031",
+         "slug": "ulta-beauty-xstock"
+      },
       "UNH": {
          "symbol": "UNHx",
          "isin": "CH1436219278",
          "underlyingIsin": "US91324P1021",
          "slug": "unitedhealth-xstock"
+      },
+      "UNM": {
+         "symbol": "UNMx",
+         "isin": "CH1580496193",
+         "underlyingIsin": "US91529Y1064",
+         "slug": "unum-xstock"
+      },
+      "UNP": {
+         "symbol": "UNPx",
+         "isin": "CH1564487556",
+         "underlyingIsin": "US9078181081",
+         "slug": "union-pacific-xstock"
+      },
+      "UPS": {
+         "symbol": "UPSx",
+         "isin": "CH1580493117",
+         "underlyingIsin": "US9113121068",
+         "slug": "united-parcel-service-xstock"
       },
       "URA": {
          "symbol": "URAx",
@@ -4610,17 +5642,41 @@
          "underlyingIsin": "US37954Y8710",
          "slug": "global-x-uranium-etf-xstock"
       },
+      "URI": {
+         "symbol": "URIx",
+         "isin": "CH1580493422",
+         "underlyingIsin": "US9113631090",
+         "slug": "united-rentals-xstock"
+      },
       "USAR": {
          "symbol": "USARx",
          "isin": "CH1500008581",
          "underlyingIsin": "US91733P1075",
          "slug": "usa-rare-earth-inc-xstock"
       },
+      "USB": {
+         "symbol": "USBx",
+         "isin": "CH1580492978",
+         "underlyingIsin": "US9029733048",
+         "slug": "u-s-bancorp-xstock"
+      },
+      "USFD": {
+         "symbol": "USFDx",
+         "isin": "CH1580495518",
+         "underlyingIsin": "US9120081099",
+         "slug": "us-foods-xstock"
+      },
       "USPX": {
          "symbol": "USPXx",
          "isin": "CH1564487184",
          "underlyingIsin": "US35473P4054",
          "slug": "franklin-u-s-equity-index-xstock"
+      },
+      "UTHR": {
+         "symbol": "UTHRx",
+         "isin": "CH1580495302",
+         "underlyingIsin": "US91307C1027",
+         "slug": "united-therapeutics-xstock"
       },
       "UUUU": {
          "symbol": "UUUUx",
@@ -4640,6 +5696,12 @@
          "underlyingIsin": "US3608521072",
          "slug": "fundrise-innovation-fund-llc-xstock"
       },
+      "VEEV": {
+         "symbol": "VEEVx",
+         "isin": "CH1580495161",
+         "underlyingIsin": "US9224751084",
+         "slug": "veeva-systems-xstock"
+      },
       "VFC": {
          "symbol": "VFCx",
          "isin": "CH1588663596",
@@ -4658,6 +5720,12 @@
          "underlyingIsin": "US9255501051",
          "slug": "viavi-solutions-xstock"
       },
+      "VICI": {
+         "symbol": "VICIx",
+         "isin": "CH1580494628",
+         "underlyingIsin": "US9256521090",
+         "slug": "vici-properties-xstock"
+      },
       "VICR": {
          "symbol": "VICRx",
          "isin": "CH1588662192",
@@ -4670,6 +5738,12 @@
          "underlyingIsin": "US92649G1085",
          "slug": "vida-global-xstock"
       },
+      "VIK": {
+         "symbol": "VIKx",
+         "isin": "CH1580497241",
+         "underlyingIsin": "USG93A5A1017",
+         "slug": "viking-xstock"
+      },
       "VIRT": {
          "symbol": "VIRTx",
          "isin": "CH1588663463",
@@ -4681,6 +5755,24 @@
          "isin": "CH1588664180",
          "underlyingIsin": "US92686J1060",
          "slug": "viking-therapeutics-xstock"
+      },
+      "VLO": {
+         "symbol": "VLOx",
+         "isin": "CH1580493257",
+         "underlyingIsin": "US91913Y1001",
+         "slug": "valero-energy-xstock"
+      },
+      "VLTO": {
+         "symbol": "VLTOx",
+         "isin": "CH1580497159",
+         "underlyingIsin": "US92338C1036",
+         "slug": "veralto-xstock"
+      },
+      "VMC": {
+         "symbol": "VMCx",
+         "isin": "CH1580494248",
+         "underlyingIsin": "US9291601097",
+         "slug": "vulcan-materials-xstock"
       },
       "VMI": {
          "symbol": "VMIx",
@@ -4718,6 +5810,24 @@
          "underlyingIsin": "US9290891004",
          "slug": "voya-financial-xstock"
       },
+      "VRSK": {
+         "symbol": "VRSKx",
+         "isin": "CH1580495096",
+         "underlyingIsin": "US92345Y1064",
+         "slug": "verisk-analytics-xstock"
+      },
+      "VRSN": {
+         "symbol": "VRSNx",
+         "isin": "CH1580495336",
+         "underlyingIsin": "US92343E1029",
+         "slug": "verisign-xstock"
+      },
+      "VRTX": {
+         "symbol": "VRTXx",
+         "isin": "CH1580492804",
+         "underlyingIsin": "US92532F1003",
+         "slug": "vertex-pharmaceuticals-xstock"
+      },
       "VRT": {
          "symbol": "VRTx",
          "isin": "CH1500008623",
@@ -4735,6 +5845,18 @@
          "isin": "CH1436219732",
          "underlyingIsin": "US9229087690",
          "slug": "vanguard-xstock"
+      },
+      "VTRS": {
+         "symbol": "VTRSx",
+         "isin": "CH1580495716",
+         "underlyingIsin": "US92556V1061",
+         "slug": "viatris-xstock"
+      },
+      "VTR": {
+         "symbol": "VTRx",
+         "isin": "CH1580494214",
+         "underlyingIsin": "US92276F1003",
+         "slug": "ventas-xstock"
       },
       "VT": {
          "symbol": "VTx",
@@ -4760,11 +5882,23 @@
          "underlyingIsin": "US9219097683",
          "slug": "vanguard-total-international-stock-etf-xstock"
       },
+      "VZ": {
+         "symbol": "VZx",
+         "isin": "CH1564487481",
+         "underlyingIsin": "US92343V1044",
+         "slug": "verizon-communications-xstock"
+      },
       "V": {
          "symbol": "Vx",
          "isin": "CH1436219310",
          "underlyingIsin": "US92826C8394",
          "slug": "visa-xstock"
+      },
+      "WAB": {
+         "symbol": "WABx",
+         "isin": "CH1580494008",
+         "underlyingIsin": "US9297401088",
+         "slug": "westinghouse-air-brake-technologies-xstock"
       },
       "WAL": {
          "symbol": "WALx",
@@ -4772,11 +5906,47 @@
          "underlyingIsin": "US9576381092",
          "slug": "western-alliance-bancorp-xstock"
       },
+      "WAT": {
+         "symbol": "WATx",
+         "isin": "CH1580494420",
+         "underlyingIsin": "US9418481035",
+         "slug": "waters-xstock"
+      },
       "WBD": {
          "symbol": "WBDx",
          "isin": "CH1473121338",
          "underlyingIsin": "US9344231041",
          "slug": "warner-bros-discovery-xstock"
+      },
+      "WCC": {
+         "symbol": "WCCx",
+         "isin": "CH1580495930",
+         "underlyingIsin": "US95082P1057",
+         "slug": "wesco-international-xstock"
+      },
+      "WDAY": {
+         "symbol": "WDAYx",
+         "isin": "CH1580494842",
+         "underlyingIsin": "US98138H1014",
+         "slug": "workday-xstock"
+      },
+      "WDC": {
+         "symbol": "WDCx",
+         "isin": "CH1564487465",
+         "underlyingIsin": "US9581021055",
+         "slug": "western-digital-xstock"
+      },
+      "WEC": {
+         "symbol": "WECx",
+         "isin": "CH1580494362",
+         "underlyingIsin": "US92939U1060",
+         "slug": "wec-energy-xstock"
+      },
+      "WELL": {
+         "symbol": "WELLx",
+         "isin": "CH1564487606",
+         "underlyingIsin": "US95040Q1040",
+         "slug": "welltower-xstock"
       },
       "WEN": {
          "symbol": "WENx",
@@ -4789,6 +5959,12 @@
          "isin": "CH1588663109",
          "underlyingIsin": "US96208T1043",
          "slug": "wex-xstock"
+      },
+      "WFC": {
+         "symbol": "WFCx",
+         "isin": "CH1564487416",
+         "underlyingIsin": "US9497461015",
+         "slug": "wells-fargo-xstock"
       },
       "WGS": {
          "symbol": "WGSx",
@@ -4820,6 +5996,12 @@
          "underlyingIsin": "US9604131022",
          "slug": "westlake-xstock"
       },
+      "WMB": {
+         "symbol": "WMBx",
+         "isin": "CH1580493034",
+         "underlyingIsin": "US9694571004",
+         "slug": "williams-companies-xstock"
+      },
       "WMS": {
          "symbol": "WMSx",
          "isin": "CH1588661657",
@@ -4832,6 +6014,24 @@
          "underlyingIsin": "US9311421039",
          "slug": "walmart-xstock"
       },
+      "WM": {
+         "symbol": "WMx",
+         "isin": "CH1580493109",
+         "underlyingIsin": "US94106L1098",
+         "slug": "waste-management-xstock"
+      },
+      "WPC": {
+         "symbol": "WPCx",
+         "isin": "CH1580496011",
+         "underlyingIsin": "US92936U1097",
+         "slug": "w-p-carey-xstock"
+      },
+      "WRB": {
+         "symbol": "WRBx",
+         "isin": "CH1580496227",
+         "underlyingIsin": "US0844231029",
+         "slug": "w-r-berkley-xstock"
+      },
       "WRLD": {
          "symbol": "WRLDx",
          "isin": "CH1588664602",
@@ -4843,6 +6043,24 @@
          "isin": "CH1588664164",
          "underlyingIsin": "US9713781048",
          "slug": "willscot-xstock"
+      },
+      "WSM": {
+         "symbol": "WSMx",
+         "isin": "CH1580495013",
+         "underlyingIsin": "US9699041011",
+         "slug": "williams-sonoma-xstock"
+      },
+      "WSO": {
+         "symbol": "WSOx",
+         "isin": "CH1580496565",
+         "underlyingIsin": "US9426222009",
+         "slug": "watsco-xstock"
+      },
+      "WST": {
+         "symbol": "WSTx",
+         "isin": "CH1580495260",
+         "underlyingIsin": "US9553061055",
+         "slug": "west-pharmaceutical-services-xstock"
       },
       "WTFC": {
          "symbol": "WTFCx",
@@ -4886,6 +6104,12 @@
          "underlyingIsin": "US9598021098",
          "slug": "the-western-union-xstock"
       },
+      "WWD": {
+         "symbol": "WWDx",
+         "isin": "CH1580495211",
+         "underlyingIsin": "US9807451037",
+         "slug": "woodward-xstock"
+      },
       "WYFI": {
          "symbol": "WYFIx",
          "isin": "CH1588664636",
@@ -4898,11 +6122,23 @@
          "underlyingIsin": "US9831341071",
          "slug": "wynn-resorts-xstock"
       },
+      "WY": {
+         "symbol": "WYx",
+         "isin": "CH1580495856",
+         "underlyingIsin": "US9621661043",
+         "slug": "weyerhaeuser-xstock"
+      },
       "W": {
          "symbol": "Wx",
          "isin": "CH1588661137",
          "underlyingIsin": "US94419L1017",
          "slug": "wayfair-xstock"
+      },
+      "XEL": {
+         "symbol": "XELx",
+         "isin": "CH1580493950",
+         "underlyingIsin": "US98389B1008",
+         "slug": "xcel-energy-xstock"
       },
       "XE": {
          "symbol": "XEx",
@@ -4928,11 +6164,29 @@
          "underlyingIsin": "US78468R5569",
          "slug": "spdr-s-p-oil-gas-exploration-production-etf-xstock"
       },
+      "XPO": {
+         "symbol": "XPOx",
+         "isin": "CH1580495112",
+         "underlyingIsin": "US9837931008",
+         "slug": "xpo-xstock"
+      },
       "XRX": {
          "symbol": "XRXx",
          "isin": "CH1588664644",
          "underlyingIsin": "US98421M1062",
          "slug": "xerox-xstock"
+      },
+      "XYL": {
+         "symbol": "XYLx",
+         "isin": "CH1580494883",
+         "underlyingIsin": "US98419M1009",
+         "slug": "xylem-xstock"
+      },
+      "XYZ": {
+         "symbol": "XYZx",
+         "isin": "CH1580494180",
+         "underlyingIsin": "US8522341036",
+         "slug": "block-xstock"
       },
       "YETI": {
          "symbol": "YETIx",
@@ -4946,11 +6200,47 @@
          "underlyingIsin": "US5246823091",
          "slug": "franklin-clearbridge-enhanced-income-xstock"
       },
+      "YUM": {
+         "symbol": "YUMx",
+         "isin": "CH1580494057",
+         "underlyingIsin": "US9884981013",
+         "slug": "yum-brands-xstock"
+      },
+      "ZBH": {
+         "symbol": "ZBHx",
+         "isin": "CH1580495872",
+         "underlyingIsin": "US98956P1021",
+         "slug": "zimmer-biomet-xstock"
+      },
+      "ZBRA": {
+         "symbol": "ZBRAx",
+         "isin": "CH1580496805",
+         "underlyingIsin": "US9892071054",
+         "slug": "zebra-technologies-xstock"
+      },
       "ZION": {
          "symbol": "ZIONx",
          "isin": "CH1588664503",
          "underlyingIsin": "US9897011071",
          "slug": "zions-bancorp-na-xstock"
+      },
+      "ZM": {
+         "symbol": "ZMx",
+         "isin": "CH1580495088",
+         "underlyingIsin": "US98980L1017",
+         "slug": "zoom-communications-xstock"
+      },
+      "ZS": {
+         "symbol": "ZSx",
+         "isin": "CH1580496623",
+         "underlyingIsin": "US98980G1022",
+         "slug": "zscaler-xstock"
+      },
+      "ZTS": {
+         "symbol": "ZTSx",
+         "isin": "CH1580494438",
+         "underlyingIsin": "US98978V1035",
+         "slug": "zoetis-xstock"
       },
       "Z": {
          "symbol": "Zx",
