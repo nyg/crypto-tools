@@ -1,6 +1,30 @@
 # Changelog
 
 
+## [1.4.1](https://github.com/nyg/crypto-tools/compare/v1.4.0..v1.4.1) - 2026-11-13
+
+### 🐛 Bug Fixes
+
+- [`0db93e6`](https://github.com/nyg/crypto-tools/commit/0db93e68261bf38d6ad622b240cf4f5c8ec2fb68) *(desktop)* Remember a window that nearly fills the screen on macOS ([#359](https://github.com/nyg/crypto-tools/issues/359))
+- [`6938b7f`](https://github.com/nyg/crypto-tools/commit/6938b7feafb438302251607343802f1827d1b8c6) *(deps)* Update dependency hono to v4.13.16 [security] ([#358](https://github.com/nyg/crypto-tools/issues/358))
+- [`a93d822`](https://github.com/nyg/crypto-tools/commit/a93d82269875cdc330c083540723afa580b1b008) *(deps)* Update all stable non-major dependencies ([#353](https://github.com/nyg/crypto-tools/issues/353))
+- [`9b6e8d9`](https://github.com/nyg/crypto-tools/commit/9b6e8d935e197deaa6e5b0e9027967536f697dec) *(deps)* Update dependency qs to v6.16.1 [security] ([#352](https://github.com/nyg/crypto-tools/issues/352))
+- [`000a73c`](https://github.com/nyg/crypto-tools/commit/000a73c92ad4c9becb5899f14decb3750ff54955) *(deps)* Update dependency zod to v4.6.6 [security] ([#350](https://github.com/nyg/crypto-tools/issues/350))
+- [`d0ca535`](https://github.com/nyg/crypto-tools/commit/d0ca535e786168eb40ce3c291bf13068141cf842) *(deps)* Update dependency hono to v4.13.11 [security] ([#348](https://github.com/nyg/crypto-tools/issues/348))
+
+### 📚 Documentation
+
+- [`3a575f7`](https://github.com/nyg/crypto-tools/commit/3a575f7d4b7514d07b0af8b61c062e17ea4ddc11) Remove CLAUDE.md now that Claude Code reads AGENTS.md ([#357](https://github.com/nyg/crypto-tools/issues/357))
+
+### ⚙️ Miscellaneous
+
+- [`2e96205`](https://github.com/nyg/crypto-tools/commit/2e96205b043eb9aff000b316249b2fd8ef5391d7) *(deps)* Lock file maintenance ([#356](https://github.com/nyg/crypto-tools/issues/356))
+- [`77ddc41`](https://github.com/nyg/crypto-tools/commit/77ddc4107985b7933fbcb6dce22182966d871a80) *(deps)* Lock file maintenance ([#355](https://github.com/nyg/crypto-tools/issues/355))
+- [`3dea4c4`](https://github.com/nyg/crypto-tools/commit/3dea4c4f8b5ee1643538133bb89f34d2079b9360) *(deps)* Lock file maintenance ([#354](https://github.com/nyg/crypto-tools/issues/354))
+- [`2918450`](https://github.com/nyg/crypto-tools/commit/291845090d8f8c7cccacb0bb32b038e2b42841bd) *(xstocks)* Refresh the reference data ([#351](https://github.com/nyg/crypto-tools/issues/351))
+- [`b357cae`](https://github.com/nyg/crypto-tools/commit/b357caed1a60bb5a9a3bd414546d86a0cd9b2995) *(deps)* Update dependency vite to v8.2.4 [security] ([#349](https://github.com/nyg/crypto-tools/issues/349))
+- [`83078f9`](https://github.com/nyg/crypto-tools/commit/83078f90ffc3d8f17129170cfe7f9479d82d7819) *(xstocks)* Refresh the reference data ([#347](https://github.com/nyg/crypto-tools/issues/347))
+
 ## [1.4.0](https://github.com/nyg/crypto-tools/compare/v1.3.0..v1.4.0) - 2026-10-18
 
 ### ⛰️  Features
