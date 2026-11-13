@@ -4,6 +4,12 @@ import path from 'path'
 import { Screen, app } from 'electrobun/main'
 import type { BrowserWindow } from 'electrobun/main'
 import { resolveDataDir } from '../server/db/paths'
+import { fillsWorkArea, shrunkFrame } from './window-geometry'
+import type { WindowBounds } from './window-geometry'
+
+// AppKit reports a window as zoomed when its frame is within about ten points of the zoomed one,
+// and leaves such a window as it is when asked to zoom it
+const zoomIsApproximate = process.platform === 'darwin'
 
 const STATE_VERSION = 1
 const STATE_FILE = 'window-state.json'
@@ -16,13 +22,6 @@ const MAX_DIMENSION = 20000
 const WRITE_DEBOUNCE_MS = 400
 const STARTUP_SETTLE_MS = 600
 const OFFSCREEN_SENTINEL = -30000
-
-export interface WindowBounds {
-   x: number
-   y: number
-   width: number
-   height: number
-}
 
 export interface InitialWindowState {
    frame: WindowBounds
@@ -132,6 +131,15 @@ function displayBounds(): WindowBounds[] {
    }
 }
 
+function workAreas(): WindowBounds[] {
+   try {
+      return Screen.getAllDisplays().map(display => display.workArea)
+   }
+   catch {
+      return []
+   }
+}
+
 function clampSize(bounds: WindowBounds): WindowBounds {
    const displays = displayBounds()
    const maxWidth = displays.length
@@ -202,6 +210,16 @@ export function resolveInitialWindowState(): InitialWindowState {
    return { frame: sized, maximized: saved.maximized }
 }
 
+export function restoreMaximized(win: BrowserWindow): void {
+   if (zoomIsApproximate && win.isMaximized()) {
+      const shrunk = shrunkFrame(win.getFrame())
+      win.setFrame(shrunk.x, shrunk.y, shrunk.width, shrunk.height)
+   }
+   if (!win.isMaximized()) {
+      win.maximize()
+   }
+}
+
 export function trackWindowState(win: BrowserWindow, initial: InitialWindowState): void {
    const overhead = measureFrameOverhead(win, initial.frame)
    const current: PersistedWindowState = {
@@ -225,15 +243,16 @@ export function trackWindowState(win: BrowserWindow, initial: InitialWindowState
          if (!isPlausibleLiveFrame(frame)) {
             return
          }
-         current.maximized = win.isMaximized()
+         const bounds = {
+            x: frame.x - overhead.x,
+            y: frame.y - overhead.y,
+            width: frame.width - overhead.width,
+            height: frame.height - overhead.height,
+         }
+         current.maximized = win.isMaximized() && (!zoomIsApproximate || fillsWorkArea(bounds, workAreas()))
          current.displays = displayFingerprint()
          if (!current.maximized) {
-            current.bounds = {
-               x: frame.x - overhead.x,
-               y: frame.y - overhead.y,
-               width: frame.width - overhead.width,
-               height: frame.height - overhead.height,
-            }
+            current.bounds = bounds
          }
       }
       catch {

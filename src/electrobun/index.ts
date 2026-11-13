@@ -6,7 +6,7 @@ import { useProductionData } from '../server/environment'
 import { migrateSecretsToCredentialStore } from '../server/secrets'
 import { systemLocales } from './locale'
 import { handleTitleBarDoubleClick, trackFullScreen } from './title-bar'
-import { resolveInitialWindowState, trackWindowState } from './window-state'
+import { resolveInitialWindowState, restoreMaximized, trackWindowState } from './window-state'
 
 const VIEWS_URL = 'views://main/index.html'
 const ABOUT_ACTION = 'show-about'
@@ -100,8 +100,8 @@ async function main() {
    trackWindowState(win, initialWindowState)
 
    try {
-      if (initialWindowState.maximized && !win.isMaximized()) {
-         win.maximize()
+      if (initialWindowState.maximized) {
+         restoreMaximized(win)
       }
    }
    catch (error) {
