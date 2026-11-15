@@ -8,7 +8,7 @@
 - **Build (frontend)**: `bun run build`
 - **Build (desktop app)**: `bun run build:stable`
 - **Prepare the Electrobun devkit**: `bun run desktop:prepare` (projects the main-process SDK into `.hutch/devkit`; `desktop:dev`, `build:stable` and `typecheck` do it implicitly, but an editor or a bare `tsc` needs it once on a fresh checkout)
-- **Lint**: `bun run lint` (ESLint + typescript-eslint)
+- **Lint**: `bun run lint` (ESLint with the shared `@nyg/eslint-config`)
 - **Type-check**: `bun run typecheck` (`tsc --noEmit` over `src`, `scripts` and `electrobun.config.ts`)
 
 ### Two TypeScript packages, on purpose
@@ -114,7 +114,7 @@ The app supports a mocked mode for development and demos, activated via `bun run
 
 ## Code Conventions
 
-- **3-space indentation**, no semicolons, single quotes (enforced by ESLint; `react-hooks/exhaustive-deps` is disabled)
+- **3-space indentation**, no semicolons, single quotes (enforced by ESLint)
 - **Styling**: Tailwind CSS v4 + shadcn/ui components — no custom CSS
 - **Precision math**: use `big.js` for all numeric calculations involving asset amounts or rates
 - **ES6 classes** for the adapters, repositories and other stateful services (e.g. `export default class BinanceAPI { constructor(credentials) { … } }`), with `#private` fields for what used to be closure state. TypeScript cannot infer a construct signature from `this.x = …` in a plain function, so the constructor-function style this codebase used before the TypeScript migration typed every `new` expression as `any`. Everything stateless stays a plain function.
