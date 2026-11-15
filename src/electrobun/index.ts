@@ -1,5 +1,6 @@
 /// <reference types="bun-types" />
 import { ApplicationMenu, BrowserWindow, BuildConfig, Utils } from 'electrobun/main'
+
 import { createApp } from '../server/app'
 import { migrateDevelopmentData } from '../server/data-migration'
 import { useProductionData } from '../server/environment'
@@ -103,8 +104,7 @@ async function main() {
       if (initialWindowState.maximized) {
          restoreMaximized(win)
       }
-   }
-   catch (error) {
+   } catch (error) {
       console.error('✗ Could not restore the maximized window state:', error)
    }
 
@@ -120,8 +120,7 @@ async function main() {
       }
       try {
          win.webview.executeJavascript(SHOW_ABOUT_JS)
-      }
-      catch (error) {
+      } catch (error) {
          console.error('✗ Could not open the About dialog:', error)
       }
    })

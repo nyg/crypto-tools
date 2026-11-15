@@ -1,14 +1,16 @@
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import {
-   ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent
-} from '@/components/ui/chart'
-import SelectField from '../lib/select-field'
-import ComboboxField from '../lib/combobox-field'
-import { assetLabel } from './asset-migrations'
-import { asAssetAmount, asAxisTick, asShortMonthYearDate } from '../../../utils/format'
+
 import type { ChartConfig } from '@/components/ui/chart'
+import {
+   ChartContainer, ChartLegend, ChartLegendContent,
+   ChartTooltip, ChartTooltipContent} from '@/components/ui/chart'
+
 import type { FeeSummary } from '../../../types/api'
 import type { FeeMonthRow } from '../../../types/db'
+import { asAssetAmount, asAxisTick, asShortMonthYearDate } from '../../../utils/format'
+import ComboboxField from '../lib/combobox-field'
+import SelectField from '../lib/select-field'
+import { assetLabel } from './asset-migrations'
 
 export type Granularity = 'month' | 'quarter' | 'year'
 
@@ -32,7 +34,9 @@ const bucketOf = (month: string, granularity: Granularity): Bucket => {
 
    const [year = NaN, index = NaN] = month.split('-').map(Number)
 
-   if (granularity === 'year') return { key: `${year}`, label: `${year}` }
+   if (granularity === 'year') {
+      return { key: `${year}`, label: `${year}` }
+   }
 
    if (granularity === 'quarter') {
       const quarter = Math.floor((index - 1) / 3) + 1
@@ -54,7 +58,9 @@ function bucketsBetween(firstMonth: string, lastMonth: string, granularity: Gran
    while (year < lastYear || (year === lastYear && index <= lastIndex)) {
 
       const bucket = bucketOf(`${year}-${String(index).padStart(2, '0')}`, granularity)
-      if (buckets.at(-1)?.key !== bucket.key) buckets.push(bucket)
+      if (buckets.at(-1)?.key !== bucket.key) {
+         buckets.push(bucket)
+      }
 
       index += 1
       if (index > 12) {
@@ -69,10 +75,14 @@ function bucketsBetween(firstMonth: string, lastMonth: string, granularity: Gran
 function buildChart(byMonth: FeeMonthRow[], asset: string | undefined, granularity: Granularity) {
 
    const rows = byMonth.filter(row => row.asset === asset)
-   if (rows.length === 0) return { data: [] as ChartRow[], types: [] as string[] }
+   if (rows.length === 0) {
+      return { data: [] as ChartRow[], types: [] as string[] }
+   }
 
    const totals = new Map<string, number>()
-   for (const row of rows) totals.set(row.type, (totals.get(row.type) ?? 0) + row.total)
+   for (const row of rows) {
+      totals.set(row.type, (totals.get(row.type) ?? 0) + row.total)
+   }
 
    // The biggest contributor sits at the bottom of the stack. This is the drawing
    // order only — colours come from the ledger's full type list, so re-ordering here

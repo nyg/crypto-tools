@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge'
-import type { SyncJob, SyncStep, SyncStepKind } from '../../../types/jobs'
+
 import type { SyncState } from '../../../types/api'
+import type { SyncJob, SyncStep, SyncStepKind } from '../../../types/jobs'
 
 const terminalPhases: string[] = ['done', 'error', 'cancelled']
 
@@ -50,7 +51,9 @@ export const runningStep = (job: SyncJob | null | undefined): SyncStep | null =>
 // named, because the same phases run twice and would otherwise look like a restart.
 export function phaseLabel(job: SyncJob | null | undefined): string {
    const step = runningStep(job)
-   if (!step) return 'Syncing…'
+   if (!step) {
+      return 'Syncing…'
+   }
    return `${stepLabel(step)} (${reportLabels[step.report] ?? step.report})`
 }
 
@@ -66,13 +69,21 @@ export function SyncStatusBadge({ state, job, isRunning }: {
    isRunning?: boolean
 }) {
 
-   if (isRunning) return <Badge variant="secondary">Syncing</Badge>
-   if (job?.phase === 'error') return <Badge variant="destructive">Failed</Badge>
-   if (job?.phase === 'cancelled') return <Badge variant="outline">Cancelled</Badge>
+   if (isRunning) {
+      return <Badge variant="secondary">Syncing</Badge>
+   }
+   if (job?.phase === 'error') {
+      return <Badge variant="destructive">Failed</Badge>
+   }
+   if (job?.phase === 'cancelled') {
+      return <Badge variant="outline">Cancelled</Badge>
+   }
    // Read from the stored watermark rather than from the job, so that clearing the
    // data goes back to "never synced" instead of staying quiet on the strength of a
    // finished run whose rows are gone.
-   if (state?.lastSyncedAt) return null
+   if (state?.lastSyncedAt) {
+      return null
+   }
 
    return <Badge variant="outline">Never synced</Badge>
 }

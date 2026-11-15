@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
-import { cn } from '@/lib/utils'
+
 import { TableHead } from '@/components/ui/table'
-import SortIcon from './sort-icon'
+import { cn } from '@/lib/utils'
+
 import type { Sort } from '../../../types/kraken'
+import SortIcon from './sort-icon'
 
 interface SortableHeadProps {
    column: string

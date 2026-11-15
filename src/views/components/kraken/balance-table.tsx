@@ -1,17 +1,19 @@
-import { useState } from 'react'
 import { ChevronDownIcon, ChevronRightIcon, DownloadIcon, Loader2Icon } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import { useState } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import BalanceFilters, { EARNING, dustLimit } from './balance-filters'
-import { migrationNote } from './asset-migrations'
-import { PLACEMENT_ORDER, SPOT, isEarning, placementColor, placementDescription, placementLabel, placementOf } from './placement'
-import { asCount } from '../lib/filter-options'
-import { asAssetAmount, asDollarAmount, asNumber, asPercentage, asShortPercentage } from '../../../utils/format'
-import SortableHead from '../lib/sortable-head'
-import type { BalanceFilterValues } from './balance-filters'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell,TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import type { LiveBalance, LivePosition, Sort, UsdRates } from '../../../types/kraken'
+import { asAssetAmount, asDollarAmount, asNumber, asPercentage, asShortPercentage } from '../../../utils/format'
+import { asCount } from '../lib/filter-options'
+import SortableHead from '../lib/sortable-head'
+import { migrationNote } from './asset-migrations'
+import type { BalanceFilterValues } from './balance-filters'
+import BalanceFilters, { dustLimit,EARNING } from './balance-filters'
+import { isEarning, PLACEMENT_ORDER, placementColor, placementDescription, placementLabel, placementOf,SPOT } from './placement'
 
 // One table row: an asset folded down to the positions the filters left, with the
 // amount, the exact string behind it, and what it is worth.
@@ -38,8 +40,12 @@ const onePerPlacement = (positions: LivePosition[]) =>
       positions.findIndex(other => placementOf(other) === placementOf(position)) === index)
 
 function aprOf({ aprLow, aprHigh }: LivePosition): string | null {
-   if (aprLow === null) return null
-   if (aprHigh === null || aprHigh === aprLow) return `${asPercentage(aprLow)} APR`
+   if (aprLow === null) {
+      return null
+   }
+   if (aprHigh === null || aprHigh === aprLow) {
+      return `${asPercentage(aprLow)} APR`
+   }
    return `${asPercentage(aprLow)}–${asPercentage(aprHigh)} APR`
 }
 
@@ -168,10 +174,18 @@ export default function BalanceTable({
 
    const sorted = shown.toSorted((a, b) => {
       const [left, right] = [sortValue(a), sortValue(b)]
-      if (left == null && right == null) return a.asset.localeCompare(b.asset)
-      if (left == null) return 1
-      if (right == null) return -1
-      if (left === right) return a.asset.localeCompare(b.asset)
+      if (left == null && right == null) {
+         return a.asset.localeCompare(b.asset)
+      }
+      if (left == null) {
+         return 1
+      }
+      if (right == null) {
+         return -1
+      }
+      if (left === right) {
+         return a.asset.localeCompare(b.asset)
+      }
       const order = typeof left === 'string' ? left.localeCompare(String(right)) : left - Number(right)
       return sort.direction === 'desc' ? -order : order
    })
@@ -180,7 +194,9 @@ export default function BalanceTable({
 
    const toggle = (asset: string) => setExpanded(current => {
       const next = new Set(current)
-      if (!next.delete(asset)) next.add(asset)
+      if (!next.delete(asset)) {
+         next.add(asset)
+      }
       return next
    })
 
@@ -330,7 +346,9 @@ export default function BalanceTable({
 
 function matchesPlacement(position: LivePosition, placement: string) {
 
-   if (!placement) return true
+   if (!placement) {
+      return true
+   }
 
    const key = placementOf(position)
    return placement === EARNING ? isEarning(key) : key === placement
@@ -345,7 +363,9 @@ function placementOptions(assets: LiveBalance[]) {
    for (const asset of assets) {
       for (const position of asset.positions) {
          const key = placementOf(position)
-         if (!seen.has(key)) seen.set(key, { value: key, label: placementLabel(key, position) })
+         if (!seen.has(key)) {
+            seen.set(key, { value: key, label: placementLabel(key, position) })
+         }
       }
    }
 

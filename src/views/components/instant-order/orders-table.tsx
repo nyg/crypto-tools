@@ -1,11 +1,13 @@
 import Big from 'big.js'
 import { Loader2Icon } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
+import type { InstantOrderStatus, TrackedInstantOrder } from '../../../types/api'
 import { asExactDecimal, asLocalTimestamp } from '../../../utils/format'
 import { asQuantity } from '../portfolio/format'
-import type { InstantOrderStatus, TrackedInstantOrder } from '../../../types/api'
 
 export interface TrackedOrder extends TrackedInstantOrder {
    replaced?: boolean

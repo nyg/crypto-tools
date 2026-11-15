@@ -1,4 +1,5 @@
 import Big from 'big.js'
+
 import type { FundingMovement } from '../../types/api'
 
 export type FundingGranularity = 'day' | 'month' | 'year'
@@ -37,7 +38,9 @@ const sumOf = (movements: FundingMovement[], field: 'amount' | 'fee'): Big =>
 export function fundingAssets(movements: FundingMovement[]): FundingAsset[] {
 
    const counts = new Map<string, number>()
-   for (const { asset } of movements) counts.set(asset, (counts.get(asset) ?? 0) + 1)
+   for (const { asset } of movements) {
+      counts.set(asset, (counts.get(asset) ?? 0) + 1)
+   }
 
    return [...counts]
       .map(([asset, count]) => ({ asset, count }))

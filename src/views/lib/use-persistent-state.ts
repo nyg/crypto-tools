@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
 import { messageOf } from './errors'
 
 // Layered over whatever storage holds, so a caller can let something outside storage
@@ -19,18 +20,21 @@ function read<T>(key: string, defaultValue: T, revive?: Revive<T>): T {
 }
 
 function readStored<T>(key: string, defaultValue: T): T {
-   if (typeof window === 'undefined') return defaultValue
+   if (typeof window === 'undefined') {
+      return defaultValue
+   }
 
    try {
       const saved = localStorage.getItem(key)
-      if (saved === null) return defaultValue
+      if (saved === null) {
+         return defaultValue
+      }
 
       const parsed: unknown = JSON.parse(saved)
       return isPlainObject(parsed) && isPlainObject(defaultValue)
          ? { ...defaultValue, ...parsed } as T
          : parsed as T
-   }
-   catch (error) {
+   } catch (error) {
       console.warn(`Could not read ${key} from local storage:`, messageOf(error))
       return defaultValue
    }
@@ -52,12 +56,13 @@ export default function usePersistentState<T>(
          settled.current = true
          return
       }
-      if (typeof window === 'undefined') return
+      if (typeof window === 'undefined') {
+         return
+      }
 
       try {
          localStorage.setItem(key, JSON.stringify(value))
-      }
-      catch (error) {
+      } catch (error) {
          console.warn(`Could not write ${key} to local storage:`, messageOf(error))
       }
    }, [key, value])

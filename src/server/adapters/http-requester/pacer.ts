@@ -6,6 +6,8 @@ export function pacer(gapMs: number): () => Promise<void> {
       const now = Date.now()
       const wait = next - now
       next = Math.max(now, next) + gapMs
-      if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait))
+      if (wait > 0) {
+         await new Promise(resolve => setTimeout(resolve, wait))
+      }
    }
 }

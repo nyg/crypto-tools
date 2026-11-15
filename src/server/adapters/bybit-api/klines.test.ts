@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { candlesFromKlines } from './klines'
+
 import type { BybitKline } from '../../../types/bybit-api'
+import { candlesFromKlines } from './klines'
 
 const kline = (time: number, high: string, low: string, close: string): BybitKline =>
    [String(time), '1', high, low, close, '10', '20']

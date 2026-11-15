@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
+import { useEffect, useState } from 'react'
 
 const TICK_MS = 30_000
 

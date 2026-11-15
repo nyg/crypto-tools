@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
-import SubNav from '../lib/sub-nav'
-import Layout from '../layout'
-import SyncNavStatus from './sync-nav-status'
+
 import { ledgerBackedPaths, subNavItems } from '@/lib/tools'
+
+import Layout from '../layout'
+import SubNav from '../lib/sub-nav'
+import SyncNavStatus from './sync-nav-status'
 
 
 const tabs = subNavItems('Kraken')

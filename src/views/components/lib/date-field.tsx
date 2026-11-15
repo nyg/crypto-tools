@@ -1,11 +1,13 @@
+import { CalendarIcon, CircleXIcon } from 'lucide-react'
 import type * as React from 'react'
 import { useState } from 'react'
-import { CalendarIcon, CircleXIcon } from 'lucide-react'
-import { Label } from '@/components/ui/label'
-import { Input as ShadcnInput } from '@/components/ui/input'
+
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Input as ShadcnInput } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent,PopoverTrigger } from '@/components/ui/popover'
+
 import { locales } from '../../../utils/locale'
 
 const displayFormatter = new Intl.DateTimeFormat(locales, {
@@ -43,8 +45,7 @@ const weekStartsOn: WeekDay = (() => {
       const locale = new Intl.Locale(displayFormatter.resolvedOptions().locale) as WeekInfoLocale
       const info = locale.getWeekInfo?.() ?? locale.weekInfo
       return ((info?.firstDay ?? 1) % 7) as WeekDay
-   }
-   catch {
+   } catch {
       return 1
    }
 })()
@@ -57,9 +58,13 @@ const asDisplay = (value: string | undefined): string => value
    : ''
 
 const asLocalDate = (value: string | undefined): Date | undefined => {
-   if (!value) return undefined
+   if (!value) {
+      return undefined
+   }
    const [year, month, day] = value.split('-').map(Number)
-   if (year === undefined || month === undefined || day === undefined) return undefined
+   if (year === undefined || month === undefined || day === undefined) {
+      return undefined
+   }
    return new Date(year, month - 1, day)
 }
 
@@ -73,11 +78,15 @@ const asValue = (date: Date | undefined): string => date
 
 const parseDisplay = (text: string): string | null => {
    const groups = text.match(/\d+/g)
-   if (!groups || groups.length !== fieldOrder.length) return null
+   if (!groups || groups.length !== fieldOrder.length) {
+      return null
+   }
 
    const fields = Object.fromEntries(fieldOrder.map((type, index) => [type, Number(groups[index])]))
    const { year: entered, month, day } = fields
-   if (entered === undefined || month === undefined || day === undefined) return null
+   if (entered === undefined || month === undefined || day === undefined) {
+      return null
+   }
 
    const year = entered < 100 ? 2000 + entered : entered
    const date = new Date(Date.UTC(year, month - 1, day))
@@ -115,22 +124,27 @@ export default function DateField({
       const trimmed = text.trim()
 
       if (trimmed === '') {
-         if (value) onValueChange('')
+         if (value) {
+            onValueChange('')
+         }
          return
       }
 
       const parsed = parseDisplay(trimmed)
-      if (parsed === null) setText(asDisplay(value))
-      else if (parsed !== value) onValueChange(parsed)
-      else setText(asDisplay(value))
+      if (parsed === null) {
+         setText(asDisplay(value))
+      } else if (parsed !== value) {
+         onValueChange(parsed)
+      } else {
+         setText(asDisplay(value))
+      }
    }
 
    const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key === 'Enter') {
          event.preventDefault()
          commit()
-      }
-      else if (event.key === 'Escape') {
+      } else if (event.key === 'Escape') {
          setText(asDisplay(value))
       }
    }
@@ -163,7 +177,9 @@ export default function DateField({
                   className="absolute inset-y-0 right-7 my-auto text-muted-foreground hover:bg-transparent hover:text-foreground"
                   onClick={() => {
                      setText('')
-                     if (value) onValueChange('')
+                     if (value) {
+                        onValueChange('')
+                     }
                   }}>
                   <CircleXIcon className="size-4" />
                </Button>}

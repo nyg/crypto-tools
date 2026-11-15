@@ -1,6 +1,16 @@
 import type { ComponentType, ReactNode } from 'react'
-import useSWR from 'swr'
 import { toast } from 'sonner'
+import useSWR from 'swr'
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { FundingGranularity } from '@/lib/funding'
+import { fundingAssets, fundingBuckets, fundingTotals } from '@/lib/funding'
+
+import type { FundingCancelResponse, FundingResponse, FundingSyncResponse } from '../../../types/api'
+import type { Provider } from '../../../types/credentials'
+import { asExactDecimal } from '../../../utils/format'
 import useMutation from '../../lib/use-mutation'
 import usePersistentState from '../../lib/use-persistent-state'
 import { useProvider } from '../../lib/use-settings'
@@ -8,21 +18,13 @@ import Checkbox from '../lib/checkbox'
 import ComboboxField from '../lib/combobox-field'
 import CredentialsAlert from '../lib/credentials-alert'
 import Field from '../lib/field'
+import { asCount } from '../lib/filter-options'
 import LoadingSpinner from '../lib/loading-spinner'
 import SelectField from '../lib/select-field'
-import { asCount } from '../lib/filter-options'
+import type { FundingChartView } from './funding-chart'
 import FundingChart from './funding-chart'
 import FundingSyncControl, { isFundingSyncing } from './funding-sync-control'
 import FundingTable from './funding-table'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { fundingAssets, fundingBuckets, fundingTotals } from '@/lib/funding'
-import { asExactDecimal } from '../../../utils/format'
-import type { FundingChartView } from './funding-chart'
-import type { FundingGranularity } from '@/lib/funding'
-import type { FundingCancelResponse, FundingResponse, FundingSyncResponse } from '../../../types/api'
-import type { Provider } from '../../../types/credentials'
 
 export interface FundingVenue {
    provider: Provider
@@ -72,8 +74,7 @@ export default function FundingPage({ layout: Layout, venue }: { layout: Funding
       try {
          await action()
          await mutate()
-      }
-      catch (reason) {
+      } catch (reason) {
          toast.error(typeof reason === 'string' ? reason : `${label} could not be reached.`)
       }
    }

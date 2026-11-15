@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { depositRecord, internalDepositRecord, withdrawalRecord } from './funding'
+
 import type { BybitDeposit, BybitInternalDeposit, BybitWithdrawal } from '../../../types/bybit-api'
+import { depositRecord, internalDepositRecord, withdrawalRecord } from './funding'
 
 const READ_AT = Date.UTC(2026, 9, 4)
 

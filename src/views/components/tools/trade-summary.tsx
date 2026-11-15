@@ -1,10 +1,12 @@
+import { CopyIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { toast } from 'sonner'
-import { CopyIcon } from 'lucide-react'
-import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
+
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
 import type { SizedTrade, TakeProfitLevel, TradeCalculatorForm } from '@/lib/trade-calculator'
+
+import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
 
 const directionLabel = (result: SizedTrade) => result.isLong ? 'Buy (long)' : 'Sell (short)'
 
@@ -58,8 +60,7 @@ export default function TradeSummary({ formValues, result }: {
       try {
          await navigator.clipboard.writeText(buildSummaryText(formValues, result))
          toast.success('Trade summary copied to the clipboard.')
-      }
-      catch {
+      } catch {
          toast.error('Could not copy the trade summary.')
       }
    }

@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
 import { InfoIcon } from 'lucide-react'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import type { ReactNode } from 'react'
+
+import { Popover, PopoverContent,PopoverTrigger } from '@/components/ui/popover'
 
 interface FieldHintProps {
    label?: string

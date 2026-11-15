@@ -1,5 +1,5 @@
-import { HttpRequesterError, messageOf } from '../../errors'
 import type { AuthenticatedRequest, Authenticator } from '../../../types/credentials'
+import { HttpRequesterError, messageOf } from '../../errors'
 
 export type ResponseType = 'json' | 'binary'
 
@@ -68,8 +68,7 @@ class ServerHttpRequester {
          }
 
          return response
-      }
-      catch (error) {
+      } catch (error) {
          if (error instanceof HttpRequesterError) {
             console.error('Response error:', error.statusCode, error.body)
             throw error

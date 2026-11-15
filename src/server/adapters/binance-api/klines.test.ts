@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { candlesFromKLines, usdRatesFromKLines } from './klines'
+
 import type { BinanceKLine } from '../../../types/binance-api'
+import { candlesFromKLines, usdRatesFromKLines } from './klines'
 
 const kline = (openTime: number, close: string, baseVolume: string, quoteVolume: string): BinanceKLine =>
    [openTime, '1', '1', '1', close, baseVolume, openTime + 86399999, quoteVolume, 10]

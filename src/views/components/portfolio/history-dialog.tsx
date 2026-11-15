@@ -1,15 +1,17 @@
 import useSWR from 'swr'
-import LoadingSpinner from '../lib/loading-spinner'
-import { RunOrdersTable } from './run-progress'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { asLocalTimestamp } from '../../../utils/format'
-import { asQuantity, asQuoteAmount, runKindLabels, runStatusLabels } from './format'
+
 import type { PortfolioHistoryRequest, PortfolioHistoryResponse, PortfolioSummary } from '../../../types/api'
 import type { MovementKind } from '../../../types/portfolio'
+import { asLocalTimestamp } from '../../../utils/format'
+import LoadingSpinner from '../lib/loading-spinner'
+import { asQuantity, asQuoteAmount, runKindLabels, runStatusLabels } from './format'
+import { RunOrdersTable } from './run-progress'
 
 const movementLabels: Record<MovementKind, string> = {
    deposit: 'Deposit',

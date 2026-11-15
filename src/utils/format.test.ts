@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { asDaysAgo, asExactDecimal, asNumericTimestamp, decimalPadding, fractionDigits } from './format'
 
 describe('asDaysAgo', () => {

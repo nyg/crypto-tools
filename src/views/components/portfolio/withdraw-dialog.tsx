@@ -1,18 +1,20 @@
-import { useState } from 'react'
 import { Loader2Icon } from 'lucide-react'
-import useMutation from '../../lib/use-mutation'
-import Checkbox from '../lib/checkbox'
-import NumericInput from '../lib/numeric-input'
-import SelectField from '../lib/select-field'
+import { useState } from 'react'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
-import { asQuantity, asQuoteAmount } from './format'
+
 import type {
    PortfolioMovementResponse, PortfolioPlanRequest, PortfolioSummary, PortfolioWithdrawRequest
 } from '../../../types/api'
+import useMutation from '../../lib/use-mutation'
+import Checkbox from '../lib/checkbox'
+import NumericInput from '../lib/numeric-input'
+import SelectField from '../lib/select-field'
+import { asQuantity, asQuoteAmount } from './format'
 
 interface WithdrawFormProps {
    apiBase: string
@@ -55,8 +57,7 @@ function WithdrawForm({ apiBase, venueLabel, portfolio, onCancel, onPreview, onW
       try {
          await withdraw(all ? { portfolioId: portfolio.id, asset, all: true } : { portfolioId: portfolio.id, asset, amount })
          onWithdrawn(portfolio, asset, all ? held : amount)
-      }
-      catch (reason) {
+      } catch (reason) {
          setError(typeof reason === 'string' ? reason : 'The withdrawal could not be recorded.')
       }
    }

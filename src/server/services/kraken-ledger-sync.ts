@@ -1,12 +1,12 @@
+import type { Credentials } from '../../types/credentials'
+import type { StartedJob, SyncJob, SyncMode, SyncStep, SyncStepKind, SyncStepPhase } from '../../types/jobs'
+import type { ExportReportType } from '../../types/kraken'
 import KrakenAPI from '../adapters/kraken-api/adapter'
 import LedgerRepository from '../db/ledger-repository'
-import TradeRepository from '../db/trade-repository'
 import RateRepository from '../db/rate-repository'
-import { backfillUsdRates, usdRateRanges } from './usd-rate-backfill'
+import TradeRepository from '../db/trade-repository'
 import { messageOf } from '../errors'
-import type { Credentials } from '../../types/credentials'
-import type { ExportReportType } from '../../types/kraken'
-import type { StartedJob, SyncJob, SyncMode, SyncStep, SyncStepKind, SyncStepPhase } from '../../types/jobs'
+import { backfillUsdRates, usdRateRanges } from './usd-rate-backfill'
 
 // One pass of a single export: what to ask Kraken for, how to read the rows back out
 // and how to store them. The two reports differ only in these four.
@@ -62,7 +62,9 @@ export function jobFor(accountId: string): SyncJob | null {
 
 export function requestCancel(accountId: string): SyncJob | null {
    const job = jobs.get(accountId)
-   if (job && isRunning(job)) job.cancelRequested = true
+   if (job && isRunning(job)) {
+      job.cancelRequested = true
+   }
    return job ?? null
 }
 
@@ -190,8 +192,7 @@ async function runSync(job: SyncJob, credentials: Credentials) {
       await runRates(job)
 
       setPhase(job, 'done')
-   }
-   catch (error) {
+   } catch (error) {
       if (job.phase !== 'cancelled') {
          setPhase(job, 'error')
          job.error = String((error as Error)?.cause ?? messageOf(error))
@@ -211,16 +212,19 @@ async function runSync(job: SyncJob, credentials: Credentials) {
       // A report the run never reached is neither done nor failed: it was dropped
       // because the one before it ended the run.
       for (const step of job.steps) {
-         if (step.phase === 'pending') step.phase = 'skipped'
+         if (step.phase === 'pending') {
+            step.phase = 'skipped'
+         }
       }
-   }
-   finally {
+   } finally {
       job.finishedAt = Date.now()
       job.updatedAt = Date.now()
 
       // Whatever the run did not already hand back: the export of a step that failed,
       // or one Kraken was still preparing when the sync was cancelled.
-      for (const step of job.steps) await removeStepReport(krakenAPI, step)
+      for (const step of job.steps) {
+         await removeStepReport(krakenAPI, step)
+      }
    }
 }
 
@@ -293,7 +297,9 @@ async function runRates(job: SyncJob) {
          },
          onSkipped: (_asset, error) => {
             step.counts.skipped++
-            if (error) failures.push(error)
+            if (error) {
+               failures.push(error)
+            }
             job.updatedAt = Date.now()
          }
       })
@@ -303,9 +309,10 @@ async function runRates(job: SyncJob) {
       step.error = failures.length > 0 ? failures.join('; ') : null
       step.finishedAt = Date.now()
       setStepPhase(job, step, 'done')
-   }
-   catch (error) {
-      if (job.phase === 'cancelled') throw error
+   } catch (error) {
+      if (job.phase === 'cancelled') {
+         throw error
+      }
 
       step.error = messageOf(error)
       step.finishedAt = Date.now()
@@ -315,10 +322,14 @@ async function runRates(job: SyncJob) {
 }
 
 function throwIfCancelled(job: SyncJob) {
-   if (!job.cancelRequested) return
+   if (!job.cancelRequested) {
+      return
+   }
 
    const step = activeStep(job)
-   if (step) step.phase = 'cancelled'
+   if (step) {
+      step.phase = 'cancelled'
+   }
 
    setPhase(job, 'cancelled')
    throw new Error('Sync cancelled.')
@@ -341,7 +352,9 @@ function incrementalStart(repository: LedgerRepository, tradeRepository: TradeRe
       : [state?.coveredTo, repository.entryTimeRange()]
 
    const watermark = [coveredTo, range.last].filter((value): value is number => Boolean(value))
-   if (watermark.length === 0) return 0
+   if (watermark.length === 0) {
+      return 0
+   }
 
    return Math.max(0, Math.min(...watermark) - OVERLAP_MS)
 }
@@ -367,7 +380,9 @@ async function waitForReport(job: SyncJob, krakenAPI: KrakenAPI, step: SyncStep,
 
       if (entry) {
          step.reportStatus = entry.status
-         if (entry.status?.toLowerCase() === 'processed') return
+         if (entry.status?.toLowerCase() === 'processed') {
+            return
+         }
       }
    }
 
@@ -453,8 +468,7 @@ async function removeOrphanedReports(krakenAPI: KrakenAPI) {
             }
          }
       }
-   }
-   catch (error) {
+   } catch (error) {
       // Cleanup is opportunistic; a failure here must not stop the sync.
       console.warn('Could not check for orphaned exports:', messageOf(error))
    }
@@ -462,7 +476,9 @@ async function removeOrphanedReports(krakenAPI: KrakenAPI) {
 
 async function removeStepReport(krakenAPI: KrakenAPI, step: SyncStep) {
 
-   if (!step.reportId || step.reportRemoved) return
+   if (!step.reportId || step.reportRemoved) {
+      return
+   }
 
    // Kraken only deletes a report it has finished preparing. One still queued or
    // processing — which is what a cancelled run leaves behind — has to be cancelled
@@ -476,8 +492,7 @@ async function removeStepReport(krakenAPI: KrakenAPI, step: SyncStep) {
 async function safeRemoveReport(krakenAPI: KrakenAPI, reportId: string, type = 'delete') {
    try {
       await krakenAPI.removeExport(reportId, type)
-   }
-   catch (error) {
+   } catch (error) {
       // Never let a failed cleanup mask the error that actually ended the run.
       console.warn('Could not remove Kraken export', reportId, messageOf(error))
    }

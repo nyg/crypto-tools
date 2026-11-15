@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
-import SubNav from '../lib/sub-nav'
-import Layout from '../layout'
+
 import { subNavItems } from '@/lib/tools'
+
+import Layout from '../layout'
+import SubNav from '../lib/sub-nav'
 
 
 const tabs = subNavItems('Bybit')

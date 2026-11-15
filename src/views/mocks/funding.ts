@@ -96,7 +96,9 @@ const venues: Record<FundingVenueId, MockVenue> = {
 // polling loop instead of jumping straight to done.
 function jobOf(venue: MockVenue): FundingJob | null {
 
-   if (!venue.run) return null
+   if (!venue.run) {
+      return null
+   }
 
    const { startedAt, cancelledAt } = venue.run
    const elapsed = (cancelledAt ?? Date.now()) - startedAt
@@ -134,7 +136,9 @@ function overview(id: FundingVenueId): FundingResponse {
    const venue = venues[id]
    const job = jobOf(venue)
 
-   if (job?.phase === 'done' && job.finishedAt! > (venue.lastSyncedAt ?? 0)) venue.lastSyncedAt = job.finishedAt
+   if (job?.phase === 'done' && job.finishedAt! > (venue.lastSyncedAt ?? 0)) {
+      venue.lastSyncedAt = job.finishedAt
+   }
 
    return {
       movements: venue.lastSyncedAt ? venue.movements : [],
@@ -147,7 +151,9 @@ function sync(id: FundingVenueId): FundingSyncResponse {
 
    const venue = venues[id]
    const running = jobOf(venue)
-   if (running?.phase === 'running') return { job: running, alreadyRunning: true }
+   if (running?.phase === 'running') {
+      return { job: running, alreadyRunning: true }
+   }
 
    venue.run = { startedAt: Date.now(), cancelledAt: null }
    return { job: jobOf(venue)!, alreadyRunning: false }
@@ -156,7 +162,9 @@ function sync(id: FundingVenueId): FundingSyncResponse {
 function cancel(id: FundingVenueId): FundingCancelResponse {
 
    const venue = venues[id]
-   if (venue.run && jobOf(venue)?.phase === 'running') venue.run.cancelledAt = Date.now()
+   if (venue.run && jobOf(venue)?.phase === 'running') {
+      venue.run.cancelledAt = Date.now()
+   }
    return { job: jobOf(venue) }
 }
 

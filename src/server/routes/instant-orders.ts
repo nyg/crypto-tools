@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
+
+import type { VenueId } from '../../types/portfolio'
 import InstantOrderService, { InstantOrderError } from '../services/instant-order/instant-order-service'
 import venueHandler from './venue-handler'
-import type { VenueId } from '../../types/portfolio'
 
 const refusalOf = (error: unknown) =>
    error instanceof InstantOrderError ? { status: error.status, message: error.message } : null

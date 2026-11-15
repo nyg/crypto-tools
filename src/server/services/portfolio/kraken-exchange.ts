@@ -1,20 +1,20 @@
-import KrakenAPI from '../../adapters/kraken-api/adapter'
-import { mondayWeeks } from '../../adapters/kraken-api/ohlc'
-import { hasKrakenError, krakenErrors } from '../../adapters/kraken-api/spot'
-import { krakenBookProtocol, krakenOrderProtocol, krakenStreamSymbol } from '../../adapters/kraken-api/streams'
-import SocketHub, { ORDERS, sharedHub } from '../../adapters/websocket/socket-hub'
-import { accountIdFor } from '../../db/entry-key'
-import { krakenAccountId } from '../../settings'
-import CacheMap from './cache-map'
-import type { PortfolioExchange } from './exchange'
-import type { HttpRequesterError } from '../../errors'
-import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
 import type { Credentials } from '../../../types/credentials'
 import type { KrakenSpotMarket } from '../../../types/kraken'
 import type {
    CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderRequest, OrderSettlement,
    SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import KrakenAPI from '../../adapters/kraken-api/adapter'
+import { mondayWeeks } from '../../adapters/kraken-api/ohlc'
+import { hasKrakenError, krakenErrors } from '../../adapters/kraken-api/spot'
+import { krakenBookProtocol, krakenOrderProtocol, krakenStreamSymbol } from '../../adapters/kraken-api/streams'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
+import SocketHub, { ORDERS, sharedHub } from '../../adapters/websocket/socket-hub'
+import { accountIdFor } from '../../db/entry-key'
+import type { HttpRequesterError } from '../../errors'
+import { krakenAccountId } from '../../settings'
+import CacheMap from './cache-map'
+import type { PortfolioExchange } from './exchange'
 
 const MARKETS_TTL_MS = 60 * 60 * 1000
 const CANDLES_TTL_MS = 5 * 60 * 1000
@@ -136,7 +136,9 @@ export default class KrakenExchange implements PortfolioExchange {
 
    async #market(symbol: string): Promise<KrakenSpotMarket> {
       const market = (await this.#markets()).find(entry => entry.symbol === symbol)
-      if (!market) throw new Error(`Kraken lists no ${symbol} market.`)
+      if (!market) {
+         throw new Error(`Kraken lists no ${symbol} market.`)
+      }
       return market
    }
 }

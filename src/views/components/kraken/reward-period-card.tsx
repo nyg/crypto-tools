@@ -1,13 +1,14 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent } from '@/components/ui/card'
-import { Table, TableBody, TableRow, TableCell } from '@/components/ui/table'
-import SelectField from '../lib/select-field'
-import usePersistentState from '../../lib/use-persistent-state'
-import { ValuationTag, usdOf } from './reward-valuation'
-import { asAssetAmount, asDollarAmount, asUtcLongDate } from '../../../utils/format'
+import { Card, CardAction, CardContent,CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell,TableRow } from '@/components/ui/table'
+
 import type { RewardSummary } from '../../../types/api'
 import type { RewardPeriodRow } from '../../../types/db'
 import type { UsdRates } from '../../../types/kraken'
+import { asAssetAmount, asDollarAmount, asUtcLongDate } from '../../../utils/format'
+import usePersistentState from '../../lib/use-persistent-state'
+import SelectField from '../lib/select-field'
 import type { Valuation } from './reward-valuation'
+import { usdOf,ValuationTag } from './reward-valuation'
 
 const periods = [
    { value: 'week', label: 'Last week' },
@@ -31,10 +32,18 @@ export default function RewardPeriodCard({ rewards, rates, valuation }: {
 
    const rows = (selected?.assets ?? []).toSorted((a, b) => {
       const [left, right] = [valueOf(a), valueOf(b)]
-      if (left == null && right == null) return a.asset.localeCompare(b.asset)
-      if (left == null) return 1
-      if (right == null) return -1
-      if (left === right) return a.asset.localeCompare(b.asset)
+      if (left == null && right == null) {
+         return a.asset.localeCompare(b.asset)
+      }
+      if (left == null) {
+         return 1
+      }
+      if (right == null) {
+         return -1
+      }
+      if (left === right) {
+         return a.asset.localeCompare(b.asset)
+      }
       return right - left
    })
 

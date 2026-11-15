@@ -1,6 +1,5 @@
 import Big from 'big.js'
-import { tradeCount, orderCount, allTradeCount, clearTrades, restoreTrades } from './kraken-trades'
-import { mockUsdRateOn } from './usd-rates'
+
 import type {
    BalanceAsset, BalanceSummary, ClearResponse, FeeSummary, FundingBalance, FundingResponse,
    LedgerEntriesResponse, LedgerFiltersResponse, RewardAmount, RewardAsset, RewardStrategy, RewardSummary,
@@ -10,6 +9,8 @@ import type { LedgerEntryRow, RewardPeriodRow, SyncStateRow } from '../../types/
 import type { FundingKind } from '../../types/funding'
 import type { SyncJob, SyncMode, SyncStep, SyncStepPhase } from '../../types/jobs'
 import type { ExportReportType, LedgerFilters, Sort } from '../../types/kraken'
+import { allTradeCount, clearTrades, orderCount, restoreTrades,tradeCount } from './kraken-trades'
+import { mockUsdRateOn } from './usd-rates'
 
 // A fixture entry carries the wallet the export writes, which the stored row keeps too.
 type MockEntry = LedgerEntryRow
@@ -117,22 +118,18 @@ function buildEntries() {
             amount: volume, fee: (random(500) / 100000).toFixed(8), balance })
          push({ txid: `L${i}B`, refid, time, type: 'trade', asset: 'ZUSD', baseAsset: 'USD',
             amount: `-${cost}`, fee: (random(500) / 100).toFixed(4), balance: (random(500000) / 100).toFixed(4) })
-      }
-      else if (roll < 7) {
+      } else if (roll < 7) {
          push({ txid: `L${i}`, refid: `RW${i}`, time, type: 'earn', subtype: 'reward',
             asset, baseAsset, wallet: 'earn / flexible', amount: (random(20000) / 1000000).toFixed(8), balance })
-      }
-      else if (roll < 8) {
+      } else if (roll < 8) {
          push({ txid: `L${i}`, refid: `AL${i}`, time, type: 'earn', subtype: 'allocation',
             asset, baseAsset, wallet: 'earn / flexible', amount: (random(100000) / 10000).toFixed(8), balance })
-      }
-      else if (roll < 9) {
+      } else if (roll < 9) {
          // Kraken charges on some fiat funding methods, so deposits carry a fee too.
          push({ txid: `L${i}`, refid: `DP${i}`, time, type: 'deposit',
             asset: 'ZUSD', baseAsset: 'USD', amount: `${500 + random(4500)}.0000`,
             fee: (random(600) / 100).toFixed(4), balance })
-      }
-      else {
+      } else {
          push({ txid: `L${i}`, refid: `WD${i}`, time, type: 'withdrawal',
             asset, baseAsset, amount: `-${(random(30000) / 100000).toFixed(8)}`,
             fee: '0.00010000', balance })
@@ -269,7 +266,9 @@ function valuedAmount(asset: string, time: number, amount: number): RewardAmount
 }
 
 function addAmount(total: RewardAmount | undefined, amount: RewardAmount): RewardAmount {
-   if (!total) return amount
+   if (!total) {
+      return amount
+   }
    return {
       amount: total.amount + amount.amount,
       value: total.value === null && amount.value === null ? null : (total.value ?? 0) + (amount.value ?? 0),
@@ -299,7 +298,9 @@ function stepAt(
       error: null
    }
 
-   if (local < 0) return { ...base, phase: 'pending' }
+   if (local < 0) {
+      return { ...base, phase: 'pending' }
+   }
 
    const [, phase, reportStatus] = stepSchedule.findLast(([at]) => local >= at) ?? stepSchedule[0]!
    const stored = ['storing', 'cleaning', 'done'].includes(phase)
@@ -344,7 +345,9 @@ function rateStepAt(elapsed: number, offset: number, mode: SyncMode): SyncStep {
 }
 
 function currentJob(): SyncJob | null {
-   if (!job) return null
+   if (!job) {
+      return null
+   }
 
    const elapsed = Date.now() - job.startedAt
    const steps = [
@@ -418,7 +421,9 @@ export function ledgerSyncStatus(): SyncStatusResponse {
 }
 
 export function ledgerSyncCancel(): SyncCancelResponse {
-   if (job) job.cancelRequested = true
+   if (job) {
+      job.cancelRequested = true
+   }
    return { job: currentJob() }
 }
 
@@ -460,16 +465,26 @@ export function ledgerEntries(
    const factor = body.sort?.direction === 'asc' ? 1 : -1
 
    const value = (entry: MockEntry): string | number => {
-      if (column === 'amount') return Number(entry.amount)
-      if (column === 'asset') return entry.baseAsset
-      if (column === 'type') return entry.type
+      if (column === 'amount') {
+         return Number(entry.amount)
+      }
+      if (column === 'asset') {
+         return entry.baseAsset
+      }
+      if (column === 'type') {
+         return entry.type
+      }
       return entry.time
    }
 
    const sorted = filtered.toSorted((a, b) => {
       const [left, right] = [value(a), value(b)]
-      if (left < right) return -factor
-      if (left > right) return factor
+      if (left < right) {
+         return -factor
+      }
+      if (left > right) {
+         return factor
+      }
       return a.txid < b.txid ? -factor : factor
    })
 
@@ -503,8 +518,12 @@ export function ledgerFunding(): FundingResponse {
             high ??= balance
          }
          balance = balance.plus(entry.amount).minus(entry.fee)
-         if (low && balance.lt(low)) low = balance
-         if (high && balance.gt(high)) high = balance
+         if (low && balance.lt(low)) {
+            low = balance
+         }
+         if (high && balance.gt(high)) {
+            high = balance
+         }
       }
 
       return { after: balance.toFixed(), low: (low ?? balance).toFixed(), high: (high ?? balance).toFixed() }
@@ -585,7 +604,9 @@ function strategyOf(asset: RewardAsset, entry: MockEntry): RewardStrategy {
 
    const lockType = lockTypeOf(entry)
    const known = asset.strategies.find(strategy => strategy.lockType === lockType)
-   if (known) return known
+   if (known) {
+      return known
+   }
 
    const strategy: RewardStrategy = {
       lockType, active: false, total: { amount: 0, value: null, unvalued: 0 }, entries: 0, first: entry.time, last: entry.time, byYear: {}

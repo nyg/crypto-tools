@@ -38,7 +38,9 @@ export const renamedAssets: Record<string, string> = {
 
 // The ticker as it was when Kraken wrote it: MATIC stays MATIC.
 export function tickerOf(asset: string | undefined): string {
-   if (!asset) return ''
+   if (!asset) {
+      return ''
+   }
 
    // Strip any staking, earn or parachain suffix: DOT28.S becomes DOT, XBT.F becomes
    // XBT. Only a trailing suffix is removed, and the digits before it unless a ticker

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
+
 import ExternalLink from '../components/lib/external-link'
 
 const portfolioHelp = (exchange: string, practice: ReactNode) =>
@@ -62,7 +63,7 @@ const pageHelp: Record<string, ReactNode> = {
    '/kraken/balances':
       <>
          What you hold on Kraken, read live and grouped by <b>where each coin
-         sits</b> — your spot wallet, or one of Kraken&apos;s Earn strategies. Spot
+            sits</b> — your spot wallet, or one of Kraken&apos;s Earn strategies. Spot
          coins in <b>Auto Earn</b> keep earning without leaving the wallet they trade
          from. Totals are checked against the ledger the Ledger tab stores.
       </>,

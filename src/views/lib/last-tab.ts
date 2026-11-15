@@ -10,8 +10,7 @@ const readLastTabs = (): Record<string, unknown> => {
       return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
          ? parsed as Record<string, unknown>
          : {}
-   }
-   catch (error) {
+   } catch (error) {
       console.warn(`Could not read ${STORAGE_KEY} from local storage:`, messageOf(error))
       return {}
    }
@@ -19,19 +18,22 @@ const readLastTabs = (): Record<string, unknown> => {
 
 export function rememberTab(path: string) {
    const group = groupOfPath(path)
-   if (!group) return
+   if (!group) {
+      return
+   }
 
    try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...readLastTabs(), [group.name]: path }))
-   }
-   catch (error) {
+   } catch (error) {
       console.warn(`Could not write ${STORAGE_KEY} to local storage:`, messageOf(error))
    }
 }
 
 export function sectionHref(name: string, currentPath: string): string {
    const hrefs = tabHrefs(name)
-   if (hrefs.includes(currentPath)) return currentPath
+   if (hrefs.includes(currentPath)) {
+      return currentPath
+   }
 
    const last = readLastTabs()[name]
    return typeof last === 'string' && hrefs.includes(last) ? last : groupHref(name)

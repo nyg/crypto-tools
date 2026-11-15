@@ -1,6 +1,6 @@
-import * as React from 'react'
 import { Command as CommandPrimitive } from 'cmdk'
 import { SearchIcon } from 'lucide-react'
+import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -104,10 +104,10 @@ function CommandItem({
 
 export {
    Command,
-   CommandInput,
-   CommandList,
    CommandEmpty,
    CommandGroup,
+   CommandInput,
    CommandItem,
+   CommandList,
    CommandSeparator,
 }

@@ -1,13 +1,13 @@
-import {
-   environmentValue, providers, readStoredSecret, rememberKrakenAccount, writeStoredSecret
-} from './settings'
-import { dataProfile } from './environment'
-import { messageOf } from './errors'
-import type { DataProfile } from './environment'
 import type { Credentials, Provider } from '../types/credentials'
 import type {
    CredentialStore, ProviderSecrets, SecretField, SettingsUpdate
 } from '../types/settings'
+import type { DataProfile } from './environment'
+import { dataProfile } from './environment'
+import { messageOf } from './errors'
+import {
+   environmentValue, providers, readStoredSecret, rememberKrakenAccount, writeStoredSecret
+} from './settings'
 
 const PRODUCTION_SERVICE = 'io.github.nyg.crypto-tools'
 
@@ -32,8 +32,12 @@ const secretFields = (provider: Provider): SecretField[] =>
    providers[provider].hasSecret ? ['apiKey', 'apiSecret'] : ['apiKey']
 
 function nativeStore(): CredentialStore {
-   if (process.platform === 'darwin') return 'keychain'
-   if (process.platform === 'win32') return 'credential-manager'
+   if (process.platform === 'darwin') {
+      return 'keychain'
+   }
+   if (process.platform === 'win32') {
+      return 'credential-manager'
+   }
    return 'keyring'
 }
 
@@ -42,7 +46,9 @@ class SecretStore {
    #warned = false
 
    #reportUnavailable(action: string, error: unknown): void {
-      if (this.#warned) return
+      if (this.#warned) {
+         return
+      }
       this.#warned = true
       console.warn(
          `Could not ${action} a credential in the OS credential store, using the settings file instead:`,
@@ -52,9 +58,10 @@ class SecretStore {
    async #read(provider: Provider, field: SecretField): Promise<string> {
       try {
          const stored = await Bun.secrets.get({ service: serviceOf(), name: entryName(provider, field) })
-         if (stored) return stored
-      }
-      catch (error) {
+         if (stored) {
+            return stored
+         }
+      } catch (error) {
          this.#reportUnavailable('read', error)
       }
 
@@ -65,10 +72,12 @@ class SecretStore {
       const name = entryName(provider, field)
 
       try {
-         if (value) await Bun.secrets.set({ service: serviceOf(), name, value })
-         else await Bun.secrets.delete({ service: serviceOf(), name })
-      }
-      catch (error) {
+         if (value) {
+            await Bun.secrets.set({ service: serviceOf(), name, value })
+         } else {
+            await Bun.secrets.delete({ service: serviceOf(), name })
+         }
+      } catch (error) {
          this.#reportUnavailable('store', error)
          writeStoredSecret(provider, field, value || null)
          return
@@ -81,7 +90,9 @@ class SecretStore {
       const configured = secretFields(provider)
          .map(field => ({ field, value: environmentValue(provider, field) }))
 
-      if (configured.some(({ value }) => value)) return 'env'
+      if (configured.some(({ value }) => value)) {
+         return 'env'
+      }
 
       let store: CredentialStore = 'none'
 
@@ -90,8 +101,11 @@ class SecretStore {
             .get({ service: serviceOf(), name: entryName(provider, field) })
             .catch(() => null)
 
-         if (inStore) store = store === 'file' ? 'file' : nativeStore()
-         else if (readStoredSecret(provider, field)) store = 'file'
+         if (inStore) {
+            store = store === 'file' ? 'file' : nativeStore()
+         } else if (readStoredSecret(provider, field)) {
+            store = 'file'
+         }
       }
 
       return store
@@ -130,16 +144,22 @@ class SecretStore {
    async save(updates: SettingsUpdate): Promise<void> {
       for (const [id] of providerEntries()) {
          const update = updates[id]
-         if (!update) continue
+         if (!update) {
+            continue
+         }
 
          for (const field of secretFields(id)) {
             const value = update[field]
-            if (typeof value !== 'string') continue
+            if (typeof value !== 'string') {
+               continue
+            }
 
             const trimmed = value.trim()
             await this.#write(id, field, trimmed)
 
-            if (id === 'kraken' && field === 'apiKey') rememberKrakenAccount(trimmed)
+            if (id === 'kraken' && field === 'apiKey') {
+               rememberKrakenAccount(trimmed)
+            }
          }
       }
    }
@@ -155,9 +175,10 @@ class SecretStore {
 
             try {
                const stored = await Bun.secrets.get({ service, name })
-               if (stored) values.set(name, stored)
-            }
-            catch (error) {
+               if (stored) {
+                  values.set(name, stored)
+               }
+            } catch (error) {
                this.#reportUnavailable('read', error)
                complete = false
             }
@@ -171,7 +192,9 @@ class SecretStore {
       for (const [id] of providerEntries()) {
          for (const field of secretFields(id)) {
             const value = values.get(entryName(id, field))
-            if (value) await this.#write(id, field, value)
+            if (value) {
+               await this.#write(id, field, value)
+            }
          }
       }
    }
@@ -180,15 +203,18 @@ class SecretStore {
       for (const [id] of providerEntries()) {
          for (const field of secretFields(id)) {
             const stored = readStoredSecret(id, field)
-            if (!stored) continue
+            if (!stored) {
+               continue
+            }
 
-            if (id === 'kraken' && field === 'apiKey') rememberKrakenAccount(stored)
+            if (id === 'kraken' && field === 'apiKey') {
+               rememberKrakenAccount(stored)
+            }
 
             try {
                await Bun.secrets.set({ service: serviceOf(), name: entryName(id, field), value: stored })
                writeStoredSecret(id, field, null)
-            }
-            catch (error) {
+            } catch (error) {
                this.#reportUnavailable('store', error)
                return
             }

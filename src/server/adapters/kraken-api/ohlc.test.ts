@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import { DAY_MS, candlesOf, mondayWeeks, spotCandles, usdRatesFromCandles } from './ohlc'
+
 import type { KrakenOhlcCandle } from '../../../types/kraken-api'
 import type { SpotCandle } from '../../../types/portfolio'
+import { candlesOf, DAY_MS, mondayWeeks, spotCandles, usdRatesFromCandles } from './ohlc'
 
 const seconds = (time: number) => time / 1000
 

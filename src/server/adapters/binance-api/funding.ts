@@ -1,4 +1,5 @@
 import Big from 'big.js'
+
 import type { BinanceDeposit, BinanceFiatOrder, BinanceWithdrawal } from '../../../types/binance-api'
 import type { FundingKind, FundingRecord, FundingStatus } from '../../../types/funding'
 

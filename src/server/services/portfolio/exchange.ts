@@ -1,9 +1,9 @@
-import type { HttpRequesterError } from '../../errors'
-import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
 import type {
    CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderRequest, OrderSettlement,
    SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
+import type { HttpRequesterError } from '../../errors'
 
 export interface ChasePacing {
    pollMs: number

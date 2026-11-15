@@ -1,9 +1,9 @@
-import BinanceAPI from '../../adapters/binance-api/adapter'
-import BybitAPI from '../../adapters/bybit-api/adapter'
-import { venues } from '../portfolio/venues'
-import type { PortfolioExchange } from '../portfolio/exchange'
 import type { Credentials, Provider } from '../../../types/credentials'
 import type { FundingRecord, FundingVenueId, FundingWindow } from '../../../types/funding'
+import BinanceAPI from '../../adapters/binance-api/adapter'
+import BybitAPI from '../../adapters/bybit-api/adapter'
+import type { PortfolioExchange } from '../portfolio/exchange'
+import { venues } from '../portfolio/venues'
 
 const DAY = 86400000
 

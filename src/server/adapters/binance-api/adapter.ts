@@ -1,22 +1,23 @@
 import Big from 'big.js'
-import * as resource from './resource'
-import { candlesFromKLines, usdRatesFromKLines } from './klines'
-import { depositRecord, fiatRecord, withdrawalRecord } from './funding'
-import {
-   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, tradeFees
-} from './spot'
-import type { Credentials } from '../../../types/credentials'
-import type { TradingPair, TradingPairs } from '../../../types/market'
+
 import type {
    Candlestick, FiatDeposit, PairRates, SpotBalances, StakingBalances
 } from '../../../types/binance'
 import type { BinanceEnvironment, BinanceFiatOrder } from '../../../types/binance-api'
+import type { Credentials } from '../../../types/credentials'
 import type { UsdRateRow } from '../../../types/db'
 import type { FundingKind, FundingRecord, FundingWindow } from '../../../types/funding'
+import type { TradingPair, TradingPairs } from '../../../types/market'
 import type {
    CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
    SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import { depositRecord, fiatRecord, withdrawalRecord } from './funding'
+import { candlesFromKLines, usdRatesFromKLines } from './klines'
+import * as resource from './resource'
+import {
+   hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, tradeFees
+} from './spot'
 
 const UNKNOWN_ORDER = -2011
 const NO_SUCH_ORDER = -2013
@@ -34,7 +35,9 @@ async function everyPage<Row>(fetchPage: (offset: number) => Promise<Row[]>): Pr
    for (;;) {
       const page = await fetchPage(rows.length)
       rows.push(...page)
-      if (page.length < HISTORY_LIMIT) return rows
+      if (page.length < HISTORY_LIMIT) {
+         return rows
+      }
    }
 }
 
@@ -51,7 +54,9 @@ export default class BinanceAPI {
    // Every private call needs credentials; a BinanceAPI built without them is only
    // good for the public endpoints, and asking it for a balance is a programming error.
    get #authenticated(): Credentials {
-      if (!this.#credentials) throw new Error('This Binance call needs API credentials.')
+      if (!this.#credentials) {
+         throw new Error('This Binance call needs API credentials.')
+      }
       return this.#credentials
    }
 
@@ -99,7 +104,9 @@ export default class BinanceAPI {
          const klines = await resource.fetchKLines(symbol, '1d', startTime, to + DAY_MS - 1, KLINE_LIMIT)
          rows.push(...usdRatesFromKLines({ asset, klines, today }))
          const last = klines.at(-1)?.[0]
-         if (klines.length < KLINE_LIMIT || last === undefined) break
+         if (klines.length < KLINE_LIMIT || last === undefined) {
+            break
+         }
          startTime = last + DAY_MS
       }
 
@@ -206,7 +213,9 @@ export default class BinanceAPI {
             { transactionType: kind === 'deposit' ? 0 : 1, fromDate: from, toDate: to, pageIndex })
 
          orders.push(...data)
-         if (data.length === 0 || orders.length >= total) break
+         if (data.length === 0 || orders.length >= total) {
+            break
+         }
       }
 
       return orders.map(order => fiatRecord(order, kind))
@@ -277,9 +286,10 @@ export default class BinanceAPI {
    async cancelOrderIfOpen({ symbol, clientOrderId }: OrderLookup): Promise<void> {
       try {
          await resource.cancelOrder(this.#environment, this.#authenticated, { symbol, origClientOrderId: clientOrderId })
-      }
-      catch (error) {
-         if (!hasBinanceCode(error, UNKNOWN_ORDER)) throw error
+      } catch (error) {
+         if (!hasBinanceCode(error, UNKNOWN_ORDER)) {
+            throw error
+         }
       }
    }
 
@@ -292,14 +302,17 @@ export default class BinanceAPI {
       let order
       try {
          order = await resource.fetchOrder(this.#environment, this.#authenticated, { symbol, origClientOrderId: clientOrderId })
-      }
-      catch (error) {
-         if (hasBinanceCode(error, NO_SUCH_ORDER)) return null
+      } catch (error) {
+         if (hasBinanceCode(error, NO_SUCH_ORDER)) {
+            return null
+         }
          throw error
       }
 
       const settled = settlementOf(order, [])
-      if (settled.status === 'open' || Big(settled.base).eq(0)) return settled
+      if (settled.status === 'open' || Big(settled.base).eq(0)) {
+         return settled
+      }
 
       const trades = await resource.fetchOrderTrades(this.#environment, this.#authenticated, { symbol, orderId: order.orderId })
       return settlementOf(order, trades)

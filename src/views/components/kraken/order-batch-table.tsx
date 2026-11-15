@@ -1,8 +1,10 @@
 import Big from 'big.js'
-import { asDecimal } from '../../../utils/format'
-import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
+
 import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell,TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import type { TradingPairs } from '../../../types/market'
+import { asDecimal } from '../../../utils/format'
 
 // The preview holds its amounts as Big while it is on screen; the request body is what
 // serializes them. This is the page's own shape, not one the server ever sees.

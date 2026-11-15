@@ -1,9 +1,11 @@
-import type { ReactNode } from 'react'
 import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import type { ReactNode } from 'react'
+
 import { TableCell, TableHead } from '@/components/ui/table'
-import { asQuantity, asSignedPercent, flipDistance, flipExtension, flipPending } from './format'
+import { cn } from '@/lib/utils'
+
 import type { SupertrendLevel, SupertrendLevels, SupertrendTrend } from '../../../types/api'
+import { asQuantity, asSignedPercent, flipDistance, flipExtension, flipPending } from './format'
 
 export interface SupertrendColumns {
    levels: Record<string, SupertrendLevels> | undefined
@@ -57,7 +59,9 @@ export const SupertrendCell = ({ level, price, loading, timeframe }: {
    loading: boolean
    timeframe: string
 }) => {
-   if (!level) return <TableCell className="text-right text-muted-foreground">{loading ? '…' : '—'}</TableCell>
+   if (!level) {
+      return <TableCell className="text-right text-muted-foreground">{loading ? '…' : '—'}</TableCell>
+   }
    const extension = flipExtension(level.flipPrice, price)
    const distance = flipDistance(level.flipPrice, price)
    const pending = flipPending(level, price)

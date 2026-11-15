@@ -1,16 +1,16 @@
-import BybitAPI from '../../adapters/bybit-api/adapter'
-import { bybitBookProtocol, bybitOrderProtocol } from '../../adapters/bybit-api/streams'
-import SocketHub, { ORDERS, sharedHub } from '../../adapters/websocket/socket-hub'
-import CacheMap from './cache-map'
-import type { PortfolioExchange } from './exchange'
-import type { HttpRequesterError } from '../../errors'
-import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
-import type { Credentials } from '../../../types/credentials'
 import type { BybitEnvironment } from '../../../types/bybit-api'
+import type { Credentials } from '../../../types/credentials'
 import type {
    CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderRequest, OrderSettlement,
    SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import BybitAPI from '../../adapters/bybit-api/adapter'
+import { bybitBookProtocol, bybitOrderProtocol } from '../../adapters/bybit-api/streams'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
+import SocketHub, { ORDERS, sharedHub } from '../../adapters/websocket/socket-hub'
+import type { HttpRequesterError } from '../../errors'
+import CacheMap from './cache-map'
+import type { PortfolioExchange } from './exchange'
 
 const ACCOUNT_TTL_MS = 5 * 60 * 1000
 const MARKETS_TTL_MS = 60 * 60 * 1000
@@ -107,7 +107,9 @@ export default class BybitExchange implements PortfolioExchange {
 
    describeError(error: HttpRequesterError): string {
       const body = error.body as BybitErrorBody
-      if (typeof body === 'object' && body?.retMsg) return `${body.retMsg} (${body.retCode})`
+      if (typeof body === 'object' && body?.retMsg) {
+         return `${body.retMsg} (${body.retCode})`
+      }
       return String(error.cause)
    }
 

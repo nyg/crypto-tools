@@ -1,10 +1,12 @@
 import { Loader2Icon } from 'lucide-react'
+
 import {
    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
    AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog'
-import { asQuantity } from './format'
+
 import type { PortfolioSummary } from '../../../types/api'
+import { asQuantity } from './format'
 
 interface ArchiveDialogProps {
    portfolio: PortfolioSummary | null
@@ -35,7 +37,9 @@ export default function ArchiveDialog({ portfolio, isArchiving, onConfirm, onOpe
                <AlertDialogAction
                   variant="destructive"
                   disabled={isArchiving}
-                  onClick={event => { event.preventDefault(); onConfirm() }}>
+                  onClick={event => {
+                     event.preventDefault(); onConfirm()
+                  }}>
                   {isArchiving && <Loader2Icon className="size-4 animate-spin" />}
                   Archive
                </AlertDialogAction>

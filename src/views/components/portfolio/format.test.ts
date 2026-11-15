@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { flipDistance, flipExtension, flipPending } from './format'
 
 describe('flipDistance', () => {

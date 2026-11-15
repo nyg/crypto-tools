@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { supertrend } from './supertrend'
+
 import type { SpotCandle } from '../../../types/portfolio'
+import { supertrend } from './supertrend'
 
 const DAY_MS = 86400000
 

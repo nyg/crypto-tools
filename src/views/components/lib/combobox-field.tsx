@@ -1,12 +1,14 @@
+import { CheckIcon, ChevronDownIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
-import { CheckIcon, ChevronDownIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { Label } from '@/components/ui/label'
+
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem,CommandList } from '@/components/ui/command'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent,PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
+
 import type { FieldOption } from './select-field'
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command'
 
 // Searchable, scrollable select (shadcn Combobox = Popover + Command).
 // Same field shape as SelectField, for lists with many options.

@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
+
 import { Label } from '@/components/ui/label'
 import {
    Select,
-   SelectTrigger,
-   SelectValue,
    SelectContent,
    SelectItem,
+   SelectTrigger,
+   SelectValue,
 } from '@/components/ui/select'
 
 // shadcn-idiomatic labeled Select field (Radix based).

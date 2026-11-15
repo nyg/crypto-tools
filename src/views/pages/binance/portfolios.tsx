@@ -1,6 +1,6 @@
 import BinanceLayout from '../../components/binance/binance-layout'
-import PortfoliosPage from '../../components/portfolio/portfolios-page'
 import { binanceTestnetVenue, binanceVenue } from '../../components/binance/venues'
+import PortfoliosPage from '../../components/portfolio/portfolios-page'
 
 const BINANCE_FEES = 'Binance charges the fee on each order in the coin the order receives, the bought coin on a buy and the cash coin on a sell, or in BNB when the account pays its fees with BNB. An order cannot ask to pay it in cash.'
 

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { krakenExecutionInbound, krakenStreamSymbol, krakenTickerInbound } from './streams'
 
 describe('the Kraken book stream', () => {

@@ -1,25 +1,27 @@
 import { useState } from 'react'
-import useSWR, { useSWRConfig } from 'swr'
 import { toast } from 'sonner'
+import useSWR, { useSWRConfig } from 'swr'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+import type {
+   InstantOrderActionRequest, InstantOrderActionResponse, InstantOrderFollowRequest, InstantOrderMarketsResponse,
+   InstantOrderPlaceRequest, InstantOrderPlaceResponse, InstantOrderState, InstantOrderStatusResponse, TrackedInstantOrder
+} from '../../../types/api'
+import type { VenueId } from '../../../types/portfolio'
 import useMutation from '../../lib/use-mutation'
 import usePersistentState from '../../lib/use-persistent-state'
 import { useProvider } from '../../lib/use-settings'
 import ComboboxField from '../lib/combobox-field'
 import CredentialsAlert from '../lib/credentials-alert'
 import LoadingSpinner from '../lib/loading-spinner'
-import VenueTabs, { useVenue } from '../lib/venue-tabs'
-import OrderForm from './order-form'
-import OrdersTable, { isClosed, remainingOf } from './orders-table'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ExchangeLayout, ExchangeVenue } from '../lib/venue-tabs'
+import VenueTabs, { useVenue } from '../lib/venue-tabs'
 import type { FollowSettings } from './order-form'
+import OrderForm from './order-form'
 import type { TrackedOrder } from './orders-table'
-import type {
-   InstantOrderActionRequest, InstantOrderActionResponse, InstantOrderFollowRequest, InstantOrderMarketsResponse,
-   InstantOrderPlaceRequest, InstantOrderPlaceResponse, InstantOrderState, InstantOrderStatusResponse, TrackedInstantOrder
-} from '../../../types/api'
-import type { VenueId } from '../../../types/portfolio'
+import OrdersTable, { isClosed, remainingOf } from './orders-table'
 
 const STATUS_REFRESH_MS = 3000
 const KEPT_ORDERS = 20
@@ -68,8 +70,12 @@ export default function InstantOrderPage({ layout: Layout, storageKey, venues }:
       configured && open.length > 0 ? [`${apiBase}/status`, { orders: open }] : null, {
          refreshInterval: STATUS_REFRESH_MS,
          onSuccess: ({ states }) => {
-            if (Object.values(states).some(({ status }) => status !== 'open' && status !== 'unknown')) refreshAccount()
-            for (const [id, state] of Object.entries(states)) settle(id, state)
+            if (Object.values(states).some(({ status }) => status !== 'open' && status !== 'unknown')) {
+               refreshAccount()
+            }
+            for (const [id, state] of Object.entries(states)) {
+               settle(id, state)
+            }
          }
       })
 
@@ -83,11 +89,9 @@ export default function InstantOrderPage({ layout: Layout, storageKey, venues }:
       setBusy(entry.order.id)
       try {
          await work()
-      }
-      catch (reason) {
+      } catch (reason) {
          toast.error(messageOf(reason, failure))
-      }
-      finally {
+      } finally {
          setBusy(null)
       }
    }

@@ -1,6 +1,7 @@
 import Big from 'big.js'
-import type { KrakenOhlc, KrakenOhlcCandle } from '../../../types/kraken-api'
+
 import type { UsdRateRow } from '../../../types/db'
+import type { KrakenOhlc, KrakenOhlcCandle } from '../../../types/kraken-api'
 import type { SpotCandle } from '../../../types/portfolio'
 
 export const DAY_MS = 86400000
@@ -39,8 +40,12 @@ export function mondayWeeks(daily: SpotCandle[]): SpotCandle[] {
          continue
       }
 
-      if (Big(high).gt(week.high)) week.high = high
-      if (Big(low).lt(week.low)) week.low = low
+      if (Big(high).gt(week.high)) {
+         week.high = high
+      }
+      if (Big(low).lt(week.low)) {
+         week.low = low
+      }
       week.close = close
    }
 
@@ -63,7 +68,9 @@ export function usdRatesFromCandles({ asset, daily, weekly, inverse, today }: {
 
    const rateOf = (candle: KrakenOhlcCandle) => {
       const price = priceOf(candle)
-      if (price === null) return null
+      if (price === null) {
+         return null
+      }
       return inverse ? 1 / price : price
    }
 
@@ -72,18 +79,24 @@ export function usdRatesFromCandles({ asset, daily, weekly, inverse, today }: {
    for (const candle of daily) {
       const day = candle[0] * 1000
       const rate = rateOf(candle)
-      if (rate !== null && day < today) rows.set(day, { asset, day, rate, source: 'kraken-daily' })
+      if (rate !== null && day < today) {
+         rows.set(day, { asset, day, rate, source: 'kraken-daily' })
+      }
    }
 
    const firstDaily = daily.length > 0 ? Math.min(...daily.map(candle => candle[0] * 1000)) : today
 
    for (const candle of weekly) {
       const rate = rateOf(candle)
-      if (rate === null) continue
+      if (rate === null) {
+         continue
+      }
 
       for (let offset = 0; offset < WEEK_DAYS; offset++) {
          const day = candle[0] * 1000 + offset * DAY_MS
-         if (day >= firstDaily || day >= today) break
+         if (day >= firstDaily || day >= today) {
+            break
+         }
          rows.set(day, { asset, day, rate, source: 'kraken-weekly' })
       }
    }

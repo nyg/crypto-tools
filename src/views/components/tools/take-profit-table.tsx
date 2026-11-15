@@ -1,6 +1,7 @@
-import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
-import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Table, TableBody, TableCell,TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { TradeResult } from '@/lib/trade-calculator'
+
+import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
 
 const Missing = () => <span className="text-muted-foreground">—</span>
 

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+
 import { messageOf } from './errors'
 
 export type Theme = 'light' | 'dark'
@@ -15,8 +16,7 @@ function readChoice(): Theme | null {
    try {
       const saved = localStorage.getItem(STORAGE_KEY)
       return isTheme(saved) ? saved : null
-   }
-   catch (error) {
+   } catch (error) {
       console.warn(`Could not read ${STORAGE_KEY} from local storage:`, messageOf(error))
       return null
    }
@@ -24,10 +24,12 @@ function readChoice(): Theme | null {
 
 function writeChoice(theme: Theme | null) {
    try {
-      if (theme) localStorage.setItem(STORAGE_KEY, theme)
-      else localStorage.removeItem(STORAGE_KEY)
-   }
-   catch (error) {
+      if (theme) {
+         localStorage.setItem(STORAGE_KEY, theme)
+      } else {
+         localStorage.removeItem(STORAGE_KEY)
+      }
+   } catch (error) {
       console.warn(`Could not write ${STORAGE_KEY} to local storage:`, messageOf(error))
    }
 }
@@ -60,7 +62,9 @@ export function toggleTheme() {
 darkScheme.addEventListener('change', applyTheme)
 
 window.addEventListener('storage', event => {
-   if (event.key !== null && event.key !== STORAGE_KEY) return
+   if (event.key !== null && event.key !== STORAGE_KEY) {
+      return
+   }
    choice = readChoice()
    applyTheme()
 })

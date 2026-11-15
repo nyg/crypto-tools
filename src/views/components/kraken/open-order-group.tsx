@@ -1,16 +1,18 @@
-import { useState } from 'react'
+import type Big from 'big.js'
 import { ChevronLeftIcon, ChevronRightIcon, Trash2Icon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { summarize } from './open-order-totals'
-import { asCount } from '../lib/filter-options'
-import { asAssetAmount, asLocalTimestamp, asNumber, asPercentage, asUtcTimestamp } from '../../../utils/format'
-import type Big from 'big.js'
+import { Table, TableBody, TableCell,TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+
 import type { OpenOrder } from '../../../types/kraken'
+import { asAssetAmount, asLocalTimestamp, asNumber, asPercentage, asUtcTimestamp } from '../../../utils/format'
+import { asCount } from '../lib/filter-options'
+import { summarize } from './open-order-totals'
 
 // One trading pair's book, which is how the page groups what Kraken returned.
 export interface OrderGroup {
@@ -73,7 +75,9 @@ export default function OpenOrderGroup({
 
    const toggleOne = (txid: string) => {
       const next = new Set(selected)
-      if (!next.delete(txid)) next.add(txid)
+      if (!next.delete(txid)) {
+         next.add(txid)
+      }
       onSelectionChange([...next])
    }
 

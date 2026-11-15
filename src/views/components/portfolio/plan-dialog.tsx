@@ -1,35 +1,37 @@
-import { useEffect, useRef, useState } from 'react'
-import useSWR from 'swr'
 import Big from 'big.js'
-import { toast } from 'sonner'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
-import useMutation from '../../lib/use-mutation'
-import LoadingSpinner from '../lib/loading-spinner'
-import NumericInput from '../lib/numeric-input'
-import SelectField from '../lib/select-field'
-import OrderLabel from './order-label'
-import RunProgress from './run-progress'
-import { SupertrendCell, SupertrendHead } from './supertrend-cell'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import useSWR from 'swr'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
    AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { asCount } from '../lib/filter-options'
-import { asQuantity, asQuoteAmount, runStatusLabels, skipReasons } from './format'
-import { asPercentage } from '../../../utils/format'
-import type { SupertrendColumns } from './supertrend-cell'
+
 import type {
    PortfolioExecuteRequest, PortfolioPlanRequest, PortfolioPlanResponse, PortfolioRun,
    PortfolioRunResponse, PortfolioSummary, PortfolioSupertrendResponse
 } from '../../../types/api'
 import type { Execution, RebalanceMode } from '../../../types/portfolio'
+import { asPercentage } from '../../../utils/format'
+import useMutation from '../../lib/use-mutation'
+import { asCount } from '../lib/filter-options'
+import LoadingSpinner from '../lib/loading-spinner'
+import NumericInput from '../lib/numeric-input'
+import SelectField from '../lib/select-field'
+import { asQuantity, asQuoteAmount, runStatusLabels, skipReasons } from './format'
+import OrderLabel from './order-label'
+import RunProgress from './run-progress'
+import type { SupertrendColumns } from './supertrend-cell'
+import { SupertrendCell, SupertrendHead } from './supertrend-cell'
 
 export interface PlanTarget {
    portfolio: PortfolioSummary
@@ -91,9 +93,15 @@ const assumedFeeRateTitles: Record<Execution, string> = {
 
 function describePlan(plan: PortfolioPlanResponse): string {
    const quote = plan.quoteAsset
-   if (plan.kind === 'withdraw') return `Withdrawing ${asQuoteAmount(plan.withdraw, quote)} of ${asQuoteAmount(plan.total, quote)}.`
-   if (plan.mode === 'invest') return `Spending the portfolio's ${quote} on the coins below their targets, without selling anything.`
-   if (plan.mode === 'trim') return `Selling the coins above their targets and keeping the ${quote} in the portfolio.`
+   if (plan.kind === 'withdraw') {
+      return `Withdrawing ${asQuoteAmount(plan.withdraw, quote)} of ${asQuoteAmount(plan.total, quote)}.`
+   }
+   if (plan.mode === 'invest') {
+      return `Spending the portfolio's ${quote} on the coins below their targets, without selling anything.`
+   }
+   if (plan.mode === 'trim') {
+      return `Selling the coins above their targets and keeping the ${quote} in the portfolio.`
+   }
    return `Bringing ${asQuoteAmount(plan.total, quote)} back to its targets.`
 }
 
@@ -113,7 +121,9 @@ function PlanPreview({ plan, portfolio, supertrend, disabled, onInclude }: PlanP
    const priceOf = (asset: string) => portfolio.holdings.find(holding => holding.asset === asset)?.price ?? null
 
    const supertrendCells = (asset: string, price: string | null) => {
-      if (!supertrend) return null
+      if (!supertrend) {
+         return null
+      }
       const levels = supertrend.levels?.[`${asset}${quote}`]
       return (
          <>
@@ -251,7 +261,9 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
          ...target.request, amount, band: band || undefined, slippage, mode, exclude, execution, wait, ...changes
       })
          .then(() => {
-            if (request === latestPreview.current) setPreviewed(asked)
+            if (request === latestPreview.current) {
+               setPreviewed(asked)
+            }
          })
          .catch(() => {})
    }
@@ -279,25 +291,30 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
    }, [])
 
    useEffect(() => {
-      if (!stale) return
+      if (!stale) {
+         return
+      }
       const timer = setTimeout(() => requestPlan(), PREVIEW_DEBOUNCE_MS)
       return () => clearTimeout(timer)
    }, [band, slippage, wait])
 
    useEffect(() => {
-      if (!plan) return
+      if (!plan) {
+         return
+      }
       const timer = setTimeout(() => setExpiredPlan(plan.planId), Math.max(0, plan.expiresAt - Date.now()))
       return () => clearTimeout(timer)
    }, [plan])
 
    const confirm = async () => {
-      if (!plan) return
+      if (!plan) {
+         return
+      }
       try {
          const { run } = await execute({ planId: plan.planId })
          setRunId(run.id)
          setConfirming(false)
-      }
-      catch (reason) {
+      } catch (reason) {
          setConfirming(false)
          toast.error(typeof reason === 'string' ? reason : 'The orders could not be placed.')
       }
@@ -307,9 +324,14 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
 
    const finished = (run: PortfolioRun) => {
       const message = `${target.portfolio.name}: ${runStatusLabels[run.status].toLowerCase()}.`
-      if (run.status === 'done') toast.success(message)
-      else toast.warning(message)
-      if (run.status !== 'done' && (!withdrawsAmount || leftToWithdraw(run).gt(0))) setUnfinished(run)
+      if (run.status === 'done') {
+         toast.success(message)
+      } else {
+         toast.warning(message)
+      }
+      if (run.status !== 'done' && (!withdrawsAmount || leftToWithdraw(run).gt(0))) {
+         setUnfinished(run)
+      }
       onFinished()
    }
 
@@ -324,7 +346,9 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
    }
 
    const close = () => {
-      if (runId) onFinished()
+      if (runId) {
+         onFinished()
+      }
       onOpenChange(false)
    }
 
@@ -488,7 +512,9 @@ function PlanFlow({ apiBase, venueLabel, feesNote, live, target, onOpenChange, o
                   <AlertDialogAction
                      variant={live && hasOrders ? 'destructive' : 'default'}
                      disabled={isExecuting}
-                     onClick={event => { event.preventDefault(); confirm() }}>
+                     onClick={event => {
+                        event.preventDefault(); confirm()
+                     }}>
                      {isExecuting && <Loader2Icon className="size-4 animate-spin" />}
                      {hasOrders ? 'Place the orders' : 'Withdraw'}
                   </AlertDialogAction>

@@ -65,8 +65,7 @@ const storeAvailable = await (async () => {
       await Bun.secrets.set({ service, name: 'probe', value: 'probe' })
       await Bun.secrets.delete({ service, name: 'probe' })
       return true
-   }
-   catch {
+   } catch {
       return false
    }
 })()
@@ -122,7 +121,9 @@ afterAll(async () => {
          }
       }
    }
-   for (const home of homes) fs.rmSync(home, { recursive: true, force: true })
+   for (const home of homes) {
+      fs.rmSync(home, { recursive: true, force: true })
+   }
 })
 
 describe('the OS credential store', () => {
@@ -314,7 +315,11 @@ describe('environment overrides', () => {
 })
 
 function nativeStore(): string {
-   if (process.platform === 'darwin') return 'keychain'
-   if (process.platform === 'win32') return 'credential-manager'
+   if (process.platform === 'darwin') {
+      return 'keychain'
+   }
+   if (process.platform === 'win32') {
+      return 'credential-manager'
+   }
    return 'keyring'
 }

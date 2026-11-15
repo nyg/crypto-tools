@@ -1,6 +1,6 @@
-import { normalizeAsset, tickerOf } from './assets'
-import type { KrakenAssetPairs } from '../../../types/kraken-api'
 import type { PairIndex, ResolvedPair, UsdPair } from '../../../types/kraken'
+import type { KrakenAssetPairs } from '../../../types/kraken-api'
+import { normalizeAsset, tickerOf } from './assets'
 
 // The trades export writes the pair the way it was spelled at the time of the trade,
 // which is not consistently any one of the three names AssetPairs returns: old rows
@@ -29,7 +29,9 @@ export function buildPairIndex(assetPairs: KrakenAssetPairs | undefined): PairIn
       const resolved = pairOf(pair.base, pair.quote)
 
       for (const name of [key, pair.altname, pair.wsname]) {
-         if (name) index.set(indexKey(name), resolved)
+         if (name) {
+            index.set(indexKey(name), resolved)
+         }
       }
    }
 
@@ -61,7 +63,9 @@ function splitOnQuote(pair: string): ResolvedPair | null {
 export function resolvePair(pair: string | undefined, index: PairIndex | undefined): ResolvedPair {
 
    const raw = (pair ?? '').trim()
-   if (raw === '') return { baseAsset: '', quoteAsset: '', pairKey: '' }
+   if (raw === '') {
+      return { baseAsset: '', quoteAsset: '', pairKey: '' }
+   }
 
    const name = indexKey(raw)
    return index?.get(name) ?? splitOnQuote(name) ?? { baseAsset: '', quoteAsset: '', pairKey: name }
@@ -77,14 +81,18 @@ export function usdPairsFor(assetPairs: KrakenAssetPairs | undefined, wanted: Se
    const tradeable = Object.values(assetPairs ?? {}).filter(pair => {
       // Darkpool pairs (XBT/USD.d) quote the same asset but trade separately, and
       // an offline pair has no meaningful last trade.
-      if (!pair.altname || pair.altname.includes('.')) return false
+      if (!pair.altname || pair.altname.includes('.')) {
+         return false
+      }
       return !pair.status || pair.status === 'online'
    })
 
    const pairs = new Map<string, UsdPair>()
 
    for (const pair of tradeable) {
-      if (!isUsd(pair.quote)) continue
+      if (!isUsd(pair.quote)) {
+         continue
+      }
       const baseAsset = normalizeAsset(pair.base)
       if (wanted.has(baseAsset) && !pairs.has(baseAsset)) {
          pairs.set(baseAsset, { altname: pair.altname, inverse: false })
@@ -92,7 +100,9 @@ export function usdPairsFor(assetPairs: KrakenAssetPairs | undefined, wanted: Se
    }
 
    for (const pair of tradeable) {
-      if (!isUsd(pair.base)) continue
+      if (!isUsd(pair.base)) {
+         continue
+      }
       const quoteAsset = normalizeAsset(pair.quote)
       if (wanted.has(quoteAsset) && !pairs.has(quoteAsset)) {
          pairs.set(quoteAsset, { altname: pair.altname, inverse: true })

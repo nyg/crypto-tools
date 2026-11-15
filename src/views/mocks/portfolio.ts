@@ -170,7 +170,9 @@ function seed(venue: VenueId): VenueState {
 
 const states = new Map<VenueId, VenueState>()
 export const stateOf = (venue: VenueId) => {
-   if (!states.has(venue)) states.set(venue, seed(venue))
+   if (!states.has(venue)) {
+      states.set(venue, seed(venue))
+   }
    return states.get(venue)!
 }
 
@@ -255,7 +257,9 @@ function summarize(state: VenueState, portfolio: MockPortfolio): PortfolioSummar
 function coinsOf(state: VenueState): AccountCoin[] {
    const allocated: Record<string, number> = {}
    for (const portfolio of state.portfolios) {
-      for (const [asset, amount] of Object.entries(portfolio.holdings)) allocated[asset] = (allocated[asset] ?? 0) + amount
+      for (const [asset, amount] of Object.entries(portfolio.holdings)) {
+         allocated[asset] = (allocated[asset] ?? 0) + amount
+      }
    }
 
    return [...new Set([...Object.keys(state.wallet), ...Object.keys(allocated)])]
@@ -309,7 +313,9 @@ const downtrends: Record<keyof SupertrendLevels, string[]> = { daily: ['SOL', 'E
 
 function supertrendLevel(asset: string, timeframe: keyof SupertrendLevels): SupertrendLevel | null {
    const price = prices[asset]
-   if (price === undefined) return null
+   if (price === undefined) {
+      return null
+   }
    const down = downtrends[timeframe].includes(asset)
    const distance = supertrendDistances[timeframe]
    return { flipPrice: fixed(price * (down ? 1 + distance : 1 - distance)), trend: down ? 'down' : 'up' }
@@ -337,10 +343,14 @@ const reject = (message: string) => Promise.reject(message)
 
 function save(venue: VenueId, request?: PortfolioSaveRequest): PortfolioSaveResponse | Promise<never> {
    const state = stateOf(venue)
-   if (!request) return reject('Nothing to save.')
+   if (!request) {
+      return reject('Nothing to save.')
+   }
 
    const total = request.targets.reduce((sum, { weight }) => sum + Number(weight), 0)
-   if (Math.abs(total - 100) > 1e-9) return reject(`The weights add up to ${total}%, not 100%.`)
+   if (Math.abs(total - 100) > 1e-9) {
+      return reject(`The weights add up to ${total}%, not 100%.`)
+   }
    if (state.portfolios.some(({ id, name }) => name === request.name && id !== request.id)) {
       return reject(`A portfolio named "${request.name}" already exists.`)
    }
@@ -364,7 +374,9 @@ function syncStops(venue: VenueId, request?: PortfolioStopSyncRequest): Portfoli
 
    const state = stateOf(venue)
    const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
-   if (!portfolio) return reject('This portfolio does not exist.')
+   if (!portfolio) {
+      return reject('This portfolio does not exist.')
+   }
 
    portfolio.stops = portfolio.targets
       .filter(({ asset, stopPrice }) => stopPrice !== null && asset !== portfolio.quoteAsset)
@@ -409,10 +421,14 @@ function dispose(portfolio: MockPortfolio, asset: string, quantity: number, proc
 function trackCost(portfolio: MockPortfolio, { kind, asset, amount, value }: Omit<PortfolioMovement, 'id' | 'createdAt'>) {
    const quantity = Number(amount)
    if (asset === portfolio.quoteAsset) {
-      if (kind === 'adjust') portfolio.realized[asset] = (portfolio.realized[asset] ?? 0) + quantity
+      if (kind === 'adjust') {
+         portfolio.realized[asset] = (portfolio.realized[asset] ?? 0) + quantity
+      }
+   } else if (quantity > 0) {
+      portfolio.costs[asset] = (portfolio.costs[asset] ?? 0) + (kind === 'deposit' ? Number(value) : 0)
+   } else {
+      dispose(portfolio, asset, -quantity, kind === 'withdraw' ? Math.abs(Number(value)) : 0)
    }
-   else if (quantity > 0) portfolio.costs[asset] = (portfolio.costs[asset] ?? 0) + (kind === 'deposit' ? Number(value) : 0)
-   else dispose(portfolio, asset, -quantity, kind === 'withdraw' ? Math.abs(Number(value)) : 0)
 }
 
 function addMovement(state: VenueState, portfolio: MockPortfolio, movement: Omit<PortfolioMovement, 'id' | 'createdAt'>): PortfolioMovement {
@@ -426,7 +442,9 @@ function addMovement(state: VenueState, portfolio: MockPortfolio, movement: Omit
 function deposit(venue: VenueId, request?: PortfolioMovementRequest): PortfolioMovementResponse | Promise<never> {
    const state = stateOf(venue)
    const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
-   if (!portfolio || !request) return reject('This portfolio does not exist.')
+   if (!portfolio || !request) {
+      return reject('This portfolio does not exist.')
+   }
 
    if (request.asset !== portfolio.quoteAsset && !portfolio.targets.some(({ asset }) => asset === request.asset)) {
       return reject(`${request.asset} is not one of ${portfolio.name}'s targets. Deposit ${portfolio.quoteAsset} or a coin it targets.`)
@@ -448,7 +466,9 @@ function deposit(venue: VenueId, request?: PortfolioMovementRequest): PortfolioM
 function adjust(venue: VenueId, request?: PortfolioMovementRequest): PortfolioMovementResponse | Promise<never> {
    const state = stateOf(venue)
    const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
-   if (!portfolio || !request) return reject('This portfolio does not exist.')
+   if (!portfolio || !request) {
+      return reject('This portfolio does not exist.')
+   }
 
    const movement = addMovement(state, portfolio, {
       kind: 'adjust', asset: request.asset, amount: request.amount,
@@ -460,31 +480,43 @@ function adjust(venue: VenueId, request?: PortfolioMovementRequest): PortfolioMo
 function withdraw(venue: VenueId, request?: PortfolioWithdrawRequest): PortfolioMovementResponse | Promise<never> {
    const state = stateOf(venue)
    const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
-   if (!portfolio || !request) return reject('This portfolio does not exist.')
+   if (!portfolio || !request) {
+      return reject('This portfolio does not exist.')
+   }
 
    const held = portfolio.holdings[request.asset] ?? 0
-   if (held <= 0) return reject(`${portfolio.name} holds no ${request.asset}.`)
+   if (held <= 0) {
+      return reject(`${portfolio.name} holds no ${request.asset}.`)
+   }
 
    const amount = request.all ? held : Number(request.amount)
-   if (amount > held) return reject(`${portfolio.name} only holds ${fixed(held)} ${request.asset}.`)
+   if (amount > held) {
+      return reject(`${portfolio.name} only holds ${fixed(held)} ${request.asset}.`)
+   }
 
    const movement = addMovement(state, portfolio, {
       kind: 'withdraw', asset: request.asset, amount: fixed(-amount),
       value: fixed(amount * (prices[request.asset] ?? 0)), orderLinkId: null, note: ''
    })
-   if (request.all) delete portfolio.holdings[request.asset]
+   if (request.all) {
+      delete portfolio.holdings[request.asset]
+   }
    return { movement }
 }
 
 function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResponse | Promise<never> {
    const state = stateOf(venue)
    const portfolio = state.portfolios.find(({ id }) => id === request?.portfolioId)
-   if (!portfolio || !request) return reject('This portfolio does not exist.')
+   if (!portfolio || !request) {
+      return reject('This portfolio does not exist.')
+   }
 
    const quote = portfolio.quoteAsset
    const total = valueOf(portfolio)
    const withdraw = request.kind === 'withdraw' ? (request.all ? total : Number(request.amount)) : 0
-   if (withdraw > total) return reject(`Cannot withdraw more than the portfolio is worth (${fixed(total, 2)} ${quote}).`)
+   if (withdraw > total) {
+      return reject(`Cannot withdraw more than the portfolio is worth (${fixed(total, 2)} ${quote}).`)
+   }
 
    const band = Number(request.band ?? portfolio.band)
    const mode = request.kind === 'withdraw' ? 'full' : request.mode ?? 'full'
@@ -511,10 +543,14 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
          skipped.push({ asset, reason: 'excluded', value: fixed(Math.abs(delta), 2) })
          continue
       }
-      if (request.kind === 'withdraw' && (cash >= withdraw || delta >= 0)) continue
+      if (request.kind === 'withdraw' && (cash >= withdraw || delta >= 0)) {
+         continue
+      }
       const absorbsCash = (cashDrift > band && delta > 0) || (cashDrift < -band && delta < 0)
       if (request.kind === 'rebalance' && weights.has(asset) && Math.abs(drift) <= band && !absorbsCash) {
-         if (drift !== 0) skipped.push({ asset, reason: 'within-band', value: fixed(Math.abs(delta), 2) })
+         if (drift !== 0) {
+            skipped.push({ asset, reason: 'within-band', value: fixed(Math.abs(delta), 2) })
+         }
          continue
       }
       if ((mode === 'invest' && delta < 0) || (mode === 'trim' && delta > 0)) {
@@ -522,7 +558,9 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
          continue
       }
       if (Math.abs(delta) < MIN_ORDER) {
-         if (Math.abs(delta) > 0) skipped.push({ asset, reason: 'below-minimum', value: fixed(Math.abs(delta), 2) })
+         if (Math.abs(delta) > 0) {
+            skipped.push({ asset, reason: 'below-minimum', value: fixed(Math.abs(delta), 2) })
+         }
          continue
       }
 
@@ -566,8 +604,12 @@ function plan(venue: VenueId, request?: PortfolioPlanRequest): PortfolioPlanResp
 function execute(venue: VenueId, request?: PortfolioExecuteRequest): PortfolioRunResponse | Promise<never> {
    const state = stateOf(venue)
    const stored = state.plans.get(request?.planId ?? '')
-   if (!stored) return reject('This preview has expired. Preview the orders again.')
-   if (activeRunOf(state)) return reject('Another run is still placing orders on this account.')
+   if (!stored) {
+      return reject('This preview has expired. Preview the orders again.')
+   }
+   if (activeRunOf(state)) {
+      return reject('Another run is still placing orders on this account.')
+   }
    state.plans.delete(request!.planId)
 
    const portfolio = state.portfolios.find(({ id }) => id === stored.portfolioId)!
@@ -625,8 +667,9 @@ function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRunOr
    if (buy) {
       portfolio.costs[base] = (portfolio.costs[base] ?? 0) + value - fee * price
       portfolio.realized[base] = (portfolio.realized[base] ?? 0) - fee * price
+   } else {
+      dispose(portfolio, base, quantity, value - fee)
    }
-   else dispose(portfolio, base, quantity, value - fee)
    portfolio.fees += buy ? fee * price : fee
 
    portfolio.holdings[base] = (portfolio.holdings[base] ?? 0) + (buy ? quantity - fee : -quantity)
@@ -643,7 +686,9 @@ function fill(state: VenueState, portfolio: MockPortfolio, order: PortfolioRunOr
 function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunResponse | Promise<never> {
    const state = stateOf(venue)
    const entry = state.runs.get(request?.runId ?? '')
-   if (!entry) return reject('This run does not exist.')
+   if (!entry) {
+      return reject('This run does not exist.')
+   }
 
    const { run: current } = entry
    const portfolio = state.portfolios.find(({ id }) => id === current.portfolioId)
@@ -651,8 +696,12 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
 
    if (current.running && portfolio && entry.stopped) {
       for (const order of current.orders) {
-         if (order.status === 'placed') Object.assign(order, { status: 'cancelled', error: STOPPED })
-         if (order.status === 'pending') Object.assign(order, { status: 'skipped', error: STOPPED })
+         if (order.status === 'placed') {
+            Object.assign(order, { status: 'cancelled', error: STOPPED })
+         }
+         if (order.status === 'pending') {
+            Object.assign(order, { status: 'skipped', error: STOPPED })
+         }
       }
       Object.assign(current, { status: 'partial', running: false, stopping: false, finishedAt: Date.now() })
    }
@@ -662,11 +711,13 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
       const together = open.filter(({ side }) => side === open[0]?.side)
       if (open.length > 0 && entry.polls > 1) {
          for (const order of together) {
-            if (current.execution === 'limit' && order.status === 'pending') rest(portfolio, order)
-            else fill(state, portfolio, order, current.execution)
+            if (current.execution === 'limit' && order.status === 'pending') {
+               rest(portfolio, order)
+            } else {
+               fill(state, portfolio, order, current.execution)
+            }
          }
-      }
-      else if (open.length === 0) {
+      } else if (open.length === 0) {
          const withdraw = Number(current.withdraw)
          if (withdraw > 0) {
             const cash = portfolio.holdings[portfolio.quoteAsset] ?? 0
@@ -679,7 +730,9 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
          }
          const finishedAt = Date.now()
          Object.assign(current, { status: 'done', running: false, finishedAt })
-         if (current.kind === 'rebalance' && current.orders.length > 0) portfolio.rebalancedAt = finishedAt
+         if (current.kind === 'rebalance' && current.orders.length > 0) {
+            portfolio.rebalancedAt = finishedAt
+         }
       }
    }
 
@@ -688,7 +741,9 @@ function run(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunRespons
 
 function stop(venue: VenueId, request?: PortfolioRunRequest): PortfolioRunResponse | Promise<never> {
    const entry = stateOf(venue).runs.get(request?.runId ?? '')
-   if (!entry) return reject('This run does not exist.')
+   if (!entry) {
+      return reject('This run does not exist.')
+   }
 
    if (entry.run.running) {
       entry.stopped = true

@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { ArrowDownUpIcon, BadgePercentIcon, CalculatorIcon, CoinsIcon, GiftIcon, LayersIcon, ListChecksIcon, PieChartIcon, ReceiptIcon, ScrollTextIcon, SigmaIcon, SparklesIcon, WalletIcon } from 'lucide-react'
+
 import type { Provider } from '../../types/credentials'
 
 
@@ -152,7 +153,9 @@ export const toolGroups: ToolGroup[] = [
 
 const groupBy = (name: string): ToolGroup => {
    const group = toolGroups.find(group => group.name === name)
-   if (!group) throw new Error(`No tool group named ${name}.`)
+   if (!group) {
+      throw new Error(`No tool group named ${name}.`)
+   }
    return group
 }
 
@@ -168,14 +171,18 @@ export const tabHrefs = (name: string) => tabsOf(groupBy(name)).map(({ href }) =
 
 export const settingsOf = (name: string): GroupSettings => {
    const { settings } = groupBy(name)
-   if (!settings) throw new Error(`The ${name} tool group has no settings.`)
+   if (!settings) {
+      throw new Error(`The ${name} tool group has no settings.`)
+   }
    return settings
 }
 
 // Where the header menu sends you for an exchange none of whose tabs was opened yet: its first tool.
 export const groupHref = (name: string): string => {
    const [first] = groupBy(name).tools
-   if (!first) throw new Error(`The ${name} tool group has no tools.`)
+   if (!first) {
+      throw new Error(`The ${name} tool group has no tools.`)
+   }
    return first.href
 }
 

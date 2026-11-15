@@ -1,4 +1,5 @@
 import Big from 'big.js'
+
 import type { BybitDeposit, BybitInternalDeposit, BybitWithdrawal } from '../../../types/bybit-api'
 import type { FundingRecord, FundingStatus } from '../../../types/funding'
 

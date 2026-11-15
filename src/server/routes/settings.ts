@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
-import secrets from '../secrets'
-import { krakenAccountId, providers, settingsVersion } from '../settings'
+
 import type { Provider } from '../../types/credentials'
 import type {
    MaskedProvider, MaskedSettings, ProviderSecrets, SettingsUpdate
 } from '../../types/settings'
+import secrets from '../secrets'
+import { krakenAccountId, providers, settingsVersion } from '../settings'
 
 const app = new Hono()
 
@@ -52,20 +53,25 @@ app.post('/', async (c) => {
 
       for (const id of Object.keys(providers) as Provider[]) {
          const update = body?.[id]
-         if (!update) continue
+         if (!update) {
+            continue
+         }
 
          // A field still holding the mask was never edited, so saving must leave the
          // stored value alone rather than overwrite it with the placeholder.
          const next = { ...update }
-         if (next.apiKey === MASK) delete next.apiKey
-         if (next.apiSecret === MASK) delete next.apiSecret
+         if (next.apiKey === MASK) {
+            delete next.apiKey
+         }
+         if (next.apiSecret === MASK) {
+            delete next.apiSecret
+         }
          updates[id] = next
       }
 
       await secrets.save(updates)
       return c.json(maskSettings(await secrets.readAll()))
-   }
-   catch (error) {
+   } catch (error) {
       console.error('Could not save the settings:', error)
       return c.json({ error: 'Could not save the settings.' }, 500)
    }

@@ -1,12 +1,17 @@
 import { Hono } from 'hono'
+
+import type { VenueId } from '../../types/portfolio'
 import PortfolioService, { PortfolioError } from '../services/portfolio/portfolio-service'
 import { TargetError } from '../services/portfolio/targets'
 import venueHandler from './venue-handler'
-import type { VenueId } from '../../types/portfolio'
 
 const refusalOf = (error: unknown) => {
-   if (error instanceof PortfolioError) return { status: error.status, message: error.message }
-   if (error instanceof TargetError) return { status: 400 as const, message: error.message }
+   if (error instanceof PortfolioError) {
+      return { status: error.status, message: error.message }
+   }
+   if (error instanceof TargetError) {
+      return { status: 400 as const, message: error.message }
+   }
    return null
 }
 

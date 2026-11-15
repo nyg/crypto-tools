@@ -1,11 +1,11 @@
-import FundingRepository, { fundingAccountOf, rememberFundingAccount } from '../../db/funding-repository'
-import { accountIdFor } from '../../db/entry-key'
-import { HttpRequesterError, messageOf } from '../../errors'
-import type { FundingFeed, FundingVenue } from './venues'
 import type { FundingCancelResponse, FundingResponse, FundingSyncResponse } from '../../../types/api'
 import type { Credentials } from '../../../types/credentials'
 import type { FundingVenueId, FundingWindow } from '../../../types/funding'
 import type { FundingJob, FundingStep } from '../../../types/jobs'
+import { accountIdFor } from '../../db/entry-key'
+import FundingRepository, { fundingAccountOf, rememberFundingAccount } from '../../db/funding-repository'
+import { HttpRequesterError, messageOf } from '../../errors'
+import type { FundingFeed, FundingVenue } from './venues'
 
 const DAY = 86400000
 
@@ -37,7 +37,9 @@ export function fundingWindows(from: number, now: number, windowMs: number): Fun
 export function syncStart(
    { coveredTo, pending }: { coveredTo: number | null, pending: number | null }, epoch: number
 ): number {
-   if (coveredTo === null) return epoch
+   if (coveredTo === null) {
+      return epoch
+   }
    return Math.max(epoch, Math.min(coveredTo + 1 - OVERLAP_MS, pending ?? Infinity))
 }
 
@@ -54,7 +56,9 @@ export function fundingOverview(venue: FundingVenue, credentials: Credentials): 
 
 export function cancelFundingSync(venue: FundingVenue, credentials: Credentials): FundingCancelResponse {
    const job = jobs.get(jobKey(venue.id, credentials))
-   if (isRunning(job)) job.cancelRequested = true
+   if (isRunning(job)) {
+      job.cancelRequested = true
+   }
    return { job: job ?? null }
 }
 
@@ -62,7 +66,9 @@ export function startFundingSync(venue: FundingVenue, credentials: Credentials):
 
    const key = jobKey(venue.id, credentials)
    const existing = jobs.get(key)
-   if (isRunning(existing)) return { job: existing, alreadyRunning: true }
+   if (isRunning(existing)) {
+      return { job: existing, alreadyRunning: true }
+   }
 
    const feeds = venue.feeds(credentials)
    const job = newFundingJob(feeds)
@@ -106,26 +112,29 @@ export async function runFundingSync(
 
       repository.markSynced(Date.now())
       job.phase = 'done'
-   }
-   catch (error) {
+   } catch (error) {
       const step = job.steps.find(({ phase }) => phase === 'running')
 
       if (job.cancelRequested) {
          job.phase = 'cancelled'
-         if (step) step.phase = 'cancelled'
-      }
-      else {
+         if (step) {
+            step.phase = 'cancelled'
+         }
+      } else {
          job.phase = 'error'
          job.error = error instanceof HttpRequesterError ? exchange.describeError(error) : messageOf(error)
-         if (step) step.phase = 'error'
+         if (step) {
+            step.phase = 'error'
+         }
          console.error(`Funding sync failed for ${venue.id}:`, job.error)
       }
 
       for (const pending of job.steps) {
-         if (pending.phase === 'pending') pending.phase = 'skipped'
+         if (pending.phase === 'pending') {
+            pending.phase = 'skipped'
+         }
       }
-   }
-   finally {
+   } finally {
       job.finishedAt = Date.now()
       job.updatedAt = Date.now()
    }
@@ -149,7 +158,9 @@ async function runFeed(
    job.updatedAt = Date.now()
 
    for (const window of windows) {
-      if (job.cancelRequested) throw new Error('Sync cancelled.')
+      if (job.cancelRequested) {
+         throw new Error('Sync cancelled.')
+      }
 
       const records = await feed.fetch(window)
       repository.upsert(feed.id, records, Date.now())

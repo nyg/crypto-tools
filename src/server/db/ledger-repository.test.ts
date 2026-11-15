@@ -2,9 +2,10 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+
+import type { LedgerEntry } from '../../types/kraken'
 import type LedgerRepositoryType from './ledger-repository'
 import type RateRepositoryType from './rate-repository'
-import type { LedgerEntry } from '../../types/kraken'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-ledger-'))
 

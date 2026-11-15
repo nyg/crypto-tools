@@ -1,10 +1,12 @@
-import { cn } from '@/lib/utils'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asDecimal } from '../../../utils/format'
-import { asCount } from '../lib/filter-options'
 import Big from 'big.js'
+
+import { Table, TableBody, TableCell,TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+
 import type { AggregationSummary, ConvertedTotals, QuoteTotals } from '../../../types/api'
 import type { MarketRow } from '../../../types/db'
+import { asDecimal } from '../../../utils/format'
+import { asCount } from '../lib/filter-options'
 
 const decimalsIn = (value: string) => (String(value).split('.')[1] ?? '').length
 
@@ -35,14 +37,18 @@ export default function AggregateSummary({
    ratesPending?: boolean
 }) {
 
-   if (!market || !summary) return null
+   if (!market || !summary) {
+      return null
+   }
 
    const bought = asTotals(summary.buy.totals)
    const sold = asTotals(summary.sell.totals)
 
    const allQuotes = [...summary.buy.quotes, ...summary.sell.quotes]
 
-   if (allQuotes.length === 0) return null
+   if (allQuotes.length === 0) {
+      return null
+   }
 
    const missing = [...new Set([...bought.missing, ...sold.missing])]
    const converted = bought.converted || sold.converted

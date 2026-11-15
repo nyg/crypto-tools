@@ -1,15 +1,19 @@
 import { CheckIcon, CircleIcon, Loader2Icon, MinusIcon, XIcon } from 'lucide-react'
+
 import { cn } from '@/lib/utils'
-import { isStepRunning, reportLabels, stepLabel } from './sync-status'
-import { asNumber } from '../../../utils/format'
+
 import type { SyncJob, SyncStep as Step } from '../../../types/jobs'
+import { asNumber } from '../../../utils/format'
+import { isStepRunning, reportLabels, stepLabel } from './sync-status'
 
 // A sync downloads two exports, one after the other. Both are shown for the whole run
 // and afterwards, so that the ledger's progress does not disappear the moment the
 // trades export starts and the finished run says what each of them did.
 export default function SyncSteps({ job }: { job?: SyncJob | null }) {
 
-   if (!job?.steps?.length) return null
+   if (!job?.steps?.length) {
+      return null
+   }
 
    // Bled to the card's edges and given a tint of its own: nested inside a border it
    // read as a box within a box, and the phases of the two reports have to line up
@@ -73,9 +77,15 @@ function SyncStep({ step, job }: { step: Step, job: SyncJob }) {
 
 function StepIcon({ step, running }: { step: Step, running: boolean }) {
 
-   if (running) return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-   if (step.phase === 'done') return <CheckIcon className="size-4 text-emerald-600 dark:text-emerald-500" />
-   if (step.phase === 'error') return <XIcon className="size-4 text-destructive" />
+   if (running) {
+      return <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+   }
+   if (step.phase === 'done') {
+      return <CheckIcon className="size-4 text-emerald-600 dark:text-emerald-500" />
+   }
+   if (step.phase === 'error') {
+      return <XIcon className="size-4 text-destructive" />
+   }
    if (step.phase === 'cancelled' || step.phase === 'skipped') {
       return <MinusIcon className="size-4 text-muted-foreground" />
    }
@@ -98,7 +108,9 @@ function StepCounts({ step, running }: { step: Step, running: boolean }) {
       return parsed > 0 ? <span>{asNumber(parsed)} rows</span> : null
    }
 
-   if (step.phase !== 'done') return null
+   if (step.phase !== 'done') {
+      return null
+   }
 
    return (
       <span>

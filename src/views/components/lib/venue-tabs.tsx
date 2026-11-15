@@ -1,7 +1,9 @@
 import type { ComponentType, ReactNode } from 'react'
-import usePersistentState from '../../lib/use-persistent-state'
+
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import type { VenueId } from '../../../types/portfolio'
+import usePersistentState from '../../lib/use-persistent-state'
 
 export interface ExchangeVenue {
    id: VenueId
@@ -27,7 +29,9 @@ interface VenueTabsProps {
 }
 
 export default function VenueTabs({ venues, value, onValueChange }: VenueTabsProps) {
-   if (venues.length < 2) return null
+   if (venues.length < 2) {
+      return null
+   }
    return (
       <Tabs value={value} onValueChange={venue => onValueChange(venue as VenueId)}>
          <TabsList>

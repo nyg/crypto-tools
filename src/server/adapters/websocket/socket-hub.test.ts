@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, test } from 'bun:test'
-import SocketHub from './socket-hub'
 import type { Server, ServerWebSocket } from 'bun'
+import { afterEach, describe, expect, test } from 'bun:test'
+
 import type { Inbound, SocketProtocol, StreamListener } from './socket-hub'
+import SocketHub from './socket-hub'
 
 interface Pushed {
    key: string
@@ -40,11 +41,15 @@ class FakeFeed {
    }
 
    push(message: Pushed): void {
-      for (const socket of this.sockets) socket.send(JSON.stringify(message))
+      for (const socket of this.sockets) {
+         socket.send(JSON.stringify(message))
+      }
    }
 
    drop(): void {
-      for (const socket of this.sockets) socket.close()
+      for (const socket of this.sockets) {
+         socket.close()
+      }
    }
 }
 
@@ -64,14 +69,20 @@ const protocolFor = (feed: FakeFeed, idleMs?: number): SocketProtocol<string> =>
 class Recorder implements StreamListener<string> {
    readonly events: string[] = []
    readonly lives: boolean[] = []
-   onEvent(value: string) { this.events.push(value) }
-   onLive(live: boolean) { this.lives.push(live) }
+   onEvent(value: string) {
+      this.events.push(value)
+   }
+   onLive(live: boolean) {
+      this.lives.push(live)
+   }
 }
 
 async function until(condition: () => boolean): Promise<void> {
    const deadline = Date.now() + 2000
    while (!condition()) {
-      if (Date.now() > deadline) throw new Error('Timed out waiting for the socket.')
+      if (Date.now() > deadline) {
+         throw new Error('Timed out waiting for the socket.')
+      }
       await new Promise(resolve => setTimeout(resolve, 5))
    }
 }
@@ -84,7 +95,9 @@ const newFeed = () => {
 }
 
 afterEach(() => {
-   for (const feed of feeds.splice(0)) feed.server.stop(true)
+   for (const feed of feeds.splice(0)) {
+      feed.server.stop(true)
+   }
 })
 
 describe('a socket hub', () => {
@@ -174,6 +187,8 @@ describe('a socket hub', () => {
 
       expect(refused.live).toBe(false)
       expect(second.live).toBe(true)
-      for (const subscription of [first, refused, second]) subscription.close()
+      for (const subscription of [first, refused, second]) {
+         subscription.close()
+      }
    })
 })

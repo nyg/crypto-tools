@@ -1,22 +1,24 @@
-import { useState } from 'react'
-import useSWR from 'swr'
-import useMutation from '../../lib/use-mutation'
 import Big from 'big.js'
 import { Loader2Icon } from 'lucide-react'
+import { useState } from 'react'
+import useSWR from 'swr'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+
+import type { TradingPairs } from '../../../types/market'
 import KrakenLayout from '../../components/kraken/kraken-layout'
+import type { OrderBatchForm as FormValues } from '../../components/kraken/order-batch-params'
 import OrderBatchForm from '../../components/kraken/order-batch-params'
+import type { CreatedOrder, OrderBatchPreview } from '../../components/kraken/order-batch-table'
 import OrderBatchTable from '../../components/kraken/order-batch-table'
-import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
 import SettingsLink from '../../components/lib/settings-link'
 import { messageOf } from '../../lib/errors'
+import useMutation from '../../lib/use-mutation'
 import usePersistentState from '../../lib/use-persistent-state'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import type { OrderBatchForm as FormValues } from '../../components/kraken/order-batch-params'
-import type { CreatedOrder, OrderBatchPreview } from '../../components/kraken/order-batch-table'
-import type { TradingPairs } from '../../../types/market'
+import { useProvider } from '../../lib/use-settings'
 
 // Every price function walks the same arguments; only linear is offered so far.
 type PriceFunction = (x: number, from: Big, to: Big, count: number) => Big
@@ -138,14 +140,11 @@ export default function KrakenOrderBatch() {
             {submittedMode === 'live' ? 'Creating orders…' : 'Validating…'}
          </span>
       )
-   }
-   else if (createdOrders?.some(order => order?.txid)) {
+   } else if (createdOrders?.some(order => order?.txid)) {
       statusIndicator = <Badge>Orders created</Badge>
-   }
-   else if ((createdOrders?.length ?? 0) > 0) {
+   } else if ((createdOrders?.length ?? 0) > 0) {
       statusIndicator = <Badge variant="secondary">Dry run · validated</Badge>
-   }
-   else if ((ordersParams?.orders.length ?? 0) > 0) {
+   } else if ((ordersParams?.orders.length ?? 0) > 0) {
       statusIndicator = <Badge variant="outline">Preview</Badge>
    }
 

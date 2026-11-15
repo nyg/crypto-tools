@@ -1,8 +1,9 @@
 import type { Context } from 'hono'
+
+import type { Credentials, Provider } from '../../types/credentials'
+import { HttpRequesterError } from '../errors'
 import { credentialsFor } from '../secrets'
 import { krakenAccountId, providers } from '../settings'
-import { HttpRequesterError } from '../errors'
-import type { Credentials, Provider } from '../../types/credentials'
 
 // A route body is whatever the browser posted; each handler picks the fields it knows.
 export type RequestBody = Record<string, unknown>
@@ -37,12 +38,13 @@ export async function withAccount(
 ): Promise<Response> {
 
    const accountId = krakenAccountId()
-   if (!accountId) return noCredentials(c)
+   if (!accountId) {
+      return noCredentials(c)
+   }
 
    try {
       return await handler({ body: await readBody(c), accountId })
-   }
-   catch (error) {
+   } catch (error) {
       return handleError(c, error)
    }
 }
@@ -54,12 +56,13 @@ export async function withCredentials(
 ): Promise<Response> {
 
    const credentials = await credentialsFor(provider)
-   if (!credentials.apiKey || (secret && !credentials.apiSecret)) return noCredentials(c)
+   if (!credentials.apiKey || (secret && !credentials.apiSecret)) {
+      return noCredentials(c)
+   }
 
    try {
       return await handler({ body: await readBody(c), credentials, accountId: krakenAccountId() })
-   }
-   catch (error) {
+   } catch (error) {
       return handleError(c, error, providers[provider].label)
    }
 }

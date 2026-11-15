@@ -1,6 +1,7 @@
-import { streamText, Output } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
+import { Output,streamText } from 'ai'
 import { z } from 'zod'
+
 import type {
    AiActivityReporter, XStockAiListing, XStockDescription, XStockTarget
 } from '../../../types/xstock'
@@ -58,9 +59,13 @@ Rules:
 const asSources = (content: unknown): string[] => {
    const urls = new Set<string>()
    for (const part of (content ?? []) as ContentPart[]) {
-      if (part.type !== 'tool-result') continue
+      if (part.type !== 'tool-result') {
+         continue
+      }
       for (const item of Array.isArray(part.output) ? part.output : []) {
-         if (item?.url) urls.add(item.url)
+         if (item?.url) {
+            urls.add(item.url)
+         }
       }
    }
    return [...urls]
@@ -119,10 +124,12 @@ export default class AnthropicAPI {
          if ('toolName' in part && part.toolName === 'web_search') {
             if (part.type === 'tool-call') {
                report({ type: 'searching', query: String((part.input as { query?: string })?.query ?? '') })
+            } else if (part.type === 'tool-result') {
+               report({ type: 'reading' })
             }
-            else if (part.type === 'tool-result') report({ type: 'reading' })
+         } else if (part.type === 'text-delta') {
+            report({ type: 'writing' })
          }
-         else if (part.type === 'text-delta') report({ type: 'writing' })
       }
 
       // The SDK does not carry the schema's type through this wrapper's own generic,

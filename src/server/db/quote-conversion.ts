@@ -1,4 +1,5 @@
 import Big from 'big.js'
+
 import type { ConvertedTotals, Order } from '../../types/api'
 import type { UsdRateRow } from '../../types/db'
 
@@ -30,16 +31,22 @@ export function rateLookup(rows: UsdRateRow[]): RateOn {
 
    return (asset, time) => {
 
-      if (asset === 'USD') return Big(1)
+      if (asset === 'USD') {
+         return Big(1)
+      }
 
       const days = byAsset.get(asset)
-      if (!days) return null
+      if (!days) {
+         return null
+      }
 
       const day = dayOf(time)
 
       for (let carried = 0; carried <= MAX_CARRIED_DAYS; carried++) {
          const rate = days.get(day - carried * DAY_MS)
-         if (rate) return Big(rate)
+         if (rate) {
+            return Big(rate)
+         }
       }
 
       return null
@@ -65,7 +72,9 @@ export function convertOrders(orders: Order[], targetQuote: string, rateOn: Rate
          continue
       }
 
-      if (order.quoteAsset !== targetQuote) converted = true
+      if (order.quoteAsset !== targetQuote) {
+         converted = true
+      }
 
       volume = volume.plus(order.volume)
       cost = cost.plus(factor.times(order.cost))
@@ -86,7 +95,9 @@ export function convertOrders(orders: Order[], targetQuote: string, rateOn: Rate
 
 function conversionFactor(order: Order, targetQuote: string, rateOn: RateOn): Big | null {
 
-   if (order.quoteAsset === targetQuote) return Big(1)
+   if (order.quoteAsset === targetQuote) {
+      return Big(1)
+   }
 
    const from = rateOn(order.quoteAsset, order.time)
    const to = rateOn(targetQuote, order.time)

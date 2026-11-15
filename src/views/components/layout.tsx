@@ -1,10 +1,7 @@
-import { useEffect, useState } from 'react'
 import type { ReactNode, SVGProps } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import AboutDialog from './about-dialog'
-import MenuLink from './lib/menu-link'
-import PageHelpButton from './lib/page-help-button'
-import ThemeToggle from './lib/theme-toggle'
+
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { APP_VERSION, SHOW_ABOUT_EVENT } from '@/lib/about-event'
@@ -13,6 +10,11 @@ import { onTitleBarDoubleClick, useFullScreen } from '@/lib/title-bar'
 import { tabPaths } from '@/lib/tools'
 import useLatestRelease from '@/lib/use-latest-release'
 import { cn } from '@/lib/utils'
+
+import AboutDialog from './about-dialog'
+import MenuLink from './lib/menu-link'
+import PageHelpButton from './lib/page-help-button'
+import ThemeToggle from './lib/theme-toggle'
 
 
 const isSection = (path: string, href: string) => path.split('/')[1] === href.split('/')[1]

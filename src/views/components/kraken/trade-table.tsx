@@ -1,11 +1,13 @@
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asExactDecimal, asNumber } from '../../../utils/format'
-import SortableHead from '../lib/sortable-head'
+import { Table, TableBody, TableCell,TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import type { TradesResponse } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
+import { asExactDecimal, asNumber } from '../../../utils/format'
+import SortableHead from '../lib/sortable-head'
 
 // Kraken records trade times in UTC; rendering them in the browser's zone would
 // silently shift every trade.

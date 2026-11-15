@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button'
+
 import ComboboxField from '../lib/combobox-field'
-import SelectField from '../lib/select-field'
-import NumericInput from '../lib/numeric-input'
 import { ANY } from '../lib/filter-options'
+import NumericInput from '../lib/numeric-input'
+import SelectField from '../lib/select-field'
 
 // Dust is hidden to begin with: a long tail of positions left over from a swap or a
 // delisting is what makes this list unreadable. The threshold is the user's to set,

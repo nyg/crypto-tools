@@ -1,14 +1,14 @@
+import type { VariantProps } from 'class-variance-authority'
+import { ChevronDownIcon,ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import * as React from 'react'
-import { DayPicker, getDefaultClassNames } from 'react-day-picker'
 import type {
    ChevronProps, CustomComponents, DayButton, DropdownProps, RootProps, WeekNumberProps
 } from 'react-day-picker'
-import type { VariantProps } from 'class-variance-authority'
+import { DayPicker, getDefaultClassNames } from 'react-day-picker'
 
-import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 function CalendarRoot({ className, rootRef, ...props }: RootProps) {
    return <div data-slot="calendar" ref={rootRef} className={cn(className)} {...props} />
@@ -192,7 +192,9 @@ function CalendarDayButton({
 
    const ref = React.useRef<HTMLButtonElement>(null)
    React.useEffect(() => {
-      if (modifiers.focused) ref.current?.focus()
+      if (modifiers.focused) {
+         ref.current?.focus()
+      }
    }, [modifiers.focused])
 
    return (

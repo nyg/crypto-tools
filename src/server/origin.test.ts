@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
+
 import { desktopOrigins, isLoopbackHost, isWebOrigin, originRuleFor } from './origin'
 
 const nodeEnv = process.env.NODE_ENV

@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as RechartsPrimitive from 'recharts'
 
 import { cn } from '@/lib/utils'
+
 import { asNumber } from '../../../utils/format'
 
 // Format: { THEME_NAME: CSS_SELECTOR }
@@ -105,7 +106,7 @@ ${prefix} [data-chart=${id}] {
 ${colorConfig
          .map(([key, itemConfig]) => {
             const color =
-  itemConfig.theme?.[theme as Theme] ??
+               itemConfig.theme?.[theme as Theme] ??
   itemConfig.color
             return color ? `  --color-${key}: ${color};` : null
          })
@@ -161,9 +162,9 @@ function ChartTooltipContent({
       const key = `${labelKey ?? item?.dataKey ?? item?.name ?? 'value'}`
       const itemConfig = getPayloadConfigFromPayload(config, item, key)
       const value =
-      !labelKey && typeof label === 'string'
-         ? (config[label]?.label ?? label)
-         : itemConfig?.label
+         !labelKey && typeof label === 'string'
+            ? (config[label]?.label ?? label)
+            : itemConfig?.label
 
       if (labelFormatter) {
          return (
@@ -338,11 +339,11 @@ function getPayloadConfigFromPayload(
    const entry = payload as Record<string, unknown>
 
    const payloadPayload =
-    'payload' in entry &&
+      'payload' in entry &&
     typeof entry.payload === 'object' &&
     entry.payload !== null
-       ? entry.payload as Record<string, unknown>
-       : undefined
+         ? entry.payload as Record<string, unknown>
+         : undefined
 
    let configLabelKey = key
 
@@ -364,9 +365,9 @@ function getPayloadConfigFromPayload(
 
 export {
    ChartContainer,
-   ChartTooltip,
-   ChartTooltipContent,
    ChartLegend,
    ChartLegendContent,
    ChartStyle,
+   ChartTooltip,
+   ChartTooltipContent,
 }

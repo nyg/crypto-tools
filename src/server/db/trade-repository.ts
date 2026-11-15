@@ -1,18 +1,19 @@
 import Big from 'big.js'
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
-import { getDatabase } from './database'
-import RateRepository from './rate-repository'
-import {
-   CONVERTIBLE_QUOTES, DAY_MS, MAX_CARRIED_DAYS, convertOrders, dayOf, isConvertibleQuote, rateLookup
-} from './quote-conversion'
-import type { RateOn } from './quote-conversion'
-import type {
-   AssetRangeRow, CountRow, MarketRow, TimeRangeRow, TradeListRow, TradeRow, ValueRow
-} from '../../types/db'
+
 import type {
    Aggregation, AggregationsResponse, AggregationSummary, Market, Order, SummarySide, TradesResponse
 } from '../../types/api'
+import type {
+   AssetRangeRow, CountRow, MarketRow, TimeRangeRow, TradeListRow, TradeRow, ValueRow
+} from '../../types/db'
 import type { AggregationFilters, Sort, Trade, TradeFilters } from '../../types/kraken'
+import { getDatabase } from './database'
+import type { RateOn } from './quote-conversion'
+import {
+   CONVERTIBLE_QUOTES, convertOrders, DAY_MS, dayOf, isConvertibleQuote, MAX_CARRIED_DAYS, rateLookup
+} from './quote-conversion'
+import RateRepository from './rate-repository'
 
 type Params = SQLQueryBindings[]
 type NamedParams = Record<string, string | number | bigint | boolean | null>
@@ -99,8 +100,7 @@ export default class TradeRepository {
                })
             }
          })()
-      }
-      finally {
+      } finally {
          insert.finalize()
       }
    }
@@ -132,7 +132,9 @@ export default class TradeRepository {
          summary: emptySummary(), truncated: false
       }
 
-      if (!filters.base) return empty
+      if (!filters.base) {
+         return empty
+      }
 
       const { where, params } = buildAggregationWhere(this.#accountId, filters)
 
@@ -146,7 +148,9 @@ export default class TradeRepository {
          LIMIT ?`).all(...params, TRADE_LIMIT + 1)
 
       const truncated = trades.length > TRADE_LIMIT
-      if (truncated) trades.length = TRADE_LIMIT
+      if (truncated) {
+         trades.length = TRADE_LIMIT
+      }
       trades.reverse()
 
       const [partial] = trades
@@ -178,7 +182,9 @@ export default class TradeRepository {
       const first = foreign[0]
       const last = foreign[foreign.length - 1]
 
-      if (!first || !last) return rateLookup([])
+      if (!first || !last) {
+         return rateLookup([])
+      }
 
       const assets = [...new Set([targetQuote, ...foreign.map(order => order.quoteAsset)])]
          .filter(asset => asset !== '' && asset !== 'USD')
@@ -308,7 +314,9 @@ function asSummary(orders: Order[], targetQuote: string, rateOn: RateOn): Aggreg
    for (const order of orders) {
 
       const side = order.direction === 'buy' ? buy : order.direction === 'sell' ? sell : null
-      if (!side) continue
+      if (!side) {
+         continue
+      }
 
       side.orderCount += 1
       side.tradeCount += order.tradeCount
@@ -377,8 +385,11 @@ function asAggregations(orders: Order[]): UnconvertedAggregation[] {
 
    for (const order of orders) {
       const current = runs[runs.length - 1]
-      if (current && current.direction === order.direction) current.orders.push(order)
-      else runs.push({ direction: order.direction, orders: [order] })
+      if (current && current.direction === order.direction) {
+         current.orders.push(order)
+      } else {
+         runs.push({ direction: order.direction, orders: [order] })
+      }
    }
 
    return runs.map(asAggregation)
@@ -443,7 +454,9 @@ export function foldMarkets(tradedPairs: MarketRow[]): Market[] {
    return [...markets.values()]
       .map(({ names, ...market }) => {
          const former = names.filter(name => name !== market.pairKey).join(', ')
-         if (!former) return { ...market, label: market.pairKey }
+         if (!former) {
+            return { ...market, label: market.pairKey }
+         }
          return { ...market, label: names.includes(market.pairKey) ? `${market.pairKey} (ex. ${former})` : former }
       })
       .toSorted((a, b) => a.label.localeCompare(b.label))
@@ -501,8 +514,7 @@ function buildAggregationWhere(accountId: string, filters: AggregationFilters) {
    if (filters.includeAllQuotes && isConvertibleQuote(filters.quote)) {
       conditions.push(`quote_asset IN (${CONVERTIBLE_QUOTES.map(() => '?').join(', ')})`)
       params.push(...CONVERTIBLE_QUOTES)
-   }
-   else if (filters.quote) {
+   } else if (filters.quote) {
       conditions.push('quote_asset = ?')
       params.push(filters.quote)
    }

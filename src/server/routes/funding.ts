@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
+
+import type { FundingVenueId } from '../../types/funding'
 import { cancelFundingSync, fundingOverview, startFundingSync } from '../services/funding/funding-sync'
 import { fundingVenues } from '../services/funding/venues'
 import { withCredentials } from './with-account'
-import type { FundingVenueId } from '../../types/funding'
 
 export default function fundingRoutes(venueId: FundingVenueId): Hono {
 

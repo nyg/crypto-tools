@@ -1,20 +1,22 @@
-import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
 import {
    ArrowUpCircleIcon, CheckCircleIcon, CheckIcon, CircleAlertIcon, CopyIcon, RefreshCwIcon, XIcon
 } from 'lucide-react'
-import ExternalLink from './lib/external-link'
-import { APP_VERSION } from '@/lib/about-event'
-import { copyText } from '@/lib/clipboard'
-import useLatestRelease from '@/lib/use-latest-release'
-import useInstallInfo from '@/lib/use-install-info'
-import { cn } from '@/lib/utils'
+import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
    Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle
 } from '@/components/ui/dialog'
-import { asLocalTimestamp } from '../../utils/format'
+import { APP_VERSION } from '@/lib/about-event'
+import { copyText } from '@/lib/clipboard'
+import useInstallInfo from '@/lib/use-install-info'
+import useLatestRelease from '@/lib/use-latest-release'
+import { cn } from '@/lib/utils'
+
 import type { InstallMethod } from '../../types/api'
+import { asLocalTimestamp } from '../../utils/format'
+import ExternalLink from './lib/external-link'
 
 const REPOSITORY_URL = 'https://github.com/nyg/crypto-tools'
 const COPIED_FEEDBACK_MS = 1500
@@ -43,7 +45,9 @@ function CopyButton({ value }: { value: string }) {
    const [copied, setCopied] = useState(false)
 
    useEffect(() => {
-      if (!copied) return
+      if (!copied) {
+         return
+      }
       const timer = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
       return () => clearTimeout(timer)
    }, [copied])

@@ -2,12 +2,13 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { HttpRequesterError } from '../../errors'
-import type * as FundingSync from './funding-sync'
-import type { FundingFeed, FundingVenue } from './venues'
+
 import type { Credentials } from '../../../types/credentials'
 import type { FundingRecord, FundingWindow } from '../../../types/funding'
 import type { FundingJob } from '../../../types/jobs'
+import { HttpRequesterError } from '../../errors'
+import type * as FundingSync from './funding-sync'
+import type { FundingFeed, FundingVenue } from './venues'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-funding-'))
 
@@ -58,7 +59,9 @@ async function run(venue: FundingVenue, credentials: Credentials, feeds: Funding
 }
 
 async function finished(job: FundingJob) {
-   while (job.phase === 'running') await new Promise(resolve => setTimeout(resolve, 5))
+   while (job.phase === 'running') {
+      await new Promise(resolve => setTimeout(resolve, 5))
+   }
 }
 
 beforeAll(async () => {
@@ -159,7 +162,9 @@ describe('runFundingSync', () => {
       const failing: FundingFeed = {
          ...feed,
          fetch: async window => {
-            if (++calls === 2) throw new HttpRequesterError(200, { retCode: 10006, retMsg: 'Too many visits.' })
+            if (++calls === 2) {
+               throw new HttpRequesterError(200, { retCode: 10006, retMsg: 'Too many visits.' })
+            }
             return feed.fetch(window)
          }
       }

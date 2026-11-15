@@ -1,4 +1,5 @@
 import Big from 'big.js'
+
 import type { SupertrendTrend } from '../../../types/api'
 import type { CandleInterval, SpotCandle } from '../../../types/portfolio'
 
@@ -28,7 +29,9 @@ function trueRanges(candles: SpotCandle[]): Big[] {
    return candles.map(({ high, low }, index) => {
       const range = Big(high).minus(low)
       const previous = candles[index - 1]
-      if (!previous) return range
+      if (!previous) {
+         return range
+      }
       return largest([range, Big(high).minus(previous.close).abs(), Big(low).minus(previous.close).abs()])
    })
 }
@@ -42,7 +45,9 @@ export function supertrend(
    { interval = '1d', now = Infinity, atrLength = ATR_LENGTH, factor = FACTOR }: SupertrendOptions = {}
 ): Supertrend | null {
 
-   if (candles.length <= atrLength) return null
+   if (candles.length <= atrLength) {
+      return null
+   }
 
    const ranges = trueRanges(candles)
    const first = atrLength - 1
@@ -57,7 +62,9 @@ export function supertrend(
 
       const { time, high, low, close } = candles[index]!
       const forming = time + INTERVAL_MS[interval] > now
-      if (index > first) atr = atr.times(atrLength - 1).plus(ranges[index]!).div(atrLength)
+      if (index > first) {
+         atr = atr.times(atrLength - 1).plus(ranges[index]!).div(atrLength)
+      }
 
       const middle = Big(high).plus(low).div(TWO)
       const basicUpper = middle.plus(atr.times(factor))
@@ -70,10 +77,15 @@ export function supertrend(
       upper = basicUpper.lt(upper) || brokeUpper ? basicUpper : upper
       lower = basicLower.gt(lower) || brokeLower ? basicLower : lower
 
-      if (index === first) trend = 'down'
-      else if (forming) trend = wasUpper ? 'down' : 'up'
-      else if (wasUpper) trend = Big(close).gt(upper) ? 'up' : 'down'
-      else trend = Big(close).lt(lower) ? 'down' : 'up'
+      if (index === first) {
+         trend = 'down'
+      } else if (forming) {
+         trend = wasUpper ? 'down' : 'up'
+      } else if (wasUpper) {
+         trend = Big(close).gt(upper) ? 'up' : 'down'
+      } else {
+         trend = Big(close).lt(lower) ? 'down' : 'up'
+      }
 
       line = trend === 'up' ? lower : upper
    }

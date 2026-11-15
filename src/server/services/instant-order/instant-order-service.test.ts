@@ -1,15 +1,16 @@
-import { describe, expect, test } from 'bun:test'
 import Big from 'big.js'
-import { HttpRequesterError } from '../../errors'
-import InstantOrderService, { InstantOrderError } from './instant-order-service'
-import type { PortfolioExchange } from '../portfolio/exchange'
-import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
-import type { Venue } from '../portfolio/venues'
+import { describe, expect, test } from 'bun:test'
+
 import type { InstantOrderState, TrackedInstantOrder } from '../../../types/api'
 import type {
    ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderEvent, OrderLookup, OrderSettlement, SpotCandle, SpotMarket,
    SpotPrice, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import type { StreamListener, StreamSubscription } from '../../adapters/websocket/socket-hub'
+import { HttpRequesterError } from '../../errors'
+import type { PortfolioExchange } from '../portfolio/exchange'
+import type { Venue } from '../portfolio/venues'
+import InstantOrderService, { InstantOrderError } from './instant-order-service'
 
 const POST_ONLY_REFUSED = 'post-only'
 
@@ -28,7 +29,9 @@ class FakeStream<T> {
 
    watch(listener: StreamListener<T>): StreamSubscription {
       this.listeners.add(listener)
-      if (this.live) queueMicrotask(() => listener.onLive(true))
+      if (this.live) {
+         queueMicrotask(() => listener.onLive(true))
+      }
       const watched = () => this.live && this.listeners.has(listener)
       return {
          get live() {
@@ -39,12 +42,16 @@ class FakeStream<T> {
    }
 
    push(value: T): void {
-      for (const listener of this.listeners) listener.onEvent(value)
+      for (const listener of this.listeners) {
+         listener.onEvent(value)
+      }
    }
 
    drop(): void {
       this.live = false
-      for (const listener of this.listeners) listener.onLive(false)
+      for (const listener of this.listeners) {
+         listener.onLive(false)
+      }
    }
 }
 
@@ -146,7 +153,9 @@ class FakeExchange implements PortfolioExchange {
    }
 
    async placeLimitOrder(request: LimitOrderRequest): Promise<string> {
-      if (this.failure) throw this.failure
+      if (this.failure) {
+         throw this.failure
+      }
       if (this.refusals > 0) {
          this.refusals--
          throw new HttpRequesterError(400, POST_ONLY_REFUSED)
@@ -158,13 +167,17 @@ class FakeExchange implements PortfolioExchange {
 
    async cancelOrder({ clientOrderId }: OrderLookup): Promise<void> {
       const order = this.orders.get(clientOrderId)
-      if (order) order.closed = true
+      if (order) {
+         order.closed = true
+      }
    }
 
    async settleOrder({ clientOrderId }: OrderLookup): Promise<OrderSettlement | null> {
       this.checks++
       const order = this.orders.get(clientOrderId)
-      if (!order) return null
+      if (!order) {
+         return null
+      }
       const closed = order.closed && this.closesAfterChecks-- <= 0
       const quote = order.filled.times(order.request.price)
       return {
@@ -212,9 +225,10 @@ const refusalOf = async (promise: Promise<unknown>) => {
    try {
       await promise
       return null
-   }
-   catch (error) {
-      if (error instanceof InstantOrderError) return error
+   } catch (error) {
+      if (error instanceof InstantOrderError) {
+         return error
+      }
       throw error
    }
 }
@@ -222,7 +236,9 @@ const refusalOf = async (promise: Promise<unknown>) => {
 async function until(condition: () => boolean | Promise<boolean>): Promise<void> {
    const deadline = Date.now() + 2000
    while (!await condition()) {
-      if (Date.now() > deadline) throw new Error('Timed out waiting for the order.')
+      if (Date.now() > deadline) {
+         throw new Error('Timed out waiting for the order.')
+      }
       await new Promise(resolve => setTimeout(resolve, 5))
    }
 }

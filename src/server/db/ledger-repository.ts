@@ -1,18 +1,19 @@
 import Big from 'big.js'
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
-import { getDatabase } from './database'
-import { entryKeyFor } from './entry-key'
-import { tickerOf } from '../adapters/kraken-api/assets'
+
+import type {
+   BalanceSummary, ClearResponse, FeeSummary, LedgerEntriesResponse, LedgerFiltersResponse,
+   RewardAmount, RewardAsset, RewardStrategy, RewardSummary, RewardTotals
+} from '../../types/api'
 import type {
    AssetRangeRow, BalanceAmountRow, CountRow, FeeAssetRow, FeeMonthRow,
    FeeTypeRow, FundingBalanceRow, FundingLedgerRow, LedgerEntryRow, OtherAccountRow, RewardBucketRow, RewardPeriodRow, RewardRow, SyncStateRow,
    SyncStateUpdate, TimeRangeRow, UsdValue, ValueRow, WalletAmountRow
 } from '../../types/db'
-import type {
-   BalanceSummary, ClearResponse, FeeSummary, LedgerEntriesResponse, LedgerFiltersResponse,
-   RewardAmount, RewardAsset, RewardStrategy, RewardSummary, RewardTotals
-} from '../../types/api'
 import type { LedgerEntry, LedgerFilters, Sort } from '../../types/kraken'
+import { tickerOf } from '../adapters/kraken-api/assets'
+import { getDatabase } from './database'
+import { entryKeyFor } from './entry-key'
 
 type Params = SQLQueryBindings[]
 type NamedParams = Record<string, string | number | bigint | boolean | null>
@@ -75,7 +76,9 @@ const rewardAmountOf = (row: UsdValue & { total: number }): RewardAmount =>
    ({ amount: row.total, value: row.value, unvalued: row.unvalued })
 
 function addRewardAmount(total: RewardAmount | undefined, row: RewardAmount): RewardAmount {
-   if (!total) return row
+   if (!total) {
+      return row
+   }
    return {
       amount: total.amount + row.amount,
       value: total.value === null && row.value === null ? null : (total.value ?? 0) + (row.value ?? 0),
@@ -97,7 +100,9 @@ function addRewardRow(totals: RewardTotals, row: RewardRow): void {
 
 function strategyOf(asset: RewardAsset, lockType: string, row: RewardRow): RewardStrategy {
    const known = asset.strategies.find(strategy => strategy.lockType === lockType)
-   if (known) return known
+   if (known) {
+      return known
+   }
 
    const strategy: RewardStrategy = { lockType, active: false, ...emptyRewardTotals(row) }
    asset.strategies.push(strategy)
@@ -193,8 +198,7 @@ export default class LedgerRepository {
                })
             }
          })()
-      }
-      finally {
+      } finally {
          insert.finalize()
       }
    }
@@ -333,12 +337,16 @@ export default class LedgerRepository {
 
       for (const row of bucketQuery(bucketModifiers.month).all(this.#accountId, months[0] ?? 0)) {
          const asset = assets.get(row.asset)
-         if (asset) asset.byMonth[row.start] = rewardAmountOf(row)
+         if (asset) {
+            asset.byMonth[row.start] = rewardAmountOf(row)
+         }
       }
 
       for (const row of bucketQuery(bucketModifiers.week).all(this.#accountId, weeks[0] ?? 0)) {
          const asset = assets.get(row.asset)
-         if (asset) asset.byWeek[row.start] = rewardAmountOf(row)
+         if (asset) {
+            asset.byWeek[row.start] = rewardAmountOf(row)
+         }
       }
 
       const periodQuery = this.#db.query<RewardPeriodRow, Params>(`

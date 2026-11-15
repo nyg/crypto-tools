@@ -1,6 +1,7 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import Donut, { foldSlices } from './donut'
+import { Card, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+
 import type { LiveBalance, UsdRates } from '../../../types/kraken'
+import Donut, { foldSlices } from './donut'
 
 
 export default function BalanceChartCard({ assets, rates }: {

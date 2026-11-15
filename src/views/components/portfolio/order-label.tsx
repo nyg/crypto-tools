@@ -1,5 +1,6 @@
-import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+
 import type { OrderSide } from '../../../types/portfolio'
 
 const sideColours: Record<OrderSide, string> = {

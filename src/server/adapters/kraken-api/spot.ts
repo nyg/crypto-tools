@@ -1,6 +1,5 @@
 import Big from 'big.js'
-import { normalizeAsset } from './assets'
-import { HttpRequesterError } from '../../errors'
+
 import type { KrakenSpotMarket } from '../../../types/kraken'
 import type {
    KrakenAssetPairs, KrakenExtendedBalance, KrakenOpenOrder, KrakenTicker, KrakenTradeVolume
@@ -8,6 +7,8 @@ import type {
 import type {
    OpenStopOrder, OrderSettlement, SettlementStatus, SpotPrice, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import { HttpRequesterError } from '../../errors'
+import { normalizeAsset } from './assets'
 
 const stepOf = (decimals: number | undefined): string =>
    decimals === undefined ? '0' : Big(1).div(Big(10).pow(decimals)).toFixed()
@@ -24,13 +25,19 @@ export function spotMarkets(assetPairs: KrakenAssetPairs | undefined): KrakenSpo
    const markets = new Map<string, KrakenSpotMarket>()
 
    for (const [pair, entry] of Object.entries(assetPairs ?? {})) {
-      if (!entry.altname || entry.altname.includes('.')) continue
-      if (entry.status && entry.status !== 'online') continue
+      if (!entry.altname || entry.altname.includes('.')) {
+         continue
+      }
+      if (entry.status && entry.status !== 'online') {
+         continue
+      }
 
       const base = normalizeAsset(entry.base)
       const quote = normalizeAsset(entry.quote)
       const symbol = `${base}${quote}`
-      if (markets.has(symbol)) continue
+      if (markets.has(symbol)) {
+         continue
+      }
 
       markets.set(symbol, {
          symbol,
@@ -59,7 +66,9 @@ export function spotPrices(ticker: KrakenTicker, markets: KrakenSpotMarket[]): R
    for (const [name, entry] of Object.entries(ticker)) {
       const symbol = symbols.get(name)
       const last = entry.c?.[0]
-      if (!symbol || !last) continue
+      if (!symbol || !last) {
+         continue
+      }
       prices[symbol] = { last, bid: entry.b?.[0] || last, ask: entry.a?.[0] || last }
    }
 
@@ -71,10 +80,14 @@ export function spotWallet(balances: KrakenExtendedBalance): WalletCoin[] {
    const wallet = new Map<string, { total: Big, free: Big }>()
 
    for (const [key, { balance, hold_trade }] of Object.entries(balances)) {
-      if (key.includes('.')) continue
+      if (key.includes('.')) {
+         continue
+      }
 
       const total = Big(balance || 0)
-      if (total.eq(0)) continue
+      if (total.eq(0)) {
+         continue
+      }
 
       const asset = normalizeAsset(key)
       const known = wallet.get(asset) ?? { total: Big(0), free: Big(0) }
@@ -90,7 +103,9 @@ export function tradeFees({ fees, fees_maker: makerFees }: KrakenTradeVolume, ma
    const rateOf = (percent: string) => Big(percent).div(100).toFixed()
    return Object.fromEntries(Object.entries(fees ?? {}).flatMap(([pair, { fee }]) => {
       const symbol = symbolOf.get(pair)
-      if (!symbol || !fee) return []
+      if (!symbol || !fee) {
+         return []
+      }
       const taker = rateOf(fee)
       const maker = rateOf(makerFees?.[pair]?.fee || fee)
       return [[symbol, { taker: { buy: taker, sell: taker }, maker: { buy: maker, sell: maker } }]]
@@ -98,9 +113,13 @@ export function tradeFees({ fees, fees_maker: makerFees }: KrakenTradeVolume, ma
 }
 
 function settlementStatus({ status, vol_exec }: KrakenOpenOrder): SettlementStatus {
-   if (status === 'pending' || status === 'open') return 'open'
+   if (status === 'pending' || status === 'open') {
+      return 'open'
+   }
    const executed = Big(vol_exec || 0).gt(0)
-   if (status === 'closed' && executed) return 'filled'
+   if (status === 'closed' && executed) {
+      return 'filled'
+   }
    return executed ? 'partial' : 'rejected'
 }
 

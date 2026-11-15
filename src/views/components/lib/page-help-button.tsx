@@ -1,7 +1,8 @@
-import { useLocation } from 'react-router'
 import { HelpCircleIcon } from 'lucide-react'
+import { useLocation } from 'react-router'
+
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger, PopoverDescription } from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverDescription,PopoverTrigger } from '@/components/ui/popover'
 import pageHelp from '@/lib/page-help'
 
 // What a page is and where its data comes from, one click away in the same corner on
@@ -12,7 +13,9 @@ export default function PageHelpButton() {
    const { pathname } = useLocation()
    const help = pageHelp[pathname]
 
-   if (!help) return null
+   if (!help) {
+      return null
+   }
 
    return (
       <Popover>

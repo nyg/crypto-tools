@@ -1,6 +1,8 @@
 import { Cell, Pie, PieChart } from 'recharts'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart'
+
 import type { ChartConfig } from '@/components/ui/chart'
+import { ChartContainer, ChartLegend, ChartLegendContent,ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+
 import { asAssetAmount, asDollarAmount, asShortPercentage } from '../../../utils/format'
 
 // One ring segment. amount is the holding behind the USD value, shown in the tooltip
@@ -40,7 +42,9 @@ export function foldSlices(
    const others = valued.slice(kept.length)
 
    // Folding a single slice into "Others" hides its name for nothing.
-   if (others.length <= 1) return valued
+   if (others.length <= 1) {
+      return valued
+   }
 
    return [
       ...kept,

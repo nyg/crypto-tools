@@ -1,25 +1,26 @@
 import Big from 'big.js'
 import { unzipSync } from 'fflate'
-import * as resource from './resource'
-import { normalizeAsset } from './assets'
-import { buildPairIndex, resolvePair, usdPairsFor } from './pairs'
-import { parseCsv, parseCsvTime } from './csv'
-import { fetchTickerSnapshots } from './ticker-stream'
-import { earnPositions } from './earn'
-import { DAILY_INTERVAL, WEEKLY_INTERVAL, candlesOf, spotCandles, usdRatesFromCandles } from './ohlc'
-import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, tradeFees } from './spot'
+
 import type { Credentials } from '../../../types/credentials'
+import type { UsdRateRow } from '../../../types/db'
 import type {
    CancelResult, ExportReport, ExportReportType, ExportRequest, KrakenSpotMarket, LedgerEntry,
    LiveBalance, OpenOrder, PairIndex, PairPrices, TokenizedListing, TokenizedVolume, Trade, UsdPair, UsdRates
 } from '../../../types/kraken'
-import type { UsdRateRow } from '../../../types/db'
-import type { TradingPair, TradingPairs } from '../../../types/market'
 import type { KrakenAssets, KrakenOhlcCandle, KrakenOpenOrder, KrakenOrderBatchParams } from '../../../types/kraken-api'
+import type { TradingPair, TradingPairs } from '../../../types/market'
 import type {
    LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement, SpotCandle, SpotPrice,
    StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import { normalizeAsset } from './assets'
+import { parseCsv, parseCsvTime } from './csv'
+import { earnPositions } from './earn'
+import { candlesOf, DAILY_INTERVAL, spotCandles, usdRatesFromCandles,WEEKLY_INTERVAL } from './ohlc'
+import { buildPairIndex, resolvePair, usdPairsFor } from './pairs'
+import * as resource from './resource'
+import { hasKrakenError, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, tradeFees } from './spot'
+import { fetchTickerSnapshots } from './ticker-stream'
 
 // Amounts are kept as the exact strings Kraken wrote. Reading them through Big and
 // back would rewrite small values in exponential notation (1e-8), which is awkward
@@ -30,7 +31,9 @@ const decimalPattern = /^-?\d+(\.\d+)?$/
 // row rather than let Big throw on it later. An empty cell counts as zero.
 const asDecimalString = (value: string | undefined): string | null => {
    const trimmed = (value ?? '').trim()
-   if (trimmed === '') return '0'
+   if (trimmed === '') {
+      return '0'
+   }
    return decimalPattern.test(trimmed) ? trimmed : null
 }
 
@@ -64,7 +67,9 @@ export default class KrakenAPI {
    // Every private call needs credentials; a KrakenAPI built without them is only
    // good for the public endpoints, and asking it for a balance is a programming error.
    get #authenticated(): Credentials {
-      if (!this.#credentials) throw new Error('This Kraken call needs API credentials.')
+      if (!this.#credentials) {
+         throw new Error('This Kraken call needs API credentials.')
+      }
       return this.#credentials
    }
 
@@ -136,7 +141,9 @@ export default class KrakenAPI {
          const held = Big(entry.balance ?? 0)
          const hold = Big(entry.hold_trade ?? 0)
 
-         if (held.add(hold).eq(0)) continue
+         if (held.add(hold).eq(0)) {
+            continue
+         }
 
          const total = totals.get(normalizedAsset) ?? { total: Big(0), hold: Big(0) }
          // Kraken reports hold_trade as part of the balance, not on top of it.
@@ -166,7 +173,9 @@ export default class KrakenAPI {
 
       const response = await resource.fetchOpenOrders(this.#authenticated)
       const orders = Object.entries(response.result?.open ?? {})
-      if (orders.length === 0) return []
+      if (orders.length === 0) {
+         return []
+      }
 
       // Resolved through the same index the trade sync uses, so an open order reads
       // with the names the rest of the app shows (XXBTZUSD becomes BTC/USD).
@@ -204,7 +213,9 @@ export default class KrakenAPI {
    async fetchPairPrices(rawPairs: string[]): Promise<PairPrices> {
 
       const wanted = [...new Set(rawPairs.filter(Boolean))]
-      if (wanted.length === 0) return {}
+      if (wanted.length === 0) {
+         return {}
+      }
 
       const index = await this.#pairIndexOnce()
       const ticker = (await resource.fetchTicker(wanted)).result ?? {}
@@ -253,13 +264,17 @@ export default class KrakenAPI {
 
       const wanted = new Set(assets.filter(asset => asset && asset !== 'USD'))
       const rates: UsdRates = { USD: 1 }
-      if (wanted.size === 0) return rates
+      if (wanted.size === 0) {
+         return rates
+      }
 
       const assetPairs = (await resource.fetchAllAssetPairs()).result
       const pairIndex = buildPairIndex(assetPairs)
       const pairs = usdPairsFor(assetPairs, wanted)
 
-      if (pairs.size === 0) return rates
+      if (pairs.size === 0) {
+         return rates
+      }
 
       // Assets Kraken has no USD pair for are left out rather than valued at zero, so
       // the page can tell "not traded here" apart from "worth nothing".
@@ -267,10 +282,15 @@ export default class KrakenAPI {
       for (const [name, entry] of Object.entries(ticker)) {
          const { baseAsset, quoteAsset } = resolvePair(name, pairIndex)
          const price = Number(entry?.c?.[0])
-         if (!Number.isFinite(price) || price === 0) continue
+         if (!Number.isFinite(price) || price === 0) {
+            continue
+         }
 
-         if (quoteAsset === 'USD' && wanted.has(baseAsset)) rates[baseAsset] = price
-         else if (baseAsset === 'USD' && wanted.has(quoteAsset)) rates[quoteAsset] = 1 / price
+         if (quoteAsset === 'USD' && wanted.has(baseAsset)) {
+            rates[baseAsset] = price
+         } else if (baseAsset === 'USD' && wanted.has(quoteAsset)) {
+            rates[quoteAsset] = 1 / price
+         }
       }
 
       return rates
@@ -309,7 +329,9 @@ export default class KrakenAPI {
 
    async #pacePublicCall(): Promise<void> {
       const wait = this.#lastPublicCallAt + PUBLIC_CALL_GAP_MS - Date.now()
-      if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait))
+      if (wait > 0) {
+         await new Promise(resolve => setTimeout(resolve, wait))
+      }
       this.#lastPublicCallAt = Date.now()
    }
 
@@ -332,7 +354,9 @@ export default class KrakenAPI {
          const [altname = symbol] = symbol.split('/')
          const volume = Number(entry.volume)
          const vwap = Number(entry.vwap)
-         if (!Number.isFinite(volume)) continue
+         if (!Number.isFinite(volume)) {
+            continue
+         }
 
          volumes.set(altname, {
             last: Number.isFinite(Number(entry.last)) ? Number(entry.last) : null,
@@ -370,7 +394,9 @@ export default class KrakenAPI {
    }
 
    async fetchTradeFees(markets: KrakenSpotMarket[]): Promise<Record<string, TradeFees>> {
-      if (markets.length === 0) return {}
+      if (markets.length === 0) {
+         return {}
+      }
       const volume = await resource.fetchTradeVolume(this.#authenticated, markets.map(({ altname }) => altname))
       return tradeFees(volume.result ?? {}, markets)
    }
@@ -422,9 +448,10 @@ export default class KrakenAPI {
    async cancelOrderIfOpen({ clientOrderId, orderId }: OrderLookup): Promise<void> {
       try {
          await resource.cancelOrder(this.#authenticated, orderId ? { txid: orderId } : { cl_ord_id: clientOrderId })
-      }
-      catch (error) {
-         if (!hasKrakenError(error, 'EOrder:Unknown order')) throw error
+      } catch (error) {
+         if (!hasKrakenError(error, 'EOrder:Unknown order')) {
+            throw error
+         }
       }
    }
 

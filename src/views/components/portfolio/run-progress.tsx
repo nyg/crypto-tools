@@ -1,17 +1,19 @@
-import { useEffect, useRef } from 'react'
-import useSWR from 'swr'
-import { toast } from 'sonner'
 import { Loader2Icon, SquareIcon } from 'lucide-react'
-import useMutation from '../../lib/use-mutation'
-import LoadingSpinner from '../lib/loading-spinner'
+import { useEffect, useRef } from 'react'
+import { toast } from 'sonner'
+import useSWR from 'swr'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import OrderLabel from './order-label'
-import { asQuantity, asQuoteAmount, orderStatusLabels, runStatusLabels } from './format'
+
 import type { PortfolioRun, PortfolioRunOrder, PortfolioRunRequest, PortfolioRunResponse } from '../../../types/api'
 import type { RunOrderStatus } from '../../../types/portfolio'
+import useMutation from '../../lib/use-mutation'
+import LoadingSpinner from '../lib/loading-spinner'
+import { asQuantity, asQuoteAmount, orderStatusLabels, runStatusLabels } from './format'
+import OrderLabel from './order-label'
 
 const badgeVariant = (status: RunOrderStatus) =>
    status === 'filled' ? 'secondary' : ['rejected', 'failed'].includes(status) ? 'destructive' : 'outline'
@@ -86,8 +88,7 @@ export default function RunProgress({ apiBase, runId, quoteAsset, onDone }: RunP
       try {
          await stop({ runId })
          mutate()
-      }
-      catch (reason) {
+      } catch (reason) {
          toast.error(typeof reason === 'string' ? reason : 'The run could not be stopped.')
       }
    }
@@ -96,7 +97,9 @@ export default function RunProgress({ apiBase, runId, quoteAsset, onDone }: RunP
    const run = data?.run
 
    useEffect(() => {
-      if (!run || run.running || reported.current) return
+      if (!run || run.running || reported.current) {
+         return
+      }
       reported.current = true
       onDone?.(run)
    }, [run])
@@ -109,7 +112,9 @@ export default function RunProgress({ apiBase, runId, quoteAsset, onDone }: RunP
       )
    }
 
-   if (!run) return <LoadingSpinner />
+   if (!run) {
+      return <LoadingSpinner />
+   }
 
    const settled = run.orders.filter(({ status }) => !['pending', 'placed', 'unknown'].includes(status)).length
 

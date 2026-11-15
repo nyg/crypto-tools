@@ -1,16 +1,17 @@
 import Big from 'big.js'
-import { httpRequester } from '../http-requester/server-http-requester'
-import type { RequestOptions } from '../http-requester/server-http-requester'
-import { authenticator } from './authenticator'
+
 import type { Credentials } from '../../../types/credentials'
 import type { ExportReportType, ExportRequest } from '../../../types/kraken'
 import type {
    KrakenAddExportResult, KrakenAddOrderBatchResult, KrakenAddOrderParams, KrakenAddOrderResult,
    KrakenAmendOrderParams, KrakenAmendOrderResult, KrakenAssetPairs, KrakenAssets, KrakenCancelResult, KrakenClosedOrders, KrakenEarnAllocations,
-   KrakenEarnStrategies, KrakenExportStatus, KrakenExtendedBalance, KrakenOpenOrders,
-   KrakenOhlc, KrakenOrderBatchParams, KrakenOrderFilter, KrakenOrderReference, KrakenQueriedOrders,
+   KrakenEarnStrategies, KrakenExportStatus, KrakenExtendedBalance,    KrakenOhlc, KrakenOpenOrders,
+   KrakenOrderBatchParams, KrakenOrderFilter, KrakenOrderReference, KrakenQueriedOrders,
    KrakenResponse, KrakenTicker, KrakenTradeVolume, KrakenWebSocketsToken
 } from '../../../types/kraken-api'
+import type { RequestOptions } from '../http-requester/server-http-requester'
+import { httpRequester } from '../http-requester/server-http-requester'
+import { authenticator } from './authenticator'
 
 const apiUrl = 'https://api.kraken.com'
 const urlFor = (endpoint: string) => apiUrl + endpoint

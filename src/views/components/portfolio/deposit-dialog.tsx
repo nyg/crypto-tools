@@ -1,18 +1,20 @@
-import { useState } from 'react'
 import Big from 'big.js'
 import { Loader2Icon } from 'lucide-react'
-import useMutation from '../../lib/use-mutation'
-import NumericInput from '../lib/numeric-input'
-import SelectField from '../lib/select-field'
+import { useState } from 'react'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
-import { asQuantity } from './format'
+
 import type {
    AccountCoin, PortfolioMovementRequest, PortfolioMovementResponse, PortfolioSummary
 } from '../../../types/api'
+import useMutation from '../../lib/use-mutation'
+import NumericInput from '../lib/numeric-input'
+import SelectField from '../lib/select-field'
+import { asQuantity } from './format'
 
 interface DepositFormProps {
    apiBase: string
@@ -49,8 +51,7 @@ function DepositForm({ apiBase, venueLabel, wallet, portfolio, coins, onCancel, 
       try {
          await deposit({ portfolioId: portfolio.id, asset, amount })
          onDeposited(portfolio, asset, amount)
-      }
-      catch (reason) {
+      } catch (reason) {
          setError(typeof reason === 'string' ? reason : 'The deposit could not be recorded.')
       }
    }

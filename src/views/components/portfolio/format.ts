@@ -1,9 +1,10 @@
 import Big from 'big.js'
-import { asAssetAmount, asDecimal, asShortPercentage, asSignedShortPercentage } from '../../../utils/format'
+
 import type { SupertrendLevel } from '../../../types/api'
 import type {
    RunKind, RunOrderStatus, RunStatus, SkipReason, StopSkipReason, StopStatus
 } from '../../../types/portfolio'
+import { asAssetAmount, asDecimal, asShortPercentage, asSignedShortPercentage } from '../../../utils/format'
 
 const QUOTE_DECIMALS = 2
 const POINT_DECIMALS = 1

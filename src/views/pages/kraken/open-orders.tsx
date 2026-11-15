@@ -1,23 +1,25 @@
-import { useEffect, useRef, useState } from 'react'
-import useMutation from '../../lib/use-mutation'
-import { toast } from 'sonner'
 import Big from 'big.js'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
-import KrakenLayout from '../../components/kraken/kraken-layout'
-import OpenOrderGroup from '../../components/kraken/open-order-group'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+
+import type { OpenOrdersResponse } from '../../../types/api'
+import type { CancelResult, OpenOrder } from '../../../types/kraken'
+import { asLocalTimestamp, asUtcTimestamp } from '../../../utils/format'
 import CancelOrdersDialog from '../../components/kraken/cancel-orders-dialog'
+import KrakenLayout from '../../components/kraken/kraken-layout'
+import type { OrderGroup } from '../../components/kraken/open-order-group'
+import OpenOrderGroup from '../../components/kraken/open-order-group'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import { asCount } from '../../components/lib/filter-options'
 import LoadingSpinner from '../../components/lib/loading-spinner'
 import SettingsLink from '../../components/lib/settings-link'
 import TimeAgo from '../../components/lib/time-ago'
+import useMutation from '../../lib/use-mutation'
 import { useProvider } from '../../lib/use-settings'
-import { asCount } from '../../components/lib/filter-options'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { asLocalTimestamp, asUtcTimestamp } from '../../../utils/format'
-import type { OrderGroup } from '../../components/kraken/open-order-group'
-import type { CancelResult, OpenOrder } from '../../../types/kraken'
-import type { OpenOrdersResponse } from '../../../types/api'
 
 // A pair's book plus what the whole book is worth, which is only used to order the
 // groups on the page.
@@ -65,7 +67,9 @@ export default function KrakenOpenOrders() {
    const hasFetchedRef = useRef(false)
 
    useEffect(() => {
-      if (!configured || hasFetchedRef.current) return
+      if (!configured || hasFetchedRef.current) {
+         return
+      }
       hasFetchedRef.current = true
       refresh()
    }, [configured])
@@ -86,7 +90,9 @@ export default function KrakenOpenOrders() {
 
    const confirmCancel = async () => {
 
-      if (!pending) return
+      if (!pending) {
+         return
+      }
 
       const txids = pending.orders.map(order => order.txid)
 
@@ -96,8 +102,7 @@ export default function KrakenOpenOrders() {
          setSelection(current => ({ ...current, [pending.pairKey]: new Set() }))
          setPending(null)
          await refresh()
-      }
-      catch (reason) {
+      } catch (reason) {
          toast.error(typeof reason === 'string' ? reason : 'Those orders could not be cancelled.')
       }
    }

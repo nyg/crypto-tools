@@ -1,17 +1,19 @@
-import { useMemo } from 'react'
 import { TriangleAlertIcon } from 'lucide-react'
+import { useMemo } from 'react'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+
+import { asDecimal } from '../../../utils/format'
+import TakeProfitTable from '../../components/tools/take-profit-table'
 import ToolsLayout from '../../components/tools/tools-layout'
 import TradeCalculatorForm from '../../components/tools/trade-calculator-form'
-import TakeProfitTable from '../../components/tools/take-profit-table'
 import TradeSummary from '../../components/tools/trade-summary'
 import TradingViewChart from '../../components/tools/tradingview-chart'
-import usePersistentState from '../../lib/use-persistent-state'
-import { calculate, chartSymbol, isSized } from '../../lib/trade-calculator'
 import type { TradeCalculatorForm as FormValues } from '../../lib/trade-calculator'
-import { asDecimal } from '../../../utils/format'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Input } from '@/components/ui/input'
+import { calculate, chartSymbol, isSized } from '../../lib/trade-calculator'
+import usePersistentState from '../../lib/use-persistent-state'
 
 const STORAGE_KEY = 'tools.tradeCalculator.formValues'
 

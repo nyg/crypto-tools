@@ -20,7 +20,9 @@ function parseRows(text: string): string[][] {
    const endRow = () => {
       endField()
       // Skip blank lines rather than emitting a one-empty-field row.
-      if (row.length > 1 || row[0] !== '') rows.push(row)
+      if (row.length > 1 || row[0] !== '') {
+         rows.push(row)
+      }
       row = []
    }
 
@@ -30,32 +32,28 @@ function parseRows(text: string): string[][] {
       if (quoted) {
          if (char !== '"') {
             field += char
-         }
-         else if (text[i + 1] === '"') {
+         } else if (text[i + 1] === '"') {
             field += '"'
             i++
-         }
-         else {
+         } else {
             quoted = false
          }
-      }
-      else if (char === '"' && !hasField) {
+      } else if (char === '"' && !hasField) {
          quoted = true
          hasField = true
-      }
-      else if (char === ',') {
+      } else if (char === ',') {
          endField()
-      }
-      else if (char === '\n') {
+      } else if (char === '\n') {
          endRow()
-      }
-      else if (char !== '\r') {
+      } else if (char !== '\r') {
          field += char
          hasField = true
       }
    }
 
-   if (field !== '' || row.length > 0) endRow()
+   if (field !== '' || row.length > 0) {
+      endRow()
+   }
    return rows
 }
 
@@ -65,7 +63,9 @@ function parseRows(text: string): string[][] {
 export function parseCsv(text: string): CsvRow[] {
 
    const rows = parseRows(text)
-   if (rows.length === 0) return []
+   if (rows.length === 0) {
+      return []
+   }
 
    const [headerRow = []] = rows
    const headers = headerRow.map(header => header.trim().toLowerCase())
@@ -82,7 +82,9 @@ export function parseCsv(text: string): CsvRow[] {
 export function parseCsvTime(value: string | undefined): number {
 
    const match = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/.exec(value ?? '')
-   if (!match) return Number.NaN
+   if (!match) {
+      return Number.NaN
+   }
 
    const [, year = NaN, month = NaN, day = NaN, hours = NaN, minutes = NaN, seconds = NaN] = match.map(Number)
    return Date.UTC(year, month - 1, day, hours, minutes, seconds)

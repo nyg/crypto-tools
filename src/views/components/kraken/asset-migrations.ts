@@ -25,7 +25,9 @@ export const migrationOf = (asset: string): AssetMigration | null => assetMigrat
 export const assetLabel = (asset: string): string => {
 
    const former = formerTickers[asset]
-   if (former) return `${asset} (ex. ${former.join(', ')})`
+   if (former) {
+      return `${asset} (ex. ${former.join(', ')})`
+   }
 
    const migration = migrationOf(asset)
    return migration ? `${asset} (now ${migration.to})` : asset
@@ -34,7 +36,9 @@ export const assetLabel = (asset: string): string => {
 export const migrationNote = (asset: string): string | null => {
 
    const migration = migrationOf(asset)
-   if (!migration) return null
+   if (!migration) {
+      return null
+   }
 
    return `Migrated to ${migration.to} on ${migration.on} at 1:${migration.ratio}, credited as ${migration.credited}.`
       + ' Kraken credits the new asset and leaves this balance behind; it has no tradable pair, so it cannot be valued or sold.'

@@ -1,14 +1,18 @@
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
-import TimeAgo from '../lib/time-ago'
-import { asLocalTimestamp } from '../../../utils/format'
+
 import type { FundingJob } from '../../../types/jobs'
+import { asLocalTimestamp } from '../../../utils/format'
+import TimeAgo from '../lib/time-ago'
 
 export const isFundingSyncing = (job: FundingJob | null | undefined): boolean => job?.phase === 'running'
 
 function progressOf(job: FundingJob): string {
    const step = job.steps.find(({ phase }) => phase === 'running')
-   if (!step) return 'Starting…'
+   if (!step) {
+      return 'Starting…'
+   }
    return step.windows > 1
       ? `${step.label}: ${step.windowsDone} of ${step.windows} periods`
       : `${step.label}…`

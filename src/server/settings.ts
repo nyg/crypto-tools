@@ -1,12 +1,13 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import path from 'path'
-import { resolveDataDir } from './db/paths'
-import { accountIdFor } from './db/entry-key'
-import { dataProfile, environmentOverridesEnabled } from './environment'
-import { messageOf } from './errors'
-import type { DataProfile } from './environment'
+
 import type { Provider } from '../types/credentials'
 import type { SecretField, StoredProvider, StoredSettings } from '../types/settings'
+import { accountIdFor } from './db/entry-key'
+import { resolveDataDir } from './db/paths'
+import type { DataProfile } from './environment'
+import { dataProfile, environmentOverridesEnabled } from './environment'
+import { messageOf } from './errors'
 
 type ProviderConfig = { hasSecret: boolean, label: string }
 
@@ -50,20 +51,25 @@ function settingsPath(profile: DataProfile = dataProfile()): string {
 function readFile(profile: DataProfile = dataProfile()): StoredSettings {
    try {
       const file = settingsPath(profile)
-      if (!existsSync(file)) return defaults()
+      if (!existsSync(file)) {
+         return defaults()
+      }
       const stored = JSON.parse(readFileSync(file, 'utf-8')) as Partial<StoredSettings>
       const merged = defaults()
 
       for (const [id] of entries(providers)) {
          const saved = stored[id]
-         if (saved?.apiKey !== undefined) merged[id].apiKey = saved.apiKey
-         if (saved?.apiSecret !== undefined) merged[id].apiSecret = saved.apiSecret
+         if (saved?.apiKey !== undefined) {
+            merged[id].apiKey = saved.apiKey
+         }
+         if (saved?.apiSecret !== undefined) {
+            merged[id].apiSecret = saved.apiSecret
+         }
       }
 
       merged.kraken.accountId = stored.kraken?.accountId ?? ''
       return merged
-   }
-   catch (error) {
+   } catch (error) {
       console.warn('Could not read the settings file, falling back to defaults:', messageOf(error))
       return defaults()
    }
@@ -85,7 +91,9 @@ function writeFile(settings: StoredSettings): void {
 }
 
 export function environmentValue(provider: Provider, field: SecretField): string {
-   if (!environmentOverridesEnabled()) return ''
+   if (!environmentOverridesEnabled()) {
+      return ''
+   }
    const prefix = provider.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
    const name = `${prefix}_${field === 'apiSecret' ? 'API_SECRET' : 'API_KEY'}`
    return process.env[name] || process.env[`VITE_${name}`] || ''
@@ -101,10 +109,11 @@ export function writeStoredSecret(provider: Provider, field: SecretField, value:
    const stored: StoredProvider = settings[provider]
 
    if (value === null) {
-      if (stored[field] === undefined) return
+      if (stored[field] === undefined) {
+         return
+      }
       delete stored[field]
-   }
-   else {
+   } else {
       stored[field] = value
    }
 
@@ -113,7 +122,9 @@ export function writeStoredSecret(provider: Provider, field: SecretField, value:
 
 export function krakenAccountId(): string {
    const fromEnvironment = environmentValue('kraken', 'apiKey')
-   if (fromEnvironment) return accountIdFor(fromEnvironment)
+   if (fromEnvironment) {
+      return accountIdFor(fromEnvironment)
+   }
    return readFile().kraken.accountId
 }
 
@@ -121,7 +132,9 @@ export function rememberKrakenAccount(apiKey: string): void {
    const settings = readFile()
 
    const accountId = apiKey ? (settings.kraken.accountId || accountIdFor(apiKey)) : ''
-   if (settings.kraken.accountId === accountId) return
+   if (settings.kraken.accountId === accountId) {
+      return
+   }
 
    settings.kraken.accountId = accountId
    writeFile(settings)
@@ -136,7 +149,9 @@ export function settingsFilePath(profile: DataProfile = dataProfile()): string {
 }
 
 export function settingsState(profile: DataProfile): SettingsState {
-   if (!existsSync(settingsPath(profile))) return 'missing'
+   if (!existsSync(settingsPath(profile))) {
+      return 'missing'
+   }
 
    const stored = readFile(profile)
    const holdsKey = entries(providers).some(([id]) => stored[id].apiKey || stored[id].apiSecret)

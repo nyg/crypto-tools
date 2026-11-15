@@ -1,5 +1,6 @@
 import { existsSync, statSync } from 'fs'
 import path from 'path'
+
 import { createApp } from './app'
 import { allowEnvironmentOverrides, useProductionData } from './environment'
 import { migrateSecretsToCredentialStore } from './secrets'
@@ -10,7 +11,9 @@ const IS_PROD = process.env.NODE_ENV === 'production'
 
 allowEnvironmentOverrides()
 
-if (IS_PROD) useProductionData()
+if (IS_PROD) {
+   useProductionData()
+}
 
 await migrateSecretsToCredentialStore()
 
@@ -25,8 +28,12 @@ if (IS_PROD) {
 
       for (let start = 0; start < segments.length; start++) {
          const candidate = path.join(DIST, ...segments.slice(start))
-         if (!candidate.startsWith(DIST + path.sep)) continue
-         if (existsSync(candidate) && statSync(candidate).isFile()) return candidate
+         if (!candidate.startsWith(DIST + path.sep)) {
+            continue
+         }
+         if (existsSync(candidate) && statSync(candidate).isFile()) {
+            return candidate
+         }
       }
 
       return null
@@ -38,8 +45,12 @@ if (IS_PROD) {
       const pathname = new URL(c.req.url).pathname
       const file = distFile(pathname)
 
-      if (file) return new Response(Bun.file(file))
-      if (isAssetRequest(pathname)) return c.notFound()
+      if (file) {
+         return new Response(Bun.file(file))
+      }
+      if (isAssetRequest(pathname)) {
+         return c.notFound()
+      }
 
       return new Response(Bun.file(path.join(DIST, 'index.html')))
    })
@@ -53,9 +64,10 @@ try {
       idleTimeout: 0,
    })
    console.log(`✓ Server listening on http://${HOST}:${server.port}`)
-}
-catch (error) {
-   if ((error as { code?: string }).code !== 'EADDRINUSE') throw error
+} catch (error) {
+   if ((error as { code?: string }).code !== 'EADDRINUSE') {
+      throw error
+   }
    console.error(`✗ Port ${PORT} is already in use.`)
    process.exit(1)
 }

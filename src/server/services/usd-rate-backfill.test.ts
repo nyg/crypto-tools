@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { DAILY_WINDOW_DAYS, DAY_MS, mergeRanges, planRateFetch } from './usd-rate-backfill'
+
 import type { AssetRangeRow } from '../../types/db'
+import { DAILY_WINDOW_DAYS, DAY_MS, mergeRanges, planRateFetch } from './usd-rate-backfill'
 
 const today = Date.UTC(2026, 8, 25)
 

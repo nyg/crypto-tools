@@ -1,4 +1,5 @@
 import Big from 'big.js'
+
 import type { OrderSide, RebalanceMode, SizeUnit, SkipReason, SpotMarket, SpotPrice } from '../../../types/portfolio'
 
 export const DEFAULT_FEE_RATE = Big('0.001')
@@ -109,7 +110,9 @@ export const ceilTo = (amount: Big, step: Big): Big =>
    step.gt(0) ? amount.div(step).round(0, Big.roundUp).times(step) : amount
 
 export function splitAmount(amount: Big, max: Big, step: Big): Big[] {
-   if (max.lte(0) || amount.lte(max)) return [amount]
+   if (max.lte(0) || amount.lte(max)) {
+      return [amount]
+   }
    const count = amount.div(max).round(0, Big.roundUp).toNumber()
    const chunk = floorTo(amount.div(count), step)
    return [...Array(count - 1).fill(chunk) as Big[], amount.minus(chunk.times(count - 1))]
@@ -117,7 +120,9 @@ export function splitAmount(amount: Big, max: Big, step: Big): Big[] {
 
 const maxBuyAmount = (market: PlanMarket): Big => {
    const byQty = market.maxQty.gt(0) ? market.maxQty.times(market.ask) : ZERO
-   if (market.maxAmount.lte(0)) return byQty
+   if (market.maxAmount.lte(0)) {
+      return byQty
+   }
    return byQty.gt(0) && byQty.lt(market.maxAmount) ? byQty : market.maxAmount
 }
 
@@ -166,7 +171,9 @@ export const orderFee = (order: PlannedOrder, quote: string, feeRate: Big, buyFe
       : { asset: quote, amount: order.value.times(feeRate) }
 
 export function buyScale(budget: Big, planned: Big): Big {
-   if (budget.lte(0)) return ZERO
+   if (budget.lte(0)) {
+      return ZERO
+   }
    return budget.gte(planned) ? Big(1) : budget.div(planned)
 }
 
@@ -217,7 +224,9 @@ export function planPortfolio(input: PlanInput): Plan {
    const total = [...values.values()].reduce((sum, value) => sum.plus(value), ZERO)
    const withdraw = input.withdraw === 'all' ? total : input.withdraw
 
-   if (withdraw.lt(0)) throw new PlanError('The amount to withdraw cannot be negative.')
+   if (withdraw.lt(0)) {
+      throw new PlanError('The amount to withdraw cannot be negative.')
+   }
    if (withdraw.gt(total)) {
       throw new PlanError(`Cannot withdraw more than the portfolio is worth (${total.toFixed()} ${quote}).`)
    }
@@ -253,8 +262,7 @@ export function planPortfolio(input: PlanInput): Plan {
             sells.push({ asset, value: gross.gt(worth) ? worth : gross, all: gross.gte(worth) })
          }
       }
-   }
-   else {
+   } else {
       const cashDrift = total.gt(0) ? cash.div(total).times(HUNDRED).minus(targets.get(quote) ?? ZERO) : ZERO
 
       for (const asset of tradable) {
@@ -263,9 +271,14 @@ export function planPortfolio(input: PlanInput): Plan {
          const quantity = holdings.get(asset) ?? ZERO
 
          if (target.eq(0)) {
-            if (quantity.lte(0)) continue
-            if (mode === 'invest') skipped.push({ asset, reason: 'no-sells', value })
-            else sells.push({ asset, value, all: true })
+            if (quantity.lte(0)) {
+               continue
+            }
+            if (mode === 'invest') {
+               skipped.push({ asset, reason: 'no-sells', value })
+            } else {
+               sells.push({ asset, value, all: true })
+            }
             continue
          }
 
@@ -276,8 +289,12 @@ export function planPortfolio(input: PlanInput): Plan {
          const blocked = (delta.lt(0) && mode === 'invest') || (delta.gt(0) && mode === 'trim')
 
          if (inBand && (!absorbsCash || blocked)) {
-            if (!drift.eq(0)) skipped.push({ asset, reason: 'within-band', value: delta.abs() })
-            if (delta.lt(0) && mode !== 'invest') trimmable.push({ asset, value: delta.abs(), all: false })
+            if (!drift.eq(0)) {
+               skipped.push({ asset, reason: 'within-band', value: delta.abs() })
+            }
+            if (delta.lt(0) && mode !== 'invest') {
+               trimmable.push({ asset, value: delta.abs(), all: false })
+            }
             continue
          }
 
@@ -286,8 +303,9 @@ export function planPortfolio(input: PlanInput): Plan {
             continue
          }
 
-         if (delta.lt(0)) sells.push({ asset, value: delta.abs(), all: false })
-         else if (delta.gt(0)) {
+         if (delta.lt(0)) {
+            sells.push({ asset, value: delta.abs(), all: false })
+         } else if (delta.gt(0)) {
             const minimum = minimumBuy(markets.get(asset)!)
             const liftable = delta.lt(minimum) && value.plus(minimum).lte(bandEdge(asset, 1))
             const buys = inBand ? absorbing : needed
@@ -318,9 +336,14 @@ export function planPortfolio(input: PlanInput): Plan {
       const wanted = all ? holdings.get(asset) ?? ZERO : sized
       const planned = sellOrders(market, wanted.gt(cap) ? cap : wanted)
 
-      if (planned.length === 0) skipped.push({ asset, reason: 'below-minimum', value })
-      else sold.set(asset, planned)
-      if (all) wholly.add(asset)
+      if (planned.length === 0) {
+         skipped.push({ asset, reason: 'below-minimum', value })
+      } else {
+         sold.set(asset, planned)
+      }
+      if (all) {
+         wholly.add(asset)
+      }
    }
 
    const freeCash = free.get(quote) ?? ZERO
@@ -342,7 +365,9 @@ export function planPortfolio(input: PlanInput): Plan {
 
    for (const { asset, value } of trimmable.sort((left, right) => right.value.cmp(left.value))) {
       const missing = unfunded()
-      if (missing.lte(0)) break
+      if (missing.lte(0)) {
+         break
+      }
 
       const market = markets.get(asset)!
       const cap = sellable(asset)
@@ -350,7 +375,9 @@ export function planPortfolio(input: PlanInput): Plan {
       const partial = sellUpTo(market, gross.lt(value) ? gross : value, cap, ceilTo)
       const planned = partial.length > 0 ? partial : sellUpTo(market, value, cap)
 
-      if (planned.length === 0) continue
+      if (planned.length === 0) {
+         continue
+      }
       trimmed.add(asset)
       sold.set(asset, planned)
    }
@@ -359,17 +386,25 @@ export function planPortfolio(input: PlanInput): Plan {
 
    for (const [asset, planned] of largestFirst) {
       const missing = unfunded()
-      if (missing.lte(0)) break
-      if (wholly.has(asset)) continue
+      if (missing.lte(0)) {
+         break
+      }
+      if (wholly.has(asset)) {
+         continue
+      }
 
       const current = valueOf(planned)
       const limit = values.get(asset)!.minus(bandEdge(asset, -1))
       const wanted = current.plus(missing.div(keptOf(asset)))
       const reach = wanted.lt(limit) ? wanted : limit
-      if (reach.lte(current)) continue
+      if (reach.lte(current)) {
+         continue
+      }
 
       const larger = sellUpTo(markets.get(asset)!, reach, sellable(asset), ceilTo)
-      if (valueOf(larger).gt(current)) sold.set(asset, larger)
+      if (valueOf(larger).gt(current)) {
+         sold.set(asset, larger)
+      }
    }
 
    const orders = [...sold.values()].flat()
@@ -403,8 +438,7 @@ export function planPortfolio(input: PlanInput): Plan {
       if (order.side === 'sell') {
          after.set(order.asset, current.minus(order.amount.times(market.last)))
          cashAfter = cashAfter.plus(order.value.times(keptOf(order.asset)))
-      }
-      else {
+      } else {
          const rate = rateOf(order.asset, 'buy')
          const received = order.amount.div(order.price)
          const bought = buyFeeInQuote ? received : received.times(Big(1).minus(rate))

@@ -1,6 +1,7 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
-import { getDatabase } from './database'
+
 import type { AssetRangeRow, CountRow, UsdRateRow } from '../../types/db'
+import { getDatabase } from './database'
 
 type Params = SQLQueryBindings[]
 type NamedParams = Record<string, string | number | bigint | boolean | null>
@@ -42,8 +43,7 @@ export default class RateRepository {
                insert.run({ $asset: row.asset, $day: row.day, $rate: row.rate, $source: row.source })
             }
          })()
-      }
-      finally {
+      } finally {
          insert.finalize()
       }
 
@@ -52,7 +52,9 @@ export default class RateRepository {
 
    coverage(assets: string[]): Map<string, AssetRangeRow> {
 
-      if (assets.length === 0) return new Map()
+      if (assets.length === 0) {
+         return new Map()
+      }
 
       const rows = this.#db.query<AssetRangeRow, Params>(`
          SELECT asset, MIN(day) AS first, MAX(day) AS last
@@ -65,7 +67,9 @@ export default class RateRepository {
 
    ratesBetween(assets: string[], fromDay: number, toDay: number): UsdRateRow[] {
 
-      if (assets.length === 0) return []
+      if (assets.length === 0) {
+         return []
+      }
 
       return this.#db.query<UsdRateRow, Params>(`
          SELECT asset, day, rate, source

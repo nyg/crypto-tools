@@ -1,15 +1,17 @@
-import { useState } from 'react'
 import Big from 'big.js'
-import { asAssetAmount, asPercentage } from '../../../utils/format'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import SortableHead from '../lib/sortable-head'
-import { sortRows } from '../../lib/sort'
-import type { SortKeys } from '../../lib/sort'
-import type { AggregateBalanceResponse, StakingProduct, StakingProductInfo } from '../../../types/api'
 import type { VariantProps } from 'class-variance-authority'
+import { useState } from 'react'
+
 import type { badgeVariants } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell,TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
+import type { AggregateBalanceResponse, StakingProduct, StakingProductInfo } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
+import { asAssetAmount, asPercentage } from '../../../utils/format'
+import type { SortKeys } from '../../lib/sort'
+import { sortRows } from '../../lib/sort'
+import SortableHead from '../lib/sortable-head'
 
 interface Availability {
    variant: VariantProps<typeof badgeVariants>['variant']

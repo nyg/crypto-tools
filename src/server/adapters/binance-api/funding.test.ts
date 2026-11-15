@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { depositRecord, fiatRecord, withdrawalRecord } from './funding'
+
 import type { BinanceDeposit, BinanceFiatOrder, BinanceWithdrawal } from '../../../types/binance-api'
+import { depositRecord, fiatRecord, withdrawalRecord } from './funding'
 
 const deposit: BinanceDeposit = {
    id: '769800519366885376', txId: '98A3EA56', coin: 'BNB', network: 'BNB', amount: '0.00100000',

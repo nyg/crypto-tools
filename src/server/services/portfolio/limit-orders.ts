@@ -1,7 +1,8 @@
 import Big from 'big.js'
-import { ceilTo, floorTo } from './planner'
-import type { PlanMarket } from './planner'
+
 import type { OrderSide, SizeUnit } from '../../../types/portfolio'
+import type { PlanMarket } from './planner'
+import { ceilTo, floorTo } from './planner'
 
 export interface Book {
    bid: Big
@@ -16,7 +17,9 @@ export const priceBound = (side: OrderSide, preview: Big, slippagePercent: Big, 
 
 export function makerPrice(side: OrderSide, { bid, ask }: Book, tick: Big): Big | null {
 
-   if (bid.lte(0) || ask.lte(0)) return null
+   if (bid.lte(0) || ask.lte(0)) {
+      return null
+   }
 
    if (side === 'buy') {
       const underAsk = tick.gt(0) ? floorTo(ask.minus(tick), tick) : bid
@@ -28,8 +31,12 @@ export function makerPrice(side: OrderSide, { bid, ask }: Book, tick: Big): Big 
 
 export function restingPrice(side: OrderSide, book: Book, tick: Big, bound: Big): Big | null {
    const price = makerPrice(side, book, tick)
-   if (!price) return null
-   if (side === 'buy') return price.gt(bound) ? bound : price
+   if (!price) {
+      return null
+   }
+   if (side === 'buy') {
+      return price.gt(bound) ? bound : price
+   }
    return price.lt(bound) ? bound : price
 }
 

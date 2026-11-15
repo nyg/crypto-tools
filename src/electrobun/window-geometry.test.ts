@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { fillsWorkArea, shrunkFrame } from './window-geometry'
 
 const workArea = { x: 0, y: 33, width: 1676, height: 1084 }

@@ -1,8 +1,9 @@
 import Big from 'big.js'
-import { ORDERS } from '../websocket/socket-hub'
-import type { Inbound, SocketProtocol } from '../websocket/socket-hub'
+
 import type { KrakenStreamExecution, KrakenStreamMessage, KrakenStreamTicker } from '../../../types/kraken-api'
 import type { OrderEvent, SpotMarket, SpotPrice } from '../../../types/portfolio'
+import type { Inbound, SocketProtocol } from '../websocket/socket-hub'
+import { ORDERS } from '../websocket/socket-hub'
 
 const PUBLIC_URL = 'wss://ws.kraken.com/v2'
 const PRIVATE_URL = 'wss://ws-auth.kraken.com/v2'
@@ -16,19 +17,27 @@ export const krakenStreamSymbol = ({ base, quote }: Pick<SpotMarket, 'base' | 'q
 
 export function krakenTickerInbound(message: unknown): Inbound<SpotPrice>[] {
    const { channel, data, method, success, symbol } = message as KrakenStreamMessage
-   if (method === 'subscribe' && success === false && symbol) return [{ key: symbol, live: false }]
-   if (channel !== 'ticker' || !Array.isArray(data)) return []
+   if (method === 'subscribe' && success === false && symbol) {
+      return [{ key: symbol, live: false }]
+   }
+   if (channel !== 'ticker' || !Array.isArray(data)) {
+      return []
+   }
 
    return (data as KrakenStreamTicker[]).flatMap(entry => {
       const bid = decimal(entry.bid)
       const ask = decimal(entry.ask)
-      if (!entry.symbol || !bid || !ask) return []
+      if (!entry.symbol || !bid || !ask) {
+         return []
+      }
       return [{ key: entry.symbol, value: { last: decimal(entry.last) ?? bid, bid, ask } }]
    })
 }
 
 export function krakenOrderEvent(execution: KrakenStreamExecution): OrderEvent | null {
-   if (!execution.order_id) return null
+   if (!execution.order_id) {
+      return null
+   }
    const status = execution.order_status ?? execution.exec_type ?? ''
    return {
       clientOrderId: execution.cl_ord_id ?? '',
@@ -41,8 +50,12 @@ export function krakenOrderEvent(execution: KrakenStreamExecution): OrderEvent |
 
 export function krakenExecutionInbound(message: unknown): Inbound<OrderEvent>[] {
    const { channel, data, method, success, result } = message as KrakenStreamMessage
-   if (method === 'subscribe' && (success === false || result?.channel === 'executions')) return [{ key: ORDERS, live: success === true }]
-   if (channel !== 'executions' || !Array.isArray(data)) return []
+   if (method === 'subscribe' && (success === false || result?.channel === 'executions')) {
+      return [{ key: ORDERS, live: success === true }]
+   }
+   if (channel !== 'executions' || !Array.isArray(data)) {
+      return []
+   }
 
    return (data as KrakenStreamExecution[]).flatMap(execution => {
       const event = krakenOrderEvent(execution)

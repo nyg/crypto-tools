@@ -1,6 +1,7 @@
+import { CircleCheckIcon, InfoIcon, Loader2Icon,OctagonXIcon, TriangleAlertIcon } from 'lucide-react'
 import type * as React from 'react'
 import { Toaster as Sonner } from 'sonner'
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from 'lucide-react'
+
 import { useTheme } from '@/lib/theme'
 
 const Toaster = ({
