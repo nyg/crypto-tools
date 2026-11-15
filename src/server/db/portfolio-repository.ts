@@ -1,6 +1,7 @@
 import Big from 'big.js'
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
-import { getDatabase } from './database'
+
+import type { PortfolioTarget } from '../../types/api'
 import type {
    PortfolioMovementRow, PortfolioOrderRow, PortfolioRow, PortfolioRunRow, PortfolioStopRow,
    PortfolioTargetRow
@@ -8,7 +9,7 @@ import type {
 import type {
    FeeAmount, MovementKind, RunOrderStatus, RunStatus, StopStatus, VenueId
 } from '../../types/portfolio'
-import type { PortfolioTarget } from '../../types/api'
+import { getDatabase } from './database'
 
 type Params = SQLQueryBindings[]
 
@@ -170,8 +171,7 @@ export default class PortfolioRepository {
          try {
             targets.forEach(({ asset, weight, stopPrice }, position) =>
                insert.run(portfolioId, asset, weight, position, stopPrice ?? null))
-         }
-         finally {
+         } finally {
             insert.finalize()
          }
       })()
@@ -236,8 +236,7 @@ export default class PortfolioRepository {
                insert.run(order.orderLinkId, run.id, run.portfolioId, order.seq, order.symbol, order.side,
                   order.baseAsset, order.quoteAsset, order.unit, order.requested, run.startedAt, run.startedAt)
             }
-         }
-         finally {
+         } finally {
             insert.finalize()
          }
       })()
@@ -452,7 +451,9 @@ export default class PortfolioRepository {
 
    feesByOrder(orderLinkIds: string[]): Map<string, FeeAmount[]> {
       const fees = new Map<string, FeeAmount[]>()
-      if (orderLinkIds.length === 0) return fees
+      if (orderLinkIds.length === 0) {
+         return fees
+      }
 
       const rows = this.#db.query<{ orderLinkId: string, asset: string, amount: string }, Params>(`
          SELECT order_link_id AS orderLinkId, asset, amount FROM portfolio_movement

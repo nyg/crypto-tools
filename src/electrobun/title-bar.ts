@@ -26,8 +26,11 @@ function performDoubleClickAction(win: BrowserWindow) {
          win.minimize()
          return
       default:
-         if (win.isMaximized()) win.unmaximize()
-         else win.maximize()
+         if (win.isMaximized()) {
+            win.unmaximize()
+         } else {
+            win.maximize()
+         }
    }
 }
 
@@ -39,8 +42,7 @@ export function handleTitleBarDoubleClick(win: BrowserWindow) {
       }
       try {
          performDoubleClickAction(win)
-      }
-      catch (error) {
+      } catch (error) {
          console.error('✗ Could not apply the title bar double-click action:', error)
       }
    })
@@ -57,8 +59,7 @@ export function trackFullScreen(win: BrowserWindow) {
          }
          reported = fullScreen
          win.webview.executeJavascript(`window.__FULL_SCREEN__ = ${fullScreen}; window.dispatchEvent(new Event('${FULL_SCREEN_EVENT}'))`)
-      }
-      catch (error) {
+      } catch (error) {
          console.error('✗ Could not report the full screen state:', error)
       }
    }

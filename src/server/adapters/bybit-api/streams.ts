@@ -1,10 +1,11 @@
 import Big from 'big.js'
-import { streamAuth } from './authenticator'
-import { ORDERS } from '../websocket/socket-hub'
-import type { Inbound, SocketProtocol } from '../websocket/socket-hub'
-import type { Credentials } from '../../../types/credentials'
+
 import type { BybitEnvironment, BybitStreamBook, BybitStreamMessage, BybitStreamOrder } from '../../../types/bybit-api'
+import type { Credentials } from '../../../types/credentials'
 import type { OrderEvent, SpotPrice } from '../../../types/portfolio'
+import type { Inbound, SocketProtocol } from '../websocket/socket-hub'
+import { ORDERS } from '../websocket/socket-hub'
+import { streamAuth } from './authenticator'
 
 const PUBLIC_URL = 'wss://stream.bybit.com/v5/public/spot'
 const privateUrls: Record<BybitEnvironment, string> = {
@@ -17,7 +18,9 @@ const OPEN = ['New', 'PartiallyFilled', 'Untriggered', 'Created']
 const BOOK_TOPIC = 'orderbook.1.'
 
 const levelOf = (levels: [string, string][] | undefined, previous: string | undefined): string | undefined => {
-   if (!levels || levels.length === 0) return previous
+   if (!levels || levels.length === 0) {
+      return previous
+   }
    const [price, size] = levels[0]!
    return Big(size || 0).gt(0) ? price : '0'
 }
@@ -31,7 +34,9 @@ export function bybitBook(previous: SpotPrice | undefined, type: string | undefi
 }
 
 export function bybitOrderEvent(order: BybitStreamOrder): OrderEvent | null {
-   if ((order.category && order.category !== 'spot') || !order.orderId) return null
+   if ((order.category && order.category !== 'spot') || !order.orderId) {
+      return null
+   }
    return {
       clientOrderId: order.orderLinkId ?? '',
       orderId: order.orderId,
@@ -43,9 +48,15 @@ export function bybitOrderEvent(order: BybitStreamOrder): OrderEvent | null {
 
 export function bybitOrderInbound(message: unknown): Inbound<OrderEvent>[] {
    const { op, success, req_id: requestId, topic, data } = message as BybitStreamMessage
-   if (op === 'auth' && success === false) return [{ key: ORDERS, live: false }]
-   if (op === 'subscribe' && requestId === ORDERS) return [{ key: ORDERS, live: success === true }]
-   if (topic !== 'order' || !Array.isArray(data)) return []
+   if (op === 'auth' && success === false) {
+      return [{ key: ORDERS, live: false }]
+   }
+   if (op === 'subscribe' && requestId === ORDERS) {
+      return [{ key: ORDERS, live: success === true }]
+   }
+   if (topic !== 'order' || !Array.isArray(data)) {
+      return []
+   }
 
    return (data as BybitStreamOrder[]).flatMap(order => {
       const event = bybitOrderEvent(order)
@@ -64,13 +75,19 @@ export function bybitBookProtocol(): SocketProtocol<SpotPrice> {
       ping: PING,
       subscribe: symbols => symbols.map(symbol => ({ op: 'subscribe', req_id: symbol, args: [`${BOOK_TOPIC}${symbol}`] })),
       unsubscribe: symbols => {
-         for (const symbol of symbols) books.delete(symbol)
+         for (const symbol of symbols) {
+            books.delete(symbol)
+         }
          return [{ op: 'unsubscribe', args: symbols.map(symbol => `${BOOK_TOPIC}${symbol}`) }]
       },
       read: message => {
          const { op, success, req_id: requestId, topic, type, data } = message as BybitStreamMessage
-         if (op === 'subscribe' && success === false && requestId) return [{ key: requestId, live: false }]
-         if (!topic?.startsWith(BOOK_TOPIC) || !data) return []
+         if (op === 'subscribe' && success === false && requestId) {
+            return [{ key: requestId, live: false }]
+         }
+         if (!topic?.startsWith(BOOK_TOPIC) || !data) {
+            return []
+         }
          const symbol = topic.slice(BOOK_TOPIC.length)
          const book = bybitBook(books.get(symbol), type, data as BybitStreamBook)
          books.set(symbol, book)

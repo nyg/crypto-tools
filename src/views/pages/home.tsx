@@ -1,12 +1,14 @@
+import { KeyRoundIcon } from 'lucide-react'
 import { Fragment } from 'react'
 import { Link } from 'react-router'
-import { KeyRoundIcon } from 'lucide-react'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardDescription,CardHeader, CardTitle } from '@/components/ui/card'
+import { toolGroups } from '@/lib/tools'
+
 import Layout from '../components/layout'
 import SettingsLink from '../components/lib/settings-link'
 import useSettings from '../lib/use-settings'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { toolGroups } from '@/lib/tools'
 
 const settingsGroups = toolGroups.filter(({ settings }) => settings).map(({ name }) => name)
 

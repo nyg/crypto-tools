@@ -1,4 +1,5 @@
 import { Loader2Icon } from 'lucide-react'
+
 import {
    AlertDialog,
    AlertDialogAction,
@@ -9,10 +10,11 @@ import {
    AlertDialogHeader,
    AlertDialogTitle
 } from '@/components/ui/alert-dialog'
-import { summarize } from './open-order-totals'
-import { asCount } from '../lib/filter-options'
-import { asAssetAmount } from '../../../utils/format'
+
 import type { OpenOrder } from '../../../types/kraken'
+import { asAssetAmount } from '../../../utils/format'
+import { asCount } from '../lib/filter-options'
+import { summarize } from './open-order-totals'
 
 export default function CancelOrdersDialog({
    orders, pairKey, baseAsset, quoteAsset, isCancelling, onConfirm, onOpenChange
@@ -49,7 +51,9 @@ export default function CancelOrdersDialog({
                <AlertDialogAction
                   variant="destructive"
                   disabled={isCancelling}
-                  onClick={event => { event.preventDefault(); onConfirm() }}>
+                  onClick={event => {
+                     event.preventDefault(); onConfirm()
+                  }}>
                   {isCancelling && <Loader2Icon className="size-4 animate-spin" />}
                   {stats.count === 1 ? 'Cancel the order' : `Cancel ${stats.count} orders`}
                </AlertDialogAction>

@@ -1,4 +1,5 @@
 import useSWRMutation from 'swr/mutation'
+
 import { fetcher } from './fetcher'
 
 // SWR's types require a fetcher argument, but the hook falls back to the one SWRConfig

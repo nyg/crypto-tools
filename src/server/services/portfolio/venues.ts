@@ -1,9 +1,9 @@
-import BinanceExchange from './binance-exchange'
-import BybitExchange from './bybit-exchange'
-import KrakenExchange from './kraken-exchange'
-import type { PortfolioExchange } from './exchange'
 import type { Credentials, Provider } from '../../../types/credentials'
 import type { VenueId } from '../../../types/portfolio'
+import BinanceExchange from './binance-exchange'
+import BybitExchange from './bybit-exchange'
+import type { PortfolioExchange } from './exchange'
+import KrakenExchange from './kraken-exchange'
 
 export interface Venue {
    id: VenueId

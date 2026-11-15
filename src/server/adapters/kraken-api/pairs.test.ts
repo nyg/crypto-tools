@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { buildPairIndex, resolvePair, usdPairsFor } from './pairs'
+
 import type { KrakenAssetPairs } from '../../../types/kraken-api'
+import { buildPairIndex, resolvePair, usdPairsFor } from './pairs'
 
 const pair = (altname: string, base: string, quote: string, status = 'online') =>
    ({ altname, base, quote, status, lot_decimals: 8, cost_decimals: 5 })

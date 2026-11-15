@@ -1,7 +1,8 @@
 import Big from 'big.js'
-import { normalizeAsset } from './assets'
+
 import type { LivePosition } from '../../../types/kraken'
 import type { KrakenEarnAllocation, KrakenEarnAmount, KrakenEarnStrategy } from '../../../types/kraken-api'
+import { normalizeAsset } from './assets'
 
 const DAY_SECONDS = 86400
 
@@ -52,7 +53,9 @@ export function earnPositions(
    const allocated = new Map<string, LivePosition[]>()
 
    for (const allocation of allocations) {
-      if (nativeOf(allocation.amount_allocated.total).eq(0)) continue
+      if (nativeOf(allocation.amount_allocated.total).eq(0)) {
+         continue
+      }
 
       const asset = normalizeAsset(allocation.native_asset)
       const position = allocatedPosition(allocation, strategyById.get(allocation.strategy_id))

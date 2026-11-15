@@ -1,11 +1,12 @@
 import { Hono } from 'hono'
-import KrakenAPI from '../adapters/kraken-api/adapter'
-import ledgerRoutes from './kraken-ledger'
-import instantOrderRoutes from './instant-orders'
-import portfolioRoutes from './portfolios'
-import xstockRoutes from './kraken-xstocks'
-import { handleError, withCredentials } from './with-account'
+
 import type { KrakenOrderBatchParams } from '../../types/kraken-api'
+import KrakenAPI from '../adapters/kraken-api/adapter'
+import instantOrderRoutes from './instant-orders'
+import ledgerRoutes from './kraken-ledger'
+import xstockRoutes from './kraken-xstocks'
+import portfolioRoutes from './portfolios'
+import { handleError, withCredentials } from './with-account'
 
 const app = new Hono()
 
@@ -42,7 +43,9 @@ app.post('/open-orders', async (c) => withCredentials(c, 'kraken', async ({ cred
 app.post('/cancel-orders', async (c) => withCredentials(c, 'kraken', async ({ body, credentials }) => {
 
    const txids = (body.txids as string[] ?? []).filter(Boolean)
-   if (txids.length === 0) return c.json({ error: 'No order was given to cancel.' }, 400)
+   if (txids.length === 0) {
+      return c.json({ error: 'No order was given to cancel.' }, 400)
+   }
 
    return c.json(await new KrakenAPI(credentials).cancelOrders(txids))
 }))
@@ -58,8 +61,7 @@ app.post('/asset-rates', async (c) => {
    try {
       const krakenAPI = new KrakenAPI()
       return c.json({ rates: await krakenAPI.fetchUsdRates(assets) })
-   }
-   catch (error) {
+   } catch (error) {
       return handleError(c, error)
    }
 })
@@ -70,8 +72,7 @@ app.get('/trading-pairs', async (c) => {
       const krakenAPI = new KrakenAPI()
       const tradingPairs = await krakenAPI.fetchTradingPairs()
       return c.json(tradingPairs)
-   }
-   catch (error) {
+   } catch (error) {
       return handleError(c, error)
    }
 })

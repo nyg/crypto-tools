@@ -1,6 +1,7 @@
 import useSWR from 'swr'
-import type { MaskedProvider, MaskedSettings } from '../../types/settings'
+
 import type { Provider } from '../../types/credentials'
+import type { MaskedProvider, MaskedSettings } from '../../types/settings'
 
 export const SETTINGS_KEY = '/api/settings'
 

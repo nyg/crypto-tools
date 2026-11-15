@@ -1,9 +1,10 @@
 import { Hono } from 'hono'
+
+import type { AggregationFilters, Sort, TradeFilters } from '../../types/kraken'
 import TradeRepository from '../db/trade-repository'
 import { refreshUsdRates } from '../services/usd-rate-backfill'
-import { withAccount } from './with-account'
 import type { RequestBody } from './with-account'
-import type { AggregationFilters, Sort, TradeFilters } from '../../types/kraken'
+import { withAccount } from './with-account'
 
 const aggregationFiltersOf = (body: RequestBody) => body.filters as AggregationFilters | undefined
 const tradeFiltersOf = (body: RequestBody) => body.filters as TradeFilters | undefined

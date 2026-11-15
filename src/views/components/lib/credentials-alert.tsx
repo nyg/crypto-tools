@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 // Every page depends on the settings request now, so a server that is down must not

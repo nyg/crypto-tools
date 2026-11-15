@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { usdRatesFromEcb } from './adapter'
 
 const DAY = 86400000

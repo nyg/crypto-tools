@@ -1,17 +1,19 @@
 import { ChartCandlestickIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+
+import type { PortfolioHolding, PortfolioSummary } from '../../../types/api'
+import type { Sort } from '../../../types/kraken'
+import type { SortKeys } from '../../lib/sort'
+import { numericKey, sortRows } from '../../lib/sort'
+import SortableHead from '../lib/sortable-head'
 import {
    asDrift, asQuantity, asQuoteAmount, asSignedPercent, asSignedQuoteAmount, asWeight, profitColor,
    showsAsZeroQuoteAmount, stopStatusLabels
 } from './format'
-import { SupertrendCell, SupertrendHead } from './supertrend-cell'
-import SortableHead from '../lib/sortable-head'
-import { numericKey, sortRows } from '../../lib/sort'
 import type { SupertrendColumns } from './supertrend-cell'
-import type { SortKeys } from '../../lib/sort'
-import type { PortfolioHolding, PortfolioSummary } from '../../../types/api'
-import type { Sort } from '../../../types/kraken'
+import { SupertrendCell, SupertrendHead } from './supertrend-cell'
 
 const SUPERTREND_COLUMNS = 2
 
@@ -94,7 +96,9 @@ export default function HoldingsTable({ portfolio, supertrend, sort, onSortChang
                const untargeted = Number(holding.target) === 0
                if (isCashOnly(holding)) {
                   const realizedShown = !showsAsZeroQuoteAmount(holding.realized)
-                  if (showsAsZeroQuoteAmount(holding.quantity) && !realizedShown) return null
+                  if (showsAsZeroQuoteAmount(holding.quantity) && !realizedShown) {
+                     return null
+                  }
                   return (
                      <TableRow key={holding.asset}>
                         <TableCell className="font-medium">

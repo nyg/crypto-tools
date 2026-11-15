@@ -1,6 +1,6 @@
-import * as resource from './resource'
-import type { FrankfurterRate } from '../../../types/frankfurter-api'
 import type { UsdRateRow } from '../../../types/db'
+import type { FrankfurterRate } from '../../../types/frankfurter-api'
+import * as resource from './resource'
 
 const DAY_MS = 86400000
 
@@ -16,7 +16,9 @@ export function usdRatesFromEcb(rates: FrankfurterRate[], today: number): UsdRat
 
    for (const entry of rates) {
       const day = utcDay(entry.date)
-      if (entry.base !== 'USD' || !Number.isFinite(day) || !(entry.rate > 0)) continue
+      if (entry.base !== 'USD' || !Number.isFinite(day) || !(entry.rate > 0)) {
+         continue
+      }
       const days = byAsset.get(entry.quote) ?? new Map<number, number>()
       days.set(day, 1 / entry.rate)
       byAsset.set(entry.quote, days)
@@ -49,7 +51,9 @@ export default class FrankfurterAPI {
       today: number
    }): Promise<UsdRateRow[]> {
 
-      if (assets.length === 0 || to < from) return []
+      if (assets.length === 0 || to < from) {
+         return []
+      }
 
       const rates = await resource.fetchRates({ from: isoDate(from), to: isoDate(to), base: 'USD', quotes: assets })
       return usdRatesFromEcb(rates, today)

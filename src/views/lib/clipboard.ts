@@ -10,11 +10,9 @@ function copyThroughSelection(text: string): boolean {
 
    try {
       return document.execCommand('copy')
-   }
-   catch {
+   } catch {
       return false
-   }
-   finally {
+   } finally {
       textarea.remove()
    }
 }
@@ -24,8 +22,7 @@ export async function copyText(text: string): Promise<boolean> {
    try {
       await navigator.clipboard.writeText(text)
       return true
-   }
-   catch {
+   } catch {
       return copyThroughSelection(text)
    }
 }

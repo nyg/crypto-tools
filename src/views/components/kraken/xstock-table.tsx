@@ -1,16 +1,18 @@
-import { useState } from 'react'
+import type { VariantProps } from 'class-variance-authority'
 import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState } from 'react'
+
+import type { badgeVariants } from '@/components/ui/badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asNumber, asDollarAmount, asRounded } from '../../../utils/format'
-import SortableHead from '../lib/sortable-head'
-import ExternalLink from '../lib/external-link'
-import type { VariantProps } from 'class-variance-authority'
-import type { badgeVariants } from '@/components/ui/badge'
+import { Table, TableBody, TableCell,TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+
 import type { XStockRow } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
+import { asDollarAmount, asNumber, asRounded } from '../../../utils/format'
+import ExternalLink from '../lib/external-link'
+import SortableHead from '../lib/sortable-head'
 
 type BadgeVariant = VariantProps<typeof badgeVariants>['variant']
 
@@ -54,8 +56,11 @@ export default function XStockTable({
 
    const toggle = (ticker: string) => setExpanded(current => {
       const next = new Set(current)
-      if (next.has(ticker)) next.delete(ticker)
-      else next.add(ticker)
+      if (next.has(ticker)) {
+         next.delete(ticker)
+      } else {
+         next.add(ticker)
+      }
       return next
    })
 

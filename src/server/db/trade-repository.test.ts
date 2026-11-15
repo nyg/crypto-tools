@@ -2,9 +2,10 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import type TradeRepositoryType from './trade-repository'
+
 import type { AggregationsResponse } from '../../types/api'
 import type { Trade } from '../../types/kraken'
+import type TradeRepositoryType from './trade-repository'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-trades-'))
 

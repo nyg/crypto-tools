@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { supertrendStop } from './supertrend-stops'
 
 describe('a stop price taken from the Supertrend', () => {

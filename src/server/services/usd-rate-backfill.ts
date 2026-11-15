@@ -1,12 +1,12 @@
-import KrakenAPI from '../adapters/kraken-api/adapter'
+import type { AssetRangeRow } from '../../types/db'
 import BinanceAPI from '../adapters/binance-api/adapter'
 import FrankfurterAPI from '../adapters/frankfurter-api/adapter'
-import RateRepository from '../db/rate-repository'
+import KrakenAPI from '../adapters/kraken-api/adapter'
 import LedgerRepository from '../db/ledger-repository'
-import TradeRepository from '../db/trade-repository'
 import { DAY_MS, dayOf } from '../db/quote-conversion'
+import RateRepository from '../db/rate-repository'
+import TradeRepository from '../db/trade-repository'
 import { messageOf } from '../errors'
-import type { AssetRangeRow } from '../../types/db'
 
 export { DAY_MS }
 
@@ -61,19 +61,27 @@ export function planRateFetch(ranges: AssetRangeRow[], coverage: Map<string, Ass
 
    for (const range of ranges) {
 
-      if (range.asset === 'USD' || range.asset === '') continue
+      if (range.asset === 'USD' || range.asset === '') {
+         continue
+      }
 
       const from = dayOf(range.first)
       const to = Math.min(dayOf(range.last), today - DAY_MS)
-      if (to < from) continue
+      if (to < from) {
+         continue
+      }
 
       const covered = coverage.get(range.asset)
       const reachesBack = covered !== undefined && covered.first <= from
       const missingFrom = reachesBack ? covered.last + DAY_MS : from
-      if (missingFrom > to) continue
+      if (missingFrom > to) {
+         continue
+      }
 
       const symbol = LEGACY_USD_SYMBOLS[range.asset]
-      if (symbol && !reachesBack) legacy.push({ asset: range.asset, symbol, from, to })
+      if (symbol && !reachesBack) {
+         legacy.push({ asset: range.asset, symbol, from, to })
+      }
 
       if (ECB_CURRENCIES.has(range.asset)) {
          ecbAssets.push(range.asset)
@@ -128,7 +136,9 @@ const quietProgress: BackfillProgress = {
    onFetching: () => {},
    onStored: () => {},
    onSkipped: (asset, error) => {
-      if (error) console.warn('No USD rates for', asset, error)
+      if (error) {
+         console.warn('No USD rates for', asset, error)
+      }
    }
 }
 
@@ -137,8 +147,12 @@ const refreshed = new Set<string>()
 
 export function refreshUsdRates(accountId: string): boolean {
 
-   if (refreshes.has(accountId)) return true
-   if (refreshed.has(accountId)) return false
+   if (refreshes.has(accountId)) {
+      return true
+   }
+   if (refreshed.has(accountId)) {
+      return false
+   }
 
    const today = dayOf(Date.now())
    const plan = planFor(usdRateRanges(accountId), today)
@@ -168,9 +182,10 @@ async function fetchPlannedRates(plan: RatePlan, progress: BackfillProgress, tod
       try {
          const rows = await new FrankfurterAPI().fetchUsdRates({ ...plan.ecb, today })
          progress.onStored(repository.upsertRates(rows))
-      }
-      catch (error) {
-         for (const asset of plan.ecb.assets) progress.onSkipped(asset, `ECB rates: ${messageOf(error)}`)
+      } catch (error) {
+         for (const asset of plan.ecb.assets) {
+            progress.onSkipped(asset, `ECB rates: ${messageOf(error)}`)
+         }
       }
    }
 
@@ -188,15 +203,16 @@ async function fetchPlannedRates(plan: RatePlan, progress: BackfillProgress, tod
 
          const pair = pairs.get(fetch.asset)
          if (!pair) {
-            if (!LEGACY_USD_SYMBOLS[fetch.asset]) progress.onSkipped(fetch.asset, null)
+            if (!LEGACY_USD_SYMBOLS[fetch.asset]) {
+               progress.onSkipped(fetch.asset, null)
+            }
             continue
          }
 
          try {
             const rows = await krakenAPI.fetchUsdRateHistory({ ...fetch, pair, today })
             progress.onStored(repository.upsertRates(rows))
-         }
-         catch (error) {
+         } catch (error) {
             progress.onSkipped(fetch.asset, `${fetch.asset}: ${messageOf(error)}`)
          }
       }
@@ -208,15 +224,16 @@ async function fetchPlannedRates(plan: RatePlan, progress: BackfillProgress, tod
 
       const krakenFirst = repository.coverage([fetch.asset]).get(fetch.asset)?.first
       const to = Math.min(fetch.to, krakenFirst === undefined ? fetch.to : krakenFirst - DAY_MS)
-      if (to < fetch.from) continue
+      if (to < fetch.from) {
+         continue
+      }
 
       progress.onFetching()
 
       try {
          const rows = await new BinanceAPI().fetchUsdRateHistory({ ...fetch, to, today })
          progress.onStored(repository.insertMissingRates(rows))
-      }
-      catch (error) {
+      } catch (error) {
          progress.onSkipped(fetch.asset, `${fetch.asset} (${fetch.symbol}): ${messageOf(error)}`)
       }
    }

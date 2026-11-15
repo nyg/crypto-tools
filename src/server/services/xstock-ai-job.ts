@@ -1,15 +1,15 @@
-import AnthropicAPI, {
-   MODEL, CLASSIFY_CHUNK_SIZE, CLASSIFY_CONCURRENCY, DESCRIBE_CONCURRENCY, chunked
-} from '../adapters/anthropic/adapter'
-import XStockRepository from '../db/xstock-repository'
-import { seededListing } from './xstock-reference'
-import { messageOf } from '../errors'
 import type { Credentials } from '../../types/credentials'
 import type { StartedJob, XStockJob, XStockJobKind, XStockStep, XStockStepPhase } from '../../types/jobs'
 import type { TokenizedListing } from '../../types/kraken'
 import type {
    AiActivity, AiActivityReporter, XStockAiListing, XStockClassification, XStockTarget
 } from '../../types/xstock'
+import AnthropicAPI, {
+   chunked,
+   CLASSIFY_CHUNK_SIZE, CLASSIFY_CONCURRENCY, DESCRIBE_CONCURRENCY,    MODEL} from '../adapters/anthropic/adapter'
+import XStockRepository from '../db/xstock-repository'
+import { messageOf } from '../errors'
+import { seededListing } from './xstock-reference'
 
 // One unit of work: a group of tickers handed to Claude in a single call, reporting
 // what it is doing as it goes.
@@ -81,7 +81,9 @@ function start(
    { kind, wordCount, groups, concurrency, run }: JobRequest, credentials: Credentials
 ): StartedJob<XStockJob | null> {
 
-   if (isRunning(job)) return { job, alreadyRunning: true }
+   if (isRunning(job)) {
+      return { job, alreadyRunning: true }
+   }
 
    job = {
       kind,
@@ -133,8 +135,7 @@ async function runJob(
          index => runGroup(job, index, worker))
 
       finish(job)
-   }
-   catch (error) {
+   } catch (error) {
       finishSteps(job, job.steps.filter(step => step.phase === 'pending'), 'skipped')
       job.phase = 'error'
       job.error = messageOf(error)
@@ -163,12 +164,16 @@ async function describeWorker({ job, anthropicAPI, repository, signal }: WorkerC
    return async ([ticker], onActivity) => {
 
       const target = ticker === undefined ? undefined : targets.get(ticker)
-      if (!target) throw new Error('No listing to describe.')
+      if (!target) {
+         throw new Error('No listing to describe.')
+      }
 
       const described = await anthropicAPI.describeListing(
          target, job.wordCount!, { onActivity, abortSignal: signal })
 
-      if (!described.description.trim()) throw new Error('Claude returned an empty description.')
+      if (!described.description.trim()) {
+         throw new Error('Claude returned an empty description.')
+      }
 
       repository.upsertDescriptions([described], job.wordCount!, MODEL, Date.now())
    }
@@ -189,7 +194,9 @@ async function runGroup(job: XStockJob, group: number, worker: Worker) {
 
    const steps = job.steps.filter(step => step.group === group)
 
-   if (job.cancelRequested) return finishSteps(job, steps, 'cancelled')
+   if (job.cancelRequested) {
+      return finishSteps(job, steps, 'cancelled')
+   }
 
    const startedAt = Date.now()
    for (const step of steps) {
@@ -202,18 +209,22 @@ async function runGroup(job: XStockJob, group: number, worker: Worker) {
    try {
       await worker(steps.map(step => step.ticker), (event) => report(job, steps, event))
       finishSteps(job, steps, 'done')
-   }
-   catch (error) {
+   } catch (error) {
       const message = messageOf(error)
-      if (job.cancelRequested) finishSteps(job, steps, 'cancelled')
-      else finishSteps(job, steps, 'error', message)
+      if (job.cancelRequested) {
+         finishSteps(job, steps, 'cancelled')
+      } else {
+         finishSteps(job, steps, 'error', message)
+      }
    }
 }
 
 function report(job: XStockJob, steps: XStockStep[], event: AiActivity) {
 
    if (event.type === 'searching') {
-      for (const step of steps) step.searches.push(event.query)
+      for (const step of steps) {
+         step.searches.push(event.query)
+      }
       return setActivity(job, steps,
          event.query ? `Searching the web for “${event.query}”` : 'Searching the web…')
    }
@@ -228,8 +239,12 @@ function report(job: XStockJob, steps: XStockStep[], event: AiActivity) {
 }
 
 function setActivity(job: XStockJob, steps: XStockStep[], activity: string) {
-   if (steps.every(step => step.activity === activity)) return
-   for (const step of steps) step.activity = activity
+   if (steps.every(step => step.activity === activity)) {
+      return
+   }
+   for (const step of steps) {
+      step.activity = activity
+   }
    job.updatedAt = Date.now()
 }
 
@@ -249,12 +264,14 @@ function finish(job: XStockJob) {
    const done = job.steps.filter(step => step.phase === 'done').length
    const failed = job.steps.filter(step => step.phase === 'error')
 
-   if (job.cancelRequested) job.phase = 'cancelled'
-   else if (done === 0 && failed.length > 0) {
+   if (job.cancelRequested) {
+      job.phase = 'cancelled'
+   } else if (done === 0 && failed.length > 0) {
       job.phase = 'error'
       job.error = failed[0]?.error ?? null
+   } else {
+      job.phase = 'done'
    }
-   else job.phase = 'done'
 
    job.finishedAt = Date.now()
    job.updatedAt = job.finishedAt
@@ -265,7 +282,9 @@ function finish(job: XStockJob) {
 const inParallel = async <T>(items: T[], size: number, worker: (item: T) => Promise<void>) => {
    const queue = items.values()
    const runners = Array.from({ length: Math.min(size, items.length) }, async () => {
-      for (const item of queue) await worker(item)
+      for (const item of queue) {
+         await worker(item)
+      }
    })
    await Promise.all(runners)
 }
@@ -287,7 +306,9 @@ function reconcile(
 
    return requested.map(ticker => {
       const item = seen.get(ticker)
-      if (!item) console.warn(`xStocks classification omitted a requested ticker: ${ticker}`)
+      if (!item) {
+         console.warn(`xStocks classification omitted a requested ticker: ${ticker}`)
+      }
 
       const named = Boolean(item?.officialName?.trim())
       const type = !item || !named ? 'unknown' as const : item.type

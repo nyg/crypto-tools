@@ -1,6 +1,6 @@
-import seed from '../data/xstocks.json'
-import productSeed from '../data/xstock-products.json'
 import type { XStockProduct, XStockReference } from '../../types/xstock'
+import productSeed from '../data/xstock-products.json'
+import seed from '../data/xstocks.json'
 
 const listings = seed.listings as Record<string, Omit<XStockReference, 'origin' | 'confidence' | 'sources'>>
 

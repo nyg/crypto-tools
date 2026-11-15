@@ -1,14 +1,16 @@
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import Field from '../lib/field'
-import TimeAgo from '../lib/time-ago'
-import { asCount } from '../lib/filter-options'
-import { asDollarAmount, asNumber, asPercentage } from '../../../utils/format'
-import { isEarning, placementOf } from './placement'
-import type { BalanceSummary, BalancesResponse } from '../../../types/api'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+
+import type { BalancesResponse,BalanceSummary } from '../../../types/api'
 import type { LiveBalance, UsdRates } from '../../../types/kraken'
+import { asDollarAmount, asNumber, asPercentage } from '../../../utils/format'
+import Field from '../lib/field'
+import { asCount } from '../lib/filter-options'
+import TimeAgo from '../lib/time-ago'
+import { isEarning, placementOf } from './placement'
 
 // Kraken and the ledger agree to far more digits than this; the tolerance is relative
 // so that it means the same thing for a fraction of a bitcoin and for 300 million PEPE.
@@ -19,7 +21,9 @@ const TOLERANCE = 1e-6
 // own that something happened after the last one.
 export function compareToLive(ledgerSummary: BalanceSummary | undefined, live: BalancesResponse | undefined) {
 
-   if (!live?.assets || !ledgerSummary?.entries) return null
+   if (!live?.assets || !ledgerSummary?.entries) {
+      return null
+   }
 
    const ledger = new Map(ledgerSummary.assets.map(asset => [asset.asset, asset.totalNum]))
    const remote = new Map(live.assets.map(asset => [asset.asset, asset.totalNum]))

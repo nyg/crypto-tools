@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
 import { Loader2Icon } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 
 export default function LoadingSpinner({ children }: { children?: ReactNode }) {

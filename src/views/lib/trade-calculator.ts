@@ -72,18 +72,21 @@ export const directionOptions = [
 ]
 
 const positive = (value: string | number | null | undefined): Big | null => {
-   if (value === null || value === undefined || value === '') return null
+   if (value === null || value === undefined || value === '') {
+      return null
+   }
    try {
       const parsed = Big(value)
       return parsed.gt(0) ? parsed : null
-   }
-   catch {
+   } catch {
       return null
    }
 }
 
 const tierPrice = (tier: TakeProfitTier, entryPrice: Big, riskPerUnit: Big, isLong: boolean): Big | null => {
-   if (tier.rMultiple === null) return null
+   if (tier.rMultiple === null) {
+      return null
+   }
    const move = riskPerUnit.times(tier.rMultiple)
    const price = isLong ? entryPrice.plus(move) : entryPrice.minus(move)
    return price.gt(0) ? price : null
@@ -198,10 +201,14 @@ export function calculate(formValues: TradeCalculatorForm) {
 export const chartSymbol = (pair: string | undefined, override?: string): string => {
 
    const explicit = (override ?? '').trim().toUpperCase()
-   if (explicit) return explicit
+   if (explicit) {
+      return explicit
+   }
 
    const cleaned = (pair ?? '').trim().toUpperCase().replace(/[^A-Z0-9:]/g, '')
-   if (!cleaned) return ''
+   if (!cleaned) {
+      return ''
+   }
 
    return cleaned.includes(':') ? cleaned : `BINANCE:${cleaned}`
 }

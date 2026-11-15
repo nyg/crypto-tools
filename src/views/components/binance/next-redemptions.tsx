@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { asAssetAmount, asPercentage, asLongDate } from '../../../utils/format'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import SortableHead from '../lib/sortable-head'
-import { sortRows } from '../../lib/sort'
-import type { SortKeys } from '../../lib/sort'
+
+import { Table, TableBody, TableCell,TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import type { AggregateBalanceResponse, StakingPosition } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
+import { asAssetAmount, asLongDate,asPercentage } from '../../../utils/format'
+import type { SortKeys } from '../../lib/sort'
+import { sortRows } from '../../lib/sort'
+import SortableHead from '../lib/sortable-head'
 
 const sortKeys: SortKeys<StakingPosition> = {
    asset: position => position.asset,

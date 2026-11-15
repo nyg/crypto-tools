@@ -1,13 +1,14 @@
-import { describe, expect, test } from 'bun:test'
 import Big from 'big.js'
+import { describe, expect, test } from 'bun:test'
+
 import { foldHoldings } from './holdings'
 import { leftBehind, limitFits, limitQuantity, priceBound, restingPrice } from './limit-orders'
+import type { PlanInput, PlanMarket } from './planner'
 import { orderFee, PlanError, planPortfolio, splitAmount } from './planner'
+import type { PositionMovement, PositionOrder } from './positions'
 import { foldPositions } from './positions'
 import { planStops, stopActions } from './stops'
 import { moveWeightToCash, TargetError, validateTargets } from './targets'
-import type { PlanInput, PlanMarket } from './planner'
-import type { PositionMovement, PositionOrder } from './positions'
 
 function market(base: string, price: string, overrides: Partial<Record<keyof PlanMarket, string>> = {}): PlanMarket {
    const values = {

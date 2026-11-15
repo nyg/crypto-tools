@@ -1,5 +1,5 @@
-import { fetchSimpleEarnProducts } from './resource'
 import type { StakingProducts } from '../../../types/binance'
+import { fetchSimpleEarnProducts } from './resource'
 
 export default class BinanceGatewayAPI {
 

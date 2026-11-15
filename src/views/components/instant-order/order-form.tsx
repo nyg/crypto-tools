@@ -1,23 +1,25 @@
-import { useState } from 'react'
 import Big from 'big.js'
-import useSWR from 'swr'
 import { Loader2Icon } from 'lucide-react'
-import useMutation from '../../lib/use-mutation'
-import Checkbox from '../lib/checkbox'
-import Field from '../lib/field'
-import NumericInput from '../lib/numeric-input'
-import SelectField from '../lib/select-field'
+import { useState } from 'react'
+import useSWR from 'swr'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { asExactDecimal, asPercentage } from '../../../utils/format'
-import { asQuantity } from '../portfolio/format'
+
 import type {
    InstantOrderAccountResponse, InstantOrderBookResponse, InstantOrderPlaceRequest,
    InstantOrderPlaceResponse, PortfolioMarket, TrackedInstantOrder
 } from '../../../types/api'
 import type { FeeAsset, OrderSide, SizeUnit } from '../../../types/portfolio'
+import { asExactDecimal, asPercentage } from '../../../utils/format'
+import useMutation from '../../lib/use-mutation'
+import Checkbox from '../lib/checkbox'
+import Field from '../lib/field'
+import NumericInput from '../lib/numeric-input'
+import SelectField from '../lib/select-field'
+import { asQuantity } from '../portfolio/format'
 
 const BOOK_REFRESH_MS = 3000
 
@@ -65,7 +67,9 @@ export default function OrderForm({ apiBase, venueLabel, market, following, onFo
       : null
 
    const max = () => {
-      if (!account) return
+      if (!account) {
+         return
+      }
       setUnit(side === 'buy' ? 'quote' : 'base')
       setAmount(account.max[side][feeAsset])
    }
@@ -79,8 +83,7 @@ export default function OrderForm({ apiBase, venueLabel, market, following, onFo
          setAmount('')
          onPlaced(tracked)
          refreshAccount()
-      }
-      catch (reason) {
+      } catch (reason) {
          setError(typeof reason === 'string' ? reason : 'The order could not be placed.')
       }
    }

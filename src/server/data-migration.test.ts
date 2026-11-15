@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from 'bun:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+
 import type { MigrationProgress } from './data-migration-plan'
 
 const MODULES = {
@@ -108,8 +109,7 @@ const storeAvailable = await (async () => {
       await Bun.secrets.set({ service, name: 'probe', value: 'probe' })
       await Bun.secrets.delete({ service, name: 'probe' })
       return true
-   }
-   catch {
+   } catch {
       return false
    }
 })()
@@ -352,7 +352,11 @@ describe('a development build', () => {
 })
 
 function nativeStore(): string {
-   if (process.platform === 'darwin') return 'keychain'
-   if (process.platform === 'win32') return 'credential-manager'
+   if (process.platform === 'darwin') {
+      return 'keychain'
+   }
+   if (process.platform === 'win32') {
+      return 'credential-manager'
+   }
    return 'keyring'
 }

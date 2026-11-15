@@ -1,12 +1,15 @@
 import type * as React from 'react'
 import type { ReactNode } from 'react'
 import { useRef } from 'react'
+
 import { Input as ShadcnInput } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 // Format a number string with thousand separators
 const formatWithSeparators = (value: string | undefined): string => {
-   if (!value) return ''
+   if (!value) {
+      return ''
+   }
 
    // Split by decimal point
    const [whole = '', decimalPart] = value.split('.')

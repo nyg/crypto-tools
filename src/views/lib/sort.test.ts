@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { numericKey, sortRows } from './sort'
+
 import type { SortKeys } from './sort'
+import { numericKey, sortRows } from './sort'
 
 interface Row {
    asset: string

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { foldLedgerFunding, withBalances } from './kraken-funding'
+
 import type { FundingBalanceRow, FundingLedgerRow } from '../../../types/db'
+import { foldLedgerFunding, withBalances } from './kraken-funding'
 
 const TIME = Date.UTC(2026, 7, 1, 10)
 

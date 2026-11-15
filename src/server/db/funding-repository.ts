@@ -1,8 +1,9 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
-import { getDatabase } from './database'
+
 import type { FundingMovement } from '../../types/api'
 import type { FundingAccountRow, FundingMovementRow, TimeRow } from '../../types/db'
 import type { FundingRecord, FundingVenueId } from '../../types/funding'
+import { getDatabase } from './database'
 
 type Params = SQLQueryBindings[]
 type NamedParams = Record<string, string | number | bigint | boolean | null>
@@ -62,8 +63,7 @@ export default class FundingRepository {
                })
             }
          })()
-      }
-      finally {
+      } finally {
          insert.finalize()
       }
    }

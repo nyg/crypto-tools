@@ -1,31 +1,33 @@
+import { Loader2Icon, TriangleAlertIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import useMutation from '../../lib/use-mutation'
-import { Loader2Icon, TriangleAlertIcon } from 'lucide-react'
-import KrakenLayout from '../../components/kraken/kraken-layout'
-import LedgerSyncCard from '../../components/kraken/ledger-sync-card'
-import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
-import LedgerTable from '../../components/kraken/ledger-table'
-import TradeFilters, { defaultFilters as defaultTradeFilters } from '../../components/kraken/trade-filters'
-import TradeTable from '../../components/kraken/trade-table'
-import { isJobRunning } from '../../components/kraken/sync-status'
-import { useProvider } from '../../lib/use-settings'
-import CredentialsAlert from '../../components/lib/credentials-alert'
-import SettingsLink from '../../components/lib/settings-link'
-import usePersistentState from '../../lib/use-persistent-state'
-import { asCount } from '../../components/lib/filter-options'
-import { Card, CardHeader, CardAction, CardContent } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import type { LedgerFilterValues } from '../../components/kraken/ledger-filters'
-import type { TradeFilterValues } from '../../components/kraken/trade-filters'
-import type { Sort } from '../../../types/kraken'
-import type { SyncMode } from '../../../types/jobs'
+import { Card, CardAction, CardContent,CardHeader } from '@/components/ui/card'
+import { Tabs, TabsContent,TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import type {
    LedgerEntriesResponse, LedgerFiltersResponse, SyncStatusResponse,
    TradeFiltersResponse, TradesResponse
 } from '../../../types/api'
+import type { SyncMode } from '../../../types/jobs'
+import type { Sort } from '../../../types/kraken'
+import KrakenLayout from '../../components/kraken/kraken-layout'
+import type { LedgerFilterValues } from '../../components/kraken/ledger-filters'
+import LedgerFilters, { defaultFilters } from '../../components/kraken/ledger-filters'
+import LedgerSyncCard from '../../components/kraken/ledger-sync-card'
+import LedgerTable from '../../components/kraken/ledger-table'
+import { isJobRunning } from '../../components/kraken/sync-status'
+import type { TradeFilterValues } from '../../components/kraken/trade-filters'
+import TradeFilters, { defaultFilters as defaultTradeFilters } from '../../components/kraken/trade-filters'
+import TradeTable from '../../components/kraken/trade-table'
+import CredentialsAlert from '../../components/lib/credentials-alert'
+import { asCount } from '../../components/lib/filter-options'
+import SettingsLink from '../../components/lib/settings-link'
+import useMutation from '../../lib/use-mutation'
+import usePersistentState from '../../lib/use-persistent-state'
+import { useProvider } from '../../lib/use-settings'
 
 const PAGE_SIZE = 20
 const SYNC_STATUS_KEY = '/api/kraken/ledger/sync/status'
@@ -79,12 +81,16 @@ export default function KrakenLedger() {
                setWasInterrupted(false)
                return
             }
-            if (!startedRef.current) return
+            if (!startedRef.current) {
+               return
+            }
 
             startedRef.current = false
             // A job that vanished entirely means the server restarted mid-sync,
             // which is routine in development.
-            if (latest && !latest.job) setWasInterrupted(true)
+            if (latest && !latest.job) {
+               setWasInterrupted(true)
+            }
             refreshStoredData()
          }
       })
@@ -224,7 +230,9 @@ export default function KrakenLedger() {
                         <LedgerTable
                            entries={entries}
                            sort={sort}
-                           onSortChange={(next) => { setSort(next); setPage(0) }}
+                           onSortChange={(next) => {
+                              setSort(next); setPage(0)
+                           }}
                            onPageChange={setPage}
                            onSearchRef={(refid) => replaceFilters({ ...defaultFilters, search: refid })} />
                      </TabsContent>
@@ -243,7 +251,9 @@ export default function KrakenLedger() {
                            trades={trades}
                            isFiltered={isTradeFiltered}
                            sort={tradeSort}
-                           onSortChange={(next) => { setTradeSort(next); setTradePage(0) }}
+                           onSortChange={(next) => {
+                              setTradeSort(next); setTradePage(0)
+                           }}
                            onPageChange={setTradePage}
                            onSearchId={(txid) => replaceTradeFilters({ ...defaultTradeFilters, search: txid })} />
                      </TabsContent>

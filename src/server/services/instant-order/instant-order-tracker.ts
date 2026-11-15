@@ -1,16 +1,17 @@
 import Big from 'big.js'
 import { randomUUID } from 'crypto'
-import { HttpRequesterError, messageOf } from '../../errors'
-import { leftBehind, priceBound, restingPrice } from '../portfolio/limit-orders'
-import { planMarket } from '../portfolio/planner'
-import { addFill, closedStatus, fillOf, noFill, sizeRest, summaryOf, wireFill } from './instant-order'
-import type { Fill } from './instant-order'
-import type { PortfolioExchange } from '../portfolio/exchange'
-import type { PlanMarket } from '../portfolio/planner'
-import type { StreamSubscription } from '../../adapters/websocket/socket-hub'
-import type { Venue } from '../portfolio/venues'
+
 import type { InstantOrder, InstantOrderState, InstantOrderStatus, TrackedInstantOrder } from '../../../types/api'
 import type { OrderEvent, OrderLookup, OrderSettlement, SpotMarket, SpotPrice } from '../../../types/portfolio'
+import type { StreamSubscription } from '../../adapters/websocket/socket-hub'
+import { HttpRequesterError, messageOf } from '../../errors'
+import type { PortfolioExchange } from '../portfolio/exchange'
+import { leftBehind, priceBound, restingPrice } from '../portfolio/limit-orders'
+import type { PlanMarket } from '../portfolio/planner'
+import { planMarket } from '../portfolio/planner'
+import type { Venue } from '../portfolio/venues'
+import type { Fill } from './instant-order'
+import { addFill, closedStatus, fillOf, noFill, sizeRest, summaryOf, wireFill } from './instant-order'
 
 const MAX_REFUSALS = 3
 const MAX_MISSES = 5
@@ -32,7 +33,11 @@ export const trackerOf = (id: string) => trackers.get(id)
 
 function register(tracker: InstantOrderTracker): InstantOrderTracker {
    const now = Date.now()
-   for (const [id, kept] of trackers) if (kept.finishedAt !== null && now - kept.finishedAt > KEPT_FOR_MS) trackers.delete(id)
+   for (const [id, kept] of trackers) {
+      if (kept.finishedAt !== null && now - kept.finishedAt > KEPT_FOR_MS) {
+         trackers.delete(id)
+      }
+   }
    trackers.set(tracker.order.id, tracker)
    return tracker
 }
@@ -43,7 +48,9 @@ function register(tracker: InstantOrderTracker): InstantOrderTracker {
 // the exchange says it closed.
 function turnOf(venue: Venue, exchange: PortfolioExchange): Promise<unknown> {
    const { pollMs, pollsTakeTurns } = exchange.chasePacing
-   if (!pollsTakeTurns) return delay(pollMs)
+   if (!pollsTakeTurns) {
+      return delay(pollMs)
+   }
    const turn = (turns.get(venue.id) ?? Promise.resolve()).then(() => delay(pollMs))
    turns.set(venue.id, turn)
    return turn
@@ -102,7 +109,9 @@ export default class InstantOrderTracker {
       this.#reason = state.reason
       this.#confirmed = state.current.orderId !== null
       this.#phase = ['filled', 'partial', 'cancelled'].includes(state.status) ? 'done' : 'live'
-      if (this.#phase === 'done') this.finishedAt = Date.now()
+      if (this.#phase === 'done') {
+         this.finishedAt = Date.now()
+      }
    }
 
    static placed(venue: Venue, exchange: PortfolioExchange, market: SpotMarket, order: InstantOrder, attempt: Attempt): InstantOrderTracker {
@@ -140,16 +149,23 @@ export default class InstantOrderTracker {
 
    refresh(): Promise<InstantOrderState> {
       return this.#serial(async () => {
-         if (this.#phase === 'live') await this.#check()
+         if (this.#phase === 'live') {
+            await this.#check()
+         }
          return this.state
       })
    }
 
    reprice(): Promise<InstantOrderState> {
       return this.#serial(async () => {
-         if (this.#phase === 'live') await this.#check()
-         if (this.#phase === 'live' && this.#status === 'open') await this.#move(true)
-         else if (this.#phase === 'between') await this.#placeRest()
+         if (this.#phase === 'live') {
+            await this.#check()
+         }
+         if (this.#phase === 'live' && this.#status === 'open') {
+            await this.#move(true)
+         } else if (this.#phase === 'between') {
+            await this.#placeRest()
+         }
          return this.state
       })
    }
@@ -158,13 +174,16 @@ export default class InstantOrderTracker {
       this.#following = false
       this.#poke(false)
       return this.#serial(async () => {
-         if (this.#phase === 'between') this.#finish('')
-         if (this.#phase !== 'live') return this.state
+         if (this.#phase === 'between') {
+            this.#finish('')
+         }
+         if (this.#phase !== 'live') {
+            return this.state
+         }
 
          try {
             await this.#exchange.cancelOrder(this.#attempt.lookup)
-         }
-         catch (error) {
+         } catch (error) {
             this.#reason = this.#describe(error)
             return this.state
          }
@@ -181,7 +200,9 @@ export default class InstantOrderTracker {
       }
       this.#bound = priceBound(this.order.side, this.#attempt.price, maxMovePercent, Big(this.#market.tickStep || 0))
       this.#following = true
-      if (!this.#running) void this.#run()
+      if (!this.#running) {
+         void this.#run()
+      }
       return this.state
    }
 
@@ -192,14 +213,20 @@ export default class InstantOrderTracker {
          while (this.#following && this.#phase !== 'done') {
             const check = await this.#nextTurn()
             await this.#serial(async () => {
-               if (!this.#following || this.#phase === 'done') return
-               if (this.#phase === 'live' && check) await this.#check()
-               if (this.#phase === 'between') await this.#placeRest()
-               else if (this.#phase === 'live' && this.#status === 'open') await this.#move(false)
+               if (!this.#following || this.#phase === 'done') {
+                  return
+               }
+               if (this.#phase === 'live' && check) {
+                  await this.#check()
+               }
+               if (this.#phase === 'between') {
+                  await this.#placeRest()
+               } else if (this.#phase === 'live' && this.#status === 'open') {
+                  await this.#move(false)
+               }
             }).catch(error => console.warn('Could not follow order', this.order.id, this.#describe(error)))
          }
-      }
-      finally {
+      } finally {
          this.#unwatch()
          this.#running = false
       }
@@ -212,7 +239,9 @@ export default class InstantOrderTracker {
             this.#poke(false)
          },
          onLive: live => {
-            if (!live) this.#streamedBook = null
+            if (!live) {
+               this.#streamedBook = null
+            }
             this.#poke(false)
          }
       }) ?? null
@@ -226,34 +255,55 @@ export default class InstantOrderTracker {
       this.#bookStream?.close()
       this.#orderStream?.close()
       this.#bookStream = this.#orderStream = this.#streamedBook = null
-      if (this.#timer) clearTimeout(this.#timer)
+      if (this.#timer) {
+         clearTimeout(this.#timer)
+      }
       this.#timer = null
    }
 
    #heard(event: OrderEvent): void {
       const { clientOrderId, orderId } = this.#attempt.lookup
-      if (event.clientOrderId && event.clientOrderId === this.#placing) this.#placingClosed ||= event.closed
-      if (event.clientOrderId !== clientOrderId && (!orderId || event.orderId !== orderId)) return
-      if (event.closed) return this.#poke(true)
-      if (this.#phase !== 'live' || event.base === null || event.quote === null) return
+      if (event.clientOrderId && event.clientOrderId === this.#placing) {
+         this.#placingClosed ||= event.closed
+      }
+      if (event.clientOrderId !== clientOrderId && (!orderId || event.orderId !== orderId)) {
+         return
+      }
+      if (event.closed) {
+         return this.#poke(true)
+      }
+      if (this.#phase !== 'live' || event.base === null || event.quote === null) {
+         return
+      }
       const known = this.#live ?? { averagePrice: '0', fees: {}, reason: '' }
       this.#live = { ...known, orderId: event.orderId, status: 'open', base: event.base, quote: event.quote }
    }
 
    async #nextTurn(): Promise<boolean> {
       const { pollMs } = this.#exchange.chasePacing
-      if (!this.#orderStream?.live || !this.#confirmed) this.#awaitTurn()
-      else if (!this.#bookStream?.live || this.#phase === 'between') this.#arm(Date.now() + pollMs)
-      if (this.#movableAt > Date.now()) this.#arm(this.#movableAt)
+      if (!this.#orderStream?.live || !this.#confirmed) {
+         this.#awaitTurn()
+      } else if (!this.#bookStream?.live || this.#phase === 'between') {
+         this.#arm(Date.now() + pollMs)
+      }
+      if (this.#movableAt > Date.now()) {
+         this.#arm(this.#movableAt)
+      }
 
-      if (!this.#woken) await new Promise<void>(resolve => { this.#wake = resolve })
+      if (!this.#woken) {
+         await new Promise<void>(resolve => {
+            this.#wake = resolve
+         })
+      }
       const check = this.#checkDue
       this.#woken = this.#checkDue = false
       return check
    }
 
    #awaitTurn(): void {
-      if (this.#turnPending) return
+      if (this.#turnPending) {
+         return
+      }
       this.#turnPending = true
       void turnOf(this.#venue, this.#exchange).then(() => {
          this.#turnPending = false
@@ -262,8 +312,12 @@ export default class InstantOrderTracker {
    }
 
    #arm(at: number): void {
-      if (this.#timer && this.#timerAt <= at) return
-      if (this.#timer) clearTimeout(this.#timer)
+      if (this.#timer && this.#timerAt <= at) {
+         return
+      }
+      if (this.#timer) {
+         clearTimeout(this.#timer)
+      }
       this.#timerAt = at
       this.#timer = setTimeout(() => {
          this.#timer = null
@@ -289,14 +343,15 @@ export default class InstantOrderTracker {
       let settlement: OrderSettlement | null
       try {
          settlement = await this.#exchange.settleOrder(this.#attempt.lookup)
-      }
-      catch (error) {
+      } catch (error) {
          this.#reason = this.#describe(error)
          return
       }
 
       if (!settlement) {
-         if (!this.#confirmed && ++this.#misses >= MAX_MISSES) this.#finish(NEVER_REACHED)
+         if (!this.#confirmed && ++this.#misses >= MAX_MISSES) {
+            this.#finish(NEVER_REACHED)
+         }
          return
       }
 
@@ -313,7 +368,9 @@ export default class InstantOrderTracker {
       this.#closed = addFill(this.#closed, settlement)
       this.#live = null
 
-      if (this.#remaining().lte(0)) return this.#finish('')
+      if (this.#remaining().lte(0)) {
+         return this.#finish('')
+      }
       if (moving || (settlement.postOnlyRefused && this.#following)) {
          this.#phase = 'between'
          this.#reason = moving ? '' : WOULD_TAKE
@@ -323,30 +380,42 @@ export default class InstantOrderTracker {
    }
 
    async #move(force: boolean): Promise<void> {
-      if (!force && Date.now() < this.#movableAt) return
+      if (!force && Date.now() < this.#movableAt) {
+         return
+      }
 
       const market = await this.#planMarket()
       const desired = this.#desired(market)
-      if (!desired || desired.eq(this.#attempt.price)) return
-      if (!force && !leftBehind(this.order.side, this.#attempt.price, desired)) return
+      if (!desired || desired.eq(this.#attempt.price)) {
+         return
+      }
+      if (!force && !leftBehind(this.order.side, this.#attempt.price, desired)) {
+         return
+      }
 
-      if (this.#exchange.amendLimitPrice) return this.#amend(desired)
+      if (this.#exchange.amendLimitPrice) {
+         return this.#amend(desired)
+      }
 
       try {
          await this.#exchange.cancelOrder(this.#attempt.lookup)
-      }
-      catch (error) {
+      } catch (error) {
          this.#reason = this.#describe(error)
          return
       }
       await this.#awaitClose(true)
-      if (this.#phase === 'between') await this.#placeRest()
-      else if (this.#phase === 'live') this.#reason = `${this.#venue.label} had not closed the order yet.`
+      if (this.#phase === 'between') {
+         await this.#placeRest()
+      } else if (this.#phase === 'live') {
+         this.#reason = `${this.#venue.label} had not closed the order yet.`
+      }
    }
 
    async #awaitClose(moving: boolean): Promise<void> {
       for (let check = 0; check < CLOSE_CHECKS && this.#phase === 'live'; check++) {
-         if (check > 0) await delay(CLOSE_CHECK_MS)
+         if (check > 0) {
+            await delay(CLOSE_CHECK_MS)
+         }
          await this.#check(moving)
       }
    }
@@ -358,8 +427,7 @@ export default class InstantOrderTracker {
          this.#moves++
          this.#reason = ''
          this.#movableAt = Date.now() + this.#exchange.chasePacing.moveAfterMs
-      }
-      catch (error) {
+      } catch (error) {
          this.#reason = error instanceof HttpRequesterError && this.#exchange.isPostOnlyRefusal(error) ? WOULD_TAKE : this.#describe(error)
       }
    }
@@ -368,10 +436,14 @@ export default class InstantOrderTracker {
       for (let refusals = 0; refusals < MAX_REFUSALS; refusals++) {
          const market = await this.#planMarket()
          const desired = this.#desired(market)
-         if (!desired) return
+         if (!desired) {
+            return
+         }
 
          const sizing = sizeRest(this.#remaining(), desired, market)
-         if ('refusal' in sizing) return this.#finish(`What is left is too small to place again. ${sizing.refusal}`)
+         if ('refusal' in sizing) {
+            return this.#finish(`What is left is too small to place again. ${sizing.refusal}`)
+         }
 
          const lookup = { symbol: market.symbol, clientOrderId: newClientOrderId(), orderId: null }
          this.#placing = lookup.clientOrderId
@@ -383,11 +455,16 @@ export default class InstantOrderTracker {
             })
             this.#started({ ...lookup, orderId: orderId || null }, sizing.price, Boolean(orderId))
             return
-         }
-         catch (error) {
-            if (!(error instanceof HttpRequesterError)) throw error
-            if (this.#exchange.isPostOnlyRefusal(error)) continue
-            if (error.statusCode < 500 && !this.#exchange.isAmbiguous(error)) return this.#finish(this.#exchange.describeError(error))
+         } catch (error) {
+            if (!(error instanceof HttpRequesterError)) {
+               throw error
+            }
+            if (this.#exchange.isPostOnlyRefusal(error)) {
+               continue
+            }
+            if (error.statusCode < 500 && !this.#exchange.isAmbiguous(error)) {
+               return this.#finish(this.#exchange.describeError(error))
+            }
             this.#started(lookup, sizing.price, false)
             return
          }
@@ -396,7 +473,9 @@ export default class InstantOrderTracker {
    }
 
    #started(lookup: OrderLookup, price: Big, confirmed: boolean): void {
-      if (this.#placingClosed) this.#poke(true)
+      if (this.#placingClosed) {
+         this.#poke(true)
+      }
       this.#placing = null
       this.#attempt = { lookup, price }
       this.#phase = 'live'

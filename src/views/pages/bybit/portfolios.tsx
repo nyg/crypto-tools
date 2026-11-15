@@ -1,6 +1,6 @@
 import BybitLayout from '../../components/bybit/bybit-layout'
-import PortfoliosPage from '../../components/portfolio/portfolios-page'
 import { bybitDemoVenue, bybitVenue } from '../../components/bybit/venues'
+import PortfoliosPage from '../../components/portfolio/portfolios-page'
 
 const BYBIT_FEES = 'Bybit charges the fee on each order in the coin the order receives: the bought coin on a buy, the cash coin on a sell. An order cannot ask to pay it in cash.'
 

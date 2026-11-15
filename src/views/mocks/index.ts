@@ -1,18 +1,18 @@
-import {
-   tradingPairs, orderBatch, balances, assetRates, openOrders, cancelOrders,
-   xstockListings, xstockClassify, xstockDescribe, xstockJob, xstockJobCancel
-} from './kraken'
-import {
-   ledgerSync, ledgerSyncStatus, ledgerSyncCancel, ledgerClear,
-   ledgerEntries, ledgerFilters, ledgerFees, ledgerFunding, ledgerRewards, ledgerBalances
-} from './kraken-ledger'
-import { tradeAggregations, tradeRows, tradeFilters } from './kraken-trades'
+import type { InstallInfo, LatestRelease } from '../../types/api'
+import type { MaskedSettings } from '../../types/settings'
 import { aggregateBalance } from './binance'
 import { fundingRoutes } from './funding'
 import { instantOrderRoutes } from './instant-order'
+import {
+   assetRates, balances, cancelOrders,
+   openOrders, orderBatch,    tradingPairs, xstockClassify, xstockDescribe, xstockJob, xstockJobCancel,
+   xstockListings} from './kraken'
+import {
+   ledgerBalances,
+   ledgerClear,
+   ledgerEntries, ledgerFees, ledgerFilters, ledgerFunding, ledgerRewards,    ledgerSync, ledgerSyncCancel, ledgerSyncStatus} from './kraken-ledger'
+import { tradeAggregations, tradeFilters,tradeRows } from './kraken-trades'
 import { portfolioRoutes } from './portfolio'
-import type { InstallInfo, LatestRelease } from '../../types/api'
-import type { MaskedSettings } from '../../types/settings'
 
 // A mocked route is handed the request body the fetcher would have posted, under the
 // same { arg } SWR wraps a mutation argument in.
@@ -104,7 +104,9 @@ export async function mockFetcher(url: string, params?: MockParams): Promise<unk
    await new Promise(resolve => setTimeout(resolve, 300))
 
    const handler = mockRoutes[url]
-   if (handler) return handler(params)
+   if (handler) {
+      return handler(params)
+   }
 
    console.warn(`[mock] No mock data for ${url}`)
    return {}

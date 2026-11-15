@@ -1,4 +1,5 @@
 import Big from 'big.js'
+
 import type { OrderSide } from '../../../types/portfolio'
 
 export interface HoldingMovement {
@@ -32,17 +33,24 @@ export function foldHoldings(movements: HoldingMovement[], orders: HoldingOrder[
 
    for (const [asset, amount] of holdings) {
       const rounded = decimals === undefined ? amount : amount.round(decimals, Big.roundDown)
-      if (rounded.eq(0)) holdings.delete(asset)
-      else holdings.set(asset, rounded)
+      if (rounded.eq(0)) {
+         holdings.delete(asset)
+      } else {
+         holdings.set(asset, rounded)
+      }
    }
 
    return holdings
 }
 
 export function sameHoldings(left: Map<string, Big>, right: Map<string, Big>): boolean {
-   if (left.size !== right.size) return false
+   if (left.size !== right.size) {
+      return false
+   }
    for (const [asset, amount] of left) {
-      if (!right.get(asset)?.eq(amount)) return false
+      if (!right.get(asset)?.eq(amount)) {
+         return false
+      }
    }
    return true
 }

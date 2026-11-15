@@ -1,19 +1,21 @@
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import ComboboxField from '../lib/combobox-field'
-import SelectField from '../lib/select-field'
-import usePersistentState from '../../lib/use-persistent-state'
-import { ValuationTag, usdOf } from './reward-valuation'
-import { assetLabel } from './asset-migrations'
+
+import type { RewardAmount, RewardAsset, RewardSummary } from '../../../types/api'
+import type { UsdRates } from '../../../types/kraken'
 import {
    asAssetAmount, asAxisTick, asDollarAmount,
    asUtcLongDate, asUtcMonthYearDate, asUtcShortDate, asUtcShortMonthYearDate
 } from '../../../utils/format'
-import type { RewardAmount, RewardAsset, RewardSummary } from '../../../types/api'
-import type { UsdRates } from '../../../types/kraken'
+import usePersistentState from '../../lib/use-persistent-state'
+import ComboboxField from '../lib/combobox-field'
+import SelectField from '../lib/select-field'
+import { assetLabel } from './asset-migrations'
 import type { Valuation } from './reward-valuation'
+import { usdOf,ValuationTag } from './reward-valuation'
 
 const EVERYTHING = 'ALL'
 

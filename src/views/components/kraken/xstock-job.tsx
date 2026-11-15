@@ -1,6 +1,7 @@
 import { Loader2Icon, XIcon } from 'lucide-react'
-import { asCount } from '../lib/filter-options'
+
 import type { XStockJob, XStockJobKind } from '../../../types/jobs'
+import { asCount } from '../lib/filter-options'
 
 interface JobVerbs {
    action: string
@@ -41,13 +42,17 @@ const elapsedSeconds = (job: XStockJob) => {
 
 export default function XStockJobProgress({ job }: { job?: XStockJob | null }) {
 
-   if (!job) return null
+   if (!job) {
+      return null
+   }
 
    const running = isJobRunning(job)
    const counts = jobCounts(job)
    const failures = (job.steps ?? []).filter(step => step.phase === 'error')
 
-   if (!running && failures.length === 0) return null
+   if (!running && failures.length === 0) {
+      return null
+   }
 
    const verbs = jobVerbs[job.kind] ?? jobVerbs.describe
    const percent = counts.total === 0 ? 0 : Math.round((counts.settled / counts.total) * 100)

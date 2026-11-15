@@ -1,17 +1,19 @@
-import { useState } from 'react'
-import type { ComponentType, FormEvent, ReactNode } from 'react'
-import { useSWRConfig } from 'swr'
-import { toast } from 'sonner'
 import { CheckIcon, ShieldCheckIcon } from 'lucide-react'
-import useMutation from '../../lib/use-mutation'
-import useSettings, { SETTINGS_KEY, SETTINGS_REVEAL_KEY } from '../../lib/use-settings'
-import { messageOf } from '../../lib/errors'
-import Input from '../lib/input'
+import type { ComponentType, FormEvent, ReactNode } from 'react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { useSWRConfig } from 'swr'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+
 import type { Provider } from '../../../types/credentials'
 import type { CredentialStore, MaskedProvider, MaskedSettings, SecretField, SettingsUpdate } from '../../../types/settings'
+import { messageOf } from '../../lib/errors'
+import useMutation from '../../lib/use-mutation'
+import useSettings, { SETTINGS_KEY, SETTINGS_REVEAL_KEY } from '../../lib/use-settings'
+import Input from '../lib/input'
 
 interface ProviderForm {
    id: Provider
@@ -84,9 +86,15 @@ const providerForms: ProviderForm[] = [
 ]
 
 function StatusBadge({ stored }: { stored: MaskedProvider | undefined }) {
-   if (!stored) return null
-   if (stored.configured) return <Badge variant="secondary"><CheckIcon data-icon="inline-start" />Configured</Badge>
-   if (stored.keyConfigured) return <Badge variant="destructive">Secret missing</Badge>
+   if (!stored) {
+      return null
+   }
+   if (stored.configured) {
+      return <Badge variant="secondary"><CheckIcon data-icon="inline-start" />Configured</Badge>
+   }
+   if (stored.keyConfigured) {
+      return <Badge variant="destructive">Secret missing</Badge>
+   }
    return <Badge variant="outline" className="text-muted-foreground">Not set</Badge>
 }
 
@@ -113,10 +121,14 @@ function ProviderCard({ form, stored, loading, onSave }: ProviderCardProps) {
       event.preventDefault()
 
       const update: Secrets = { apiKey: value('apiKey') }
-      if (form.hasSecret) update.apiSecret = value('apiSecret')
+      if (form.hasSecret) {
+         update.apiSecret = value('apiSecret')
+      }
 
       setSaving(true)
-      if (await onSave(form, update)) setDraft({})
+      if (await onSave(form, update)) {
+         setDraft({})
+      }
       setSaving(false)
    }
 
@@ -172,8 +184,7 @@ export default function SettingsPage({ layout: Layout, providers }: SettingsPage
          await Promise.all([mutate(), globalMutate(SETTINGS_KEY)])
          toast.success(`${form.name} API key saved`)
          return true
-      }
-      catch (error) {
+      } catch (error) {
          toast.error(messageOf(error))
          return false
       }

@@ -1,6 +1,6 @@
-import { messageOf } from './errors'
-import type { MaskedSettings, SettingsUpdate } from '../../types/settings'
 import type { Provider } from '../../types/credentials'
+import type { MaskedSettings, SettingsUpdate } from '../../types/settings'
+import { messageOf } from './errors'
 
 const legacyEntries: Partial<Record<Provider, Record<string, string>>> = {
    binance: { apiKey: 'binance.api.key', apiSecret: 'binance.api.secret' },
@@ -12,11 +12,15 @@ const readLegacy = (): SettingsUpdate => Object.entries(legacyEntries)
    .reduce<SettingsUpdate>((found, [provider, fields]) => {
       const values = Object.entries(fields).reduce<Record<string, string>>((entry, [field, key]) => {
          const value = localStorage.getItem(key)
-         if (value) entry[field] = value
+         if (value) {
+            entry[field] = value
+         }
          return entry
       }, {})
 
-      if (values.apiKey) found[provider as Provider] = values
+      if (values.apiKey) {
+         found[provider as Provider] = values
+      }
       return found
    }, {})
 
@@ -31,10 +35,14 @@ const forgetLegacy = () => Object.values(legacyEntries)
 // more recently than whatever this browser is still holding.
 export default async function migrateLegacyCredentials(apiBase = ''): Promise<void> {
 
-   if (typeof window === 'undefined') return
+   if (typeof window === 'undefined') {
+      return
+   }
 
    const legacy = readLegacy()
-   if (Object.keys(legacy).length === 0) return
+   if (Object.keys(legacy).length === 0) {
+      return
+   }
 
    // Bounded because main.jsx awaits this before mounting React: a server that accepts
    // the connection but never answers would otherwise leave a blank window with nothing
@@ -44,7 +52,9 @@ export default async function migrateLegacyCredentials(apiBase = ''): Promise<vo
 
    try {
       const response = await fetch(`${apiBase}/api/settings`, { signal })
-      if (!response.ok) return
+      if (!response.ok) {
+         return
+      }
 
       const settings = await response.json() as MaskedSettings
       const updates = Object.fromEntries(Object.entries(legacy)
@@ -57,14 +67,15 @@ export default async function migrateLegacyCredentials(apiBase = ''): Promise<vo
             headers: { 'Content-Type': 'application/json' },
             signal
          })
-         if (!saved.ok) return
+         if (!saved.ok) {
+            return
+         }
 
          console.log(`Moved ${Object.keys(updates).join(', ')} credentials out of local storage.`)
       }
 
       forgetLegacy()
-   }
-   catch (error) {
+   } catch (error) {
       console.warn('Could not move the stored credentials to the server:', messageOf(error))
    }
 }

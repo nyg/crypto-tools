@@ -1,7 +1,8 @@
 import type { Database, SQLQueryBindings } from 'bun:sqlite'
-import { getDatabase } from './database'
+
 import type { XStockDescriptionRow, XStockListingRow } from '../../types/db'
 import type { XStockClassification, XStockDescription } from '../../types/xstock'
+import { getDatabase } from './database'
 
 type Params = SQLQueryBindings[]
 type NamedParams = Record<string, string | number | bigint | boolean | null>
@@ -28,12 +29,13 @@ const upsertDescriptionStatement = `
 const placeholders = (count: number) => Array(count).fill('?').join(', ')
 
 const parseSources = (sources: string): string[] => {
-   if (!sources) return []
+   if (!sources) {
+      return []
+   }
    try {
       const parsed: unknown = JSON.parse(sources)
       return Array.isArray(parsed) ? parsed as string[] : []
-   }
-   catch {
+   } catch {
       return []
    }
 }
@@ -47,7 +49,9 @@ export default class XStockRepository {
    }
 
    findListings(tickers: string[]): Map<string, StoredListing> {
-      if (tickers.length === 0) return new Map()
+      if (tickers.length === 0) {
+         return new Map()
+      }
 
       const rows = this.#db.query<XStockListingRow, Params>(`
          SELECT ticker, altname, name, exchange, type, subtype, confidence, sources, origin,
@@ -81,7 +85,9 @@ export default class XStockRepository {
    }
 
    findDescriptions(tickers: string[], wordCount: number): Map<string, StoredDescription> {
-      if (tickers.length === 0) return new Map()
+      if (tickers.length === 0) {
+         return new Map()
+      }
 
       const rows = this.#db.query<XStockDescriptionRow, Params>(`
          SELECT ticker, description, sources, generated_at AS generatedAt

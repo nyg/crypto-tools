@@ -1,5 +1,5 @@
 import Big from 'big.js'
-import { HttpRequesterError } from '../../errors'
+
 import type {
    BinanceAccount, BinanceBookTicker, BinanceCommission, BinanceErrorBody, BinanceExchangeInfo, BinanceOrder,
    BinanceSymbol, BinanceTickerPrice, BinanceTrade
@@ -7,6 +7,7 @@ import type {
 import type {
    ExchangeAccount, OpenStopOrder, OrderSettlement, SettlementStatus, SpotMarket, SpotPrice, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import { HttpRequesterError } from '../../errors'
 
 const OPEN_STATUSES = ['NEW', 'PENDING_NEW', 'PARTIALLY_FILLED', 'PENDING_CANCEL']
 
@@ -15,12 +16,13 @@ const decimal = (value: string | undefined): string => Big(value || 0).toFixed()
 const positive = (value: string | undefined): string | null => Big(value || 0).gt(0) ? decimal(value) : null
 
 export function binanceError(error: unknown): BinanceErrorBody | null {
-   if (!(error instanceof HttpRequesterError) || typeof error.body !== 'string') return null
+   if (!(error instanceof HttpRequesterError) || typeof error.body !== 'string') {
+      return null
+   }
    try {
       const parsed = JSON.parse(error.body) as Partial<BinanceErrorBody> | null
       return typeof parsed?.code === 'number' ? { code: parsed.code, msg: String(parsed.msg ?? '') } : null
-   }
-   catch {
+   } catch {
       return null
    }
 }
@@ -91,9 +93,13 @@ export function spotWallet({ balances }: BinanceAccount): WalletCoin[] {
 }
 
 function settlementStatus({ status, executedQty }: BinanceOrder): SettlementStatus {
-   if (OPEN_STATUSES.includes(status)) return 'open'
+   if (OPEN_STATUSES.includes(status)) {
+      return 'open'
+   }
    const executed = Big(executedQty || 0).gt(0)
-   if (status === 'FILLED' && executed) return 'filled'
+   if (status === 'FILLED' && executed) {
+      return 'filled'
+   }
    return executed ? 'partial' : 'rejected'
 }
 

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
+
 import ComboboxField from '../lib/combobox-field'
-import SelectField from '../lib/select-field'
-import Input from '../lib/input'
 import DateField from '../lib/date-field'
-import { ANY, withAnyOption, asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
+import { ANY, asDateInput, fromDateValue, toDateValue,withAnyOption } from '../lib/filter-options'
+import Input from '../lib/input'
+import SelectField from '../lib/select-field'
 
 export interface TradeFilterValues {
    pair: string
@@ -33,7 +35,9 @@ export default function TradeFilters({ filters, options, onChange, onReset }: {
 
    // Typing shouldn't fire a request per keystroke.
    useEffect(() => {
-      if (search === filters.search) return
+      if (search === filters.search) {
+         return
+      }
       const timer = setTimeout(() => onChange({ ...filters, search }), 300)
       return () => clearTimeout(timer)
    }, [search, filters])

@@ -1,19 +1,21 @@
-import useMutation from '../../lib/use-mutation'
 import { Loader2Icon, RefreshCwIcon } from 'lucide-react'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+
+import type { AggregateBalanceResponse } from '../../../types/api'
 import BinanceLayout from '../../components/binance/binance-layout'
 import CurrentPositions from '../../components/binance/current-positions'
 import NextRedemptions from '../../components/binance/next-redemptions'
 import StakingProducts from '../../components/binance/staking-products'
-import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
 import LoadingSpinner from '../../components/lib/loading-spinner'
 import SettingsLink from '../../components/lib/settings-link'
-import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { cn } from '@/lib/utils'
 import { messageOf } from '../../lib/errors'
-import type { AggregateBalanceResponse } from '../../../types/api'
+import useMutation from '../../lib/use-mutation'
+import { useProvider } from '../../lib/use-settings'
 
 
 export default function BinanceStaking() {
@@ -48,15 +50,13 @@ export default function BinanceStaking() {
    let content
    if (isMutating && !data) {
       content = <LoadingSpinner>Fetching from Binance…</LoadingSpinner>
-   }
-   else if (!data) {
+   } else if (!data) {
       content = (
          <p className="text-sm text-muted-foreground">
             Nothing fetched yet — select Fetch data to read your balances from Binance.
          </p>
       )
-   }
-   else {
+   } else {
       content = <CurrentPositions data={data} />
    }
 

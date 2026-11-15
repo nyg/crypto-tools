@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
+
 import { settingsOf } from '@/lib/tools'
 
 interface SettingsLinkProps {

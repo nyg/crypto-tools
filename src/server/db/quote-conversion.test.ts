@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import {
-   CONVERTIBLE_QUOTES, DAY_MS, FIAT_QUOTES, MAX_CARRIED_DAYS, convertOrders, isConvertibleQuote, rateLookup
-} from './quote-conversion'
-import { ECB_CURRENCIES } from '../services/usd-rate-backfill'
+
 import type { Order } from '../../types/api'
 import type { UsdRateRow } from '../../types/db'
+import { ECB_CURRENCIES } from '../services/usd-rate-backfill'
+import {
+   CONVERTIBLE_QUOTES, convertOrders, DAY_MS, FIAT_QUOTES, isConvertibleQuote, MAX_CARRIED_DAYS, rateLookup
+} from './quote-conversion'
 
 const monday = Date.UTC(2024, 2, 4)
 const tuesday = monday + DAY_MS

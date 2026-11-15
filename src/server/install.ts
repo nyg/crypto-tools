@@ -1,5 +1,6 @@
 import { existsSync } from 'fs'
 import path from 'path'
+
 import type { InstallInfo, InstallPlatform } from '../types/api'
 
 const CASK_TOKEN = 'crypto-tools'
@@ -7,9 +8,15 @@ const SCOOP_APPS_PATH = /[\\/]scoop[\\/]apps[\\/]/i
 const HOMEBREW_PREFIXES = ['/opt/homebrew', '/usr/local']
 
 function currentPlatform(): InstallPlatform {
-   if (process.platform === 'darwin') return 'macos'
-   if (process.platform === 'win32') return 'windows'
-   if (process.platform === 'linux') return 'linux'
+   if (process.platform === 'darwin') {
+      return 'macos'
+   }
+   if (process.platform === 'win32') {
+      return 'windows'
+   }
+   if (process.platform === 'linux') {
+      return 'linux'
+   }
    return 'other'
 }
 
@@ -25,7 +32,9 @@ function hasHomebrewCask(): boolean {
 function detect(desktop: boolean): InstallInfo {
    const platform = currentPlatform()
 
-   if (!desktop) return { platform, method: 'web' }
+   if (!desktop) {
+      return { platform, method: 'web' }
+   }
    if (platform === 'windows' && SCOOP_APPS_PATH.test(process.execPath)) {
       return { platform, method: 'scoop' }
    }
@@ -39,6 +48,8 @@ function detect(desktop: boolean): InstallInfo {
 let cached: InstallInfo | null = null
 
 export function installInfo(desktop: boolean): InstallInfo {
-   if (!cached) cached = detect(desktop)
+   if (!cached) {
+      cached = detect(desktop)
+   }
    return cached
 }

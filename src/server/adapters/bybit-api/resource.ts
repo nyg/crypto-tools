@@ -1,13 +1,13 @@
-import { httpRequester } from '../http-requester/server-http-requester'
-import { authenticator } from './authenticator'
-import { HttpRequesterError } from '../../errors'
-import type { Credentials } from '../../../types/credentials'
 import type {
    BybitApiKeyInfo, BybitCancelRequest, BybitDeposit, BybitEnvironment, BybitExecution, BybitFeeRate,
    BybitInternalDeposit, BybitKline, BybitKlineInterval, BybitOrder, BybitOrderCancelled, BybitOrderCreated,
    BybitOrderRequest, BybitPage, BybitResponse, BybitRows, BybitSpotInstrument, BybitSpotTicker,
    BybitWalletAccount, BybitWithdrawal
 } from '../../../types/bybit-api'
+import type { Credentials } from '../../../types/credentials'
+import { HttpRequesterError } from '../../errors'
+import { httpRequester } from '../http-requester/server-http-requester'
+import { authenticator } from './authenticator'
 
 const hosts: Record<BybitEnvironment, string> = {
    mainnet: 'https://api.bybit.com',
@@ -147,12 +147,16 @@ export async function fetchOrderByLinkId(
 
    const realtime = await privateRequest<BybitPage<BybitOrder>>(
       environment, credentials, realtimeOrdersEndpoint, { searchParams })
-   if (realtime.list.length > 0) return realtime.list[0]
+   if (realtime.list.length > 0) {
+      return realtime.list[0]
+   }
 
    const conditional = await privateRequest<BybitPage<BybitOrder>>(
       environment, credentials, realtimeOrdersEndpoint,
       { searchParams: { ...searchParams, orderFilter: 'StopOrder' } })
-   if (conditional.list.length > 0) return conditional.list[0]
+   if (conditional.list.length > 0) {
+      return conditional.list[0]
+   }
 
    const history = await privateRequest<BybitPage<BybitOrder>>(
       environment, credentials, orderHistoryEndpoint, { searchParams })

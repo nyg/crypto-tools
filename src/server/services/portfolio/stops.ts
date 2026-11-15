@@ -1,7 +1,8 @@
-import Big from 'big.js'
-import { floorTo, sellFits } from './planner'
-import type { PlanMarket } from './planner'
+import type Big from 'big.js'
+
 import type { StopSkipReason } from '../../../types/portfolio'
+import type { PlanMarket } from './planner'
+import { floorTo, sellFits } from './planner'
 
 export interface StopCandidate {
    asset: string
@@ -86,8 +87,9 @@ export function stopActions(desired: DesiredStop[], live: LiveStop[]): StopActio
       if (same) {
          matched.add(stop.asset)
          keep.push(stop)
+      } else {
+         cancel.push(stop)
       }
-      else cancel.push(stop)
    }
 
    return { cancel, keep, place: desired.filter(({ asset }) => !matched.has(asset)) }

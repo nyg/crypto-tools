@@ -1,17 +1,19 @@
-import { useState } from 'react'
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import type { ReactNode } from 'react'
+import { useState } from 'react'
+
 import { Badge } from '@/components/ui/badge'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { Card, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell,TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+
+import type { RewardAmount, RewardAsset, RewardStrategy, RewardSummary } from '../../../types/api'
+import type { UsdRates } from '../../../types/kraken'
 import { asAssetAmount, asDollarAmount, asUtcMonthYearDate } from '../../../utils/format'
 import SortIcon from '../lib/sort-icon'
 import { placementColor, placementDescription, placementLabel, placementOfLockType } from './placement'
-import { ValuationTag, otherValuation, usdOf, valuationLabels } from './reward-valuation'
-import type { ReactNode } from 'react'
-import type { RewardAmount, RewardAsset, RewardStrategy, RewardSummary } from '../../../types/api'
-import type { UsdRates } from '../../../types/kraken'
 import type { Valuation } from './reward-valuation'
+import { otherValuation, usdOf, valuationLabels,ValuationTag } from './reward-valuation'
 
 // A year, or the row total. Every column ranks by what it is worth, never by the
 // amount: a number of PEPE and a number of BTC cannot be compared.
@@ -85,7 +87,9 @@ export const RewardCell = ({ amount, rate, valuation }: {
 
 function periodOf({ active, first, last }: RewardStrategy): string {
    const [from, to] = [asUtcMonthYearDate(first), asUtcMonthYearDate(last)]
-   if (active) return `since ${from}`
+   if (active) {
+      return `since ${from}`
+   }
    return from === to ? from : `${from} – ${to}`
 }
 
@@ -127,7 +131,9 @@ export default function RewardTable({ rewards, rates, valuation }: {
 
    const toggle = (asset: string) => setExpanded(current => {
       const next = new Set(current)
-      if (!next.delete(asset)) next.add(asset)
+      if (!next.delete(asset)) {
+         next.add(asset)
+      }
       return next
    })
 
@@ -166,10 +172,18 @@ export default function RewardTable({ rewards, rates, valuation }: {
 
    const rows = assets.toSorted((a, b) => {
       const [left, right] = [sortValue(a), sortValue(b)]
-      if (left == null && right == null) return a.asset.localeCompare(b.asset)
-      if (left == null) return 1
-      if (right == null) return -1
-      if (left === right) return a.asset.localeCompare(b.asset)
+      if (left == null && right == null) {
+         return a.asset.localeCompare(b.asset)
+      }
+      if (left == null) {
+         return 1
+      }
+      if (right == null) {
+         return -1
+      }
+      if (left === right) {
+         return a.asset.localeCompare(b.asset)
+      }
       return activeSort.direction === 'desc' ? right - left : left - right
    })
 
@@ -277,7 +291,7 @@ export default function RewardTable({ rewards, rates, valuation }: {
             {valuation === 'received'
                ? <p className="text-xs text-muted-foreground">
                   Each cell is what the rewards of that year were worth in USD <b>on the day each one
-                  was paid</b>, with the amount paid out underneath: Kraken&apos;s daily average price
+                     was paid</b>, with the amount paid out underneath: Kraken&apos;s daily average price
                   for the last two years, its weekly average before that, and the ECB reference rate
                   for fiat. Rewards with no USD price for their day are shown without a value and left
                   out of the totals.

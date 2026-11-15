@@ -1,4 +1,5 @@
 import useSWR from 'swr'
+
 import type { InstallInfo } from '../../types/api'
 
 export const INSTALL_KEY = '/api/app/install'

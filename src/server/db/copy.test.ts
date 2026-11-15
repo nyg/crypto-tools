@@ -1,10 +1,11 @@
-import { afterAll, describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
+import { afterAll, describe, expect, test } from 'bun:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { copyDatabase, databaseState } from './copy'
+
 import type { CountRow, UserVersionRow } from '../../types/db'
+import { copyDatabase, databaseState } from './copy'
 
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-copy-'))
 const opened: Database[] = []
@@ -31,14 +32,15 @@ function portfolioCount(file: string): number {
 
    try {
       return db.query<CountRow, []>('SELECT COUNT(*) AS count FROM portfolio').get()!.count
-   }
-   finally {
+   } finally {
       db.close()
    }
 }
 
 afterAll(() => {
-   for (const db of opened) db.close()
+   for (const db of opened) {
+      db.close()
+   }
    fs.rmSync(directory, { recursive: true, force: true })
 })
 

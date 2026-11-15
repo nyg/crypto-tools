@@ -1,12 +1,14 @@
+import type { Dispatch, ReactNode, SetStateAction } from 'react'
+
+import type { TradeCalculatorForm as FormValues, TradeResult } from '@/lib/trade-calculator'
+import { directionOptions, strategyOptions } from '@/lib/trade-calculator'
+
+import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
+import Field from '../lib/field'
+import FieldHint from '../lib/field-hint'
 import Input from '../lib/input'
 import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
-import FieldHint from '../lib/field-hint'
-import Field from '../lib/field'
-import { asAssetAmount, asDollarAmount, asPercentage } from '../../../utils/format'
-import { directionOptions, strategyOptions } from '@/lib/trade-calculator'
-import type { ReactNode, Dispatch, SetStateAction } from 'react'
-import type { TradeCalculatorForm as FormValues, TradeResult } from '@/lib/trade-calculator'
 
 const Section = ({ title, children }: { title: string, children: ReactNode }) => (
    <section className="space-y-3 border-t border-border pt-4 first:border-t-0 first:pt-0">

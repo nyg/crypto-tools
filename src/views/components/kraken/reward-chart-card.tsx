@@ -1,9 +1,10 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import Donut, { foldSlices } from './donut'
-import { ValuationTag, usdOf } from './reward-valuation'
+import { Card, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+
 import type { RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
+import Donut, { foldSlices } from './donut'
 import type { Valuation } from './reward-valuation'
+import { usdOf,ValuationTag } from './reward-valuation'
 
 
 export default function RewardChartCard({ rewards, rates, valuation }: {

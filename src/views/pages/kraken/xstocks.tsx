@@ -1,29 +1,31 @@
+import { Loader2Icon, SearchIcon,SparklesIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import useSWR from 'swr'
-import useMutation from '../../lib/use-mutation'
 import { toast } from 'sonner'
-import { Loader2Icon, SparklesIcon, SearchIcon } from 'lucide-react'
-import KrakenLayout from '../../components/kraken/kraken-layout'
-import XStockTable from '../../components/kraken/xstock-table'
-import XStockJobProgress, { describingTickers, isJobRunning, jobCounts, jobVerbs } from '../../components/kraken/xstock-job'
-import Field from '../../components/lib/field'
-import LoadingSpinner from '../../components/lib/loading-spinner'
-import SettingsLink from '../../components/lib/settings-link'
-import NumericInput from '../../components/lib/numeric-input'
-import SelectField from '../../components/lib/select-field'
-import { asCount, ANY } from '../../components/lib/filter-options'
-import { useProvider } from '../../lib/use-settings'
-import usePersistentState from '../../lib/use-persistent-state'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import useSWR from 'swr'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+
+import type { XStockJobResponse, XStockListingsResponse, XStockRow, XStockStartResponse } from '../../../types/api'
 import type { XStockJob, XStockJobKind } from '../../../types/jobs'
-import type { XStockListingsResponse, XStockJobResponse, XStockRow, XStockStartResponse } from '../../../types/api'
 import type { Sort } from '../../../types/kraken'
+import KrakenLayout from '../../components/kraken/kraken-layout'
+import XStockJobProgress, { describingTickers, isJobRunning, jobCounts, jobVerbs } from '../../components/kraken/xstock-job'
+import XStockTable from '../../components/kraken/xstock-table'
+import Field from '../../components/lib/field'
+import { ANY,asCount } from '../../components/lib/filter-options'
+import LoadingSpinner from '../../components/lib/loading-spinner'
+import NumericInput from '../../components/lib/numeric-input'
+import SelectField from '../../components/lib/select-field'
+import SettingsLink from '../../components/lib/settings-link'
+import useMutation from '../../lib/use-mutation'
+import usePersistentState from '../../lib/use-persistent-state'
+import { useProvider } from '../../lib/use-settings'
 
 // What the page remembers between visits: the filters and the description length,
 // none of which the server knows about.
@@ -89,8 +91,12 @@ function announce(job: XStockJob) {
 
    const summary = `${verbs.past} ${asCount(done, 'listing')}`
 
-   if (job.phase === 'cancelled') return toast.info(`${summary} before stopping.`)
-   if (failed > 0) return toast.warning(`${summary}, ${failed} failed.`)
+   if (job.phase === 'cancelled') {
+      return toast.info(`${summary} before stopping.`)
+   }
+   if (failed > 0) {
+      return toast.warning(`${summary}, ${failed} failed.`)
+   }
 
    toast.success(`${summary}.`)
 }
@@ -163,12 +169,16 @@ export default function KrakenXStocks() {
             return
          }
 
-         if (!startedRef.current) return
+         if (!startedRef.current) {
+            return
+         }
 
          startedRef.current = false
          settledRef.current = 0
          mutate()
-         if (latestJob) announce(latestJob)
+         if (latestJob) {
+            announce(latestJob)
+         }
       }
    })
 
@@ -186,8 +196,12 @@ export default function KrakenXStocks() {
 
    const filtered = useMemo(() => {
       const matches = listings.filter(listing => {
-         if (type !== ANY && listing.type !== type) return false
-         if (!search) return true
+         if (type !== ANY && listing.type !== type) {
+            return false
+         }
+         if (!search) {
+            return true
+         }
          return listing.ticker.toLowerCase().includes(search)
             || listing.altname.toLowerCase().includes(search)
             || listing.name.toLowerCase().includes(search)
@@ -201,9 +215,15 @@ export default function KrakenXStocks() {
          if (numericColumns.has(sort.column ?? '')) {
             const left = a[sort.column as 'volumeUsd24h']
             const right = b[sort.column as 'volumeUsd24h']
-            if (left === null && right === null) return collator.compare(a.ticker, b.ticker)
-            if (left === null) return 1
-            if (right === null) return -1
+            if (left === null && right === null) {
+               return collator.compare(a.ticker, b.ticker)
+            }
+            if (left === null) {
+               return 1
+            }
+            if (right === null) {
+               return -1
+            }
             return (left - right) * direction || collator.compare(a.ticker, b.ticker)
          }
          const key = sort.column as keyof XStockRow
@@ -221,7 +241,9 @@ export default function KrakenXStocks() {
       trigger: (arg: { tickers: string[], wordCount: number }) => Promise<unknown>
    ) => {
 
-      if (tickers.length === 0) return toast.info(`Nothing to ${jobVerbs[kind].action}.`)
+      if (tickers.length === 0) {
+         return toast.info(`Nothing to ${jobVerbs[kind].action}.`)
+      }
 
       settledRef.current = 0
 
@@ -258,11 +280,9 @@ export default function KrakenXStocks() {
    let tableContent
    if (error) {
       tableContent = <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
-   }
-   else if (isLoading) {
+   } else if (isLoading) {
       tableContent = <LoadingSpinner>Loading Kraken&apos;s tokenized listings…</LoadingSpinner>
-   }
-   else {
+   } else {
       tableContent = (
          <XStockTable
             listings={visible}

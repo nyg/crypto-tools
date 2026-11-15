@@ -1,21 +1,23 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import useSWR, { useSWRConfig } from 'swr'
-import useMutation from '../../lib/use-mutation'
-import KrakenLayout from '../../components/kraken/kraken-layout'
-import BalanceSummaryCard from '../../components/kraken/balance-summary-card'
-import BalancePlacementCard from '../../components/kraken/balance-placement-card'
-import BalanceChartCard from '../../components/kraken/balance-chart-card'
-import BalanceTable from '../../components/kraken/balance-table'
-import { defaultFilters } from '../../components/kraken/balance-filters'
-import { isJobRunning } from '../../components/kraken/sync-status'
-import { useProvider } from '../../lib/use-settings'
-import CredentialsAlert from '../../components/lib/credentials-alert'
-import SettingsLink from '../../components/lib/settings-link'
-import usePersistentState from '../../lib/use-persistent-state'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { messageOf } from '@/lib/errors'
-import type { AssetRatesResponse, BalanceSummary, BalancesResponse, SyncStatusResponse } from '../../../types/api'
+
+import type { AssetRatesResponse, BalancesResponse, BalanceSummary, SyncStatusResponse } from '../../../types/api'
+import BalanceChartCard from '../../components/kraken/balance-chart-card'
+import { defaultFilters } from '../../components/kraken/balance-filters'
+import BalancePlacementCard from '../../components/kraken/balance-placement-card'
+import BalanceSummaryCard from '../../components/kraken/balance-summary-card'
+import BalanceTable from '../../components/kraken/balance-table'
+import KrakenLayout from '../../components/kraken/kraken-layout'
+import { isJobRunning } from '../../components/kraken/sync-status'
+import CredentialsAlert from '../../components/lib/credentials-alert'
+import SettingsLink from '../../components/lib/settings-link'
+import useMutation from '../../lib/use-mutation'
+import usePersistentState from '../../lib/use-persistent-state'
+import { useProvider } from '../../lib/use-settings'
 
 const BALANCES_KEY = '/api/kraken/ledger/balances'
 
@@ -71,7 +73,9 @@ export default function KrakenBalances() {
    const hasCheckedRef = useRef(false)
 
    useEffect(() => {
-      if (!configured || hasCheckedRef.current) return
+      if (!configured || hasCheckedRef.current) {
+         return
+      }
       hasCheckedRef.current = true
       checkLive()
    }, [configured])

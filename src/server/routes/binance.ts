@@ -1,14 +1,15 @@
-import { Hono } from 'hono'
 import Big from 'big.js'
+import { Hono } from 'hono'
+
+import type { SpotBalances, StakingBalances, StakingProducts } from '../../types/binance'
 import BinanceAPI from '../adapters/binance-api/adapter'
 import BinanceGatewayAPI from '../adapters/binance-gateway-api/adapter'
+import { HttpRequesterError } from '../errors'
 import RateFinder from '../services/rate-finder'
 import fundingRoutes from './funding'
 import instantOrderRoutes from './instant-orders'
 import portfolioRoutes from './portfolios'
 import { withCredentials } from './with-account'
-import { HttpRequesterError } from '../errors'
-import type { SpotBalances, StakingBalances, StakingProducts } from '../../types/binance'
 
 const app = new Hono()
 
@@ -43,13 +44,11 @@ app.post('/aggregate-balance', async (c) => withCredentials(c, 'binance', async 
       const pairs = rateFinder.buildPairs(tradingPairs)
       const pairRates = await binanceAPI.fetchRates(pairs)
       rates = rateFinder.buildRates(pairRates)
-   }
-   catch (error) {
+   } catch (error) {
       if (error instanceof HttpRequesterError) {
          console.log('An error happened while contacting the Binance API:', error.cause)
          return c.json({ error: `An error happened while contacting the Binance API: ${error.cause}` }, 500)
-      }
-      else {
+      } else {
          console.error('An unexpected error happened:', error)
          return c.json({ error: 'An unexpected error happened.' }, 500)
       }
@@ -168,9 +167,10 @@ app.get('/eoy-rates', async (c) => {
    for (const asset of assets) {
       try {
          const [candle] = await binanceAPI.fetchCandlestickData(`${asset}USDT`, '1m', startTime, endTime, 1)
-         if (candle) rates[asset] = candle.close
-      }
-      catch (error) {
+         if (candle) {
+            rates[asset] = candle.close
+         }
+      } catch (error) {
          console.error(error)
       }
    }

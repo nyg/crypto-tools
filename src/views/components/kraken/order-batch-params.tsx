@@ -1,11 +1,13 @@
+import type { Dispatch, SetStateAction } from 'react'
+
+import { Button } from '@/components/ui/button'
+
+import type { TradingPairs } from '../../../types/market'
+import ComboboxField from '../lib/combobox-field'
+import FieldHint from '../lib/field-hint'
+import Input from '../lib/input'
 import NumericInput from '../lib/numeric-input'
 import SelectField from '../lib/select-field'
-import ComboboxField from '../lib/combobox-field'
-import Input from '../lib/input'
-import FieldHint from '../lib/field-hint'
-import { Button } from '@/components/ui/button'
-import type { Dispatch, SetStateAction } from 'react'
-import type { TradingPairs } from '../../../types/market'
 
 // The form as the user types it: every field is free text, parsed when the preview is
 // built rather than on each keystroke.

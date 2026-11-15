@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+
 import { binanceBookInbound, binanceOrderInbound } from './streams'
 
 describe('the Binance book stream', () => {

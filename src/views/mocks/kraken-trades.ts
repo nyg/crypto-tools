@@ -1,11 +1,12 @@
 import Big from 'big.js'
-import { mockUsdRateOn } from './usd-rates'
+
 import type {
    Aggregation, AggregationsResponse, AggregationSummary, ConvertedTotals, Order,
    SummarySide, TradeFiltersResponse, TradesResponse
 } from '../../types/api'
 import type { TradeListRow, TradeRow } from '../../types/db'
 import type { AggregationFilters, Sort, TradeFilters } from '../../types/kraken'
+import { mockUsdRateOn } from './usd-rates'
 
 // The fixture holds trades in the shape the repository reads them back out of SQLite.
 type MockTrade = TradeRow
@@ -205,7 +206,9 @@ export function tradeAggregations(
       summary: emptySummary(), truncated: false, ratesPending: false
    }
 
-   if (!filters.base) return empty
+   if (!filters.base) {
+      return empty
+   }
 
    const merged = filters.includeAllQuotes === true && mergeableQuotes.includes(targetQuote)
 
@@ -229,8 +232,11 @@ export function tradeAggregations(
    const runs: { direction: string, orders: Order[] }[] = []
    for (const order of orders) {
       const current = runs[runs.length - 1]
-      if (current && current.direction === order.direction) current.orders.push(order)
-      else runs.push({ direction: order.direction, orders: [order] })
+      if (current && current.direction === order.direction) {
+         current.orders.push(order)
+      } else {
+         runs.push({ direction: order.direction, orders: [order] })
+      }
    }
 
    const groups = runs.map((run, index) => asAggregation(run, index, targetQuote))
@@ -271,7 +277,9 @@ function convertOrders(orders: Order[], targetQuote: string): ConvertedTotals {
       }
 
       const factor = same ? Big(1) : Big(from!).div(to!)
-      if (!same) converted = true
+      if (!same) {
+         converted = true
+      }
 
       volume = volume.plus(order.volume)
       cost = cost.plus(factor.times(order.cost))
@@ -298,7 +306,9 @@ function asSummary(orders: Order[], targetQuote: string): AggregationSummary {
    for (const order of orders) {
 
       const side = order.direction === 'buy' ? buy : order.direction === 'sell' ? sell : null
-      if (!side) continue
+      if (!side) {
+         continue
+      }
 
       side.orderCount += 1
       side.tradeCount += order.tradeCount
@@ -400,17 +410,29 @@ export function tradeRows(
 
    const numeric = ['volume', 'price', 'cost', 'fee'].includes(column)
    const value = (trade: MockTrade): string | number => {
-      if (column === 'volume') return Number(trade.vol)
-      if (column === 'pair') return trade.pairKey
-      if (column === 'direction') return trade.type
-      if (numeric) return Number(trade[column as keyof MockTrade])
+      if (column === 'volume') {
+         return Number(trade.vol)
+      }
+      if (column === 'pair') {
+         return trade.pairKey
+      }
+      if (column === 'direction') {
+         return trade.type
+      }
+      if (numeric) {
+         return Number(trade[column as keyof MockTrade])
+      }
       return trade[column as keyof MockTrade]
    }
 
    const sorted = filtered.toSorted((a, b) => {
       const [left, right] = [value(a), value(b)]
-      if (left < right) return -factor
-      if (left > right) return factor
+      if (left < right) {
+         return -factor
+      }
+      if (left > right) {
+         return factor
+      }
       return a.txid < b.txid ? -factor : factor
    })
 

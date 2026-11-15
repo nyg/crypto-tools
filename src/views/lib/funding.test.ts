@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { fundingAssets, fundingBuckets, fundingTotals } from './funding'
+
 import type { FundingMovement } from '../../types/api'
+import { fundingAssets, fundingBuckets, fundingTotals } from './funding'
 
 const at = (...parts: [number, number, number?, number?, number?]) => new Date(...parts).getTime()
 

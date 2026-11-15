@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, renameSync, statSync } from 'fs'
 import os from 'os'
 import path from 'path'
+
+import type { DataProfile } from '../environment'
 import { dataProfile } from '../environment'
 import { messageOf } from '../errors'
-import type { DataProfile } from '../environment'
 
 // macOS and Windows name application data folders after the app as the user sees it;
 // the XDG spec wants a lowercase, machine-readable name. Both used to be 'CryptoTools',
@@ -38,8 +39,7 @@ function migrateLegacyDir(dir: string): string {
    try {
       renameSync(legacy, dir)
       return dir
-   }
-   catch (error) {
+   } catch (error) {
       console.warn(`Could not move ${legacy} to ${dir}, keeping the old location:`, messageOf(error))
       return legacy
    }

@@ -1,6 +1,7 @@
-import { findPath } from 'modern-dijkstra'
 import type Big from 'big.js'
 import type { Graph } from 'modern-dijkstra'
+import { findPath } from 'modern-dijkstra'
+
 import type { PairRates } from '../../types/binance'
 import type { TradingPair, TradingPairs } from '../../types/market'
 
@@ -42,15 +43,16 @@ export default class RateFinder {
          .map(asset => {
             try {
                return findPath(graph, asset, referenceAsset)
-            }
-            catch {
+            } catch {
                console.warn(`Could not find a path for ${asset}`)
                return []
             }
          })
          .reduce<Record<string, string[]>>((paths, path) => {
             const [asset] = path
-            if (asset) paths[asset] ??= this.#tradingPairsFrom(path)
+            if (asset) {
+               paths[asset] ??= this.#tradingPairsFrom(path)
+            }
             return paths
          }, {})
 

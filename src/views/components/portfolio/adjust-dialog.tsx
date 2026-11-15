@@ -1,17 +1,19 @@
+import { Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Loader2Icon } from 'lucide-react'
-import useMutation from '../../lib/use-mutation'
-import Input from '../lib/input'
-import SelectField from '../lib/select-field'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
+
 import type {
    AccountCoin, PortfolioMovementRequest, PortfolioMovementResponse, PortfolioSummary
 } from '../../../types/api'
+import useMutation from '../../lib/use-mutation'
+import Input from '../lib/input'
+import SelectField from '../lib/select-field'
 
 interface AdjustFormProps {
    apiBase: string
@@ -40,8 +42,7 @@ function AdjustForm({ apiBase, coin, portfolios, onCancel, onAdjusted }: AdjustF
          await adjust({ portfolioId: Number(portfolioId), asset: coin.asset, amount, note })
          toast.success(`${coin.asset} adjusted.`)
          onAdjusted()
-      }
-      catch (reason) {
+      } catch (reason) {
          setError(typeof reason === 'string' ? reason : 'The adjustment could not be recorded.')
       }
    }

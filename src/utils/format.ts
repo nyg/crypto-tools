@@ -49,14 +49,20 @@ export function asDecimal(number: number, decimalCount = 2): string {
 // magnitude rather than being fixed: 1 234.56 stays readable and 0.00000420 survives.
 export function asAssetAmount(number: number): string {
    const magnitude = Math.abs(number)
-   if (magnitude >= 1) return asDecimal(number, 2)
-   if (magnitude >= 0.01) return asDecimal(number, 4)
+   if (magnitude >= 1) {
+      return asDecimal(number, 2)
+   }
+   if (magnitude >= 0.01) {
+      return asDecimal(number, 4)
+   }
    return asDecimal(number, 8)
 }
 
 export function asExactDecimal(value: string): string {
    const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(value)
-   if (!match) return value
+   if (!match) {
+      return value
+   }
    const [, sign = '', integer = '0', fraction] = match
    return `${sign}${countFormatter.format(BigInt(integer))}${fraction === undefined ? '' : `${decimalSeparator}${fraction}`}`
 }
@@ -69,7 +75,9 @@ export function fractionDigits(value: string): number {
 // but invisible, it is what lines the decimal points up without adding zeros to read.
 export function decimalPadding(value: string, digits: number): string {
    const own = fractionDigits(value)
-   if (own >= digits) return ''
+   if (own >= digits) {
+      return ''
+   }
    return `${own === 0 ? decimalSeparator : ''}${'0'.repeat(digits - own)}`
 }
 
@@ -93,9 +101,15 @@ export function asRounded(number: number): string {
 // amount of BTC still has to show that it is not zero.
 export function asAxisTick(value: number): string {
    const magnitude = Math.abs(value)
-   if (magnitude === 0) return '0'
-   if (magnitude >= 1000) return asCompact(value)
-   if (magnitude >= 1) return asRounded(value)
+   if (magnitude === 0) {
+      return '0'
+   }
+   if (magnitude >= 1000) {
+      return asCompact(value)
+   }
+   if (magnitude >= 1) {
+      return asRounded(value)
+   }
    return Number(value.toPrecision(2)).toString()
 }
 
@@ -165,8 +179,12 @@ export function asSignedShortPercentage(number: number): string {
 
 export function asDaysAgo(timestamp: DateLike, now: DateLike = Date.now()): string {
    const days = Math.round((startOfDay(now) - startOfDay(timestamp)) / DAY)
-   if (days <= 0) return 'today'
-   if (days === 1) return 'yesterday'
+   if (days <= 0) {
+      return 'today'
+   }
+   if (days === 1) {
+      return 'yesterday'
+   }
    return `${countFormatter.format(days)} days ago`
 }
 

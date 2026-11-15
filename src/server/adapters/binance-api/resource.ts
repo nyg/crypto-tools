@@ -1,13 +1,13 @@
-import { httpRequester } from '../http-requester/server-http-requester'
-import { pacer } from '../http-requester/pacer'
-import { authenticator } from './authenticator'
-import type { Credentials } from '../../../types/credentials'
 import type {
    BinanceAccount, BinanceBookTicker, BinanceCommission, BinanceDeposit, BinanceEnvironment, BinanceExchangeInfo,
    BinanceFiatFunding, BinanceHistoryParams, BinanceKLine, BinanceOrder, BinanceOrderAck, BinanceOrderParams,
    BinanceOrderReference, BinanceSpotBalance, BinanceStakingPosition, BinanceTickerPrice, BinanceTrade,
    BinanceWithdrawal
 } from '../../../types/binance-api'
+import type { Credentials } from '../../../types/credentials'
+import { pacer } from '../http-requester/pacer'
+import { httpRequester } from '../http-requester/server-http-requester'
+import { authenticator } from './authenticator'
 
 const hosts: Record<BinanceEnvironment, string> = {
    mainnet: 'https://api.binance.com',

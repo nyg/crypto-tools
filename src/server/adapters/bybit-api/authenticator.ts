@@ -1,4 +1,5 @@
 import { createHmac } from 'crypto'
+
 import type { AuthenticatedRequest, Authenticator, Credentials } from '../../../types/credentials'
 
 const RECV_WINDOW = '10000'

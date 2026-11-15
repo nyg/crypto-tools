@@ -1,7 +1,8 @@
 import Big from 'big.js'
 import { describe, expect, test } from 'bun:test'
-import { earnPositions } from './earn'
+
 import type { KrakenEarnAllocation, KrakenEarnStrategy } from '../../../types/kraken-api'
+import { earnPositions } from './earn'
 
 const strategies: KrakenEarnStrategy[] = [
    {

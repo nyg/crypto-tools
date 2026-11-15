@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from 'react'
 import type { MouseEvent } from 'react'
+import { useSyncExternalStore } from 'react'
 
 const FULL_SCREEN_EVENT = 'crypto-tools:full-screen'
 

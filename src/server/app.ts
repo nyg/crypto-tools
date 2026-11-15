@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+
 import { isLoopbackHost, originRuleFor } from './origin'
 import appRoutes from './routes/app'
 import binanceRoutes from './routes/binance'

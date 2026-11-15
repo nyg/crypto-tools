@@ -1,15 +1,16 @@
 import Big from 'big.js'
-import { ledgerBalances, walletBalances } from './kraken-ledger'
-import { mockUsdPrices } from './usd-rates'
+
 import type {
    AssetRatesResponse, BalancesResponse, OpenOrdersResponse,
    XStockJobResponse, XStockListingsResponse, XStockRow, XStockStartResponse
 } from '../../types/api'
-import type { XStockClassification, XStockListingType } from '../../types/xstock'
+import type { XStockJob, XStockJobKind, XStockStep } from '../../types/jobs'
+import type { CancelResult, LivePosition, OpenOrder } from '../../types/kraken'
 import type { KrakenOrderBatchParams } from '../../types/kraken-api'
 import type { TradingPairs } from '../../types/market'
-import type { CancelResult, LivePosition, OpenOrder } from '../../types/kraken'
-import type { XStockJob, XStockJobKind, XStockStep } from '../../types/jobs'
+import type { XStockClassification, XStockListingType } from '../../types/xstock'
+import { ledgerBalances, walletBalances } from './kraken-ledger'
+import { mockUsdPrices } from './usd-rates'
 
 // The mocked job carries a tick counter the real one has no use for: it is what drives
 // the fake progress the page polls.
@@ -357,7 +358,9 @@ const snapshot = (): XStockJobResponse => ({ job: mockJob ? structuredClone(mock
 
 const advanceMockJob = (): XStockJobResponse => {
 
-   if (!mockJob || mockJob.phase !== 'running') return snapshot()
+   if (!mockJob || mockJob.phase !== 'running') {
+      return snapshot()
+   }
 
    mockJob.ticks++
    mockJob.updatedAt = Date.now()
@@ -373,8 +376,11 @@ const advanceMockJob = (): XStockJobResponse => {
          step.phase = 'done'
          step.activity = ''
          step.finishedAt = Date.now()
-         if (mockJob.kind === 'describe') storeMockDescription(step.ticker, mockJob.wordCount ?? 60)
-         else storeMockClassification(step.ticker)
+         if (mockJob.kind === 'describe') {
+            storeMockDescription(step.ticker, mockJob.wordCount ?? 60)
+         } else {
+            storeMockClassification(step.ticker)
+         }
       }
    }
 
@@ -386,8 +392,7 @@ const advanceMockJob = (): XStockJobResponse => {
             step.startedAt = Date.now()
             step.activity = mockActivities[0] ?? ''
          }
-      }
-      else {
+      } else {
          mockJob.phase = 'done'
          mockJob.finishedAt = Date.now()
       }
@@ -444,13 +449,15 @@ const xstockJobCancel = (): XStockJobResponse => {
       mockJob.phase = 'cancelled'
       mockJob.finishedAt = Date.now()
       for (const step of mockJob.steps) {
-         if (step.phase === 'running' || step.phase === 'pending') step.phase = 'cancelled'
+         if (step.phase === 'running' || step.phase === 'pending') {
+            step.phase = 'cancelled'
+         }
       }
    }
    return snapshot()
 }
 
 export {
-   tradingPairs, orderBatch, balances, assetRates, openOrders, cancelOrders,
-   xstockListings, xstockClassify, xstockDescribe, xstockJob, xstockJobCancel
-}
+   assetRates, balances, cancelOrders,
+   openOrders, orderBatch,    tradingPairs, xstockClassify, xstockDescribe, xstockJob, xstockJobCancel,
+   xstockListings}

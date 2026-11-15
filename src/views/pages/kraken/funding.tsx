@@ -1,8 +1,9 @@
 import { Link } from 'react-router'
-import KrakenLayout from '../../components/kraken/kraken-layout'
+
 import FundingPage from '../../components/funding/funding-page'
-import SettingsLink from '../../components/lib/settings-link'
 import { assetLabel } from '../../components/kraken/asset-migrations'
+import KrakenLayout from '../../components/kraken/kraken-layout'
+import SettingsLink from '../../components/lib/settings-link'
 
 export default function KrakenFunding() {
    return (

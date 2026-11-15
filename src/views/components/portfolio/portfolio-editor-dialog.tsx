@@ -1,24 +1,26 @@
+import Big from 'big.js'
+import { Loader2Icon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
-import useSWR from 'swr'
-import Big from 'big.js'
 import { toast } from 'sonner'
-import { Loader2Icon, PlusIcon, Trash2Icon } from 'lucide-react'
-import useMutation from '../../lib/use-mutation'
-import { supertrendStop } from '../../lib/supertrend-stops'
-import Input from '../lib/input'
-import NumericInput from '../lib/numeric-input'
-import SelectField from '../lib/select-field'
-import ComboboxField from '../lib/combobox-field'
-import { cn } from '@/lib/utils'
+import useSWR from 'swr'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
+
 import type {
    PortfolioMarketsResponse, PortfolioSaveRequest, PortfolioSaveResponse, PortfolioSummary, SupertrendLevels
 } from '../../../types/api'
+import { supertrendStop } from '../../lib/supertrend-stops'
+import useMutation from '../../lib/use-mutation'
+import ComboboxField from '../lib/combobox-field'
+import Input from '../lib/input'
+import NumericInput from '../lib/numeric-input'
+import SelectField from '../lib/select-field'
 
 type Timeframe = keyof SupertrendLevels
 
@@ -57,14 +59,15 @@ const row = (asset = '', weight = '', stopPrice = ''): TargetRow =>
 function sumOf(rows: TargetRow[]): Big | null {
    try {
       return rows.reduce((sum, { weight }) => sum.plus(weight || 0), Big(0))
-   }
-   catch {
+   } catch {
       return null
    }
 }
 
 function splitEqually(rows: TargetRow[]): TargetRow[] {
-   if (rows.length === 0) return rows
+   if (rows.length === 0) {
+      return rows
+   }
    const share = Big(100).div(rows.length).round(2, Big.roundDown)
    const last = Big(100).minus(share.times(rows.length - 1))
    return rows.map((entry, index) => ({ ...entry, weight: (index === rows.length - 1 ? last : share).toFixed() }))
@@ -78,7 +81,9 @@ function currentWeights(portfolio: PortfolioSummary, rows: TargetRow[]): TargetR
       .filter(({ asset, value }) => value !== null && Big(value).gt(0) && (asset !== quote || keepsCash))
       .map(({ asset, value }) => ({ asset, value: Big(value!) }))
    const total = held.reduce((sum, { value }) => sum.plus(value), Big(0))
-   if (total.lte(0)) return rows
+   if (total.lte(0)) {
+      return rows
+   }
 
    const exact = held.map(({ asset, value }) => ({ asset, weight: value.div(total).times(100) }))
    const floors = exact.map(({ asset, weight }) => ({ asset, weight: weight.round(2, Big.roundDown), rest: weight.mod(Big('0.01')) }))
@@ -168,8 +173,7 @@ function EditorForm({ apiBase, quoteAsset: defaultQuote, portfolio, supertrend, 
          })
          toast.success(portfolio ? `${name} saved.` : `${name} created.`)
          onSaved(id)
-      }
-      catch (reason) {
+      } catch (reason) {
          setError(typeof reason === 'string' ? reason : 'The portfolio could not be saved.')
       }
    }

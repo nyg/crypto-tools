@@ -1,11 +1,12 @@
 /// <reference types="bun-types" />
+import type { BrowserWindow } from 'electrobun/main'
+import { app,Screen } from 'electrobun/main'
 import { readFileSync, renameSync, writeFileSync } from 'fs'
 import path from 'path'
-import { Screen, app } from 'electrobun/main'
-import type { BrowserWindow } from 'electrobun/main'
+
 import { resolveDataDir } from '../server/db/paths'
-import { fillsWorkArea, shrunkFrame } from './window-geometry'
 import type { WindowBounds } from './window-geometry'
+import { fillsWorkArea, shrunkFrame } from './window-geometry'
 
 // AppKit reports a window as zoomed when its frame is within about ten points of the zoomed one,
 // and leaves such a window as it is when asked to zoom it
@@ -47,8 +48,7 @@ function displayFingerprint(): string {
          .map(display => `${display.id}:${display.bounds.x},${display.bounds.y},${display.bounds.width}x${display.bounds.height}`)
          .sort()
          .join(';')
-   }
-   catch {
+   } catch {
       return ''
    }
 }
@@ -56,8 +56,7 @@ function displayFingerprint(): string {
 function primaryWorkArea(): WindowBounds {
    try {
       return Screen.getPrimaryDisplay().workArea
-   }
-   catch {
+   } catch {
       return { x: 0, y: 0, width: 0, height: 0 }
    }
 }
@@ -91,8 +90,7 @@ function readState(): PersistedWindowState | null {
          return null
       }
       return parsed as PersistedWindowState
-   }
-   catch {
+   } catch {
       return null
    }
 }
@@ -102,8 +100,7 @@ function writeState(state: PersistedWindowState): void {
    if (lastWritten === null) {
       try {
          lastWritten = readFileSync(statePath(), 'utf-8')
-      }
-      catch {
+      } catch {
          lastWritten = ''
       }
    }
@@ -116,8 +113,7 @@ function writeState(state: PersistedWindowState): void {
       writeFileSync(temporary, serialized, 'utf-8')
       renameSync(temporary, target)
       lastWritten = serialized
-   }
-   catch {
+   } catch {
       // Losing the window layout must never take the app down with it
    }
 }
@@ -125,8 +121,7 @@ function writeState(state: PersistedWindowState): void {
 function displayBounds(): WindowBounds[] {
    try {
       return Screen.getAllDisplays().map(display => display.bounds)
-   }
-   catch {
+   } catch {
       return []
    }
 }
@@ -134,8 +129,7 @@ function displayBounds(): WindowBounds[] {
 function workAreas(): WindowBounds[] {
    try {
       return Screen.getAllDisplays().map(display => display.workArea)
-   }
-   catch {
+   } catch {
       return []
    }
 }
@@ -192,8 +186,7 @@ function measureFrameOverhead(win: BrowserWindow, requested: WindowBounds): Wind
          width: frame.width - requested.width,
          height: frame.height - requested.height,
       }
-   }
-   catch {
+   } catch {
       return { x: 0, y: 0, width: 0, height: 0 }
    }
 }
@@ -254,8 +247,7 @@ export function trackWindowState(win: BrowserWindow, initial: InitialWindowState
          if (!current.maximized) {
             current.bounds = bounds
          }
-      }
-      catch {
+      } catch {
          // A window that can no longer be queried keeps whatever was captured last
       }
    }

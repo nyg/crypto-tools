@@ -19,13 +19,19 @@ const unpricedBefore: Record<string, number> = {
 export function mockUsdRateOn(asset: string, time: number, now = Date.now()): number | null {
 
    const today = mockUsdPrices[asset]
-   if (today === undefined || time < (unpricedBefore[asset] ?? -Infinity)) return null
-   if (pegged.has(asset)) return today
+   if (today === undefined || time < (unpricedBefore[asset] ?? -Infinity)) {
+      return null
+   }
+   if (pegged.has(asset)) {
+      return today
+   }
 
    const day = time - (time % DAY)
    const wave = Math.sin(day / (41 * DAY) + asset.length)
 
-   if (fiat.has(asset)) return today * (1 + 0.03 * wave)
+   if (fiat.has(asset)) {
+      return today * (1 + 0.03 * wave)
+   }
 
    return today * Math.pow(0.7, Math.max(0, now - day) / YEAR) * (1 + 0.15 * wave)
 }

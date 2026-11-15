@@ -1,20 +1,24 @@
-import { useState } from 'react'
 import { Loader2Icon, RefreshCwIcon, Trash2Icon } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
+import { useState } from 'react'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import Field from '../lib/field'
-import TimeAgo from '../lib/time-ago'
-import SyncSteps from './sync-steps'
-import { asCount } from '../lib/filter-options'
-import { SyncStatusBadge, phaseLabel } from './sync-status'
-import { asNumber, asLongDate } from '../../../utils/format'
-import type { SyncState } from '../../../types/api'
-import type { SyncJob } from '../../../types/jobs'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
 import { messageOf } from '@/lib/errors'
 
+import type { SyncState } from '../../../types/api'
+import type { SyncJob } from '../../../types/jobs'
+import { asLongDate,asNumber } from '../../../utils/format'
+import Field from '../lib/field'
+import { asCount } from '../lib/filter-options'
+import TimeAgo from '../lib/time-ago'
+import { phaseLabel,SyncStatusBadge } from './sync-status'
+import SyncSteps from './sync-steps'
+
 const asFileSize = (bytes: number | undefined) => {
-   if (!bytes) return '—'
+   if (!bytes) {
+      return '—'
+   }
    const units = ['B', 'kB', 'MB', 'GB']
    const exponent = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
    return `${(bytes / 1024 ** exponent).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`
@@ -101,8 +105,7 @@ export default function LedgerSyncCard({
                      if (confirmingClear) {
                         onClear()
                         setConfirmingClear(false)
-                     }
-                     else {
+                     } else {
                         setConfirmingClear(true)
                      }
                   }}

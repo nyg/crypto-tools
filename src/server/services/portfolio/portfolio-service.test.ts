@@ -1,16 +1,17 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import Big from 'big.js'
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { HttpRequesterError } from '../../errors'
-import type { PortfolioExchange } from './exchange'
-import type PortfolioServiceType from './portfolio-service'
-import type { Venue } from './venues'
+
 import type {
    CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
    OrderSide, SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import { HttpRequesterError } from '../../errors'
+import type { PortfolioExchange } from './exchange'
+import type PortfolioServiceType from './portfolio-service'
+import type { Venue } from './venues'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-portfolio-'))
 
@@ -93,12 +94,16 @@ class FakeExchange implements PortfolioExchange {
 
    async candles(symbol: string, interval: CandleInterval): Promise<SpotCandle[]> {
       const series = this.candleSeries.get(`${symbol}:${interval}`)
-      if (!series) throw new HttpRequesterError(200, { retCode: 10001, retMsg: 'Not supported symbols.' })
+      if (!series) {
+         throw new HttpRequesterError(200, { retCode: 10001, retMsg: 'Not supported symbols.' })
+      }
       return series
    }
 
    async tradeFees(symbols: string[]): Promise<Record<string, TradeFees>> {
-      if (!this.reportsFees) return {}
+      if (!this.reportsFees) {
+         return {}
+      }
       return Object.fromEntries(symbols.map(symbol => [symbol, {
          taker: { buy: this.feeRate, sell: this.feeRate },
          maker: { buy: this.makerFeeRate, sell: this.makerFeeRate }
@@ -126,7 +131,9 @@ class FakeExchange implements PortfolioExchange {
 
    async cancelOrder({ clientOrderId }: OrderLookup): Promise<void> {
       const limit = this.limits.get(clientOrderId)
-      if (!limit) return
+      if (!limit) {
+         return
+      }
       this.limits.delete(clientOrderId)
       this.#settleLimit(limit, limit.filled.gt(0) ? 'partial' : 'rejected')
    }
@@ -143,7 +150,9 @@ class FakeExchange implements PortfolioExchange {
       this.#move('USDT', value.times(-sign))
 
       const done = limit.filled.eq(limit.quantity)
-      if (done) this.limits.delete(clientOrderId)
+      if (done) {
+         this.limits.delete(clientOrderId)
+      }
       this.#settleLimit(limit, done ? 'filled' : 'open')
    }
 
@@ -197,7 +206,9 @@ class FakeExchange implements PortfolioExchange {
 
    async settleOrder({ symbol, clientOrderId }: OrderLookup): Promise<OrderSettlement | null> {
       this.marketCalls.push(`check ${symbol}`)
-      if (this.fillsLimits && this.limits.has(clientOrderId)) this.fillLimit(clientOrderId)
+      if (this.fillsLimits && this.limits.has(clientOrderId)) {
+         this.fillLimit(clientOrderId)
+      }
       return this.settlements.get(clientOrderId) ?? null
    }
 
@@ -285,7 +296,9 @@ const service = () => new PortfolioService(venue, exchange)
 async function finished(runId: string, portfolios = service()) {
    for (let attempt = 0; attempt < 100; attempt++) {
       const { run } = await portfolios.run({ runId })
-      if (!run.running) return run
+      if (!run.running) {
+         return run
+      }
       await new Promise(resolve => setTimeout(resolve, 100))
    }
    throw new Error('The run never finished.')
@@ -293,7 +306,9 @@ async function finished(runId: string, portfolios = service()) {
 
 async function until(condition: () => boolean) {
    for (let attempt = 0; attempt < 300; attempt++) {
-      if (condition()) return
+      if (condition()) {
+         return
+      }
       await new Promise(resolve => setTimeout(resolve, 10))
    }
    throw new Error('The condition never held.')
@@ -305,8 +320,7 @@ async function statusOf(promise: Promise<unknown>): Promise<number | null> {
    try {
       await promise
       return null
-   }
-   catch (error) {
+   } catch (error) {
       return error instanceof PortfolioError ? error.status : -1
    }
 }
@@ -474,8 +488,7 @@ describe('a withdrawal that fills below the preview price', () => {
          const run = await finished((await service().execute({ planId: plan.planId })).run.id)
          expect(Number(run.withdrawn)).toBeLessThan(100)
          expect(run.status).toBe('done')
-      }
-      finally {
+      } finally {
          prices.BTCUSDT = { ...prices.BTCUSDT!, last: '50000' }
       }
 
@@ -555,8 +568,7 @@ describe('a fee charged in a third coin', () => {
          const portfolio = (await portfolios.overview()).portfolios.find(({ id }) => id === portfolioId)!
          expect(portfolio.fees).toBe('0.1')
          expect(portfolio.feesUnvalued).toEqual([])
-      }
-      finally {
+      } finally {
          delete prices.MNTUSDT
       }
    })
@@ -586,8 +598,7 @@ describe('profit split into realized and unrealized', () => {
          expect(Big(portfolio.realized).plus(portfolio.unrealized).eq(portfolio.profit)).toBe(true)
          expect(Big(portfolio.realizedPercent!).gt(0)).toBe(true)
          expect(Big(portfolio.fees).gt(0)).toBe(true)
-      }
-      finally {
+      } finally {
          prices.BTCUSDT = before
       }
 
@@ -787,8 +798,7 @@ describe('stop orders', () => {
          expect(exchange.stops.has(stops[0]!.orderLinkId)).toBe(false)
 
          await reserving.archive({ portfolioId: id })
-      }
-      finally {
+      } finally {
          exchange.stopsLock = false
       }
    })
@@ -912,8 +922,7 @@ describe('limit orders', () => {
          expect(run.orders).toHaveLength(1)
          expect(run.orders[0]).toMatchObject({ status: 'filled', attempts: 3, limitPrice: '50500', error: null })
          expect(run.status).toBe('done')
-      }
-      finally {
+      } finally {
          resting.fillsLimits = true
          prices.BTCUSDT = quoted('50000')
       }
@@ -936,8 +945,7 @@ describe('limit orders', () => {
 
          resting.fillsLimits = true
          expect((await finished(runId, portfolios())).orders[0]).toMatchObject({ status: 'filled', attempts: 2 })
-      }
-      finally {
+      } finally {
          resting.fillsLimits = true
          resting.chasePacing = { pollMs: 20, moveAfterMs: 0, pollsTakeTurns: false }
          prices.BTCUSDT = quoted('50000')
@@ -967,8 +975,7 @@ describe('limit orders', () => {
 
          const portfolio = (await portfolios().overview()).portfolios.find(({ id }) => id === portfolioId)!
          expect(portfolio.holdings.find(({ asset }) => asset === 'BTC')!.quantity).toBe('0.01996201')
-      }
-      finally {
+      } finally {
          resting.fillsLimits = true
          prices.BTCUSDT = quoted('50000')
       }
@@ -984,8 +991,7 @@ describe('limit orders', () => {
          expect(run.status).toBe('partial')
          expect(run.orders[0]).toMatchObject({ status: 'cancelled', base: '0', error: 'Not filled within 1 s.' })
          expect(resting.limits.size).toBe(0)
-      }
-      finally {
+      } finally {
          resting.fillsLimits = true
       }
    })
@@ -1014,8 +1020,7 @@ describe('limit orders', () => {
 
          expect(run.status).toBe('done')
          expect(run.orders.map(({ status }) => status)).toEqual(['filled', 'filled'])
-      }
-      finally {
+      } finally {
          resting.fillsLimits = true
       }
    })
@@ -1037,8 +1042,7 @@ describe('limit orders', () => {
          expect(run.orders.map(({ status, error }) => `${status}: ${error}`))
             .toEqual(['cancelled: The run was stopped.', 'cancelled: The run was stopped.'])
          expect(resting.limits.size).toBe(0)
-      }
-      finally {
+      } finally {
          resting.fillsLimits = true
       }
    })
@@ -1060,8 +1064,7 @@ describe('limit orders', () => {
 
          expect(run.orders.map(({ side, status, error }) => `${side} ${status}: ${error}`))
             .toEqual(['sell cancelled: The run was stopped.', 'buy skipped: The run was stopped.'])
-      }
-      finally {
+      } finally {
          resting.fillsLimits = true
       }
    })
@@ -1094,8 +1097,7 @@ describe('limit orders', () => {
             status: 'partial', base: '0.004', error: 'Cancelled: the run stopped first.'
          })
          expect(resting.limits.size).toBe(0)
-      }
-      finally {
+      } finally {
          resting.fillsLimits = true
       }
    })
@@ -1179,8 +1181,7 @@ describe('a coin withdrawn as it is', () => {
 
          const btc = (await service().overview()).coins.find(({ asset }) => asset === 'BTC')!
          expect(btc.allocated).toBe('0.006')
-      }
-      finally {
+      } finally {
          prices.BTCUSDT = before
       }
    })
@@ -1292,8 +1293,7 @@ describe('a coin sold out of a portfolio', () => {
          const { portfolio } = await overviewOf(portfolioId)
          expect(btcOf(portfolio)!.quantity).toBe('0.00005754')
          expect(await releasesOf(portfolioId)).toEqual([])
-      }
-      finally {
+      } finally {
          lots.fillsLimits = true
       }
    })

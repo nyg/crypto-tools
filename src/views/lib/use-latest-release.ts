@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import useSWR from 'swr'
+
+import type { LatestRelease } from '../../types/api'
 import { APP_VERSION } from './about-event'
 import { fetcher } from './fetcher'
-import type { LatestRelease } from '../../types/api'
 
 export const LATEST_RELEASE_KEY = '/api/app/latest-release'
 const REFRESH_SERVER_CACHE_KEY = `${LATEST_RELEASE_KEY}?refresh=1`
@@ -14,12 +15,16 @@ const segments = (version: string) => {
 
 export function isNewer(candidate: string | null | undefined, current: string | null | undefined): boolean {
 
-   if (!candidate || !current) return false
+   if (!candidate || !current) {
+      return false
+   }
 
    const [left, right] = [segments(candidate), segments(current)]
    for (let index = 0; index < Math.max(left.length, right.length); index++) {
       const difference = (left[index] ?? 0) - (right[index] ?? 0)
-      if (difference !== 0) return difference > 0
+      if (difference !== 0) {
+         return difference > 0
+      }
    }
 
    return !String(candidate).includes('-') && String(current).includes('-')

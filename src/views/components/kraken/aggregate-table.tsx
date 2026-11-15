@@ -1,15 +1,17 @@
+import Big from 'big.js'
+import { ChevronDownIcon, ChevronLeftIcon,ChevronRightIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
-import Big from 'big.js'
-import { ChevronDownIcon, ChevronRightIcon, ChevronLeftIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asDecimal, asNumber, asLocalTimestamp } from '../../../utils/format'
-import { asCount } from '../lib/filter-options'
+import { Table, TableBody, TableCell,TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
+
 import type { AggregationsResponse } from '../../../types/api'
 import type { MarketRow } from '../../../types/db'
+import { asDecimal, asLocalTimestamp,asNumber } from '../../../utils/format'
+import { asCount } from '../lib/filter-options'
 
 // The four amounts a run is totalled by, each of which a quote and the converted
 // totals carry as a string.
@@ -41,8 +43,11 @@ export default function AggregateTable({
 
    const toggle = (groupKey: string) => setExpanded(current => {
       const next = new Set(current)
-      if (next.has(groupKey)) next.delete(groupKey)
-      else next.add(groupKey)
+      if (next.has(groupKey)) {
+         next.delete(groupKey)
+      } else {
+         next.add(groupKey)
+      }
       return next
    })
 
@@ -54,7 +59,9 @@ export default function AggregateTable({
       )
    }
 
-   if (!groups) return null
+   if (!groups) {
+      return null
+   }
 
    const { rows, total, page, pageSize, ratesPending } = groups
 
@@ -113,12 +120,18 @@ export default function AggregateTable({
                   ].filter(Boolean).join(' — ')
 
                   const amount = (key: AmountKey) => {
-                     if (exact) return asAmount(exact[key])
-                     if (pending) return '…'
+                     if (exact) {
+                        return asAmount(exact[key])
+                     }
+                     if (pending) {
+                        return '…'
+                     }
                      // price is the one that can come back null, and it does so exactly
                      // when there was no volume to divide by.
                      const value = totals[key]
-                     if (unpriced || value === null) return '—'
+                     if (unpriced || value === null) {
+                        return '—'
+                     }
                      const decimals = decimalsOf(group.quotes.map(quote => quote[key]), 2)
                      return `≈ ${asAmount(Big(value).toFixed(decimals), decimals)}`
                   }

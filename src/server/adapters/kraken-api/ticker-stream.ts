@@ -1,5 +1,5 @@
-import { messageOf } from '../../errors'
 import type { KrakenTickerSnapshot } from '../../../types/kraken-api'
+import { messageOf } from '../../errors'
 
 const SOCKET_URL = 'wss://ws.kraken.com/v2'
 const SUBSCRIBE_CHUNK = 50
@@ -7,7 +7,9 @@ const SNAPSHOT_TIMEOUT_MS = 8000
 
 export function fetchTickerSnapshots(symbols: string[]): Promise<Map<string, KrakenTickerSnapshot>> {
 
-   if (symbols.length === 0) return Promise.resolve(new Map())
+   if (symbols.length === 0) {
+      return Promise.resolve(new Map())
+   }
 
    return new Promise(resolve => {
 
@@ -17,15 +19,15 @@ export function fetchTickerSnapshots(symbols: string[]): Promise<Map<string, Kra
 
       const settle = () => {
          clearTimeout(timer)
-         try { socket?.close() }
-         catch { /* already closing */ }
+         try {
+            socket?.close()
+         } catch { /* already closing */ }
          resolve(snapshots)
       }
 
       try {
          socket = new WebSocket(SOCKET_URL)
-      }
-      catch (error) {
+      } catch (error) {
          console.log('Could not open the Kraken ticker socket:', messageOf(error))
          return resolve(snapshots)
       }
@@ -50,16 +52,25 @@ export function fetchTickerSnapshots(symbols: string[]): Promise<Map<string, Kra
 
       socket.addEventListener('message', event => {
          let message: { channel?: string, data?: unknown }
-         try { message = JSON.parse(String(event.data)) }
-         catch { return }
-
-         if (message.channel !== 'ticker' || !Array.isArray(message.data)) return
-
-         for (const entry of message.data as KrakenTickerSnapshot[]) {
-            if (entry?.symbol) snapshots.set(entry.symbol, entry)
+         try {
+            message = JSON.parse(String(event.data))
+         } catch {
+            return
          }
 
-         if (snapshots.size >= symbols.length) settle()
+         if (message.channel !== 'ticker' || !Array.isArray(message.data)) {
+            return
+         }
+
+         for (const entry of message.data as KrakenTickerSnapshot[]) {
+            if (entry?.symbol) {
+               snapshots.set(entry.symbol, entry)
+            }
+         }
+
+         if (snapshots.size >= symbols.length) {
+            settle()
+         }
       })
 
       socket.addEventListener('error', () => {

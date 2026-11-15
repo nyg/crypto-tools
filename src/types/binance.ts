@@ -1,4 +1,5 @@
 import type Big from 'big.js'
+
 import type { BinanceFiatOrder } from './binance-api'
 
 // The domain shapes the Binance adapter produces. Amounts stay as Big here because

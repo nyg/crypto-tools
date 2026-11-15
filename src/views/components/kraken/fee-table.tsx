@@ -1,22 +1,32 @@
 import { useState } from 'react'
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { asAssetAmount, asNumber, asDollarAmount, asPercentage } from '../../../utils/format'
-import SortableHead from '../lib/sortable-head'
+
+import { Table, TableBody, TableCell,TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import type { FeeSummary } from '../../../types/api'
 import type { FeeAssetRow } from '../../../types/db'
 import type { Sort } from '../../../types/kraken'
+import { asAssetAmount, asDollarAmount, asNumber, asPercentage } from '../../../utils/format'
+import SortableHead from '../lib/sortable-head'
 
 function compare(a: FeeAssetRow, b: FeeAssetRow, sort: Sort) {
 
    const factor = sort.direction === 'asc' ? 1 : -1
 
-   if (sort.column === 'asset') return factor * a.asset.localeCompare(b.asset)
+   if (sort.column === 'asset') {
+      return factor * a.asset.localeCompare(b.asset)
+   }
 
    const column = sort.column as 'total' | 'entries' | 'value'
    const [left, right] = [a[column], b[column]]
-   if (left == null && right == null) return a.asset.localeCompare(b.asset)
-   if (left == null) return 1
-   if (right == null) return -1
+   if (left == null && right == null) {
+      return a.asset.localeCompare(b.asset)
+   }
+   if (left == null) {
+      return 1
+   }
+   if (right == null) {
+      return -1
+   }
 
    return factor * (left - right)
 }

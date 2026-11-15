@@ -1,4 +1,5 @@
 import Big from 'big.js'
+
 import type { FundingBalance, FundingMovement } from '../../../types/api'
 import type { FundingBalanceRow, FundingLedgerRow } from '../../../types/db'
 
@@ -66,8 +67,12 @@ export function withBalances(movements: FundingMovement[], entries: FundingBalan
             for (; next < ledger.length && ledger[next]!.time === second; next++) {
                balance = balance.plus(ledger[next]!.amount || 0).minus(ledger[next]!.fee || 0)
             }
-            if (balance.lt(low)) low = balance
-            if (balance.gt(high)) high = balance
+            if (balance.lt(low)) {
+               low = balance
+            }
+            if (balance.gt(high)) {
+               high = balance
+            }
          }
 
          balances.set(movement.id, { after: balance.toFixed(), low: low.toFixed(), high: high.toFixed() })

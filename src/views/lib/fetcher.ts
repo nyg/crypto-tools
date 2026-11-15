@@ -36,8 +36,7 @@ export async function fetcher(key: FetcherKey, params?: FetcherParams): Promise<
          body: JSON.stringify(body ?? {}),
          headers: { 'Content-Type': 'application/json' }
       })
-   }
-   else {
+   } else {
       response = await fetch(API_BASE + url)
    }
 

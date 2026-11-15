@@ -1,5 +1,6 @@
 import { Database } from 'bun:sqlite'
 import { closeSync, existsSync, fsyncSync, openSync, renameSync, rmSync } from 'fs'
+
 import type { TableNameRow } from '../../types/db'
 
 export type DatabaseState = 'missing' | 'empty' | 'data'
@@ -11,7 +12,9 @@ const PUBLIC_TABLES = ['asset_usd_rate', 'xstock_listing', 'xstock_description']
 const quoted = (name: string) => `"${name.replaceAll('"', '""')}"`
 
 export function databaseState(file: string): DatabaseState {
-   if (!existsSync(file)) return 'missing'
+   if (!existsSync(file)) {
+      return 'missing'
+   }
 
    const db = new Database(file, { readonly: true })
 
@@ -23,8 +26,7 @@ export function databaseState(file: string): DatabaseState {
          .some(({ name }) => db.query(`SELECT 1 FROM ${quoted(name)} LIMIT 1`).get() !== null)
 
       return holdsAccountData ? 'data' : 'empty'
-   }
-   finally {
+   } finally {
       db.close()
    }
 }
@@ -40,8 +42,7 @@ export function copyDatabase(from: string, to: string): void {
       // A snapshot read through the WAL, so it carries what is not checkpointed yet and
       // neither blocks nor waits for another process writing to the source.
       source.run('VACUUM INTO ?', [temporary])
-   }
-   finally {
+   } finally {
       source.close()
    }
 

@@ -1,18 +1,19 @@
 import Big from 'big.js'
-import { HttpRequesterError, messageOf } from '../../errors'
-import { makerPrice } from '../portfolio/limit-orders'
-import { DEFAULT_FEE_RATE, planMarket } from '../portfolio/planner'
-import { feeAssetOf, maxAmount, sizeInstantOrder } from './instant-order'
-import InstantOrderTracker, { newClientOrderId, trackerOf } from './instant-order-tracker'
-import type { PortfolioExchange } from '../portfolio/exchange'
-import type { PlanMarket } from '../portfolio/planner'
-import type { Venue } from '../portfolio/venues'
-import type { RequestBody } from '../../routes/with-account'
+
 import type {
    InstantOrderAccountResponse, InstantOrderActionResponse, InstantOrderBookResponse, InstantOrderMarketsResponse,
    InstantOrderPlaceResponse, InstantOrderState, InstantOrderStatusResponse, TrackedInstantOrder
 } from '../../../types/api'
 import type { FeeAsset, OrderSide, SizeUnit, SpotMarket, TradeFees } from '../../../types/portfolio'
+import { HttpRequesterError, messageOf } from '../../errors'
+import type { RequestBody } from '../../routes/with-account'
+import type { PortfolioExchange } from '../portfolio/exchange'
+import { makerPrice } from '../portfolio/limit-orders'
+import type { PlanMarket } from '../portfolio/planner'
+import { DEFAULT_FEE_RATE, planMarket } from '../portfolio/planner'
+import type { Venue } from '../portfolio/venues'
+import { feeAssetOf, maxAmount, sizeInstantOrder } from './instant-order'
+import InstantOrderTracker, { newClientOrderId, trackerOf } from './instant-order-tracker'
 
 export type InstantOrderErrorStatus = 400 | 409 | 502
 
@@ -115,11 +116,19 @@ export default class InstantOrderService {
    async place(body: RequestBody): Promise<InstantOrderPlaceResponse> {
 
       const { side, unit, amount, follow } = body
-      if (!isSide(side)) throw new InstantOrderError(400, 'Buy or sell?')
-      if (!isUnit(unit)) throw new InstantOrderError(400, 'The amount is neither in the base nor in the quote asset.')
-      if (body.feeAsset !== undefined && !isUnit(body.feeAsset)) throw new InstantOrderError(400, 'The fee is neither in the base nor in the quote asset.')
+      if (!isSide(side)) {
+         throw new InstantOrderError(400, 'Buy or sell?')
+      }
+      if (!isUnit(unit)) {
+         throw new InstantOrderError(400, 'The amount is neither in the base nor in the quote asset.')
+      }
+      if (body.feeAsset !== undefined && !isUnit(body.feeAsset)) {
+         throw new InstantOrderError(400, 'The fee is neither in the base nor in the quote asset.')
+      }
       const feeAsset = feeAssetOf(side, body.feeAsset, this.#exchange)
-      if (!isPositive(amount)) throw new InstantOrderError(400, 'The amount must be a positive number.')
+      if (!isPositive(amount)) {
+         throw new InstantOrderError(400, 'The amount must be a positive number.')
+      }
       const maxMove = follow === true ? movePercentOf(body.maxMovePercent) : null
 
       const market = await this.#market(body.symbol)
@@ -127,7 +136,9 @@ export default class InstantOrderService {
       for (let refusals = 0; refusals < MAX_REFUSALS; refusals++) {
 
          const sizing = sizeInstantOrder(side, unit, Big(amount), await this.#planMarket(market))
-         if ('refusal' in sizing) throw new InstantOrderError(409, sizing.refusal)
+         if ('refusal' in sizing) {
+            throw new InstantOrderError(409, sizing.refusal)
+         }
 
          const clientOrderId = newClientOrderId()
          const order = {
@@ -140,11 +151,16 @@ export default class InstantOrderService {
             orderId = await this.#exchange.placeLimitOrder({
                clientOrderId, symbol: market.symbol, side, quantity: order.quantity, price: sizing.price.toFixed(), feeAsset
             }) || null
-         }
-         catch (error) {
-            if (!(error instanceof HttpRequesterError)) throw error
-            if (this.#exchange.isPostOnlyRefusal(error)) continue
-            if (this.#isRejection(error)) throw new InstantOrderError(409, this.#exchange.describeError(error))
+         } catch (error) {
+            if (!(error instanceof HttpRequesterError)) {
+               throw error
+            }
+            if (this.#exchange.isPostOnlyRefusal(error)) {
+               continue
+            }
+            if (this.#isRejection(error)) {
+               throw new InstantOrderError(409, this.#exchange.describeError(error))
+            }
             console.warn('Could not tell whether order', clientOrderId, 'was placed:', this.#describe(error))
          }
 
@@ -187,7 +203,9 @@ export default class InstantOrderService {
 
    async #market(symbol: unknown): Promise<SpotMarket> {
       const market = (await this.#exchange.markets()).find(entry => entry.symbol === symbol)
-      if (!market) throw new InstantOrderError(400, `${this.#venue.label} lists no ${String(symbol)} market.`)
+      if (!market) {
+         throw new InstantOrderError(400, `${this.#venue.label} lists no ${String(symbol)} market.`)
+      }
       return market
    }
 
@@ -196,11 +214,12 @@ export default class InstantOrderService {
    }
 
    async #tradeFees(symbol: string): Promise<TradeFees | null> {
-      if (!this.#exchange.tradeFees) return null
+      if (!this.#exchange.tradeFees) {
+         return null
+      }
       try {
          return (await this.#exchange.tradeFees([symbol]))[symbol] ?? null
-      }
-      catch (error) {
+      } catch (error) {
          console.warn('Could not read the', symbol, 'fees:', this.#describe(error))
          return null
       }

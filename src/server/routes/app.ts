@@ -1,7 +1,8 @@
 import { Hono } from 'hono'
-import { installInfo } from '../install'
-import { messageOf } from '../errors'
+
 import type { LatestRelease } from '../../types/api'
+import { messageOf } from '../errors'
+import { installInfo } from '../install'
 
 interface CachedRelease {
    release?: LatestRelease
@@ -62,8 +63,7 @@ export default function appRoutes({ desktop = false }: AppRouteOptions = {}) {
          const release = await fetchLatestRelease()
          cached = { release, expiresAt: Date.now() + SUCCESS_TTL_MS }
          return c.json(release)
-      }
-      catch (error) {
+      } catch (error) {
          console.warn('Could not read the latest release:', messageOf(error))
          cached = { error: 'Could not check for updates.', expiresAt: Date.now() + FAILURE_TTL_MS }
          return c.json({ error: cached.error }, 502)

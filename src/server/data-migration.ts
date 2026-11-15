@@ -1,14 +1,15 @@
 import { readFileSync, renameSync, writeFileSync } from 'fs'
 import path from 'path'
+
+import type { MigrationProgress, ProfileState } from './data-migration-plan'
 import { isComplete, planDataMigration, productionInUse } from './data-migration-plan'
 import { copyDatabase, databaseState } from './db/copy'
 import { resolveDataDir, resolveDbPath } from './db/paths'
+import type { DataProfile } from './environment'
 import { messageOf } from './errors'
+import type { StoreEntries } from './secrets'
 import secrets from './secrets'
 import { copySettingsFrom, settingsState } from './settings'
-import type { MigrationProgress, ProfileState } from './data-migration-plan'
-import type { DataProfile } from './environment'
-import type { StoreEntries } from './secrets'
 
 const MARKER_FILE = 'data-migration.json'
 
@@ -29,8 +30,7 @@ function readProgress(): MigrationProgress | null {
          credentials: stored.credentials === true,
          copied: Array.isArray(stored.copied) ? stored.copied : []
       }
-   }
-   catch {
+   } catch {
       return null
    }
 }
@@ -67,15 +67,16 @@ async function step(
    try {
       await run()
       writeProgress(progress)
-   }
-   catch (error) {
+   } catch (error) {
       console.error(`✗ Could not migrate the ${name}, the next start tries again:`, messageOf(error))
    }
 }
 
 async function migrate(): Promise<void> {
    const recorded = readProgress()
-   if (recorded && isComplete(recorded)) return
+   if (recorded && isComplete(recorded)) {
+      return
+   }
 
    const production = await inspect('production', recorded)
 
@@ -110,12 +111,16 @@ async function migrate(): Promise<void> {
    })
 
    await step('credentials', progress, async () => {
-      if (progress.credentials || !production.entries.complete) return
+      if (progress.credentials || !production.entries.complete) {
+         return
+      }
 
       await secrets.adopt(new Map(plan.credentials
          .map(name => [name, development.entries.values.get(name) ?? ''])))
 
-      if (plan.credentials.length) console.log(`✓ Copied ${plan.credentials.length} development credentials`)
+      if (plan.credentials.length) {
+         console.log(`✓ Copied ${plan.credentials.length} development credentials`)
+      }
       progress.copied = [...progress.copied, ...plan.credentials]
       progress.credentials = development.entries.complete
    })
@@ -126,8 +131,7 @@ async function migrate(): Promise<void> {
 export async function migrateDevelopmentData(): Promise<void> {
    try {
       await migrate()
-   }
-   catch (error) {
+   } catch (error) {
       console.error('✗ Could not migrate the development data, the next start tries again:', messageOf(error))
    }
 }

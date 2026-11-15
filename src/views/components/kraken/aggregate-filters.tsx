@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button'
-import ComboboxField from '../lib/combobox-field'
-import SelectField from '../lib/select-field'
+
+import type { Market } from '../../../types/api'
 import Checkbox from '../lib/checkbox'
+import ComboboxField from '../lib/combobox-field'
 import DateField from '../lib/date-field'
 import { asDateInput, fromDateValue, toDateValue } from '../lib/filter-options'
-import type { Market } from '../../../types/api'
+import SelectField from '../lib/select-field'
 
 export interface AggregateFilterValues {
    pairKey: string

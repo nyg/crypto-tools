@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test'
+
+import type { KrakenAssetPairs, KrakenOpenOrder } from '../../../types/kraken-api'
 import { HttpRequesterError } from '../../errors'
 import {
    hasKrakenError, krakenErrors, openStops, settlementOf, spotMarkets, spotPrices, spotWallet, tradeFees
 } from './spot'
-import type { KrakenAssetPairs, KrakenOpenOrder } from '../../../types/kraken-api'
 
 const assetPairs: KrakenAssetPairs = {
    XXBTZUSD: {

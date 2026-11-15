@@ -1,4 +1,5 @@
 import { createHash } from 'crypto'
+
 import type { LedgerEntry } from '../../types/kraken'
 
 // A partition key rather than a credential digest: it keeps the rows of two
@@ -15,7 +16,9 @@ export function accountIdFor(apiKey: string | undefined): string {
 // would collapse every blank-txid row onto the same primary key. Rows without one
 // get a key derived from the fields that identify them.
 export function entryKeyFor({ txid, refid, time, type, asset, wallet, amount }: LedgerEntry): string {
-   if (txid) return txid
+   if (txid) {
+      return txid
+   }
 
    const material = [refid, time, type, asset, wallet, amount].join('|')
    return `syn:${createHash('sha256').update(material).digest('hex').slice(0, 24)}`

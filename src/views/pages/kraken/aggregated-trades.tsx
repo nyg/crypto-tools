@@ -1,20 +1,22 @@
+import { Loader2Icon } from 'lucide-react'
 import { useRef, useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import { Loader2Icon } from 'lucide-react'
-import KrakenLayout from '../../components/kraken/kraken-layout'
-import AggregateFilters, { defaultFilters } from '../../components/kraken/aggregate-filters'
+
+import { Badge } from '@/components/ui/badge'
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+
+import type { AggregationsResponse, TradeFiltersResponse } from '../../../types/api'
 import type { AggregateFilterValues } from '../../components/kraken/aggregate-filters'
-import AggregateTable from '../../components/kraken/aggregate-table'
+import AggregateFilters, { defaultFilters } from '../../components/kraken/aggregate-filters'
 import AggregateSummary from '../../components/kraken/aggregate-summary'
+import AggregateTable from '../../components/kraken/aggregate-table'
+import KrakenLayout from '../../components/kraken/kraken-layout'
 import { isJobRunning } from '../../components/kraken/sync-status'
-import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../../components/lib/credentials-alert'
+import { asCount } from '../../components/lib/filter-options'
 import SettingsLink from '../../components/lib/settings-link'
 import usePersistentState from '../../lib/use-persistent-state'
-import { asCount } from '../../components/lib/filter-options'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import type { AggregationsResponse, TradeFiltersResponse } from '../../../types/api'
+import { useProvider } from '../../lib/use-settings'
 
 const PAGE_SIZE = 20
 

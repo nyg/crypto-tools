@@ -1,5 +1,5 @@
-import { httpRequester } from '../http-requester/server-http-requester'
 import type { FrankfurterRate } from '../../../types/frankfurter-api'
+import { httpRequester } from '../http-requester/server-http-requester'
 
 const apiUrl = 'https://api.frankfurter.dev'
 const urlFor = (endpoint: string) => apiUrl + endpoint

@@ -1,38 +1,40 @@
-import { useEffect, useRef, useState } from 'react'
-import useSWR from 'swr'
-import { toast } from 'sonner'
 import { Loader2Icon, PlusIcon, RefreshCwIcon } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import useSWR from 'swr'
+
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+
+import type {
+   AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioOverviewResponse,
+   PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary, PortfolioSupertrendResponse
+} from '../../../types/api'
+import type { Sort } from '../../../types/kraken'
+import { asLocalTimestamp, asLongDate, asUtcTimestamp } from '../../../utils/format'
 import useMutation from '../../lib/use-mutation'
 import usePersistentState from '../../lib/use-persistent-state'
 import { useProvider } from '../../lib/use-settings'
 import CredentialsAlert from '../lib/credentials-alert'
 import LoadingSpinner from '../lib/loading-spinner'
 import TimeAgo from '../lib/time-ago'
+import type { ExchangeLayout, ExchangeVenue } from '../lib/venue-tabs'
 import VenueTabs, { useVenue } from '../lib/venue-tabs'
 import AccountSummary from './account-summary'
 import AdjustDialog from './adjust-dialog'
 import ArchiveDialog from './archive-dialog'
+import type { ChartPair } from './chart-dialog'
 import ChartDialog from './chart-dialog'
 import DepositDialog from './deposit-dialog'
+import { asQuantity, asQuoteAmount } from './format'
 import HistoryDialog from './history-dialog'
+import type { PlanTarget } from './plan-dialog'
 import PlanDialog from './plan-dialog'
 import PortfolioCard from './portfolio-card'
 import PortfolioEditorDialog from './portfolio-editor-dialog'
 import RunProgress from './run-progress'
 import WithdrawDialog from './withdraw-dialog'
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { asLocalTimestamp, asLongDate, asUtcTimestamp } from '../../../utils/format'
-import type { ExchangeLayout, ExchangeVenue } from '../lib/venue-tabs'
-import type { ChartPair } from './chart-dialog'
-import type { PlanTarget } from './plan-dialog'
-import { asQuantity, asQuoteAmount } from './format'
-import type {
-   AccountCoin, PortfolioArchiveRequest, PortfolioArchiveResponse, PortfolioOverviewResponse,
-   PortfolioStopAckRequest, PortfolioStopAckResponse, PortfolioSummary, PortfolioSupertrendResponse
-} from '../../../types/api'
-import type { Sort } from '../../../types/kraken'
 
 export interface PortfolioVenue extends ExchangeVenue {
    quoteAsset: string
@@ -88,7 +90,9 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
    const fetchedFor = useRef<string | null>(null)
 
    useEffect(() => {
-      if (!configured || fetchedFor.current === venue) return
+      if (!configured || fetchedFor.current === venue) {
+         return
+      }
       fetchedFor.current = venue
       reset()
       loadOverview()
@@ -101,8 +105,7 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
       try {
          await acknowledgeStop({ orderLinkId })
          refresh()
-      }
-      catch (reason) {
+      } catch (reason) {
          toast.error(typeof reason === 'string' ? reason : 'The stop could not be dismissed.')
       }
    }
@@ -352,14 +355,15 @@ export default function PortfoliosPage({ layout: Layout, storageKey, venues }: P
             isArchiving={isArchiving}
             onOpenChange={() => setArchiving(null)}
             onConfirm={async () => {
-               if (!archiving) return
+               if (!archiving) {
+                  return
+               }
                try {
                   await archive({ portfolioId: archiving.id })
                   toast.success(`${archiving.name} archived.`)
                   setArchiving(null)
                   refresh()
-               }
-               catch (reason) {
+               } catch (reason) {
                   toast.error(typeof reason === 'string' ? reason : 'The portfolio could not be archived.')
                }
             }} />

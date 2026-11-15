@@ -1,12 +1,13 @@
 import { Hono } from 'hono'
+
+import type { XStockRow } from '../../types/api'
+import type { TokenizedListing, TokenizedVolume } from '../../types/kraken'
 import KrakenAPI from '../adapters/kraken-api/adapter'
 import XStockRepository from '../db/xstock-repository'
-import { handleError, withCredentials } from './with-account'
-import { backedProduct, isSeeded, seededListing } from '../services/xstock-reference'
-import { currentJob, requestCancel, startClassify, startDescribe } from '../services/xstock-ai-job'
 import { messageOf } from '../errors'
-import type { TokenizedListing, TokenizedVolume } from '../../types/kraken'
-import type { XStockRow } from '../../types/api'
+import { currentJob, requestCancel, startClassify, startDescribe } from '../services/xstock-ai-job'
+import { backedProduct, isSeeded, seededListing } from '../services/xstock-reference'
+import { handleError, withCredentials } from './with-account'
 
 const app = new Hono()
 
@@ -17,14 +18,17 @@ const VOLUME_TTL_MS = 60 * 1000
 let volumeCache: { at: number, volumes: Map<string, TokenizedVolume> } = { at: 0, volumes: new Map() }
 
 async function tokenizedVolumes(krakenAPI: KrakenAPI) {
-   if (Date.now() - volumeCache.at < VOLUME_TTL_MS) return volumeCache.volumes
+   if (Date.now() - volumeCache.at < VOLUME_TTL_MS) {
+      return volumeCache.volumes
+   }
 
    try {
       const volumes = await krakenAPI.fetchTokenizedVolumes()
-      if (volumes.size > 0) volumeCache = { at: Date.now(), volumes }
+      if (volumes.size > 0) {
+         volumeCache = { at: Date.now(), volumes }
+      }
       return volumes
-   }
-   catch (error) {
+   } catch (error) {
       console.log('Could not read tokenized 24h volumes:', messageOf(error))
       return volumeCache.volumes
    }
@@ -84,8 +88,7 @@ app.post('/listings', async (c) => {
       })
 
       return c.json({ wordCount, listings: rows })
-   }
-   catch (error) {
+   } catch (error) {
       return handleError(c, error)
    }
 })
@@ -99,7 +102,9 @@ app.post('/classify', async (c) => withCredentials(c, 'anthropic', async ({ body
    const listings = (await requestedListings(body.tickers as string[] ?? []))
       .filter(listing => !isSeeded(listing.ticker))
 
-   if (listings.length === 0) return c.json({ job: currentJob(), alreadyRunning: false })
+   if (listings.length === 0) {
+      return c.json({ job: currentJob(), alreadyRunning: false })
+   }
 
    return c.json(startClassify({ credentials, listings }))
 }, { secret: false }))
@@ -109,7 +114,9 @@ app.post('/describe', async (c) => withCredentials(c, 'anthropic', async ({ body
    const wordCount = asWordCount(body.wordCount)
    const listings = await requestedListings(body.tickers as string[] ?? [])
 
-   if (listings.length === 0) return c.json({ job: currentJob(), alreadyRunning: false })
+   if (listings.length === 0) {
+      return c.json({ job: currentJob(), alreadyRunning: false })
+   }
 
    return c.json(startDescribe({
       credentials,

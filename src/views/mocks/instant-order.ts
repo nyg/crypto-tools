@@ -1,4 +1,3 @@
-import { markets, prices, stateOf } from './portfolio'
 import type {
    InstantOrder, InstantOrderAccountResponse, InstantOrderActionRequest, InstantOrderActionResponse,
    InstantOrderBookResponse, InstantOrderFollowRequest, InstantOrderMarketsResponse, InstantOrderPlaceRequest,
@@ -6,6 +5,7 @@ import type {
    InstantOrderSymbolRequest
 } from '../../types/api'
 import type { VenueId } from '../../types/portfolio'
+import { markets, prices, stateOf } from './portfolio'
 
 const TICK = 0.01
 const FILLS_AFTER_MS = 30_000
@@ -93,12 +93,16 @@ const boundOf = (side: 'buy' | 'sell', price: number, percent: string) =>
    ticks(price * (1 + (side === 'buy' ? 1 : -1) * Number(percent) / 100))
 
 function follow(entry: MockOrder): void {
-   if (!entry.following) return
+   if (!entry.following) {
+      return
+   }
    const desired = makerPriceOf(entry.venue, entry.order.symbol, entry.order.side)
    const capped = entry.bound === null ? desired
       : entry.order.side === 'buy' ? Math.min(desired, entry.bound) : Math.max(desired, entry.bound)
    const behind = entry.order.side === 'buy' ? capped > entry.price : capped < entry.price
-   if (!behind) return
+   if (!behind) {
+      return
+   }
    entry.price = capped
    entry.moves++
 }
@@ -112,7 +116,9 @@ function stateOfOrder(clientOrderId: string): InstantOrderState {
    const filled = Number(order.quantity) * (share < 0.4 ? 0 : share)
    const status = share >= 1 ? 'filled' : cancelledAt ? filled > 0 ? 'partial' : 'cancelled' : 'open'
    const fee = filled * entry.price * Number(MAKER_FEE)
-   if (status !== 'open') entry.following = false
+   if (status !== 'open') {
+      entry.following = false
+   }
 
    return {
       current: { symbol: order.symbol, clientOrderId: order.id, orderId: `mock-${order.id}` },
@@ -131,12 +137,16 @@ function stateOfOrder(clientOrderId: string): InstantOrderState {
 
 function place(venue: VenueId, request?: InstantOrderPlaceRequest): InstantOrderPlaceResponse | Promise<never> {
    const market = marketOf(venue, request?.symbol)
-   if (!market || !request) return Promise.reject('No such market.')
+   if (!market || !request) {
+      return Promise.reject('No such market.')
+   }
 
    const price = makerPriceOf(venue, market.symbol, request.side)
    const amount = Number(request.amount)
    const quantity = Math.floor((request.unit === 'base' ? amount : amount / price) * 1e6) / 1e6
-   if (quantity * price < 5) return Promise.reject(`Below the ${market.symbol} minimum of 0.000001 ${market.base} and 5 ${market.quote}.`)
+   if (quantity * price < 5) {
+      return Promise.reject(`Below the ${market.symbol} minimum of 0.000001 ${market.base} and 5 ${market.quote}.`)
+   }
 
    const order: InstantOrder = {
       id: `io${Date.now().toString(36)}`, symbol: market.symbol, base: market.base, quote: market.quote,
@@ -163,8 +173,12 @@ function status(request?: InstantOrderStatusRequest): InstantOrderStatusResponse
 
 function action(request: InstantOrderActionRequest | undefined, change: (entry: MockOrder) => void): InstantOrderActionResponse | Promise<never> {
    const entry = known(request)
-   if (!entry) return Promise.reject('The mock forgot this order when the page reloaded.')
-   if (stateOfOrder(entry.order.id).status === 'open') change(entry)
+   if (!entry) {
+      return Promise.reject('The mock forgot this order when the page reloaded.')
+   }
+   if (stateOfOrder(entry.order.id).status === 'open') {
+      change(entry)
+   }
    return { state: stateOfOrder(entry.order.id) }
 }
 

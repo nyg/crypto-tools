@@ -1,8 +1,9 @@
-import TradingViewChart from '../tools/tradingview-chart'
-import Checkbox from '../lib/checkbox'
-import usePersistentState from '../../lib/use-persistent-state'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
+import usePersistentState from '../../lib/use-persistent-state'
+import Checkbox from '../lib/checkbox'
+import TradingViewChart from '../tools/tradingview-chart'
 
 const SUPERTREND = ['STD;Supertrend']
 const NO_STUDIES: string[] = []

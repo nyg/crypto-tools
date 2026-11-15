@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { isComplete, planDataMigration, productionInUse } from './data-migration-plan'
+
 import type { MigrationProgress, ProfileState } from './data-migration-plan'
+import { isComplete, planDataMigration, productionInUse } from './data-migration-plan'
 
 const KRAKEN_KEYS = ['kraken-api-key', 'kraken-api-secret']
 

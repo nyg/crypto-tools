@@ -1,9 +1,11 @@
 import { Loader2Icon } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from '@/components/ui/card'
-import Field from '../lib/field'
-import { asDollarAmount, asNumber, asLongDate } from '../../../utils/format'
+
+import { Card, CardAction, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+
 import type { RewardSummary } from '../../../types/api'
 import type { UsdRates } from '../../../types/kraken'
+import { asDollarAmount, asLongDate,asNumber } from '../../../utils/format'
+import Field from '../lib/field'
 
 
 export default function RewardSummaryCard({ rewards, rates, isLoading, isLoadingRates }: {

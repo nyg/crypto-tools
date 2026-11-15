@@ -1,17 +1,19 @@
 import { useState } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import AlignedDecimal from '../lib/aligned-decimal'
-import SortableHead from '../lib/sortable-head'
-import { asCount } from '../lib/filter-options'
 import { fundingTotals } from '@/lib/funding'
-import { numericKey, sortRows } from '@/lib/sort'
-import { asNumericTimestamp, asUtcTimestamp, fractionDigits } from '../../../utils/format'
 import type { SortKeys } from '@/lib/sort'
+import { numericKey, sortRows } from '@/lib/sort'
+
 import type { FundingMovement } from '../../../types/api'
 import type { FundingKind } from '../../../types/funding'
 import type { Sort } from '../../../types/kraken'
+import { asNumericTimestamp, asUtcTimestamp, fractionDigits } from '../../../utils/format'
+import AlignedDecimal from '../lib/aligned-decimal'
+import { asCount } from '../lib/filter-options'
+import SortableHead from '../lib/sortable-head'
 
 const sortKeys: SortKeys<FundingMovement> = {
    time: movement => movement.time,

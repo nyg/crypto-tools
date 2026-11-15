@@ -1,6 +1,6 @@
 import KrakenLayout from '../../components/kraken/kraken-layout'
-import PortfoliosPage from '../../components/portfolio/portfolios-page'
 import { krakenVenue } from '../../components/kraken/venues'
+import PortfoliosPage from '../../components/portfolio/portfolios-page'
 
 export default function KrakenPortfolios() {
    return (

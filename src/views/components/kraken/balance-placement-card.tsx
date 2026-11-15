@@ -1,9 +1,10 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import Donut from './donut'
-import { migrationOf } from './asset-migrations'
-import { placementColor, placementLabel, placementOf } from './placement'
-import type { Slice } from './donut'
+import { Card, CardContent,CardHeader, CardTitle } from '@/components/ui/card'
+
 import type { LiveBalance, UsdRates } from '../../../types/kraken'
+import { migrationOf } from './asset-migrations'
+import type { Slice } from './donut'
+import Donut from './donut'
+import { placementColor, placementLabel, placementOf } from './placement'
 
 // A ring segment plus how many positions it stands for, which the card counts but the
 // chart has no use for.

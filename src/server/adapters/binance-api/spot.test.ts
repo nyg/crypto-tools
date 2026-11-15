@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test'
+
+import type { BinanceOrder, BinanceSymbol } from '../../../types/binance-api'
 import { HttpRequesterError } from '../../errors'
 import {
    binanceError, hasBinanceCode, openStops, settlementOf, spotAccount, spotMarkets, spotPrices, spotWallet, tradeFees
 } from './spot'
-import type { BinanceOrder, BinanceSymbol } from '../../../types/binance-api'
 
 const btcusdt: BinanceSymbol = {
    symbol: 'BTCUSDT', baseAsset: 'BTC', quoteAsset: 'USDT', baseAssetPrecision: 8, quoteAssetPrecision: 8,

@@ -1,8 +1,9 @@
 import { Database } from 'bun:sqlite'
-import { resolveDbPath } from './paths'
+
+import type { UserVersionRow, ValueRow } from '../../types/db'
 import { digitTickers, normalizeAsset, renamedAssets } from '../adapters/kraken-api/assets'
 import { resolvePair } from '../adapters/kraken-api/pairs'
-import type { UserVersionRow, ValueRow } from '../../types/db'
+import { resolveDbPath } from './paths'
 
 type Migration = (db: Database) => void
 
@@ -21,10 +22,11 @@ export function resolveUnresolvedTradePairs(db: Database): void {
    try {
       for (const { value: pair } of unresolved) {
          const { baseAsset, quoteAsset, pairKey } = resolvePair(pair, undefined)
-         if (baseAsset) update.run(baseAsset, quoteAsset, pairKey, pair)
+         if (baseAsset) {
+            update.run(baseAsset, quoteAsset, pairKey, pair)
+         }
       }
-   }
-   finally {
+   } finally {
       update.finalize()
    }
 }
@@ -55,8 +57,7 @@ export function nameTradesAsTraded(db: Database): void {
          const { baseAsset, quoteAsset, pairKey } = resolvePair(pair, undefined)
          update.run(pairKey, pair, baseAsset, quoteAsset)
       }
-   }
-   finally {
+   } finally {
       update.finalize()
    }
 }
@@ -74,8 +75,7 @@ export function keepTickerDigits(db: Database): void {
          const baseAsset = normalizeAsset(ticker)
          update.run(baseAsset, `${ticker}.%`, baseAsset)
       }
-   }
-   finally {
+   } finally {
       update.finalize()
    }
 }
@@ -388,7 +388,9 @@ const migrations: Migration[] = [
 
 function migrate(db: Database) {
    const { user_version: version } = db.query<UserVersionRow, []>('PRAGMA user_version').get()!
-   if (version >= migrations.length) return
+   if (version >= migrations.length) {
+      return
+   }
 
    db.transaction(() => {
       for (const [index, migration] of migrations.slice(version).entries()) {
@@ -402,7 +404,9 @@ function migrate(db: Database) {
 
 // Opened lazily so that importing a route never creates a database file.
 export function getDatabase(): Database {
-   if (database) return database
+   if (database) {
+      return database
+   }
 
    const dbPath = resolveDbPath()
    console.log('Opening ledger database:', dbPath)

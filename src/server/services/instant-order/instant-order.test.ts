@@ -1,7 +1,8 @@
-import { describe, expect, test } from 'bun:test'
 import Big from 'big.js'
-import { addFill, closedStatus, feeAssetOf, fillOf, maxAmount, noFill, sizeInstantOrder, sizeRest, summaryOf, wireFill } from './instant-order'
+import { describe, expect, test } from 'bun:test'
+
 import type { PlanMarket } from '../portfolio/planner'
+import { addFill, closedStatus, feeAssetOf, fillOf, maxAmount, noFill, sizeInstantOrder, sizeRest, summaryOf, wireFill } from './instant-order'
 
 const btc = (bid: string, ask: string, overrides: Partial<Record<keyof PlanMarket, string>> = {}): PlanMarket => {
    const values = { baseStep: '0.0001', quoteStep: '0.01', tickStep: '0.1', minQty: '0.0001', minAmount: '5', maxQty: '100', maxAmount: '0', ...overrides }

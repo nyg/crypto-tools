@@ -1,11 +1,12 @@
 import type { Context } from 'hono'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
-import { venues } from '../services/portfolio/venues'
-import { withCredentials } from './with-account'
-import type { RequestBody } from './with-account'
+
+import type { VenueId } from '../../types/portfolio'
 import type { PortfolioExchange } from '../services/portfolio/exchange'
 import type { Venue } from '../services/portfolio/venues'
-import type { VenueId } from '../../types/portfolio'
+import { venues } from '../services/portfolio/venues'
+import type { RequestBody } from './with-account'
+import { withCredentials } from './with-account'
 
 export interface Refusal {
    status: ContentfulStatusCode
@@ -25,10 +26,11 @@ export default function venueHandler<S>(
       withCredentials(c, venue.provider, async ({ body, credentials }) => {
          try {
             return c.json(await action(create(venue, venue.exchange(credentials)), body))
-         }
-         catch (error) {
+         } catch (error) {
             const refusal = refusalOf(error)
-            if (refusal) return c.json({ error: refusal.message }, refusal.status)
+            if (refusal) {
+               return c.json({ error: refusal.message }, refusal.status)
+            }
             throw error
          }
       })

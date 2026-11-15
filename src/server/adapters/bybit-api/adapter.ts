@@ -1,19 +1,20 @@
 import Big from 'big.js'
-import {
-   cancelOrder, createOrder, fetchApiKeyInfo, fetchDepositRecords, fetchExecutions, fetchInternalDepositRecords,
-   fetchOpenStopOrders, fetchOrderByLinkId, fetchSpotFeeRates, fetchSpotInstruments, fetchSpotKlines,
-   fetchSpotTickers, fetchUnifiedWallet, fetchWithdrawRecords
-} from './resource'
-import { candlesFromKlines } from './klines'
-import { depositRecord, internalDepositRecord, withdrawalRecord } from './funding'
-import { HttpRequesterError } from '../../errors'
-import type { Credentials } from '../../../types/credentials'
+
 import type { BybitEnvironment, BybitKlineInterval, BybitOrder, BybitOrderFilter } from '../../../types/bybit-api'
+import type { Credentials } from '../../../types/credentials'
 import type { FundingRecord, FundingWindow } from '../../../types/funding'
 import type {
    CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderRequest, OrderSettlement,
    SettlementStatus, SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import { HttpRequesterError } from '../../errors'
+import { depositRecord, internalDepositRecord, withdrawalRecord } from './funding'
+import { candlesFromKlines } from './klines'
+import {
+   cancelOrder, createOrder, fetchApiKeyInfo, fetchDepositRecords, fetchExecutions, fetchInternalDepositRecords,
+   fetchOpenStopOrders, fetchOrderByLinkId, fetchSpotFeeRates, fetchSpotInstruments, fetchSpotKlines,
+   fetchSpotTickers, fetchUnifiedWallet, fetchWithdrawRecords
+} from './resource'
 
 const openStatuses = ['New', 'PartiallyFilled', 'Untriggered', 'Created']
 
@@ -26,14 +27,20 @@ const KLINE_LIMIT = 1000
 const klineIntervals: Record<CandleInterval, BybitKlineInterval> = { '1d': 'D', '1w': 'W' }
 
 function alreadyGone(error: unknown): boolean {
-   if (!(error instanceof HttpRequesterError)) return false
+   if (!(error instanceof HttpRequesterError)) {
+      return false
+   }
    const body = error.body as { retCode?: number } | undefined
    return goneCodes.includes(body?.retCode ?? -1)
 }
 
 function settlementStatus({ orderStatus, cumExecQty }: BybitOrder): SettlementStatus {
-   if (openStatuses.includes(orderStatus)) return 'open'
-   if (orderStatus === 'Filled') return 'filled'
+   if (openStatuses.includes(orderStatus)) {
+      return 'open'
+   }
+   if (orderStatus === 'Filled') {
+      return 'filled'
+   }
    return Big(cumExecQty || 0).gt(0) ? 'partial' : 'rejected'
 }
 
@@ -51,7 +58,9 @@ export default class BybitAPI {
    }
 
    get #authenticated(): Credentials {
-      if (!this.#credentials) throw new Error('This Bybit call needs API credentials.')
+      if (!this.#credentials) {
+         throw new Error('This Bybit call needs API credentials.')
+      }
       return this.#credentials
    }
 
@@ -98,11 +107,15 @@ export default class BybitAPI {
       const rates = new Map(listed.map(rate => [rate.symbol, rate]))
       for (const symbol of symbols.filter(symbol => !rates.has(symbol))) {
          const [entry] = await fetchSpotFeeRates(this.#environment, this.#authenticated, symbol)
-         if (entry?.symbol === symbol) rates.set(symbol, entry)
+         if (entry?.symbol === symbol) {
+            rates.set(symbol, entry)
+         }
       }
       return Object.fromEntries(symbols.flatMap(symbol => {
          const rate = rates.get(symbol)
-         if (!rate?.takerFeeRate) return []
+         if (!rate?.takerFeeRate) {
+            return []
+         }
          const maker = rate.makerFeeRate || rate.takerFeeRate
          return [[symbol, {
             taker: { buy: rate.takerFeeRate, sell: rate.takerFeeRate },
@@ -193,9 +206,10 @@ export default class BybitAPI {
             orderFilter,
             orderLinkId: clientOrderId
          })
-      }
-      catch (error) {
-         if (!alreadyGone(error)) throw error
+      } catch (error) {
+         if (!alreadyGone(error)) {
+            throw error
+         }
       }
    }
 
@@ -213,7 +227,9 @@ export default class BybitAPI {
    async fetchSettlement(clientOrderId: string): Promise<OrderSettlement | null> {
 
       const order = await fetchOrderByLinkId(this.#environment, this.#authenticated, clientOrderId)
-      if (!order) return null
+      if (!order) {
+         return null
+      }
 
       const status = settlementStatus(order)
       const executed = Big(order.cumExecQty || 0).gt(0)
@@ -233,11 +249,15 @@ export default class BybitAPI {
    async #feesOf(order: BybitOrder): Promise<Record<string, string>> {
 
       const detailed = nonZero(order.cumFeeDetail ?? {})
-      if (Object.keys(detailed).length > 0) return detailed
+      if (Object.keys(detailed).length > 0) {
+         return detailed
+      }
 
       const executions = await fetchExecutions(this.#environment, this.#authenticated, order.orderId)
       const fees = executions.reduce<Record<string, Big>>((sum, { execFee, feeCurrency }) => {
-         if (feeCurrency) sum[feeCurrency] = (sum[feeCurrency] ?? Big(0)).plus(execFee || 0)
+         if (feeCurrency) {
+            sum[feeCurrency] = (sum[feeCurrency] ?? Big(0)).plus(execFee || 0)
+         }
          return sum
       }, {})
 
