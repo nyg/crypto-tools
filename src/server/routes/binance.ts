@@ -92,9 +92,9 @@ app.post('/aggregate-balance', async (c) => withCredentials(c, 'binance', async 
 
    // Sort by fiat value of free amount, assets with no staking products at the bottom
    aggregateBalance.sort((a, b) => {
-      if (a.staking.products.length == 0 && b.staking.products.length != 0) {
+      if (a.staking.products.length === 0 && b.staking.products.length !== 0) {
          return 1
-      } else if (a.staking.products.length != 0 && b.staking.products.length == 0) {
+      } else if (a.staking.products.length !== 0 && b.staking.products.length === 0) {
          return -1
       } else {
          return b.freeFiatValue.minus(a.freeFiatValue).toNumber()

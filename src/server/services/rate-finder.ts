@@ -71,7 +71,7 @@ export default class RateFinder {
    #tradingPairsFrom(path: string[]): string[] {
       return path.reduce<string[]>((pairs, quote, index) => {
 
-         if (index != 0) {
+         if (index !== 0) {
             pairs.push(`${path[index - 1]}${quote}`)
          }
 

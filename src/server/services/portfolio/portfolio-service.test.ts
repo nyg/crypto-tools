@@ -8,9 +8,11 @@ import type {
    CandleInterval, ExchangeAccount, LimitOrderRequest, OpenStopOrder, OrderLookup, OrderRequest, OrderSettlement,
    OrderSide, SpotCandle, SpotMarket, SpotPrice, StopOrderRequest, TradeFees, WalletCoin
 } from '../../../types/portfolio'
+import type PortfolioRepositoryType from '../../db/portfolio-repository'
 import { HttpRequesterError } from '../../errors'
 import type { PortfolioExchange } from './exchange'
 import type PortfolioServiceType from './portfolio-service'
+import type { PortfolioError as PortfolioErrorType } from './portfolio-service'
 import type { Venue } from './venues'
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-tools-portfolio-'))
@@ -282,8 +284,8 @@ class FakeExchange implements PortfolioExchange {
 }
 
 let PortfolioService: typeof PortfolioServiceType
-let PortfolioError: typeof import('./portfolio-service').PortfolioError
-let PortfolioRepository: typeof import('../../db/portfolio-repository').default
+let PortfolioError: typeof PortfolioErrorType
+let PortfolioRepository: typeof PortfolioRepositoryType
 
 const exchange = new FakeExchange()
 const venue: Venue = {
