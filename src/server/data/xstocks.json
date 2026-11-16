@@ -1,5 +1,5 @@
 {
-   "generatedAt": "2026-10-26",
+   "generatedAt": "2026-11-16",
    "source": "stockanalysis.com, nasdaqtrader.com",
    "listings": {
       "A": {
@@ -638,6 +638,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "BBVA": {
+         "name": "Banco Bilbao Vizcaya Argentaria S.A.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "BBWI": {
          "name": "Bath & Body Works, Inc.",
          "exchange": "",
@@ -778,6 +784,12 @@
       },
       "BOT": {
          "name": "Robostrategy, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "BP": {
+         "name": "BP p.l.c.",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -2024,6 +2036,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "EXPN": {
+         "name": "Horizon Expansion Leaders ETF",
+         "exchange": "",
+         "type": "etf",
+         "subtype": ""
+      },
       "EXR": {
          "name": "Extra Space Storage Inc",
          "exchange": "",
@@ -2516,6 +2534,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "GSK": {
+         "name": "GSK plc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "GTES": {
          "name": "Gates Industrial Corporation Ltd.",
          "exchange": "",
@@ -2632,6 +2656,12 @@
       },
       "HLI": {
          "name": "Houlihan Lokey, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "HLN": {
+         "name": "Haleon plc",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -3722,6 +3752,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "MT": {
+         "name": "Arcelor Mittal NY Registry Shares NEW",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "MTB": {
          "name": "M&T Bank Corporation",
          "exchange": "",
@@ -4784,6 +4820,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "RTO": {
+         "name": "Rentokil Initial plc",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "RTX": {
          "name": "RTX Corporation",
          "exchange": "",
@@ -4840,6 +4882,12 @@
       },
       "SANM": {
          "name": "Sanmina Corporation",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SAP": {
+         "name": "SAP  SE ADS",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -4948,6 +4996,12 @@
       },
       "SHC": {
          "name": "Sotera Health Company",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "SHEL": {
+         "name": "Shell PLC",
          "exchange": "",
          "type": "stock",
          "subtype": ""
@@ -5498,6 +5552,12 @@
          "type": "stock",
          "subtype": ""
       },
+      "TTE": {
+         "name": "TotalEnergies SE",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
       "TTEK": {
          "name": "Tetra Tech, Inc.",
          "exchange": "",
@@ -6028,6 +6088,12 @@
       },
       "WPC": {
          "name": "W. P. Carey Inc. REIT",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "WPP": {
+         "name": "WPP plc",
          "exchange": "",
          "type": "stock",
          "subtype": ""
