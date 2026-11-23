@@ -1,5 +1,5 @@
 {
-   "generatedAt": "2026-11-16",
+   "generatedAt": "2026-11-23",
    "source": "stockanalysis.com, nasdaqtrader.com",
    "listings": {
       "A": {
@@ -364,6 +364,12 @@
       },
       "ANET": {
          "name": "Arista Networks, Inc.",
+         "exchange": "",
+         "type": "stock",
+         "subtype": ""
+      },
+      "ANT": {
+         "name": "Anthropic, PBC",
          "exchange": "",
          "type": "stock",
          "subtype": ""

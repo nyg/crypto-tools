@@ -1,5 +1,5 @@
 {
-   "generatedAt": "2026-11-16",
+   "generatedAt": "2026-11-23",
    "source": "api.xstocks.fi, assets.backed.fi, documents.backed.fi",
    "products": {
       "A5G": {
@@ -457,6 +457,12 @@
          "isin": "CH1588658901",
          "underlyingIsin": "GB0000456144",
          "slug": "antofagasta-xstock"
+      },
+      "ANT": {
+         "symbol": "ANTx",
+         "isin": "CH1588667217",
+         "underlyingIsin": "US03703U1079",
+         "slug": "anthropic-xstock"
       },
       "AN": {
          "symbol": "ANx",
